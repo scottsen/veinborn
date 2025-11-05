@@ -107,46 +107,44 @@ Q: Quit
 
 ## Documentation
 
-### 🎯 Essential Reading
+### 🗺️ Documentation Map
+
+👉 **[Complete Documentation Index](docs/INDEX.md)** - Find any document quickly!
+
+### 🎯 Essential Reading (5-30 minutes)
 
 | Document | Time | Purpose |
 |----------|------|---------|
-| [`START_HERE.md`](docs/START_HERE.md) | 15 min | New developer onboarding |
-| [`MVP_ROADMAP.md`](docs/MVP_ROADMAP.md) | 20 min | What to build next |
-| [`BROGUE_CONSOLIDATED_DESIGN.md`](docs/BROGUE_CONSOLIDATED_DESIGN.md) | 1 hour | Master game design |
+| [`docs/START_HERE.md`](docs/START_HERE.md) | 15 min | New developer onboarding |
+| [`docs/PROJECT_STATUS.md`](docs/PROJECT_STATUS.md) | 10 min | Comprehensive status report (100% accurate) |
+| [`docs/MVP_CURRENT_FOCUS.md`](docs/MVP_CURRENT_FOCUS.md) | 5 min | What to build right now |
+| [`docs/BROGUE_CONSOLIDATED_DESIGN.md`](docs/BROGUE_CONSOLIDATED_DESIGN.md)` | 30 min | Master game design vision |
 
-### 📚 All Documentation
+### 📚 Quick Links
 
-**Core Documentation:**
-- [`docs/START_HERE.md`](docs/START_HERE.md) - New developer guide
-- [`docs/MVP_ROADMAP.md`](docs/MVP_ROADMAP.md) - Implementation roadmap
+**Getting Started:**
+- [`docs/START_HERE.md`](docs/START_HERE.md) - Developer guide
+- [`docs/QUICK_REFERENCE.md`](docs/QUICK_REFERENCE.md) - Commands, files, common tasks
+
+**Current Work:**
+- [`docs/PROJECT_STATUS.md`](docs/PROJECT_STATUS.md) - Comprehensive status (100% accurate!)
+- [`docs/MVP_CURRENT_FOCUS.md`](docs/MVP_CURRENT_FOCUS.md) - Current priorities
+- [`docs/MVP_ROADMAP.md`](docs/MVP_ROADMAP.md) - High-level roadmap
+
+**Game Design:**
 - [`docs/BROGUE_CONSOLIDATED_DESIGN.md`](docs/BROGUE_CONSOLIDATED_DESIGN.md) - Master design
+- [`docs/MECHANICS_REFERENCE.md`](docs/MECHANICS_REFERENCE.md) - Detailed mechanics
 
-**System Documentation:**
-- [`docs/systems/COMBAT_SYSTEM.md`](docs/systems/COMBAT_SYSTEM.md) - Turn-based combat
-- [`docs/UI_FRAMEWORK.md`](docs/UI_FRAMEWORK.md) - Why Textual framework
+**Development:**
+- [`docs/development/`](docs/development/) - Testing, debugging guides
+- [`docs/architecture/`](docs/architecture/) - Technical architecture
+- [`docs/CONTENT_CREATION.md`](docs/CONTENT_CREATION.md) - Add monsters/items/recipes
 
-**Development Guides:**
-- [`docs/development/`](docs/development/) - Testing, debugging, and development workflows
-- [`docs/development/DEBUG_INSTRUCTIONS.md`](docs/development/DEBUG_INSTRUCTIONS.md) - How to debug
-- [`docs/development/TESTING_ACTION_FACTORY.md`](docs/development/TESTING_ACTION_FACTORY.md) - Testing guide
-- [`docs/development/CODE_REVIEW_STANDARDS.md`](docs/development/CODE_REVIEW_STANDARDS.md) - Code quality standards
+**Future Plans:**
+- [`docs/future-multiplayer/`](docs/future-multiplayer/) - Phase 2 multiplayer design (not current!)
 
-**Architecture & Technical Design:**
-- [`docs/architecture/`](docs/architecture/) - Architecture docs, analysis, and technical patterns
-- [`docs/architecture/README.md`](docs/architecture/README.md) - Architecture navigation
-- [`docs/architecture/ARCHITECTURAL_ANALYSIS.md`](docs/architecture/ARCHITECTURAL_ANALYSIS.md) - System analysis
-- [`docs/architecture/ACTION_FACTORY_COMPLETE.md`](docs/architecture/ACTION_FACTORY_COMPLETE.md) - Action factory pattern
-
-**Phase 2 Design:**
-- [`docs/future-multiplayer/`](docs/future-multiplayer/) - Multiplayer design docs
-- [`docs/future-multiplayer/BROGUE_TURN_SYSTEM.md`](docs/future-multiplayer/BROGUE_TURN_SYSTEM.md) - Brilliant turn allocation
-- [`docs/future-multiplayer/BROGUE_MINING_CRAFTING_DESIGN.md`](docs/future-multiplayer/BROGUE_MINING_CRAFTING_DESIGN.md) - SWG-style mining
-
-**Archive:**
-- [`docs/Archive/`](docs/Archive/) - ❌ Old/conflicting docs (don't read)
-- [`docs/Archive/development-history/`](docs/Archive/development-history/) - Phase completion summaries
-- [`docs/Archive/sessions/`](docs/Archive/sessions/) - Historical session notes
+**Full Index:**
+- [`docs/INDEX.md`](docs/INDEX.md) - **Complete documentation map** 🗺️
 
 ---
 
