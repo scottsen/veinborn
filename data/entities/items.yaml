@@ -1,0 +1,559 @@
+# Item Entity Definitions
+#
+# NetHack-style loot system
+#
+# Design Goals:
+# - Diverse item types (weapons, armor, consumables, etc.)
+# - Interesting choices (not just "better stats")
+# - Mystery and identification (future feature)
+# - Balanced rarity and usefulness
+
+schema_version: 1.0
+
+# =============================================================================
+# WEAPONS - Melee and ranged combat items
+# =============================================================================
+weapons:
+  dagger:
+    name: "dagger"
+    display_name: "Dagger"
+    description: "A small, sharp blade. Quick but weak."
+    symbol: ")"
+    color: "white"
+    item_type: "weapon"
+    stats:
+      attack_bonus: 2
+      defense_bonus: 0
+    tags: ["weapon", "common", "light"]
+    weight: 1
+    value: 10
+
+  short_sword:
+    name: "short_sword"
+    display_name: "Short Sword"
+    description: "A balanced blade. Reliable for combat."
+    symbol: ")"
+    color: "gray"
+    item_type: "weapon"
+    stats:
+      attack_bonus: 3
+      defense_bonus: 0
+    tags: ["weapon", "common"]
+    weight: 2
+    value: 25
+
+  long_sword:
+    name: "long_sword"
+    display_name: "Long Sword"
+    description: "A well-crafted blade. Favored by warriors."
+    symbol: ")"
+    color: "white"
+    item_type: "weapon"
+    stats:
+      attack_bonus: 5
+      defense_bonus: 0
+    tags: ["weapon", "uncommon"]
+    weight: 3
+    value: 50
+
+  mace:
+    name: "mace"
+    display_name: "Mace"
+    description: "A heavy bludgeon. Effective against armor."
+    symbol: ")"
+    color: "brown"
+    item_type: "weapon"
+    stats:
+      attack_bonus: 4
+      defense_bonus: 1
+    tags: ["weapon", "common", "heavy"]
+    weight: 4
+    value: 30
+
+  battle_axe:
+    name: "battle_axe"
+    display_name: "Battle Axe"
+    description: "A massive cleaving weapon. High damage, slow swing."
+    symbol: ")"
+    color: "gray"
+    item_type: "weapon"
+    stats:
+      attack_bonus: 6
+      defense_bonus: -1
+    tags: ["weapon", "uncommon", "heavy", "two-handed"]
+    weight: 5
+    value: 75
+
+  bow:
+    name: "bow"
+    display_name: "Bow"
+    description: "A ranged weapon. Allows attacking from distance."
+    symbol: ")"
+    color: "brown"
+    item_type: "weapon"
+    stats:
+      attack_bonus: 4
+      defense_bonus: 0
+      range: 5
+    tags: ["weapon", "uncommon", "ranged", "two-handed"]
+    weight: 2
+    value: 60
+    notes: "Ranged combat not yet implemented"
+
+  spear:
+    name: "spear"
+    display_name: "Spear"
+    description: "A versatile polearm. Can be thrown or used in melee."
+    symbol: ")"
+    color: "gray"
+    item_type: "weapon"
+    stats:
+      attack_bonus: 4
+      defense_bonus: 1
+      range: 2
+    tags: ["weapon", "uncommon", "versatile"]
+    weight: 3
+    value: 45
+
+# =============================================================================
+# ARMOR - Defensive equipment
+# =============================================================================
+armor:
+  leather_armor:
+    name: "leather_armor"
+    display_name: "Leather Armor"
+    description: "Light armor made from tanned hide."
+    symbol: "["
+    color: "brown"
+    item_type: "armor"
+    stats:
+      attack_bonus: 0
+      defense_bonus: 2
+    tags: ["armor", "common", "light"]
+    weight: 3
+    value: 20
+
+  chainmail:
+    name: "chainmail"
+    display_name: "Chainmail"
+    description: "Interlocking metal rings. Good protection."
+    symbol: "["
+    color: "gray"
+    item_type: "armor"
+    stats:
+      attack_bonus: 0
+      defense_bonus: 4
+    tags: ["armor", "uncommon", "medium"]
+    weight: 6
+    value: 60
+
+  plate_mail:
+    name: "plate_mail"
+    display_name: "Plate Mail"
+    description: "Heavy plates of forged steel. Excellent protection."
+    symbol: "["
+    color: "white"
+    item_type: "armor"
+    stats:
+      attack_bonus: 0
+      defense_bonus: 6
+    tags: ["armor", "rare", "heavy"]
+    weight: 10
+    value: 150
+
+  shield:
+    name: "shield"
+    display_name: "Shield"
+    description: "A sturdy wooden shield reinforced with metal."
+    symbol: "["
+    color: "brown"
+    item_type: "shield"
+    stats:
+      attack_bonus: 0
+      defense_bonus: 2
+    tags: ["shield", "common"]
+    weight: 4
+    value: 25
+
+# =============================================================================
+# POTIONS - Consumable liquids
+# =============================================================================
+potions:
+  potion_healing:
+    name: "potion_healing"
+    display_name: "Potion of Healing"
+    description: "A red liquid that restores health."
+    symbol: "!"
+    color: "red"
+    item_type: "potion"
+    stats:
+      heal_amount: 10
+    tags: ["potion", "consumable", "common", "healing"]
+    weight: 1
+    value: 30
+    effect: "heal"
+
+  potion_extra_healing:
+    name: "potion_extra_healing"
+    display_name: "Potion of Extra Healing"
+    description: "A bright red elixir. Heals major wounds."
+    symbol: "!"
+    color: "bright_red"
+    item_type: "potion"
+    stats:
+      heal_amount: 25
+    tags: ["potion", "consumable", "uncommon", "healing"]
+    weight: 1
+    value: 75
+    effect: "heal"
+
+  potion_full_healing:
+    name: "potion_full_healing"
+    display_name: "Potion of Full Healing"
+    description: "A glowing crimson potion. Restores all health."
+    symbol: "!"
+    color: "bright_red"
+    item_type: "potion"
+    stats:
+      heal_amount: 999  # Full heal
+    tags: ["potion", "consumable", "rare", "healing"]
+    weight: 1
+    value: 150
+    effect: "heal_full"
+
+  potion_strength:
+    name: "potion_strength"
+    display_name: "Potion of Strength"
+    description: "A thick brown liquid. Increases attack power."
+    symbol: "!"
+    color: "brown"
+    item_type: "potion"
+    stats:
+      attack_increase: 2
+      duration: 100  # turns
+    tags: ["potion", "consumable", "uncommon", "buff"]
+    weight: 1
+    value: 60
+    effect: "buff_attack"
+
+  potion_speed:
+    name: "potion_speed"
+    display_name: "Potion of Speed"
+    description: "A clear, fizzing liquid. Grants extra movement."
+    symbol: "!"
+    color: "cyan"
+    item_type: "potion"
+    stats:
+      speed_increase: 2
+      duration: 50  # turns
+    tags: ["potion", "consumable", "uncommon", "buff"]
+    weight: 1
+    value: 70
+    effect: "buff_speed"
+    notes: "Speed mechanics not yet implemented"
+
+  potion_invisibility:
+    name: "potion_invisibility"
+    display_name: "Potion of Invisibility"
+    description: "A transparent potion. Makes you unseen."
+    symbol: "!"
+    color: "white"
+    item_type: "potion"
+    stats:
+      duration: 30  # turns
+    tags: ["potion", "consumable", "rare", "stealth"]
+    weight: 1
+    value: 100
+    effect: "invisibility"
+    notes: "Invisibility mechanics not yet implemented"
+
+# =============================================================================
+# SCROLLS - Magical papers
+# =============================================================================
+scrolls:
+  scroll_identify:
+    name: "scroll_identify"
+    display_name: "Scroll of Identify"
+    description: "Ancient runes reveal the nature of items."
+    symbol: "?"
+    color: "white"
+    item_type: "scroll"
+    tags: ["scroll", "consumable", "uncommon", "utility"]
+    weight: 1
+    value: 40
+    effect: "identify"
+
+  scroll_enchant_weapon:
+    name: "scroll_enchant_weapon"
+    display_name: "Scroll of Enchant Weapon"
+    description: "Magical words that strengthen weapons."
+    symbol: "?"
+    color: "blue"
+    item_type: "scroll"
+    stats:
+      enchant_bonus: 1
+    tags: ["scroll", "consumable", "rare", "enhancement"]
+    weight: 1
+    value: 100
+    effect: "enchant_weapon"
+
+  scroll_enchant_armor:
+    name: "scroll_enchant_armor"
+    display_name: "Scroll of Enchant Armor"
+    description: "Magical words that strengthen armor."
+    symbol: "?"
+    color: "green"
+    item_type: "scroll"
+    stats:
+      enchant_bonus: 1
+    tags: ["scroll", "consumable", "rare", "enhancement"]
+    weight: 1
+    value: 100
+    effect: "enchant_armor"
+
+  scroll_teleport:
+    name: "scroll_teleport"
+    display_name: "Scroll of Teleportation"
+    description: "Arcane symbols that transport you elsewhere."
+    symbol: "?"
+    color: "cyan"
+    item_type: "scroll"
+    tags: ["scroll", "consumable", "uncommon", "utility"]
+    weight: 1
+    value: 50
+    effect: "teleport"
+
+  scroll_mapping:
+    name: "scroll_mapping"
+    display_name: "Scroll of Mapping"
+    description: "Reveals the layout of the current floor."
+    symbol: "?"
+    color: "yellow"
+    item_type: "scroll"
+    tags: ["scroll", "consumable", "uncommon", "utility"]
+    weight: 1
+    value: 60
+    effect: "reveal_map"
+    notes: "Map revelation not yet implemented"
+
+  scroll_lightning:
+    name: "scroll_lightning"
+    display_name: "Scroll of Lightning Bolt"
+    description: "Summons a bolt of lightning to strike foes."
+    symbol: "?"
+    color: "bright_yellow"
+    item_type: "scroll"
+    stats:
+      damage: 15
+      range: 6
+    tags: ["scroll", "consumable", "rare", "combat", "magic"]
+    weight: 1
+    value: 120
+    effect: "lightning_bolt"
+    notes: "Ranged magic not yet implemented"
+
+# =============================================================================
+# FOOD - Sustenance and healing over time
+# =============================================================================
+food:
+  ration:
+    name: "ration"
+    display_name: "Food Ration"
+    description: "Preserved food. Restores energy."
+    symbol: "%"
+    color: "brown"
+    item_type: "food"
+    stats:
+      nutrition: 100
+      heal_amount: 5
+    tags: ["food", "consumable", "common"]
+    weight: 2
+    value: 15
+    effect: "eat"
+
+  bread:
+    name: "bread"
+    display_name: "Loaf of Bread"
+    description: "Fresh bread. Light and filling."
+    symbol: "%"
+    color: "yellow"
+    item_type: "food"
+    stats:
+      nutrition: 50
+      heal_amount: 3
+    tags: ["food", "consumable", "common"]
+    weight: 1
+    value: 5
+    effect: "eat"
+
+  meat:
+    name: "meat"
+    display_name: "Chunk of Meat"
+    description: "Monster meat. Nutritious but suspicious."
+    symbol: "%"
+    color: "red"
+    item_type: "food"
+    stats:
+      nutrition: 150
+      heal_amount: 8
+    tags: ["food", "consumable", "uncommon", "monster_drop"]
+    weight: 2
+    value: 10
+    effect: "eat"
+
+# =============================================================================
+# RINGS - Permanent bonuses when worn
+# =============================================================================
+rings:
+  ring_protection:
+    name: "ring_protection"
+    display_name: "Ring of Protection"
+    description: "A silver ring that wards off harm."
+    symbol: "="
+    color: "silver"
+    item_type: "ring"
+    stats:
+      defense_bonus: 1
+    tags: ["ring", "uncommon", "wearable", "protection"]
+    weight: 1
+    value: 80
+
+  ring_strength:
+    name: "ring_strength"
+    display_name: "Ring of Strength"
+    description: "A gold ring that empowers the wearer."
+    symbol: "="
+    color: "yellow"
+    item_type: "ring"
+    stats:
+      attack_bonus: 1
+    tags: ["ring", "uncommon", "wearable", "combat"]
+    weight: 1
+    value: 80
+
+  ring_regeneration:
+    name: "ring_regeneration"
+    display_name: "Ring of Regeneration"
+    description: "A jade ring that speeds healing."
+    symbol: "="
+    color: "green"
+    item_type: "ring"
+    stats:
+      regen_rate: 1  # HP per turn
+    tags: ["ring", "rare", "wearable", "healing"]
+    weight: 1
+    value: 150
+
+  ring_stealth:
+    name: "ring_stealth"
+    display_name: "Ring of Stealth"
+    description: "A shadow-black ring. Makes you harder to detect."
+    symbol: "="
+    color: "black"
+    item_type: "ring"
+    stats:
+      stealth_bonus: 2
+    tags: ["ring", "uncommon", "wearable", "stealth"]
+    weight: 1
+    value: 90
+    notes: "Stealth mechanics not yet implemented"
+
+# =============================================================================
+# TOOLS - Utility items
+# =============================================================================
+tools:
+  torch:
+    name: "torch"
+    display_name: "Torch"
+    description: "A wooden torch. Provides light in dark places."
+    symbol: "("
+    color: "yellow"
+    item_type: "tool"
+    stats:
+      light_radius: 5
+      duration: 100  # turns
+    tags: ["tool", "utility", "common", "light"]
+    weight: 1
+    value: 10
+    notes: "Lighting mechanics not yet implemented"
+
+  rope:
+    name: "rope"
+    display_name: "Coil of Rope"
+    description: "Sturdy rope. Useful for climbing and descending."
+    symbol: "("
+    color: "brown"
+    item_type: "tool"
+    stats:
+      length: 50  # feet
+    tags: ["tool", "utility", "common", "traversal"]
+    weight: 2
+    value: 15
+    notes: "Climbing mechanics not yet implemented"
+
+  lockpick:
+    name: "lockpick"
+    display_name: "Lockpick Set"
+    description: "Thieves' tools for opening locked doors and chests."
+    symbol: "("
+    color: "gray"
+    item_type: "tool"
+    stats:
+      uses: 10
+    tags: ["tool", "utility", "uncommon", "lockpicking"]
+    weight: 1
+    value: 25
+    notes: "Locked doors/chests not yet implemented"
+
+# =============================================================================
+# GOLD - Currency
+# =============================================================================
+currency:
+  gold_pile_small:
+    name: "gold_pile_small"
+    display_name: "Gold Coins"
+    description: "A small pile of gold coins."
+    symbol: "$"
+    color: "yellow"
+    item_type: "gold"
+    stats:
+      gold_amount: 10
+    tags: ["currency", "common"]
+    weight: 0
+    value: 10
+
+  gold_pile_medium:
+    name: "gold_pile_medium"
+    display_name: "Gold Coins"
+    description: "A medium pile of gold coins."
+    symbol: "$"
+    color: "yellow"
+    item_type: "gold"
+    stats:
+      gold_amount: 25
+    tags: ["currency", "uncommon"]
+    weight: 0
+    value: 25
+
+  gold_pile_large:
+    name: "gold_pile_large"
+    display_name: "Gold Coins"
+    description: "A large pile of gold coins."
+    symbol: "$"
+    color: "yellow"
+    item_type: "gold"
+    stats:
+      gold_amount: 50
+    tags: ["currency", "rare"]
+    weight: 0
+    value: 50
+
+# =============================================================================
+# MODDING SUPPORT
+# =============================================================================
+# To add new items:
+# 1. Choose appropriate category (weapons, armor, potions, etc.)
+# 2. Copy an existing item as template
+# 3. Modify name, stats, description
+# 4. Add to loot tables in loot_tables.yaml
+# 5. Restart game - no code changes needed!

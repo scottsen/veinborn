@@ -1,0 +1,111 @@
+# Ore Vein Spawning Configuration
+#
+# This file defines ore vein generation:
+# - How many ore veins spawn per floor
+# - Which ore types appear at which depths
+# - Quality ranges for each ore tier
+#
+# Design: SWG-style resource hunting
+# - Deeper floors = better ore types
+# - Random quality properties (hardness, conductivity, etc.)
+# - Jackpot spawns (rare, high-quality ore)
+
+# Ore vein counts per floor
+ore_vein_counts:
+  base: 8
+  formula: "8 + (floor - 1)"
+  description: "More ore veins on deeper floors"
+  # Floor 1 = 8 veins, Floor 2 = 9 veins, Floor 10 = 17 veins, etc.
+
+# Ore type distribution by floor depth
+# Higher floors have better ore types
+ore_types:
+  copper:
+    floors: [1, 2, 3]
+    quality_range: [20, 50]
+    description: "Early-game ore, low quality"
+
+  iron:
+    floors: [4, 5, 6]
+    quality_range: [40, 70]
+    description: "Mid-game ore, medium quality"
+
+  mithril:
+    floors: [7, 8, 9, 10]
+    quality_range: [60, 90]
+    description: "Late-game ore, high quality"
+
+  adamantite:
+    floors: [10, 11, 12, 13, 14, 15]
+    quality_range: [80, 100]
+    description: "End-game ore, exceptional quality"
+
+# Ore spawn weights by floor tier
+spawn_weights:
+  floors_1_3:
+    copper: 75
+    iron: 25
+    description: "Mostly copper, some iron"
+
+  floors_4_6:
+    copper: 0
+    iron: 75
+    mithril: 25
+    description: "Mostly iron, some mithril"
+
+  floors_7_plus:
+    iron: 0
+    mithril: 65
+    adamantite: 35
+    description: "Mithril and adamantite"
+
+# Ore properties (0-100 scale)
+# Each ore vein gets random values for these properties
+properties:
+  hardness:
+    description: "Affects weapon damage / armor defense"
+    use: "Warriors want high hardness for melee damage"
+
+  conductivity:
+    description: "Affects magic power / spell efficiency"
+    use: "Mages want high conductivity for spell power"
+
+  malleability:
+    description: "Affects durability / repair ease"
+    use: "General quality of life stat"
+
+  purity:
+    description: "Quality multiplier (affects all stats)"
+    use: "High purity = better overall item"
+    special: "80+ purity ore saved to Legacy Vault on death"
+
+  density:
+    description: "Affects weight / encumbrance"
+    use: "Low density = lighter equipment"
+
+# Mining mechanics
+mining:
+  turns_required:
+    min: 3
+    max: 5
+    description: "Mining takes 3-5 turns, you're vulnerable!"
+
+  risk_reward:
+    description: "Mine now (dangerous) or come back safer?"
+    design_goal: "Create meaningful decisions"
+
+# Jackpot spawns (rare, exceptional ore)
+jackpot_spawns:
+  chance: 0.05  # 5% chance per ore vein
+  quality_boost: 20  # +20 to all properties
+  tier_boost: 2  # Spawn ore 2 tiers higher
+  description: "OMG PERFECT SPAWN moments"
+  example: "Find Mithril on Floor 3 with 95+ hardness"
+
+# Legacy Vault (meta-progression)
+legacy_vault:
+  purity_threshold: 80
+  description: "Ore with 80+ purity survives death"
+  victory_types:
+    pure: "Start with nothing - maximum street cred"
+    legacy: "Start with Legacy ore - easier but less prestigious"

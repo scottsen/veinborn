@@ -1,0 +1,49 @@
+# Forge Spawning Configuration
+#
+# Forges are crafting stations where players turn ore → equipment
+# This is the KEY interaction point for Brogue's unique hook
+#
+# Design Goals:
+# - Forges are rare but consistent (1-2 per floor)
+# - Better forges on deeper floors
+# - Forges are fixed (not destroyable/mineable)
+
+# Forge counts per floor
+forge_counts:
+  base: 1
+  formula: "1"  # Always 1 forge per floor (consistency > variance)
+  description: "One forge per floor, guaranteed crafting access"
+
+# Forge type distribution by floor depth
+forge_types:
+  basic_forge:
+    floors: [1, 2, 3]
+    recipes: ["copper_dagger", "copper_sword", "copper_chestplate"]
+    description: "Can craft copper equipment"
+    symbol: "&"
+    color: "copper"
+
+  iron_forge:
+    floors: [4, 5, 6]
+    recipes: ["copper_dagger", "copper_sword", "copper_chestplate", "iron_sword", "iron_battle_axe", "iron_chestplate"]
+    description: "Can craft copper and iron equipment"
+    symbol: "&"
+    color: "gray"
+
+  master_forge:
+    floors: [7, 8, 9, 10, 11, 12, 13, 14, 15]
+    recipes: "all"
+    description: "Can craft all equipment"
+    symbol: "&"
+    color: "yellow"
+
+# Spawn placement rules
+spawn_placement:
+  min_distance_from_stairs: 5
+  description: "Forges spawn away from stairs for exploration"
+
+  prefer_large_rooms: true
+  description: "Forges prefer to spawn in large rooms (logical placement)"
+
+  max_per_room: 1
+  description: "Only one forge per room"

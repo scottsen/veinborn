@@ -1,0 +1,296 @@
+# Loot Table Definitions
+#
+# NetHack-style loot drop system
+#
+# Design Principles:
+# - Gold is common (70-90% drop rate)
+# - Equipment is uncommon (20-40% drop rate)
+# - Consumables are common (40-60% drop rate)
+# - Better monsters drop better loot
+# - Multiple items can drop per kill
+#
+# Drop Chance Format:
+#   - Percentage (0.0 to 1.0)
+#   - Each roll is independent
+#   - 0.7 = 70% chance to drop this category
+
+schema_version: 1.0
+
+# =============================================================================
+# GOBLIN LOOT - Weak enemy, basic drops
+# =============================================================================
+goblin:
+  description: "Weak monsters drop basic gear and small amounts of gold"
+
+  # Gold drops (70% chance)
+  gold:
+    drop_chance: 0.70
+    items:
+      - id: gold_pile_small
+        weight: 80  # 80% of gold drops are small
+        amount_range: [5, 15]  # 5-15 gold
+      - id: gold_pile_medium
+        weight: 20  # 20% are medium
+        amount_range: [15, 30]  # 15-30 gold
+
+  # Weapon drops (20% chance)
+  weapons:
+    drop_chance: 0.20
+    items:
+      - id: dagger
+        weight: 60
+      - id: short_sword
+        weight: 30
+      - id: mace
+        weight: 10
+
+  # Armor drops (15% chance)
+  armor:
+    drop_chance: 0.15
+    items:
+      - id: leather_armor
+        weight: 70
+      - id: shield
+        weight: 30
+
+  # Potion drops (30% chance)
+  potions:
+    drop_chance: 0.30
+    items:
+      - id: potion_healing
+        weight: 80
+      - id: potion_extra_healing
+        weight: 20
+
+  # Food drops (40% chance)
+  food:
+    drop_chance: 0.40
+    items:
+      - id: bread
+        weight: 60
+      - id: meat
+        weight: 40
+
+# =============================================================================
+# ORC LOOT - Medium enemy, better drops
+# =============================================================================
+orc:
+  description: "Medium monsters drop better equipment and more gold"
+
+  # Gold drops (80% chance, more gold than goblins)
+  gold:
+    drop_chance: 0.80
+    items:
+      - id: gold_pile_small
+        weight: 40
+        amount_range: [10, 20]
+      - id: gold_pile_medium
+        weight: 50
+        amount_range: [20, 40]
+      - id: gold_pile_large
+        weight: 10
+        amount_range: [40, 60]
+
+  # Weapon drops (35% chance, better weapons)
+  weapons:
+    drop_chance: 0.35
+    items:
+      - id: short_sword
+        weight: 40
+      - id: long_sword
+        weight: 30
+      - id: mace
+        weight: 20
+      - id: battle_axe
+        weight: 10
+
+  # Armor drops (30% chance, better armor)
+  armor:
+    drop_chance: 0.30
+    items:
+      - id: leather_armor
+        weight: 40
+      - id: chainmail
+        weight: 40
+      - id: shield
+        weight: 20
+
+  # Potion drops (40% chance)
+  potions:
+    drop_chance: 0.40
+    items:
+      - id: potion_healing
+        weight: 60
+      - id: potion_extra_healing
+        weight: 30
+      - id: potion_strength
+        weight: 10
+
+  # Scroll drops (15% chance - new category!)
+  scrolls:
+    drop_chance: 0.15
+    items:
+      - id: scroll_identify
+        weight: 60
+      - id: scroll_teleport
+        weight: 30
+      - id: scroll_enchant_weapon
+        weight: 5
+      - id: scroll_enchant_armor
+        weight: 5
+
+  # Food drops (35% chance)
+  food:
+    drop_chance: 0.35
+    items:
+      - id: ration
+        weight: 50
+      - id: meat
+        weight: 50
+
+# =============================================================================
+# TROLL LOOT - Hard enemy, premium drops
+# =============================================================================
+troll:
+  description: "Powerful monsters drop excellent equipment and treasure"
+
+  # Gold drops (90% chance, lots of gold)
+  gold:
+    drop_chance: 0.90
+    items:
+      - id: gold_pile_medium
+        weight: 40
+        amount_range: [30, 50]
+      - id: gold_pile_large
+        weight: 50
+        amount_range: [50, 100]
+      - id: gold_pile_large  # Double large for mega drops
+        weight: 10
+        amount_range: [100, 150]
+
+  # Weapon drops (50% chance, high-end weapons)
+  weapons:
+    drop_chance: 0.50
+    items:
+      - id: long_sword
+        weight: 40
+      - id: battle_axe
+        weight: 40
+      - id: mace
+        weight: 20
+
+  # Armor drops (45% chance, high-end armor)
+  armor:
+    drop_chance: 0.45
+    items:
+      - id: chainmail
+        weight: 50
+      - id: plate_mail
+        weight: 30
+      - id: shield
+        weight: 20
+
+  # Potion drops (50% chance, powerful potions)
+  potions:
+    drop_chance: 0.50
+    items:
+      - id: potion_healing
+        weight: 30
+      - id: potion_extra_healing
+        weight: 40
+      - id: potion_full_healing
+        weight: 20
+      - id: potion_strength
+        weight: 10
+
+  # Scroll drops (30% chance, rare scrolls)
+  scrolls:
+    drop_chance: 0.30
+    items:
+      - id: scroll_identify
+        weight: 40
+      - id: scroll_teleport
+        weight: 30
+      - id: scroll_enchant_weapon
+        weight: 15
+      - id: scroll_enchant_armor
+        weight: 15
+
+  # Ring drops (10% chance - RARE!)
+  rings:
+    drop_chance: 0.10
+    items:
+      - id: ring_protection
+        weight: 40
+      - id: ring_strength
+        weight: 40
+      - id: ring_regeneration
+        weight: 20
+
+  # Food drops (25% chance)
+  food:
+    drop_chance: 0.25
+    items:
+      - id: ration
+        weight: 60
+      - id: meat
+        weight: 40
+
+# =============================================================================
+# LOOT SYSTEM DESIGN NOTES
+# =============================================================================
+#
+# Expected drops per monster:
+#
+# GOBLIN (tutorial enemy):
+#   - Average: 1-2 items per kill
+#   - Typical: Small gold + bread OR healing potion
+#   - Value: ~15-30 gold
+#   - Feel: "Scrap loot, but better than nothing"
+#
+# ORC (medium challenge):
+#   - Average: 2-3 items per kill
+#   - Typical: Medium gold + weapon OR armor + scroll
+#   - Value: ~40-80 gold
+#   - Feel: "Worth fighting, decent rewards"
+#
+# TROLL (hard enemy):
+#   - Average: 3-4 items per kill
+#   - Typical: Large gold + weapon + armor + potions
+#   - Value: ~100-200 gold
+#   - Feel: "Jackpot! High risk, high reward"
+#
+# Design Goals Achieved:
+# ✓ Every kill feels rewarding (gold almost always drops)
+# ✓ Excitement from RNG (will I get that battle axe?)
+# ✓ Risk/reward balance (trolls drop better loot)
+# ✓ NetHack feel (diverse item types, mystery, discovery)
+# ✓ No ore drops (ore from rare mines only, as specified)
+#
+# =============================================================================
+# FUTURE ENHANCEMENTS
+# =============================================================================
+#
+# 1. Conditional drops based on:
+#    - Floor depth (better loot deeper in dungeon)
+#    - Player luck stat
+#    - First kill bonus
+#    - Boss monsters (guaranteed rare drops)
+#
+# 2. Cursed items:
+#    - Some equipment is cursed (can't remove)
+#    - Requires identify to detect
+#    - Risk/reward decision making
+#
+# 3. Item enchantment levels:
+#    - Weapons: +0 to +5
+#    - Armor: +0 to +5
+#    - Higher enchantment = better stats
+#    - Very rare to find high enchantment
+#
+# 4. Unique/artifact items:
+#    - Named legendary items
+#    - Special abilities
+#    - Extremely rare drops from specific monsters
+#
+# =============================================================================

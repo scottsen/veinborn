@@ -1,0 +1,395 @@
+# Monster Entity Definitions
+#
+# This file defines what monsters ARE (stats, behavior, appearance).
+# Separate from monster_spawns.yaml which defines WHERE/WHEN they spawn.
+#
+# Design Goals:
+# - Data-driven entity creation (no hardcoded factory methods)
+# - Easy modding (add new monsters by editing YAML)
+# - Designer-friendly (no code changes needed)
+# - Support future features (loot tables, abilities, resistances)
+
+# Schema version (for future migrations)
+schema_version: 1.0
+
+# Monster definitions
+monsters:
+  goblin:
+    # Display
+    name: "Goblin"
+    description: "Weak, cowardly creature. Tutorial enemy for new adventurers."
+    symbol: "g"
+    color: "green"
+
+    # Core stats
+    stats:
+      hp: 6
+      attack: 3
+      defense: 1
+      xp_reward: 5
+
+    # AI behavior
+    ai:
+      type: "aggressive"
+      move_speed: 1.0
+      aggro_range: 8
+      description: "Charges player on sight"
+
+    # Gameplay tags
+    tags:
+      - "weak"
+      - "tutorial"
+      - "common"
+
+    # Loot (future feature)
+    loot_table: null
+
+    # Design notes
+    notes: |
+      The Goblin is designed to be beatable by a level 1 player.
+      Player deals 4 damage (5 attack - 1 defense) = kills in 2 hits.
+      Goblin deals 1 damage (3 attack - 2 defense) = player takes minimal damage.
+
+  orc:
+    # Display
+    name: "Orc"
+    description: "Brutish warrior. Medium difficulty, winnable but challenging."
+    symbol: "o"
+    color: "brown"
+
+    # Core stats
+    stats:
+      hp: 12
+      attack: 5
+      defense: 2
+      xp_reward: 15
+
+    # AI behavior
+    ai:
+      type: "aggressive"
+      move_speed: 1.0
+      aggro_range: 10
+      description: "Aggressive, relentless pursuit"
+
+    # Gameplay tags
+    tags:
+      - "medium"
+      - "warrior"
+      - "common"
+
+    # Loot (future feature)
+    loot_table: null
+
+    # Design notes
+    notes: |
+      The Orc is balanced for level 1 players who use tactics.
+      Player deals 3 damage (5 attack - 2 defense) = kills in 4 hits.
+      Orc deals 3 damage (5 attack - 2 defense) = player takes significant damage.
+      Encourages hit-and-run tactics or using the environment.
+
+  troll:
+    # Display
+    name: "Troll"
+    description: "Massive, regenerating beast. Unbeatable at level 1 - run away!"
+    symbol: "T"
+    color: "red"
+
+    # Core stats
+    stats:
+      hp: 20
+      attack: 7
+      defense: 3
+      xp_reward: 30
+
+    # AI behavior
+    ai:
+      type: "aggressive"
+      move_speed: 0.8  # Slightly slower (future feature)
+      aggro_range: 6   # Shorter sight (you might sneak past)
+      description: "Powerful but slow and near-sighted"
+
+    # Special abilities (future feature)
+    abilities:
+      regeneration:
+        enabled: false  # Not implemented yet
+        rate: 1         # HP per turn
+        description: "Regenerates 1 HP per turn (classic D&D troll)"
+
+    # Gameplay tags
+    tags:
+      - "hard"
+      - "elite"
+      - "boss-tier"
+      - "requires-power-progression"
+
+    # Loot (future feature)
+    loot_table: null
+
+    # Design notes
+    notes: |
+      The Troll forces players to understand power progression.
+      Player deals 2 damage (5 attack - 3 defense) = kills in 10 hits.
+      Troll deals 5 damage (7 attack - 2 defense) = kills player in 4 hits.
+      This is INTENTIONALLY unwinnable at level 1 - teaches risk assessment.
+
+  bat:
+    # Display
+    name: "Giant Bat"
+    description: "Fast, erratic flyer. Weak but dodges attacks."
+    symbol: "b"
+    color: "gray"
+
+    # Core stats
+    stats:
+      hp: 4
+      attack: 2
+      defense: 0
+      xp_reward: 3
+
+    # AI behavior
+    ai:
+      type: "aggressive"
+      move_speed: 1.5  # Faster than player (future feature)
+      aggro_range: 12
+      description: "Fast, erratic movement"
+
+    # Gameplay tags
+    tags:
+      - "weak"
+      - "fast"
+      - "swarm"
+      - "flying"
+
+    loot_table: null
+
+    notes: |
+      Bats are weak but fast. They swarm in groups of 3-5.
+      Player deals 5 damage (5 attack - 0 defense) = one-shot kill.
+      Bat deals 0 damage (2 attack - 2 defense) = annoying but harmless.
+      Teaches players about positioning and crowd control.
+
+  skeleton:
+    # Display
+    name: "Skeleton"
+    description: "Undead warrior. Resistant to normal weapons (future)."
+    symbol: "s"
+    color: "white"
+
+    # Core stats
+    stats:
+      hp: 8
+      attack: 4
+      defense: 2
+      xp_reward: 10
+
+    # AI behavior
+    ai:
+      type: "aggressive"
+      move_speed: 1.0
+      aggro_range: 8
+      description: "Slow, methodical pursuit"
+
+    # Gameplay tags
+    tags:
+      - "undead"
+      - "medium"
+      - "common"
+
+    loot_table: null
+
+    notes: |
+      Skeleton is a balanced mid-tier enemy.
+      Player deals 3 damage (5 attack - 2 defense) = kills in 3 hits.
+      Skeleton deals 2 damage (4 attack - 2 defense) = moderate threat.
+
+  ogre:
+    # Display
+    name: "Ogre"
+    description: "Massive brute. Slow but devastating hits."
+    symbol: "O"
+    color: "brown"
+
+    # Core stats
+    stats:
+      hp: 18
+      attack: 8
+      defense: 3
+      xp_reward: 25
+
+    # AI behavior
+    ai:
+      type: "aggressive"
+      move_speed: 0.7  # Slower than player (future feature)
+      aggro_range: 8
+      description: "Slow, heavy hitter"
+
+    # Gameplay tags
+    tags:
+      - "hard"
+      - "brute"
+      - "elite"
+
+    loot_table: null
+
+    notes: |
+      Ogre is a dangerous elite enemy.
+      Player deals 2 damage (5 attack - 3 defense) = kills in 9 hits.
+      Ogre deals 6 damage (8 attack - 2 defense) = 3-4 hits to kill player.
+      Requires hit-and-run tactics or good equipment.
+
+  wolf:
+    # Display
+    name: "Wolf"
+    description: "Pack hunter. Dangerous in groups."
+    symbol: "w"
+    color: "gray"
+
+    # Core stats
+    stats:
+      hp: 7
+      attack: 4
+      defense: 1
+      xp_reward: 8
+
+    # AI behavior
+    ai:
+      type: "aggressive"
+      move_speed: 1.2  # Fast (future feature)
+      aggro_range: 10
+      description: "Pack tactics, flanking behavior"
+
+    # Gameplay tags
+    tags:
+      - "medium"
+      - "pack"
+      - "fast"
+      - "beast"
+
+    loot_table: null
+
+    notes: |
+      Wolves hunt in packs of 2-3. Alone they're manageable.
+      Player deals 4 damage (5 attack - 1 defense) = kills in 2 hits.
+      Wolf deals 2 damage (4 attack - 2 defense) = moderate threat.
+      Multiple wolves attacking simultaneously is deadly.
+
+  spider:
+    # Display
+    name: "Giant Spider"
+    description: "Venomous arachnid. Poison damage over time (future)."
+    symbol: "S"
+    color: "green"
+
+    # Core stats
+    stats:
+      hp: 6
+      attack: 3
+      defense: 1
+      xp_reward: 12
+
+    # AI behavior
+    ai:
+      type: "aggressive"
+      move_speed: 1.0
+      aggro_range: 8
+      description: "Web-based ambush predator"
+
+    # Special abilities (future feature)
+    abilities:
+      poison:
+        enabled: false  # Not implemented yet
+        damage: 1       # Damage per turn
+        duration: 5     # Turns
+        description: "Inflicts poison on hit"
+
+    # Gameplay tags
+    tags:
+      - "medium"
+      - "poison"
+      - "ambush"
+
+    loot_table: null
+
+    notes: |
+      Spider adds poison mechanics (when implemented).
+      Player deals 4 damage (5 attack - 1 defense) = kills in 2 hits.
+      Spider deals 1 damage (3 attack - 2 defense) + poison damage.
+      Teaches players about status effects.
+
+  imp:
+    # Display
+    name: "Imp"
+    description: "Mischievous demon. Teleports around (future)."
+    symbol: "i"
+    color: "red"
+
+    # Core stats
+    stats:
+      hp: 5
+      attack: 3
+      defense: 1
+      xp_reward: 15
+
+    # AI behavior
+    ai:
+      type: "aggressive"
+      move_speed: 1.0
+      aggro_range: 10
+      description: "Teleports away when hit"
+
+    # Special abilities (future feature)
+    abilities:
+      teleport:
+        enabled: false  # Not implemented yet
+        range: 5
+        cooldown: 2
+        description: "Teleports to random position when hit"
+      fire_bolt:
+        enabled: false  # Not implemented yet
+        damage: 4
+        range: 5
+        description: "Ranged fire attack"
+
+    # Gameplay tags
+    tags:
+      - "medium"
+      - "magical"
+      - "demon"
+      - "ranged"
+
+    loot_table: null
+
+    notes: |
+      Imp teaches ranged combat and teleportation.
+      Annoying hit-and-run enemy that requires tactical play.
+      Player needs to corner it or use ranged attacks.
+
+# Future monster ideas (not implemented yet)
+# Uncomment and implement when ready
+#
+# dragon:
+#   name: "Dragon"
+#   description: "Ancient wyrm. Floor 50+ boss."
+#   stats:
+#     hp: 100
+#     attack: 15
+#     defense: 8
+#     xp_reward: 500
+#   ai:
+#     type: "aggressive"
+#   abilities:
+#     fire_breath:
+#       damage: 20
+#       range: 5
+#       cooldown: 3
+#   tags:
+#     - "boss"
+#     - "legendary"
+
+# Modding support
+# To add a new monster:
+# 1. Copy an existing monster definition
+# 2. Change the ID (e.g., "kobold")
+# 3. Adjust stats, name, description
+# 4. Add to spawn_weights in monster_spawns.yaml
+# 5. Restart game - no code changes needed!

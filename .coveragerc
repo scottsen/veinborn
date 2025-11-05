@@ -1,0 +1,49 @@
+[run]
+source = src
+omit =
+    */tests/*
+    */test_*.py
+    */__pycache__/*
+    */venv/*
+    */.venv/*
+
+branch = True
+parallel = False
+
+[report]
+precision = 2
+show_missing = True
+skip_covered = False
+
+exclude_lines =
+    # Standard pragmas
+    pragma: no cover
+
+    # Debug-only code
+    def __repr__
+    def __str__
+
+    # Defensive programming
+    raise AssertionError
+    raise NotImplementedError
+
+    # Main blocks
+    if __name__ == .__main__.:
+
+    # Type checking
+    if TYPE_CHECKING:
+    if typing.TYPE_CHECKING:
+
+    # Abstract methods
+    @abstractmethod
+    @abc.abstractmethod
+
+    # Ellipsis placeholders
+    \.\.\.
+
+[html]
+directory = htmlcov
+title = Brogue Test Coverage Report
+
+[xml]
+output = coverage.xml

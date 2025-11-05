@@ -1,0 +1,47 @@
+---
+# Core Identity
+id: brogue
+name: "Brogue"
+type: software
+status: planning
+
+# Timeline & Investment
+created_at: "2025-09-30T21:48:17.457396+00:00"
+updated_at: "2025-09-30T21:48:17.457396+00:00"
+timeline: null
+investment: null
+revenue_target: null
+
+# Risk & Classification  
+risk_level: medium
+tags: []
+priority: medium
+
+# Directory Structure
+paths:
+  root: "/projects/brogue"
+  docs: "/projects/brogue/docs"
+  metadata: "{TIA_DATA_DIR}/projects/brogue.yaml"
+
+# Integration Links
+relationships:
+  tasks: []
+  sessions: []
+  documents: 
+    - "/projects/brogue/README.md"
+    - "/projects/brogue/project.yaml"
+  beth_topics: ["brogue"]
+
+# Status Tracking
+milestones: {}
+
+# Notes (timestamped like tasks)
+notes: []
+
+# Beth Integration
+beth_metadata:
+  quality_score: null
+  relationship_strength: null
+  knowledge_completeness: null
+  last_beth_sync: null
+---

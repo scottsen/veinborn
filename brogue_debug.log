@@ -1,0 +1,21 @@
+2025-10-21 18:48:23,674 [INFO] brogue: ============================================================
+2025-10-21 18:48:23,674 [INFO] brogue: BROGUE DEBUG SESSION STARTING
+2025-10-21 18:48:23,674 [INFO] brogue: Time: 2025-10-21 18:48:23.674670
+2025-10-21 18:48:23,674 [INFO] brogue: Python: 3.10.12 (main, Aug 15 2025, 14:32:43) [GCC 11.4.0]
+2025-10-21 18:48:23,674 [INFO] brogue: CWD: /home/scottsen/src/tia/projects/brogue
+2025-10-21 18:48:23,674 [INFO] brogue: Log file: /home/scottsen/src/tia/projects/brogue/brogue_debug.log
+2025-10-21 18:48:23,674 [INFO] brogue: ============================================================
+2025-10-21 18:48:23,674 [INFO] brogue: Added to path: /home/scottsen/src/tia/projects/brogue/src
+2025-10-21 18:48:23,674 [INFO] brogue: Importing Textual...
+2025-10-21 18:48:23,769 [INFO] brogue: ✓ Textual version: 6.3.0
+2025-10-21 18:48:23,769 [INFO] brogue: Importing core.game...
+2025-10-21 18:48:23,771 [INFO] brogue: ✓ core.game imported
+2025-10-21 18:48:23,771 [INFO] brogue: Importing ui.textual.app...
+2025-10-21 18:48:23,814 [INFO] brogue: ✓ ui.textual.app imported
+2025-10-21 18:48:23,814 [INFO] brogue: Checking terminal...
+2025-10-21 18:48:23,814 [ERROR] brogue: ERROR: Not running in a terminal (no TTY)
+2025-10-21 18:48:23,814 [INFO] brogue: Cleaning up...
+2025-10-21 18:48:23,816 [INFO] brogue: ✓ Terminal reset complete
+2025-10-21 18:48:23,816 [INFO] brogue: ============================================================
+2025-10-21 18:48:23,816 [INFO] brogue: BROGUE DEBUG SESSION ENDED
+2025-10-21 18:48:23,816 [INFO] brogue: ============================================================

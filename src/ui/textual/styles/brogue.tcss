@@ -1,0 +1,59 @@
+/* Brogue Textual CSS */
+
+/* Global theme */
+Screen {
+    background: $surface;
+}
+
+/* Override default colors for Brogue aesthetic */
+$primary: #2dd4bf;
+$secondary: #f97316;
+$accent: #fbbf24;
+$warning: #dc2626;
+$error: #dc2626;
+$success: #10b981;
+$boost: #1f2937;
+$surface: #0f172a;
+$panel: #1e293b;
+
+/* Status bar styling */
+StatusBar {
+    height: 1;
+    background: $boost;
+    color: $accent;
+    padding: 0 1;
+}
+
+/* Map widget styling */
+MapWidget {
+    width: 100%;
+    height: 100%;
+    background: $surface;
+    border: solid $primary;
+    padding: 1 2;
+}
+
+/* Sidebar styling */
+Sidebar {
+    width: 26;
+    dock: right;
+    background: $panel;
+    border-left: solid $primary;
+    padding: 1;
+    overflow-y: auto;
+}
+
+/* Message log styling */
+MessageLog {
+    height: 5;
+    dock: bottom;
+    background: $boost;
+    border-top: solid $primary;
+    padding: 0 1;
+    color: $accent;
+}
+
+/* General text styling */
+Static {
+    color: $text;
+}

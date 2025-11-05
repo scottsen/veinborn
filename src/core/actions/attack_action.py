@@ -1,0 +1,278 @@
+"""
+AttackAction - attack another entity.
+
+Handles:
+- Combat damage calculation
+- Death detection
+- XP rewards
+- Loot drops (NetHack-style)
+- Event-ready pattern for combat log
+"""
+
+import logging
+from dataclasses import dataclass
+from typing import Optional
+from ..base.action import Action, ActionOutcome, ActionResult
+from ..base.game_context import GameContext
+from ..base.entity import EntityType
+from ..loot import LootGenerator
+
+logger = logging.getLogger(__name__)
+
+
+@dataclass
+class AttackAction(Action):
+    """Attack another entity."""
+
+    actor_id: str
+    target_id: str
+    loot_generator: Optional[LootGenerator] = None  # For dependency injection
+
+    def validate(self, context: GameContext) -> bool:
+        """Check if attack is valid."""
+        # Use base class helper for actor validation
+        actor = self._get_and_validate_actor(context)
+        if not actor:
+            return False
+
+        # Validate target (must be monster or player, alive, adjacent)
+        # Note: _validate_entity now supports sets of types for flexible validation
+        attackable_types = {EntityType.MONSTER, EntityType.PLAYER}
+        target = self._validate_entity(
+            context, self.target_id, attackable_types,
+            entity_name="target", require_adjacency=True, require_alive=True
+        )
+        if not target:
+            return False
+
+        self._log_validation_success(
+            "validated successfully",
+            actor_name=actor.name,
+            target_id=self.target_id,
+            target_name=target.name
+        )
+        return True
+
+    def execute(self, context: GameContext) -> ActionOutcome:
+        """Execute attack."""
+        if not self.validate(context):
+            logger.error(
+                f"AttackAction execution failed validation",
+                extra={'actor_id': self.actor_id, 'target_id': self.target_id}
+            )
+            return ActionOutcome.failure("Cannot attack")
+
+        actor, target = self._get_attacker_and_target(context)
+        self._log_attack_start(actor, target)
+
+        # Calculate and apply damage
+        actual_damage = self._calculate_and_apply_damage(actor, target)
+        self._log_damage(actor, target, actual_damage)
+
+        # Build outcome with damage message
+        outcome = self._build_combat_outcome(actor, target, actual_damage)
+
+        # Handle target death if killed
+        if not target.is_alive:
+            self._handle_target_death(context, actor, target, outcome)
+
+        return outcome
+
+    def _get_attacker_and_target(self, context: GameContext):
+        """Get attacker and target entities."""
+        actor = context.get_entity(self.actor_id) or context.get_player()
+        target = context.get_entity(self.target_id) or context.get_player()
+        return actor, target
+
+    def _log_attack_start(self, actor, target):
+        """Log attack initiation."""
+        logger.info(
+            f"AttackAction started",
+            extra={
+                'actor_id': self.actor_id,
+                'actor_name': actor.name,
+                'actor_hp': actor.hp,
+                'actor_attack': actor.attack,
+                'target_id': self.target_id,
+                'target_name': target.name,
+                'target_hp': target.hp,
+                'target_defense': target.defense,
+            }
+        )
+
+    def _calculate_and_apply_damage(self, actor, target) -> int:
+        """Calculate damage and apply to target."""
+        # Import Player locally to avoid circular imports
+        from ..entities import Player
+
+        # Get attack value (including equipment bonuses for Players)
+        if isinstance(actor, Player):
+            actor_attack = actor.get_total_attack()
+        else:
+            actor_attack = actor.attack
+
+        # Get defense value (including equipment bonuses for Players)
+        if isinstance(target, Player):
+            target_defense = target.get_total_defense()
+        else:
+            target_defense = target.defense
+
+        # Calculate damage (minimum 1)
+        damage = max(1, actor_attack - target_defense)
+        return target.take_damage(damage)
+
+    def _log_damage(self, actor, target, actual_damage: int):
+        """Log damage dealt."""
+        logger.info(
+            f"AttackAction damage dealt",
+            extra={
+                'actor_id': self.actor_id,
+                'actor_name': actor.name,
+                'target_id': self.target_id,
+                'target_name': target.name,
+                'damage': actual_damage,
+                'target_hp_remaining': target.hp,
+            }
+        )
+
+    def _build_combat_outcome(self, actor, target, actual_damage: int) -> ActionOutcome:
+        """Build outcome with damage message and event."""
+        outcome = ActionOutcome.success(took_turn=True)
+        outcome.messages.append(
+            f"{actor.name} hits {target.name} for {actual_damage} damage!"
+        )
+        outcome.events.append({
+            'type': 'entity_damaged',
+            'attacker_id': self.actor_id,
+            'target_id': self.target_id,
+            'damage': actual_damage,
+        })
+        return outcome
+
+    def _handle_target_death(self, context: GameContext, actor, target, outcome: ActionOutcome):
+        """Handle target death, XP rewards, and loot drops."""
+        self._log_target_death(actor, target)
+
+        outcome.messages.append(f"{target.name} died!")
+        outcome.events.append({
+            'type': 'entity_died',
+            'entity_id': self.target_id,
+            'killer_id': self.actor_id,
+        })
+
+        # Award XP if player killed monster
+        if actor.entity_type == EntityType.PLAYER:
+            self._award_xp(actor, target, outcome)
+
+        # Generate loot drops if target is a monster
+        if target.entity_type == EntityType.MONSTER:
+            self._generate_loot_drops(context, target, outcome)
+
+    def _log_target_death(self, actor, target):
+        """Log target death."""
+        logger.info(
+            f"AttackAction killed target",
+            extra={
+                'actor_id': self.actor_id,
+                'actor_name': actor.name,
+                'target_id': self.target_id,
+                'target_name': target.name,
+            }
+        )
+
+    def _award_xp(self, actor, target, outcome: ActionOutcome):
+        """Award XP to player for killing target."""
+        xp_reward = target.get_stat('xp_reward', 0)
+        if xp_reward <= 0:
+            return
+
+        from ..entities import Player
+        if not isinstance(actor, Player):
+            return
+
+        leveled_up = actor.gain_xp(xp_reward)
+        logger.info(
+            f"XP awarded",
+            extra={
+                'player_id': self.actor_id,
+                'xp_reward': xp_reward,
+                'leveled_up': leveled_up,
+            }
+        )
+        outcome.messages.append(f"Gained {xp_reward} XP!")
+        if leveled_up:
+            outcome.messages.append(f"Level up! Now level {actor.get_stat('level')}!")
+
+    def _generate_loot_drops(self, context: GameContext, target, outcome: ActionOutcome):
+        """Generate and drop loot from killed monster."""
+        if self.loot_generator is None:
+            self.loot_generator = LootGenerator.get_instance()
+
+        monster_type = self._get_monster_type(target)
+        if not monster_type:
+            return
+
+        # Generate loot items (TODO: Pass floor_number from context when available)
+        dropped_items = self.loot_generator.generate_loot(monster_type, floor_number=1)
+        if not dropped_items:
+            logger.debug(f"No loot dropped from {target.name}", extra={'monster_type': monster_type})
+            return
+
+        # Place items and update outcome
+        self._place_loot_items(context, target, dropped_items)
+        self._add_loot_messages(outcome, target, dropped_items)
+        self._add_loot_event(outcome, target, monster_type, dropped_items)
+
+        logger.info(f"Loot dropped from {target.name}",
+                   extra={'monster_type': monster_type, 'num_items': len(dropped_items),
+                         'items': [item.content_id for item in dropped_items]})
+
+    def _get_monster_type(self, target) -> str:
+        """Get monster type from target, with validation."""
+        monster_type = target.content_id
+        if not monster_type:
+            logger.warning("Cannot generate loot: monster has no content_id",
+                          extra={'target_id': self.target_id, 'target_name': target.name})
+        return monster_type
+
+    def _place_loot_items(self, context: GameContext, target, dropped_items: list):
+        """Place loot items on ground at monster's position."""
+        for item in dropped_items:
+            item.x = target.x
+            item.y = target.y
+            context.add_entity(item)
+
+    def _add_loot_messages(self, outcome: ActionOutcome, target, dropped_items: list):
+        """Add loot drop messages to outcome."""
+        if len(dropped_items) == 1:
+            outcome.messages.append(f"{target.name} dropped: {dropped_items[0].name}")
+        elif len(dropped_items) > 1:
+            item_names = ', '.join(item.name for item in dropped_items)
+            outcome.messages.append(f"{target.name} dropped {len(dropped_items)} items: {item_names}")
+
+    def _add_loot_event(self, outcome: ActionOutcome, target, monster_type: str, dropped_items: list):
+        """Add loot drop event with item details."""
+        outcome.events.append({
+            'type': 'loot_dropped',
+            'monster_id': self.target_id,
+            'monster_type': monster_type,
+            'position': (target.x, target.y),
+            'items': [
+                {'entity_id': item.entity_id, 'item_id': item.content_id, 'name': item.name}
+                for item in dropped_items
+            ],
+        })
+
+    def to_dict(self) -> dict:
+        return {
+            'action_type': 'AttackAction',
+            'actor_id': self.actor_id,
+            'target_id': self.target_id,
+        }
+
+    @classmethod
+    def from_dict(cls, data: dict) -> 'AttackAction':
+        return cls(
+            actor_id=data['actor_id'],
+            target_id=data['target_id'],
+        )

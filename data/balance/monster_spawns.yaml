@@ -1,0 +1,124 @@
+# Monster Spawning Configuration
+#
+# This file defines how monsters spawn on each floor, including:
+# - Monster counts (how many spawn per floor)
+# - Monster types and weights (spawn probabilities)
+# - Difficulty progression over floors
+#
+# Design Goals:
+# - Floor 1: Tutorial (only Goblins, beatable by new players)
+# - Floors 2-5: Gradual difficulty increase
+# - Floors 6-10: Balanced mix
+# - Floors 11+: High difficulty (more Trolls)
+
+# Monster count formulas by floor range
+monster_counts:
+  # Floors 1-6: Gentle introduction
+  floors_1_6:
+    base: 3
+    divisor: 2
+    formula: "3 + (floor // 2)"
+    description: "Floor 1 = 3 monsters, Floor 2 = 4, etc."
+
+  # Floors 7-20: Medium difficulty
+  floors_7_20:
+    base: 5
+    divisor: 3
+    formula: "5 + (floor // 3)"
+    description: "Progressive scaling, 7-11 monsters"
+
+  # Floors 21+: High difficulty (capped)
+  floors_21_plus:
+    base: 8
+    divisor: 10
+    formula: "min(12, 8 + (floor // 10))"
+    max: 12
+    description: "Caps at 12 monsters per floor"
+
+# Monster spawn weights by floor
+# Weight determines spawn probability
+# Example: goblin: 70, orc: 30 = 70% Goblins, 30% Orcs
+spawn_weights:
+  floor_1:
+    goblin: 80
+    bat: 20
+    description: "Tutorial floor - weak enemies only"
+
+  floor_2:
+    goblin: 50
+    bat: 30
+    orc: 20
+    description: "Introduce swarms and tougher enemies"
+
+  floors_3_5:
+    goblin: 30
+    bat: 20
+    skeleton: 20
+    orc: 20
+    wolf: 10
+    description: "Variety of enemy types"
+
+  floors_6_10:
+    goblin: 15
+    bat: 10
+    skeleton: 20
+    orc: 20
+    wolf: 15
+    spider: 10
+    troll: 5
+    ogre: 5
+    description: "Balanced mix, introduce elites"
+
+  floors_11_15:
+    skeleton: 20
+    orc: 15
+    wolf: 15
+    spider: 15
+    troll: 15
+    ogre: 10
+    imp: 10
+    description: "Mid-late game variety"
+
+  floors_16_plus:
+    orc: 10
+    spider: 10
+    troll: 30
+    ogre: 25
+    imp: 25
+    description: "High difficulty - elite and magical enemies"
+
+# Combat balance validation
+# These values verify that floors are beatable
+combat_balance:
+  player_starting_stats:
+    hp: 20
+    attack: 5
+    defense: 2
+
+  monster_stats:
+    goblin:
+      hp: 6
+      attack: 3
+      defense: 1
+      player_damage: 4  # Player deals this to Goblin
+      goblin_damage: 1  # Goblin deals this to Player
+      hits_to_kill: 2
+      description: "Easy win for player"
+
+    orc:
+      hp: 12
+      attack: 5
+      defense: 2
+      player_damage: 3
+      orc_damage: 3
+      hits_to_kill: 4
+      description: "Winnable but takes damage"
+
+    troll:
+      hp: 20
+      attack: 7
+      defense: 3
+      player_damage: 2
+      troll_damage: 5
+      hits_to_kill: 10
+      description: "Unbeatable at level 1 - requires power progression"
