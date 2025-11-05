@@ -344,14 +344,16 @@ tia session search "brogue"
 
 ## Contributing
 
-### For Developers
+**Want to contribute?** See **[CONTRIBUTING.md](CONTRIBUTING.md)** for the complete guide!
 
-1. **Read:** [`docs/START_HERE.md`](docs/START_HERE.md)
-2. **Check:** [`docs/MVP_ROADMAP.md`](docs/MVP_ROADMAP.md)
-3. **Pick a task** from the roadmap
-4. **Follow existing patterns** in `src/core/`
-5. **Test thoroughly** (play the game!)
-6. **Document** new features
+### Quick Start for Contributors
+
+1. **Read:** [`docs/START_HERE.md`](docs/START_HERE.md) - 15 min onboarding
+2. **Check:** [`docs/MVP_ROADMAP.md`](docs/MVP_ROADMAP.md) - Pick a task
+3. **Follow:** [`CONTRIBUTING.md`](CONTRIBUTING.md) - Development workflow
+4. **Code:** Follow patterns in `src/core/`
+5. **Test:** Play the game, run tests
+6. **Submit:** Create a PR with clear description
 
 ### For Designers
 
@@ -359,6 +361,8 @@ tia session search "brogue"
 2. **Simple rules, complex emergence**
 3. **Ask:** Does this make "one more run" more compelling?
 4. **Balance:** Accessibility (Legacy) vs Mastery (Pure)
+
+See [`CONTRIBUTING.md`](CONTRIBUTING.md) for detailed guidelines.
 
 ---
 
@@ -428,10 +432,27 @@ The design was consolidated on 2025-10-22. Everything in Archive/ represents rej
 
 ---
 
+## Contributing
+
+Interested in contributing? Great! Check out:
+
+- **[CONTRIBUTING.md](CONTRIBUTING.md)** - Complete contributor guide
+- **[docs/START_HERE.md](docs/START_HERE.md)** - Developer onboarding
+- **[docs/MVP_ROADMAP.md](docs/MVP_ROADMAP.md)** - Current tasks
+
+Quick start:
+1. Read [docs/START_HERE.md](docs/START_HERE.md) (15 min)
+2. Pick a task from [docs/MVP_ROADMAP.md](docs/MVP_ROADMAP.md)
+3. Follow guidelines in [CONTRIBUTING.md](CONTRIBUTING.md)
+4. Submit a PR!
+
+---
+
 ## License
 
-**Project Type:** Personal / TIA-integrated
-**Status:** Active Development
+**MIT License** - See [LICENSE](LICENSE) file for details.
+
+**Status:** Active Development | Open Source
 
 ---
 
