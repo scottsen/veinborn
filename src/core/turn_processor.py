@@ -17,6 +17,7 @@ from typing import TYPE_CHECKING
 from .constants import HP_REGEN_INTERVAL_TURNS, HP_REGEN_AMOUNT
 from .base.entity import EntityType
 from .highscore import HighScoreManager, HighScoreEntry
+from .legacy import get_vault
 
 if TYPE_CHECKING:
     from .base.game_context import GameContext
@@ -131,6 +132,12 @@ class TurnProcessor:
             # Record high score (Phase 5)
             self._record_high_score()
 
+            # Save rare ore to Legacy Vault (Phase 6)
+            self._save_legacy_ore()
+
+            # Record defeat in Legacy Vault
+            self._record_defeat()
+
             self.game_state.add_message("You died! Press 'r' to restart.")
             self.game_state.game_over = True
 
@@ -179,3 +186,64 @@ class TurnProcessor:
         except Exception as e:
             logger.error(f"Failed to record high score: {e}", exc_info=True)
             # Don't crash on high score failure - game over should still work
+
+    def _save_legacy_ore(self) -> None:
+        """
+        Save rare ore (80+ purity) to Legacy Vault on death.
+
+        Checks player inventory for ore with purity >= 80 and saves them
+        to the vault for use in future runs. Displays message to player
+        if any ore was saved.
+        """
+        try:
+            vault = get_vault()
+
+            # Get all ore from player inventory
+            ores_saved = vault.add_ores_from_inventory(
+                self.game_state.player.inventory,
+                self.game_state.current_floor
+            )
+
+            if ores_saved > 0:
+                self.game_state.add_message(
+                    f"💎 {ores_saved} rare ore{'s' if ores_saved != 1 else ''} "
+                    f"saved to Legacy Vault!"
+                )
+
+                logger.info(
+                    f"Legacy Vault: Saved {ores_saved} ore(s) from player inventory",
+                    extra={
+                        'ores_saved': ores_saved,
+                        'floor': self.game_state.current_floor,
+                        'vault_size': vault.get_ore_count()
+                    }
+                )
+            else:
+                logger.debug("No rare ore (80+ purity) found in player inventory")
+
+        except Exception as e:
+            logger.error(f"Failed to save ore to Legacy Vault: {e}", exc_info=True)
+            # Don't crash on vault failure - game over should still work
+
+    def _record_defeat(self) -> None:
+        """
+        Record defeat in Legacy Vault (Phase 6).
+
+        Tracks total runs for stats purposes.
+        """
+        try:
+            vault = get_vault()
+            run_type = self.game_state.run_type
+            vault.record_run(run_type, victory=False)
+
+            logger.info(
+                f"Defeat recorded in Legacy Vault: {run_type}",
+                extra={
+                    'run_type': run_type,
+                    'total_runs': vault.total_runs
+                }
+            )
+
+        except Exception as e:
+            logger.error(f"Failed to record defeat in Legacy Vault: {e}", exc_info=True)
+            # Don't crash on vault failure - game over should still work

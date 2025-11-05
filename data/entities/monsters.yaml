@@ -364,27 +364,513 @@ monsters:
       Annoying hit-and-run enemy that requires tactical play.
       Player needs to corner it or use ranged attacks.
 
-# Future monster ideas (not implemented yet)
-# Uncomment and implement when ready
-#
-# dragon:
-#   name: "Dragon"
-#   description: "Ancient wyrm. Floor 50+ boss."
-#   stats:
-#     hp: 100
-#     attack: 15
-#     defense: 8
-#     xp_reward: 500
-#   ai:
-#     type: "aggressive"
-#   abilities:
-#     fire_breath:
-#       damage: 20
-#       range: 5
-#       cooldown: 3
-#   tags:
-#     - "boss"
-#     - "legendary"
+  wyvern:
+    # Display
+    name: "Wyvern"
+    description: "Lesser dragon. Flying predator with venomous tail."
+    symbol: "W"
+    color: "green"
+
+    # Core stats
+    stats:
+      hp: 25
+      attack: 9
+      defense: 4
+      xp_reward: 40
+
+    # AI behavior
+    ai:
+      type: "aggressive"
+      move_speed: 1.2
+      aggro_range: 12
+      description: "Flying, ranged attacker"
+
+    # Special abilities (future feature)
+    abilities:
+      poison_sting:
+        enabled: false
+        damage: 2
+        duration: 3
+        description: "Venomous tail attack"
+      aerial_dive:
+        enabled: false
+        damage: 12
+        cooldown: 3
+        description: "Dive attack from above"
+
+    # Gameplay tags
+    tags:
+      - "hard"
+      - "flying"
+      - "ranged"
+      - "elite"
+      - "dragon_kin"
+
+    loot_table: null
+
+    notes: |
+      Wyvern is a mid-tier flying threat for floors 7-9.
+      Player deals 1 damage (5 attack - 4 defense) without good equipment.
+      Wyvern deals 7 damage (9 attack - 2 defense) = very dangerous.
+      Encourages upgrading equipment before deep floors.
+
+  golem:
+    # Display
+    name: "Stone Golem"
+    description: "Animated stone construct. Incredibly durable but slow."
+    symbol: "G"
+    color: "gray"
+
+    # Core stats
+    stats:
+      hp: 30
+      attack: 6
+      defense: 6
+      xp_reward: 35
+
+    # AI behavior
+    ai:
+      type: "aggressive"
+      move_speed: 0.6
+      aggro_range: 6
+      description: "Slow, heavily armored tank"
+
+    # Gameplay tags
+    tags:
+      - "hard"
+      - "tank"
+      - "construct"
+      - "elite"
+      - "slow"
+
+    loot_table: null
+
+    notes: |
+      Golem is a defensive wall for floors 6-9.
+      Player deals minimal damage without high-attack weapons.
+      Golem is slow - can be kited or avoided.
+      Teaches importance of attack stat vs high-defense enemies.
+
+  wraith:
+    # Display
+    name: "Wraith"
+    description: "Spectral undead. Phases through walls."
+    symbol: "R"
+    color: "cyan"
+
+    # Core stats
+    stats:
+      hp: 15
+      attack: 8
+      defense: 2
+      xp_reward: 45
+
+    # AI behavior
+    ai:
+      type: "aggressive"
+      move_speed: 1.0
+      aggro_range: 15
+      description: "Phases through walls, ignores terrain"
+
+    # Special abilities (future feature)
+    abilities:
+      phase_shift:
+        enabled: false
+        description: "Can move through walls"
+      life_drain:
+        enabled: false
+        damage: 5
+        heal: 5
+        description: "Drains life on hit"
+
+    # Gameplay tags
+    tags:
+      - "hard"
+      - "undead"
+      - "spectral"
+      - "elite"
+      - "wall_phasing"
+
+    loot_table: null
+
+    notes: |
+      Wraith is a dangerous floor 8-10 elite.
+      Player deals 6 damage (8 attack - 2 defense) = kills in 3 hits.
+      Wraith deals 6 damage (8 attack - 2 defense) = mutual threat.
+      Wall-phasing makes it impossible to hide - must fight.
+
+  mimic:
+    # Display
+    name: "Mimic"
+    description: "Shapeshifting creature. Disguised as treasure."
+    symbol: "M"
+    color: "yellow"
+
+    # Core stats
+    stats:
+      hp: 14
+      attack: 7
+      defense: 3
+      xp_reward: 30
+
+    # AI behavior
+    ai:
+      type: "aggressive"
+      move_speed: 1.0
+      aggro_range: 1  # Only attacks when player is adjacent
+      description: "Ambush predator, looks like loot"
+
+    # Special abilities (future feature)
+    abilities:
+      disguise:
+        enabled: false
+        description: "Appears as loot chest until player approaches"
+      adhesive:
+        enabled: false
+        duration: 2
+        description: "Glues player in place for 2 turns"
+
+    # Gameplay tags
+    tags:
+      - "medium"
+      - "ambush"
+      - "shapeshifter"
+      - "trap"
+
+    loot_table: null
+
+    notes: |
+      Mimic is a trap enemy for floors 4-8.
+      Player deals 2 damage (5 attack - 3 defense) = kills in 7 hits.
+      Mimic deals 5 damage (7 attack - 2 defense) = dangerous surprise.
+      Teaches caution and observation.
+
+  vampire:
+    # Display
+    name: "Vampire"
+    description: "Undead noble. Drains life with every strike."
+    symbol: "V"
+    color: "red"
+
+    # Core stats
+    stats:
+      hp: 22
+      attack: 10
+      defense: 4
+      xp_reward: 60
+
+    # AI behavior
+    ai:
+      type: "aggressive"
+      move_speed: 1.1
+      aggro_range: 10
+      description: "Fast, life-draining predator"
+
+    # Special abilities (future feature)
+    abilities:
+      life_drain:
+        enabled: false
+        heal_percent: 0.5
+        description: "Heals for 50% of damage dealt"
+      bat_swarm:
+        enabled: false
+        summon_count: 3
+        cooldown: 5
+        description: "Summons 3 bats"
+
+    # Gameplay tags
+    tags:
+      - "hard"
+      - "undead"
+      - "boss_tier"
+      - "life_steal"
+      - "fast"
+
+    loot_table: null
+
+    notes: |
+      Vampire is a dangerous floor 9-12 mini-boss.
+      Player deals 1 damage (5 attack - 4 defense) without upgrades.
+      Vampire deals 8 damage (10 attack - 2 defense) = deadly.
+      Life drain makes it extremely hard to kill - burst damage needed.
+
+  lich:
+    # Display
+    name: "Lich"
+    description: "Ancient undead sorcerer. Commands death magic."
+    symbol: "L"
+    color: "purple"
+
+    # Core stats
+    stats:
+      hp: 35
+      attack: 12
+      defense: 5
+      xp_reward: 100
+
+    # AI behavior
+    ai:
+      type: "aggressive"
+      move_speed: 0.9
+      aggro_range: 12
+      description: "Powerful spellcaster, summons undead"
+
+    # Special abilities (future feature)
+    abilities:
+      death_bolt:
+        enabled: false
+        damage: 15
+        range: 6
+        cooldown: 2
+        description: "Ranged death magic attack"
+      summon_undead:
+        enabled: false
+        summon_types: ["skeleton", "wraith"]
+        count: 2
+        cooldown: 4
+        description: "Summons skeleton and wraith minions"
+      phylactery:
+        enabled: false
+        respawn_hp: 10
+        description: "Respawns once at 10 HP if killed"
+
+    # Gameplay tags
+    tags:
+      - "boss"
+      - "undead"
+      - "spellcaster"
+      - "summoner"
+      - "legendary"
+
+    loot_table: null
+
+    notes: |
+      Lich is a major boss for floor 10+.
+      Player deals 0-3 damage without excellent equipment.
+      Lich deals 10 damage (12 attack - 2 defense) = very deadly.
+      Requires high-tier equipment and tactical positioning.
+
+  demon:
+    # Display
+    name: "Demon"
+    description: "Hellspawn warrior. Wreathed in flames."
+    symbol: "D"
+    color: "red"
+
+    # Core stats
+    stats:
+      hp: 40
+      attack: 13
+      defense: 6
+      xp_reward: 120
+
+    # AI behavior
+    ai:
+      type: "aggressive"
+      move_speed: 1.0
+      aggro_range: 10
+      description: "Powerful melee combatant with fire magic"
+
+    # Special abilities (future feature)
+    abilities:
+      hellfire:
+        enabled: false
+        damage: 8
+        aoe_radius: 2
+        cooldown: 3
+        description: "Area-of-effect fire damage"
+      teleport:
+        enabled: false
+        range: 8
+        cooldown: 3
+        description: "Teleports to player or away from danger"
+      fire_aura:
+        enabled: false
+        damage: 2
+        description: "Burns adjacent enemies each turn"
+
+    # Gameplay tags
+    tags:
+      - "boss"
+      - "demon"
+      - "fire"
+      - "magical"
+      - "legendary"
+
+    loot_table: null
+
+    notes: |
+      Demon is a powerful floor 12+ boss.
+      Player needs adamantite-tier equipment to stand a chance.
+      Demon deals 11 damage (13 attack - 2 defense) = 2-shot kill.
+      Fire abilities make it extremely dangerous in enclosed spaces.
+
+  basilisk:
+    # Display
+    name: "Basilisk"
+    description: "Serpentine monstrosity. Its gaze turns flesh to stone."
+    symbol: "B"
+    color: "green"
+
+    # Core stats
+    stats:
+      hp: 28
+      attack: 11
+      defense: 5
+      xp_reward: 80
+
+    # AI behavior
+    ai:
+      type: "aggressive"
+      move_speed: 0.8
+      aggro_range: 8
+      description: "Slow but deadly gaze attack"
+
+    # Special abilities (future feature)
+    abilities:
+      petrifying_gaze:
+        enabled: false
+        chance: 0.3
+        duration: 3
+        description: "30% chance to stun for 3 turns"
+      poison_bite:
+        enabled: false
+        damage: 3
+        duration: 5
+        description: "Venomous bite inflicts poison"
+
+    # Gameplay tags
+    tags:
+      - "hard"
+      - "boss_tier"
+      - "reptile"
+      - "petrify"
+      - "poison"
+
+    loot_table: null
+
+    notes: |
+      Basilisk is a dangerous floor 11+ elite.
+      Player deals 0-2 damage without mithril+ equipment.
+      Basilisk deals 9 damage (11 attack - 2 defense) = very deadly.
+      Petrify mechanic makes it extremely dangerous - avoid gaze.
+
+  phoenix:
+    # Display
+    name: "Phoenix"
+    description: "Immortal firebird. Burns with eternal flame."
+    symbol: "P"
+    color: "orange"
+
+    # Core stats
+    stats:
+      hp: 32
+      attack: 14
+      defense: 4
+      xp_reward: 150
+
+    # AI behavior
+    ai:
+      type: "aggressive"
+      move_speed: 1.3
+      aggro_range: 15
+      description: "Fast, flying, respawns once"
+
+    # Special abilities (future feature)
+    abilities:
+      rebirth:
+        enabled: false
+        respawn_hp: 16
+        description: "Respawns once at 50% HP when killed"
+      flame_aura:
+        enabled: false
+        damage: 3
+        radius: 1
+        description: "Burns adjacent enemies"
+      dive_bomb:
+        enabled: false
+        damage: 20
+        cooldown: 4
+        description: "Devastating aerial attack"
+
+    # Gameplay tags
+    tags:
+      - "boss"
+      - "flying"
+      - "fire"
+      - "immortal"
+      - "legendary"
+      - "fast"
+
+    loot_table: null
+
+    notes: |
+      Phoenix is a legendary boss for floor 15+.
+      Player needs adamantite gear and tactical mastery.
+      Phoenix deals 12 damage (14 attack - 2 defense) = 2-shot kill.
+      Respawn mechanic means you must kill it twice - prepare accordingly.
+
+  ancient_horror:
+    # Display
+    name: "Ancient Horror"
+    description: "Eldritch abomination from beyond reality. The final challenge."
+    symbol: "H"
+    color: "magenta"
+
+    # Core stats
+    stats:
+      hp: 100
+      attack: 18
+      defense: 8
+      xp_reward: 500
+
+    # AI behavior
+    ai:
+      type: "aggressive"
+      move_speed: 1.0
+      aggro_range: 20
+      description: "Final boss with reality-warping powers"
+
+    # Special abilities (future feature)
+    abilities:
+      reality_warp:
+        enabled: false
+        damage: 25
+        aoe_radius: 3
+        cooldown: 5
+        description: "Devastating area attack"
+      summon_horrors:
+        enabled: false
+        summon_count: 3
+        types: ["wraith", "demon", "imp"]
+        cooldown: 6
+        description: "Summons lesser horrors"
+      regeneration:
+        enabled: false
+        heal_per_turn: 5
+        description: "Regenerates 5 HP per turn"
+      phase_two:
+        enabled: false
+        hp_threshold: 50
+        buffs: ["doubled_attack", "faster_movement"]
+        description: "Enrages at 50% HP"
+
+    # Gameplay tags
+    tags:
+      - "boss"
+      - "final_boss"
+      - "legendary"
+      - "eldritch"
+      - "multi_phase"
+
+    loot_table: null
+
+    notes: |
+      Ancient Horror is the ultimate final boss for floor 20+.
+      Player needs perfect adamantite gear with 90+ purity.
+      Ancient Horror deals 16 damage (18 attack - 2 defense) = brutal.
+      Multi-phase fight with summons and regeneration.
+      Requires mastery of all game mechanics to defeat.
 
 # Modding support
 # To add a new monster:

@@ -244,6 +244,151 @@ armor:
     tags: ["armor", "legendary", "heavy", "adamantite_tier"]
 
 # =============================================================================
+# LEGENDARY ITEMS - Boss drops and rare discoveries
+# =============================================================================
+legendary:
+  flaming_sword:
+    display_name: "Flaming Sword"
+    description: "A blade wreathed in eternal flames, forged from fire-touched adamantite"
+    symbol: ")"
+    color: "orange"
+    item_type: "weapon"
+    equipment_slot: "weapon"
+
+    requirements:
+      ore_type: "adamantite"
+      ore_count: 5
+      min_floor: 15
+      special_requirement: "phoenix_essence"  # Future: requires phoenix kill
+
+    stat_formulas:
+      attack_bonus: "hardness * 0.25 + purity * 0.12 + 10"  # 40-55 for adamantite
+      defense_bonus: "malleability * 0.04"  # 3-4 for adamantite
+      fire_damage: "conductivity * 0.15"  # 12-15 bonus fire damage (future)
+      durability: "malleability * 1.5"  # 120-150 for adamantite
+      weight: "density * 0.05"  # 4.0-5.0 for adamantite
+
+    tags: ["weapon", "legendary", "boss_drop", "fire", "adamantite_tier"]
+
+  arcane_staff:
+    display_name: "Arcane Staff"
+    description: "A staff pulsing with raw magical energy, channeling the power of mithril"
+    symbol: ")"
+    color: "cyan"
+    item_type: "weapon"
+    equipment_slot: "weapon"
+
+    requirements:
+      ore_type: "mithril"
+      ore_count: 4
+      min_floor: 12
+      special_requirement: "lich_phylactery"  # Future: requires lich kill
+
+    stat_formulas:
+      attack_bonus: "conductivity * 0.2 + purity * 0.1"  # 18-28 for mithril
+      defense_bonus: 0
+      spell_power: "conductivity * 0.25 + purity * 0.15"  # 21-36 spell power (future)
+      durability: "malleability * 1.2"  # 72-108 for mithril
+      weight: "density * 0.02"  # 1.2-1.8 for mithril
+
+    tags: ["weapon", "legendary", "boss_drop", "magical", "spellcaster", "mithril_tier"]
+
+  dragon_bow:
+    display_name: "Dragon Bow"
+    description: "A bow carved from dragon bone, strung with sinew of the great wyrm"
+    symbol: ")"
+    color: "red"
+    item_type: "weapon"
+    equipment_slot: "weapon"
+
+    requirements:
+      ore_type: "adamantite"
+      ore_count: 3
+      min_floor: 18
+      special_requirement: "dragon_bone"  # Future: requires dragon kill
+
+    stat_formulas:
+      attack_bonus: "hardness * 0.22 + purity * 0.15"  # 29-44 for adamantite
+      defense_bonus: -2  # Fixed penalty for ranged weapon
+      range: 6  # Fixed range for bow
+      piercing: "purity * 0.2"  # 16-20 armor penetration (future)
+      durability: "malleability * 1.8"  # 144-180 for adamantite
+      weight: "density * 0.04"  # 3.2-4.0 for adamantite
+
+    tags: ["weapon", "legendary", "boss_drop", "ranged", "piercing", "adamantite_tier"]
+
+  phoenix_armor:
+    display_name: "Phoenix Plate"
+    description: "Armor infused with phoenix ash, granting the wearer incredible resilience"
+    symbol: "["
+    color: "orange"
+    item_type: "armor"
+    equipment_slot: "armor"
+
+    requirements:
+      ore_type: "adamantite"
+      ore_count: 6
+      min_floor: 15
+      special_requirement: "phoenix_feather"  # Future: requires phoenix kill
+
+    stat_formulas:
+      attack_bonus: 0
+      defense_bonus: "hardness * 0.3 + purity * 0.15"  # 36-54 for adamantite
+      regeneration: "malleability * 0.03"  # 2.4-3.0 HP/turn regen (future)
+      fire_resistance: 50  # Fixed 50% fire resistance (future)
+      durability: "malleability * 2.5"  # 200-250 for adamantite
+      weight: "density * 0.08"  # 6.4-8.0 for adamantite
+
+    tags: ["armor", "legendary", "boss_drop", "fire_resistant", "regeneration", "adamantite_tier"]
+
+  shadow_cloak:
+    display_name: "Shadow Cloak"
+    description: "A cloak woven from wraith essence, granting its wearer supernatural stealth"
+    symbol: "["
+    color: "black"
+    item_type: "armor"
+    equipment_slot: "armor"
+
+    requirements:
+      ore_type: "mithril"
+      ore_count: 4
+      min_floor: 10
+      special_requirement: "wraith_essence"  # Future: requires wraith kills
+
+    stat_formulas:
+      attack_bonus: "purity * 0.05"  # 3-4 for mithril
+      defense_bonus: "hardness * 0.12 + purity * 0.08"  # 12-21 for mithril
+      stealth: "purity * 0.5"  # 30-45 stealth bonus (future)
+      evasion: "malleability * 0.15"  # 9-13 dodge chance (future)
+      durability: "malleability * 1.3"  # 78-117 for mithril
+      weight: "density * 0.03"  # 1.8-2.7 for mithril (very light)
+
+    tags: ["armor", "legendary", "boss_drop", "stealth", "light", "mithril_tier"]
+
+  titans_hammer:
+    display_name: "Titan's Hammer"
+    description: "A colossal war hammer forged from the heart of a mountain"
+    symbol: ")"
+    color: "gray"
+    item_type: "weapon"
+    equipment_slot: "weapon"
+
+    requirements:
+      ore_type: "adamantite"
+      ore_count: 8
+      min_floor: 20
+      special_requirement: "ancient_horror_core"  # Future: requires final boss kill
+
+    stat_formulas:
+      attack_bonus: "hardness * 0.35 + purity * 0.2 + 15"  # 58-78 for adamantite
+      defense_bonus: -3  # Fixed penalty for ultra-heavy weapon
+      stun_chance: "hardness * 0.5"  # 40-50% stun chance (future)
+      durability: "malleability * 3.0"  # 240-300 for adamantite
+      weight: "density * 0.15"  # 12-15 for adamantite (extremely heavy)
+
+    tags: ["weapon", "legendary", "boss_drop", "two_handed", "ultra_heavy", "stun", "adamantite_tier"]
+
+# =============================================================================
 # CRAFTING MECHANICS
 # =============================================================================
 crafting_rules:
