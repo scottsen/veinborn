@@ -1,0 +1,524 @@
+"""
+Integration tests for Legacy Vault system with game flows.
+
+Tests the integration of Legacy Vault with:
+- Player death (saving rare ore)
+- Victory conditions (recording victory type)
+- Game state tracking (pure vs legacy runs)
+"""
+
+import pytest
+from unittest.mock import patch, MagicMock
+
+from core.game import Game
+from core.game_state import GameState
+from core.entities import Player, Monster, OreVein
+from core.legacy import get_vault, reset_vault, LegacyVault
+from core.turn_processor import TurnProcessor
+from core.floor_manager import FloorManager
+from core.base.game_context import GameContext
+
+
+# ============================================================================
+# Fixtures
+# ============================================================================
+
+@pytest.fixture
+def temp_vault_for_integration(tmp_path):
+    """Create a temporary vault for integration tests."""
+    vault_path = tmp_path / "legacy_vault.json"
+    with patch('core.legacy.LEGACY_VAULT_PATH', vault_path):
+        reset_vault()  # Clear singleton
+        yield get_vault()
+        reset_vault()  # Clean up
+
+
+@pytest.fixture
+def player_with_rare_ore():
+    """Create a player with rare ore in inventory."""
+    player = Player(
+        x=10, y=10,
+        hp=20, max_hp=20,
+        attack=5, defense=2
+    )
+
+    # Add rare copper ore (90 purity) to inventory
+    rare_ore = OreVein(
+        ore_type="copper",
+        x=11, y=11,
+        hardness=85,
+        conductivity=82,
+        malleability=88,
+        purity=90,  # Legacy-worthy!
+        density=75
+    )
+    player.inventory.append(rare_ore)
+
+    # Add common iron ore (50 purity) - should NOT be saved
+    common_ore = OreVein(
+        ore_type="iron",
+        x=12, y=12,
+        hardness=60,
+        conductivity=55,
+        malleability=65,
+        purity=50,  # Not legacy-worthy
+        density=70
+    )
+    player.inventory.append(common_ore)
+
+    return player
+
+
+@pytest.fixture
+def player_with_legendary_ore():
+    """Create a player with multiple legendary ores."""
+    player = Player(
+        x=10, y=10,
+        hp=20, max_hp=20,
+        attack=5, defense=2
+    )
+
+    # Add 3 legendary mithril ores
+    for i in range(3):
+        ore = OreVein(
+            ore_type="mithril",
+            x=15+i, y=15+i,
+            hardness=95,
+            conductivity=98,
+            malleability=92,
+            purity=99,  # Legendary!
+            density=88
+        )
+        player.inventory.append(ore)
+
+    return player
+
+
+# ============================================================================
+# Death Flow Integration Tests
+# ============================================================================
+
+@pytest.mark.integration
+def test_death_saves_rare_ore_to_vault(temp_vault_for_integration, player_with_rare_ore, simple_room_map):
+    """Test that rare ore is saved to vault on player death."""
+    # Create game state
+    game_state = GameState(
+        player=player_with_rare_ore,
+        entities={player_with_rare_ore.entity_id: player_with_rare_ore},
+        dungeon_map=simple_room_map,
+        current_floor=5,
+        run_type="pure"
+    )
+
+    # Create context and turn processor
+    context = GameContext(game_state=game_state)
+    turn_processor = TurnProcessor(context)
+
+    # Kill the player
+    player_with_rare_ore.hp = 0
+
+    # Check game over (this should save rare ore)
+    turn_processor._check_game_over()
+
+    # Verify ore was saved to vault
+    vault = temp_vault_for_integration
+    assert vault.get_ore_count() == 1  # Only rare ore saved
+
+    ores = vault.get_ores()
+    assert ores[0].ore_type == "copper"
+    assert ores[0].purity == 90
+    assert ores[0].floor_found == 5
+
+    # Verify defeat was recorded
+    assert vault.total_runs == 1
+    assert vault.total_pure_victories == 0  # Death, not victory
+
+
+@pytest.mark.integration
+def test_death_with_multiple_rare_ores(temp_vault_for_integration, player_with_legendary_ore, simple_room_map):
+    """Test death with multiple rare ores saves all of them."""
+    game_state = GameState(
+        player=player_with_legendary_ore,
+        entities={player_with_legendary_ore.entity_id: player_with_legendary_ore},
+        dungeon_map=simple_room_map,
+        current_floor=10
+    )
+
+    context = GameContext(game_state=game_state)
+    turn_processor = TurnProcessor(context)
+
+    # Kill player
+    player_with_legendary_ore.hp = 0
+    turn_processor._check_game_over()
+
+    # All 3 legendary ores should be saved
+    vault = temp_vault_for_integration
+    assert vault.get_ore_count() == 3
+
+    ores = vault.get_ores()
+    assert all(ore.ore_type == "mithril" for ore in ores)
+    assert all(ore.purity == 99 for ore in ores)
+
+
+@pytest.mark.integration
+def test_death_with_no_rare_ore(temp_vault_for_integration, simple_room_map):
+    """Test death with no rare ore doesn't add anything to vault."""
+    # Player with only common ore
+    player = Player(x=10, y=10, hp=20, max_hp=20, attack=5, defense=2)
+    common_ore = OreVein(
+        ore_type="copper",
+        x=11, y=11,
+        hardness=40, conductivity=40, malleability=40,
+        purity=40,  # Not rare
+        density=40
+    )
+    player.inventory.append(common_ore)
+
+    game_state = GameState(
+        player=player,
+        entities={player.entity_id: player},
+        dungeon_map=simple_room_map,
+        current_floor=2
+    )
+
+    context = GameContext(game_state=game_state)
+    turn_processor = TurnProcessor(context)
+
+    # Kill player
+    player.hp = 0
+    turn_processor._check_game_over()
+
+    # No ore should be saved
+    vault = temp_vault_for_integration
+    assert vault.get_ore_count() == 0
+
+    # Defeat should still be recorded
+    assert vault.total_runs == 1
+
+
+@pytest.mark.integration
+def test_death_messages(temp_vault_for_integration, player_with_rare_ore, simple_room_map):
+    """Test proper messages are displayed on death with rare ore."""
+    game_state = GameState(
+        player=player_with_rare_ore,
+        entities={player_with_rare_ore.entity_id: player_with_rare_ore},
+        dungeon_map=simple_room_map,
+        current_floor=5
+    )
+
+    context = GameContext(game_state=game_state)
+    turn_processor = TurnProcessor(context)
+
+    # Kill player
+    player_with_rare_ore.hp = 0
+    turn_processor._check_game_over()
+
+    # Check messages
+    messages = game_state.messages
+    assert any("You died!" in msg for msg in messages)
+    assert any("rare ore" in msg.lower() for msg in messages)
+    assert any("Legacy Vault" in msg for msg in messages)
+
+
+# ============================================================================
+# Victory Flow Integration Tests
+# ============================================================================
+
+@pytest.mark.integration
+def test_pure_victory_recorded(temp_vault_for_integration, simple_room_map):
+    """Test Pure Victory is recorded correctly."""
+    player = Player(x=10, y=10, hp=50, max_hp=50, attack=10, defense=5)
+    game_state = GameState(
+        player=player,
+        entities={player.entity_id: player},
+        dungeon_map=simple_room_map,
+        current_floor=19,
+        run_type="pure"  # Pure run
+    )
+
+    context = GameContext(game_state=game_state)
+    floor_manager = FloorManager(context)
+
+    # Trigger victory
+    floor_manager._check_victory(20)
+
+    # Verify victory recorded
+    vault = temp_vault_for_integration
+    assert vault.total_runs == 1
+    assert vault.total_pure_victories == 1
+    assert vault.total_legacy_victories == 0
+
+    # Check victory message
+    messages = game_state.messages
+    assert any("PURE VICTORY" in msg for msg in messages)
+
+
+@pytest.mark.integration
+def test_legacy_victory_recorded(temp_vault_for_integration, simple_room_map):
+    """Test Legacy Victory is recorded correctly."""
+    player = Player(x=10, y=10, hp=50, max_hp=50, attack=10, defense=5)
+    game_state = GameState(
+        player=player,
+        entities={player.entity_id: player},
+        dungeon_map=simple_room_map,
+        current_floor=19,
+        run_type="legacy"  # Legacy run (used vault ore)
+    )
+
+    context = GameContext(game_state=game_state)
+    floor_manager = FloorManager(context)
+
+    # Trigger victory
+    floor_manager._check_victory(20)
+
+    # Verify victory recorded
+    vault = temp_vault_for_integration
+    assert vault.total_runs == 1
+    assert vault.total_pure_victories == 0
+    assert vault.total_legacy_victories == 1
+
+    # Check victory message
+    messages = game_state.messages
+    assert any("LEGACY VICTORY" in msg for msg in messages)
+
+
+@pytest.mark.integration
+def test_multiple_runs_tracking(temp_vault_for_integration, simple_room_map):
+    """Test multiple runs are tracked correctly."""
+    vault = temp_vault_for_integration
+
+    # Run 1: Pure defeat
+    player1 = Player(x=10, y=10, hp=0, max_hp=20, attack=5, defense=2)
+    game_state1 = GameState(
+        player=player1,
+        entities={player1.entity_id: player1},
+        dungeon_map=simple_room_map,
+        run_type="pure"
+    )
+    context1 = GameContext(game_state=game_state1)
+    TurnProcessor(context1)._check_game_over()
+
+    # Run 2: Legacy defeat
+    player2 = Player(x=10, y=10, hp=0, max_hp=20, attack=5, defense=2)
+    game_state2 = GameState(
+        player=player2,
+        entities={player2.entity_id: player2},
+        dungeon_map=simple_room_map,
+        run_type="legacy"
+    )
+    context2 = GameContext(game_state=game_state2)
+    TurnProcessor(context2)._check_game_over()
+
+    # Run 3: Pure victory
+    player3 = Player(x=10, y=10, hp=50, max_hp=50, attack=10, defense=5)
+    game_state3 = GameState(
+        player=player3,
+        entities={player3.entity_id: player3},
+        dungeon_map=simple_room_map,
+        current_floor=19,
+        run_type="pure"
+    )
+    context3 = GameContext(game_state=game_state3)
+    FloorManager(context3)._check_victory(20)
+
+    # Run 4: Legacy victory
+    player4 = Player(x=10, y=10, hp=50, max_hp=50, attack=10, defense=5)
+    game_state4 = GameState(
+        player=player4,
+        entities={player4.entity_id: player4},
+        dungeon_map=simple_room_map,
+        current_floor=19,
+        run_type="legacy"
+    )
+    context4 = GameContext(game_state=game_state4)
+    FloorManager(context4)._check_victory(20)
+
+    # Verify stats
+    assert vault.total_runs == 4
+    assert vault.total_pure_victories == 1
+    assert vault.total_legacy_victories == 1
+
+
+# ============================================================================
+# Game State Integration Tests
+# ============================================================================
+
+@pytest.mark.integration
+def test_game_state_run_type_defaults_to_pure():
+    """Test new game state defaults to pure run."""
+    player = Player(x=10, y=10, hp=20, max_hp=20, attack=5, defense=2)
+    game_state = GameState(player=player)
+
+    assert game_state.run_type == "pure"
+
+
+@pytest.mark.integration
+def test_game_state_run_type_persists():
+    """Test run type can be set and persists."""
+    player = Player(x=10, y=10, hp=20, max_hp=20, attack=5, defense=2)
+    game_state = GameState(player=player, run_type="legacy")
+
+    assert game_state.run_type == "legacy"
+
+
+# ============================================================================
+# Edge Cases and Error Handling
+# ============================================================================
+
+@pytest.mark.integration
+def test_vault_error_doesnt_crash_game(temp_vault_for_integration, player_with_rare_ore, simple_room_map):
+    """Test that vault errors don't crash the game."""
+    game_state = GameState(
+        player=player_with_rare_ore,
+        entities={player_with_rare_ore.entity_id: player_with_rare_ore},
+        dungeon_map=simple_room_map,
+        current_floor=5
+    )
+
+    context = GameContext(game_state=game_state)
+    turn_processor = TurnProcessor(context)
+
+    # Mock vault to raise exception
+    with patch('core.turn_processor.get_vault') as mock_vault:
+        mock_vault.side_effect = Exception("Vault error!")
+
+        # Kill player - should not crash
+        player_with_rare_ore.hp = 0
+        turn_processor._check_game_over()
+
+        # Game should still be over
+        assert game_state.game_over is True
+
+
+@pytest.mark.integration
+def test_death_with_empty_inventory(temp_vault_for_integration, simple_room_map):
+    """Test death with empty inventory doesn't cause errors."""
+    player = Player(x=10, y=10, hp=0, max_hp=20, attack=5, defense=2)
+    # Empty inventory
+    player.inventory = []
+
+    game_state = GameState(
+        player=player,
+        entities={player.entity_id: player},
+        dungeon_map=simple_room_map,
+        current_floor=3
+    )
+
+    context = GameContext(game_state=game_state)
+    turn_processor = TurnProcessor(context)
+
+    # Should not crash
+    turn_processor._check_game_over()
+
+    # No ore saved
+    vault = temp_vault_for_integration
+    assert vault.get_ore_count() == 0
+
+
+@pytest.mark.integration
+def test_vault_overflow_during_death(temp_vault_for_integration, simple_room_map):
+    """Test vault handles overflow correctly when saving on death."""
+    # Fill vault to near capacity (8 ores)
+    for i in range(8):
+        ore = OreVein(
+            ore_type=f"existing_{i}",
+            x=i, y=i,
+            hardness=85, conductivity=85, malleability=85,
+            purity=85, density=85
+        )
+        temp_vault_for_integration.add_ore(ore, floor=i)
+
+    # Player dies with 5 rare ores (will exceed max of 10)
+    player = Player(x=10, y=10, hp=0, max_hp=20, attack=5, defense=2)
+    for i in range(5):
+        ore = OreVein(
+            ore_type=f"death_ore_{i}",
+            x=20+i, y=20+i,
+            hardness=90, conductivity=90, malleability=90,
+            purity=95, density=90
+        )
+        player.inventory.append(ore)
+
+    game_state = GameState(
+        player=player,
+        entities={player.entity_id: player},
+        dungeon_map=simple_room_map,
+        current_floor=15
+    )
+
+    context = GameContext(game_state=game_state)
+    turn_processor = TurnProcessor(context)
+
+    # Death should handle overflow (FIFO)
+    turn_processor._check_game_over()
+
+    # Should have exactly 10 ores
+    vault = temp_vault_for_integration
+    assert vault.get_ore_count() == 10
+    assert vault.is_full()
+
+    # Oldest 3 ores should be removed
+    ores = vault.get_ores()
+    # First ore should be existing_3 (existing_0,1,2 removed)
+    assert "existing_" in ores[0].ore_type or "death_ore_" in ores[0].ore_type
+    # Last ore should be death_ore_4
+    assert "death_ore_" in ores[-1].ore_type
+
+
+# ============================================================================
+# Persistence Integration Tests
+# ============================================================================
+
+@pytest.mark.integration
+def test_vault_persists_between_deaths(temp_vault_for_integration, simple_room_map):
+    """Test vault accumulates ore across multiple deaths."""
+    vault = temp_vault_for_integration
+
+    # Death 1: Add 2 rare ores
+    player1 = Player(x=10, y=10, hp=0, max_hp=20, attack=5, defense=2)
+    for i in range(2):
+        ore = OreVein(
+            ore_type=f"death1_ore_{i}",
+            x=i, y=i,
+            hardness=85, conductivity=85, malleability=85,
+            purity=90, density=85
+        )
+        player1.inventory.append(ore)
+
+    game_state1 = GameState(
+        player=player1,
+        entities={player1.entity_id: player1},
+        dungeon_map=simple_room_map,
+        current_floor=5
+    )
+    context1 = GameContext(game_state=game_state1)
+    TurnProcessor(context1)._check_game_over()
+
+    assert vault.get_ore_count() == 2
+
+    # Death 2: Add 3 more rare ores
+    player2 = Player(x=10, y=10, hp=0, max_hp=20, attack=5, defense=2)
+    for i in range(3):
+        ore = OreVein(
+            ore_type=f"death2_ore_{i}",
+            x=10+i, y=10+i,
+            hardness=88, conductivity=88, malleability=88,
+            purity=92, density=88
+        )
+        player2.inventory.append(ore)
+
+    game_state2 = GameState(
+        player=player2,
+        entities={player2.entity_id: player2},
+        dungeon_map=simple_room_map,
+        current_floor=8
+    )
+    context2 = GameContext(game_state=game_state2)
+    TurnProcessor(context2)._check_game_over()
+
+    # Should now have 5 total ores
+    assert vault.get_ore_count() == 5
+
+    ores = vault.get_ores()
+    assert sum(1 for ore in ores if "death1_" in ore.ore_type) == 2
+    assert sum(1 for ore in ores if "death2_" in ore.ore_type) == 3
