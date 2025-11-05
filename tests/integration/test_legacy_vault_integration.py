@@ -116,6 +116,7 @@ def test_death_saves_rare_ore_to_vault(temp_vault_for_integration, player_with_r
 
     # Kill the player
     player_with_rare_ore.hp = 0
+    player_with_rare_ore.is_alive = False
 
     # Check game over (this should save rare ore)
     turn_processor._check_game_over()
@@ -149,6 +150,7 @@ def test_death_with_multiple_rare_ores(temp_vault_for_integration, player_with_l
 
     # Kill player
     player_with_legendary_ore.hp = 0
+    player_with_legendary_ore.is_alive = False
     turn_processor._check_game_over()
 
     # All 3 legendary ores should be saved
@@ -186,6 +188,7 @@ def test_death_with_no_rare_ore(temp_vault_for_integration, simple_room_map):
 
     # Kill player
     player.hp = 0
+    player.is_alive = False
     turn_processor._check_game_over()
 
     # No ore should be saved
@@ -211,6 +214,7 @@ def test_death_messages(temp_vault_for_integration, player_with_rare_ore, simple
 
     # Kill player
     player_with_rare_ore.hp = 0
+    player_with_rare_ore.is_alive = False
     turn_processor._check_game_over()
 
     # Check messages
@@ -232,15 +236,16 @@ def test_pure_victory_recorded(temp_vault_for_integration, simple_room_map):
         player=player,
         entities={player.entity_id: player},
         dungeon_map=simple_room_map,
-        current_floor=19,
+        current_floor=99,
         run_type="pure"  # Pure run
     )
 
     context = GameContext(game_state=game_state)
-    floor_manager = FloorManager(context)
+    mock_spawner = MagicMock()
+    floor_manager = FloorManager(context, mock_spawner)
 
     # Trigger victory
-    floor_manager._check_victory(20)
+    floor_manager._check_victory(100)
 
     # Verify victory recorded
     vault = temp_vault_for_integration
@@ -261,15 +266,16 @@ def test_legacy_victory_recorded(temp_vault_for_integration, simple_room_map):
         player=player,
         entities={player.entity_id: player},
         dungeon_map=simple_room_map,
-        current_floor=19,
+        current_floor=99,
         run_type="legacy"  # Legacy run (used vault ore)
     )
 
     context = GameContext(game_state=game_state)
-    floor_manager = FloorManager(context)
+    mock_spawner = MagicMock()
+    floor_manager = FloorManager(context, mock_spawner)
 
     # Trigger victory
-    floor_manager._check_victory(20)
+    floor_manager._check_victory(100)
 
     # Verify victory recorded
     vault = temp_vault_for_integration
@@ -289,6 +295,7 @@ def test_multiple_runs_tracking(temp_vault_for_integration, simple_room_map):
 
     # Run 1: Pure defeat
     player1 = Player(x=10, y=10, hp=0, max_hp=20, attack=5, defense=2)
+    player1.is_alive = False
     game_state1 = GameState(
         player=player1,
         entities={player1.entity_id: player1},
@@ -300,6 +307,7 @@ def test_multiple_runs_tracking(temp_vault_for_integration, simple_room_map):
 
     # Run 2: Legacy defeat
     player2 = Player(x=10, y=10, hp=0, max_hp=20, attack=5, defense=2)
+    player2.is_alive = False
     game_state2 = GameState(
         player=player2,
         entities={player2.entity_id: player2},
@@ -315,11 +323,11 @@ def test_multiple_runs_tracking(temp_vault_for_integration, simple_room_map):
         player=player3,
         entities={player3.entity_id: player3},
         dungeon_map=simple_room_map,
-        current_floor=19,
+        current_floor=99,
         run_type="pure"
     )
     context3 = GameContext(game_state=game_state3)
-    FloorManager(context3)._check_victory(20)
+    FloorManager(context3, MagicMock())._check_victory(100)
 
     # Run 4: Legacy victory
     player4 = Player(x=10, y=10, hp=50, max_hp=50, attack=10, defense=5)
@@ -327,11 +335,11 @@ def test_multiple_runs_tracking(temp_vault_for_integration, simple_room_map):
         player=player4,
         entities={player4.entity_id: player4},
         dungeon_map=simple_room_map,
-        current_floor=19,
+        current_floor=99,
         run_type="legacy"
     )
     context4 = GameContext(game_state=game_state4)
-    FloorManager(context4)._check_victory(20)
+    FloorManager(context4, MagicMock())._check_victory(100)
 
     # Verify stats
     assert vault.total_runs == 4
@@ -384,6 +392,7 @@ def test_vault_error_doesnt_crash_game(temp_vault_for_integration, player_with_r
 
         # Kill player - should not crash
         player_with_rare_ore.hp = 0
+        player_with_rare_ore.is_alive = False
         turn_processor._check_game_over()
 
         # Game should still be over
@@ -430,6 +439,7 @@ def test_vault_overflow_during_death(temp_vault_for_integration, simple_room_map
 
     # Player dies with 5 rare ores (will exceed max of 10)
     player = Player(x=10, y=10, hp=0, max_hp=20, attack=5, defense=2)
+    player.is_alive = False
     for i in range(5):
         ore = OreVein(
             ore_type=f"death_ore_{i}",
@@ -476,6 +486,7 @@ def test_vault_persists_between_deaths(temp_vault_for_integration, simple_room_m
 
     # Death 1: Add 2 rare ores
     player1 = Player(x=10, y=10, hp=0, max_hp=20, attack=5, defense=2)
+    player1.is_alive = False
     for i in range(2):
         ore = OreVein(
             ore_type=f"death1_ore_{i}",
@@ -498,6 +509,7 @@ def test_vault_persists_between_deaths(temp_vault_for_integration, simple_room_m
 
     # Death 2: Add 3 more rare ores
     player2 = Player(x=10, y=10, hp=0, max_hp=20, attack=5, defense=2)
+    player2.is_alive = False
     for i in range(3):
         ore = OreVein(
             ore_type=f"death2_ore_{i}",

@@ -2046,3 +2046,41 @@
 2025-10-27 16:12:56,794 - core.base.action - WARNING - MoveAction validation failed: tile not walkable - Giant Bat tried to move to (10,13) [WALL]
 2025-10-27 16:12:57,053 - core.save_load - INFO - Game loaded: /home/scottsen/.brogue/saves/quicksave.json
 2025-10-27 16:12:57,253 - brogue.app - INFO - app.run() returned
+2025-11-05 17:47:27,934 - __main__ - INFO - Brogue logging initialized
+2025-11-05 17:47:27,935 - __main__ - INFO - Log file: /home/user/brogue/logs/brogue.log
+2025-11-05 17:47:27,935 - core.config.user_config - INFO - No config file found, using defaults
+2025-11-05 17:47:27,935 - brogue.app - INFO - run_game() called (player=Anonymous, class=CharacterClass.WARRIOR, seed=None)
+2025-11-05 17:47:27,935 - brogue.app - INFO - BrogueApp.__init__() starting
+2025-11-05 17:47:27,944 - brogue.app - INFO -   Creating Game instance...
+2025-11-05 17:47:27,944 - core.config.config_loader - INFO - Loading configuration from /home/user/brogue/data/balance
+2025-11-05 17:47:27,961 - core.config.config_loader - INFO - Configuration loaded successfully
+2025-11-05 17:47:27,994 - core.entity_loader - INFO - Loaded 19 monsters: goblin, orc, troll, bat, skeleton, ogre, wolf, spider, imp, wyvern, golem, wraith, mimic, vampire, lich, demon, basilisk, phoenix, ancient_horror
+2025-11-05 17:47:28,013 - core.entity_loader - INFO - Loaded 4 ore types: copper, iron, mithril, adamantite
+2025-11-05 17:47:28,013 - core.entity_loader - INFO - EntityLoader initialized: 19 monsters, 4 ore types
+2025-11-05 17:47:28,013 - core.save_load - INFO - SaveSystem initialized: /root/.brogue/saves
+2025-11-05 17:47:28,013 - brogue.app - INFO -   Game instance created
+2025-11-05 17:47:28,013 - brogue.app - INFO - BrogueApp.__init__() complete
+2025-11-05 17:47:28,014 - brogue.app - INFO - Calling app.run()...
+2025-11-05 17:47:28,027 - brogue.app - INFO - compose() starting
+2025-11-05 17:47:28,027 - brogue.app - INFO -   Starting new game (Player: Anonymous, Class: CharacterClass.WARRIOR, Seed: None)...
+2025-11-05 17:47:28,028 - core.game - INFO - Starting new game with Seed: random
+2025-11-05 17:47:28,032 - core.game - INFO - Created warrior player: Anonymous
+2025-11-05 17:47:28,032 - core.base.game_context - INFO - System registered: ai
+2025-11-05 17:47:28,032 - core.spawning.entity_spawner - INFO - Spawned 3 monsters on floor 1 (types: {'Goblin'})
+2025-11-05 17:47:28,033 - core.spawning.entity_spawner - INFO - Spawned 8 ore veins on floor 1 (types: {'copper'})
+2025-11-05 17:47:28,034 - core.spawning.entity_spawner - INFO - Spawned Basic Forge at (1, 6) on floor 1
+2025-11-05 17:47:28,034 - core.game_state - INFO - Game message: Welcome to Brogue! Mine ore and craft weapons.
+2025-11-05 17:47:28,034 - core.game_state - INFO - Game message: Use arrow keys or HJKL to move. Bump into monsters to attack.
+2025-11-05 17:47:28,034 - core.game_state - INFO - Game message: Find the Basic Forge to craft equipment!
+2025-11-05 17:47:28,034 - core.game - INFO - Game started: Player at (5, 8), 3 monsters, 8 ore veins
+2025-11-05 17:47:28,034 - brogue.app - INFO -   Game started: player at (5, 8)
+2025-11-05 17:47:28,034 - brogue.app - INFO -   Map size: 80x24
+2025-11-05 17:47:28,034 - brogue.app - INFO -   Entities: 12
+2025-11-05 17:47:28,034 - brogue.app - INFO -   Creating StatusBar...
+2025-11-05 17:47:28,035 - brogue.app - INFO -   Creating MapWidget...
+2025-11-05 17:47:28,035 - brogue.app - INFO -   Creating Sidebar...
+2025-11-05 17:47:28,035 - brogue.app - INFO -   Creating MessageLog...
+2025-11-05 17:47:28,035 - brogue.app - INFO -   Yielding widgets...
+2025-11-05 17:47:28,035 - brogue.app - INFO - compose() complete
+2025-11-05 17:47:28,042 - brogue.app - INFO - on_mount() called - app is mounting
+2025-11-05 17:47:28,078 - brogue.app - INFO - on_ready() called - app is ready and running
