@@ -534,3 +534,237 @@ def test_vault_persists_between_deaths(temp_vault_for_integration, simple_room_m
     ores = vault.get_ores()
     assert sum(1 for ore in ores if "death1_" in ore.ore_type) == 2
     assert sum(1 for ore in ores if "death2_" in ore.ore_type) == 3
+
+
+# ============================================================================
+# Withdrawal Flow Integration Tests
+# ============================================================================
+
+@pytest.mark.integration
+def test_start_game_with_withdrawn_ore(temp_vault_for_integration):
+    """Test starting a game with withdrawn ore adds it to inventory."""
+    from core.legacy import LegacyOre
+
+    # Create a legacy ore
+    legacy_ore = LegacyOre(
+        ore_type="copper",
+        hardness=85,
+        conductivity=82,
+        malleability=88,
+        purity=90,
+        density=75,
+        floor_found=5,
+        timestamp="2025-11-05T12:00:00"
+    )
+
+    # Start a new game with the withdrawn ore
+    game = Game()
+    game.start_new_game(
+        seed=12345,
+        player_name="TestPlayer",
+        character_class=None,
+        withdrawn_ore=legacy_ore,
+        is_legacy_run=True
+    )
+
+    # Verify ore is in player inventory
+    assert len(game.state.player.inventory) == 1
+    ore_in_inventory = game.state.player.inventory[0]
+
+    # Verify ore properties match
+    assert ore_in_inventory.ore_type == "copper"
+    assert ore_in_inventory.hardness == 85
+    assert ore_in_inventory.conductivity == 82
+    assert ore_in_inventory.malleability == 88
+    assert ore_in_inventory.purity == 90
+    assert ore_in_inventory.density == 75
+
+    # Verify ore is marked as mined (ready to use)
+    assert ore_in_inventory.stats['mining_turns_remaining'] == 0
+
+
+@pytest.mark.integration
+def test_start_game_with_withdrawn_ore_marks_legacy_run(temp_vault_for_integration):
+    """Test starting a game with withdrawn ore marks run as legacy."""
+    from core.legacy import LegacyOre
+
+    # Create a legacy ore
+    legacy_ore = LegacyOre(
+        ore_type="mithril",
+        hardness=95,
+        conductivity=98,
+        malleability=92,
+        purity=99,
+        density=88,
+        floor_found=10,
+        timestamp="2025-11-05T12:00:00"
+    )
+
+    # Start a new game with the withdrawn ore
+    game = Game()
+    game.start_new_game(
+        seed=12345,
+        player_name="TestPlayer",
+        character_class=None,
+        withdrawn_ore=legacy_ore,
+        is_legacy_run=True
+    )
+
+    # Verify run is marked as legacy
+    assert game.state.run_type == "legacy"
+
+    # Verify message was added
+    messages = game.state.messages
+    assert any("Legacy Vault" in msg for msg in messages)
+    assert any("Legacy run" in msg for msg in messages)
+
+
+@pytest.mark.integration
+def test_start_game_without_withdrawn_ore_marks_pure_run(temp_vault_for_integration):
+    """Test starting a game without withdrawn ore marks run as pure."""
+    # Start a new game without withdrawn ore
+    game = Game()
+    game.start_new_game(
+        seed=12345,
+        player_name="TestPlayer",
+        character_class=None,
+        withdrawn_ore=None,
+        is_legacy_run=False
+    )
+
+    # Verify run is marked as pure
+    assert game.state.run_type == "pure"
+
+    # Verify no ore in inventory
+    assert len(game.state.player.inventory) == 0
+
+    # Verify no legacy messages
+    messages = game.state.messages
+    assert not any("Legacy Vault" in msg for msg in messages)
+
+
+@pytest.mark.integration
+def test_withdrawn_ore_can_be_crafted(temp_vault_for_integration):
+    """Test that withdrawn ore can be used for crafting."""
+    from core.legacy import LegacyOre
+    from core.character_class import CharacterClass
+
+    # Create a high-quality legacy ore
+    legacy_ore = LegacyOre(
+        ore_type="mithril",
+        hardness=95,
+        conductivity=98,
+        malleability=92,
+        purity=99,
+        density=88,
+        floor_found=10,
+        timestamp="2025-11-05T12:00:00"
+    )
+
+    # Start a new game with the withdrawn ore
+    game = Game()
+    game.start_new_game(
+        seed=12345,
+        player_name="TestPlayer",
+        character_class=CharacterClass.WARRIOR,
+        withdrawn_ore=legacy_ore,
+        is_legacy_run=True
+    )
+
+    # Verify ore is in inventory and ready to craft
+    ore_in_inventory = game.state.player.inventory[0]
+    assert ore_in_inventory.ore_type == "mithril"
+    assert ore_in_inventory.purity == 99
+
+    # Ore should be "mined" (mining_turns_remaining = 0)
+    assert ore_in_inventory.stats['mining_turns_remaining'] == 0
+
+    # This means it can be used in crafting recipes
+    # (actual crafting test is in crafting system tests)
+
+
+@pytest.mark.integration
+def test_withdraw_ore_from_vault_integration(temp_vault_for_integration):
+    """Test full cycle: death -> withdraw -> start new game."""
+    from core.legacy import LegacyOre
+
+    vault = temp_vault_for_integration
+
+    # Step 1: Add ore to vault (simulating death)
+    ore1 = OreVein(
+        ore_type="copper",
+        x=10, y=10,
+        hardness=85,
+        conductivity=82,
+        malleability=88,
+        purity=90,
+        density=75
+    )
+    vault.add_ore(ore1, floor=5)
+
+    assert vault.get_ore_count() == 1
+
+    # Step 2: Withdraw ore from vault
+    withdrawn = vault.withdraw_ore(0)
+    assert withdrawn is not None
+    assert withdrawn.ore_type == "copper"
+    assert withdrawn.purity == 90
+    assert vault.get_ore_count() == 0
+
+    # Step 3: Start new game with withdrawn ore
+    game = Game()
+    game.start_new_game(
+        seed=12345,
+        player_name="TestPlayer",
+        character_class=None,
+        withdrawn_ore=withdrawn,
+        is_legacy_run=True
+    )
+
+    # Verify everything is correct
+    assert game.state.run_type == "legacy"
+    assert len(game.state.player.inventory) == 1
+    assert game.state.player.inventory[0].ore_type == "copper"
+    assert game.state.player.inventory[0].purity == 90
+
+
+@pytest.mark.integration
+def test_multiple_quality_tiers_withdrawn(temp_vault_for_integration):
+    """Test withdrawing different quality tiers of ore."""
+    from core.legacy import LegacyOre
+
+    # Test Rare tier (purity 71-80)
+    rare_ore = LegacyOre(
+        ore_type="iron",
+        hardness=75, conductivity=75, malleability=75,
+        purity=75, density=75,
+        floor_found=3
+    )
+
+    game = Game()
+    game.start_new_game(withdrawn_ore=rare_ore, is_legacy_run=True)
+    assert game.state.player.inventory[0].purity == 75
+
+    # Test Epic tier (purity 86-95)
+    epic_ore = LegacyOre(
+        ore_type="mithril",
+        hardness=90, conductivity=90, malleability=90,
+        purity=90, density=90,
+        floor_found=8
+    )
+
+    game2 = Game()
+    game2.start_new_game(withdrawn_ore=epic_ore, is_legacy_run=True)
+    assert game2.state.player.inventory[0].purity == 90
+
+    # Test Legendary tier (purity 96+)
+    legendary_ore = LegacyOre(
+        ore_type="adamantite",
+        hardness=99, conductivity=99, malleability=99,
+        purity=99, density=99,
+        floor_found=15
+    )
+
+    game3 = Game()
+    game3.start_new_game(withdrawn_ore=legendary_ore, is_legacy_run=True)
+    assert game3.state.player.inventory[0].purity == 99

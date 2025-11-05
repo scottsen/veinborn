@@ -16,6 +16,16 @@ class TileType(Enum):
     STAIRS_DOWN = '>'
 
 
+class RoomType(Enum):
+    """Special room types with unique features."""
+    NORMAL = "normal"           # Regular dungeon room
+    TREASURE = "treasure"       # High-quality loot drops
+    MONSTER_DEN = "monster_den" # Extra monsters, mini-boss challenges
+    ORE_CHAMBER = "ore_chamber" # Multiple high-quality ore veins
+    SHRINE = "shrine"           # Healing, temporary stat buffs
+    TRAP = "trap"               # Pressure plates, spikes, arrow traps
+
+
 @dataclass
 class Tile:
     """Individual map tile."""
@@ -46,6 +56,7 @@ class Room:
     y: int
     width: int
     height: int
+    room_type: RoomType = RoomType.NORMAL
 
     @property
     def center(self) -> Tuple[int, int]:
@@ -57,6 +68,10 @@ class Room:
                 self.x + self.width > other.x and
                 self.y < other.y + other.height and
                 self.y + self.height > other.y)
+
+    def is_special(self) -> bool:
+        """Check if this is a special room (not normal)."""
+        return self.room_type != RoomType.NORMAL
 
 
 class Map:
@@ -92,6 +107,9 @@ class Map:
         self.create_rooms(root)
         self.connect_rooms(root)
         self.apply_to_map(root)
+
+        # Assign special room types to some rooms
+        self.assign_special_rooms()
 
         # Place stairs down in the last room
         self.place_stairs_down()
@@ -307,6 +325,51 @@ class Map:
                         return positions
 
         return positions
+
+    def assign_special_rooms(self):
+        """
+        Assign special room types to some rooms.
+
+        Special rooms provide unique gameplay elements:
+        - Treasure rooms: High-quality loot
+        - Monster dens: Extra monsters and challenges
+        - Ore chambers: Multiple high-quality ore veins
+        - Shrines: Healing and buffs
+        - Trap rooms: Environmental hazards
+
+        Rules:
+        - First room (starting room) is always NORMAL
+        - Last room (stairs room) is always NORMAL
+        - 20-30% of other rooms become special
+        """
+        if len(self.rooms) <= 2:
+            # Not enough rooms for special types
+            return
+
+        rng = GameRNG.get_instance()
+
+        # Define available special room types with weights
+        # (type, weight) - higher weight = more common
+        special_types = [
+            (RoomType.TREASURE, 2),      # Moderate treasure rooms
+            (RoomType.MONSTER_DEN, 2),   # Moderate monster dens
+            (RoomType.ORE_CHAMBER, 3),   # Common ore chambers (fits game theme)
+            (RoomType.SHRINE, 1),        # Rare shrines
+            (RoomType.TRAP, 1),          # Rare trap rooms
+        ]
+
+        # Calculate how many special rooms to create (20-30% of eligible rooms)
+        # Exclude first and last room
+        eligible_rooms = self.rooms[1:-1]
+        num_special = max(1, int(len(eligible_rooms) * rng.uniform(0.2, 0.3)))
+
+        # Randomly select rooms to make special
+        special_rooms = rng.sample(eligible_rooms, min(num_special, len(eligible_rooms)))
+
+        # Assign types using weighted random selection
+        for room in special_rooms:
+            types, weights = zip(*special_types)
+            room.room_type = rng.choices(types, weights=weights)[0]
 
     def place_stairs_down(self) -> Optional[Tuple[int, int]]:
         """
