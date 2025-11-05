@@ -126,9 +126,17 @@ Q: Quit
 - [`docs/systems/COMBAT_SYSTEM.md`](docs/systems/COMBAT_SYSTEM.md) - Turn-based combat
 - [`docs/UI_FRAMEWORK.md`](docs/UI_FRAMEWORK.md) - Why Textual framework
 
-**Phase 2 Architecture:**
-- [`docs/architecture/`](docs/architecture/) - Technical specifications (NATS, messaging, logging, etc.)
+**Development Guides:**
+- [`docs/development/`](docs/development/) - Testing, debugging, and development workflows
+- [`docs/development/DEBUG_INSTRUCTIONS.md`](docs/development/DEBUG_INSTRUCTIONS.md) - How to debug
+- [`docs/development/TESTING_ACTION_FACTORY.md`](docs/development/TESTING_ACTION_FACTORY.md) - Testing guide
+- [`docs/development/CODE_REVIEW_STANDARDS.md`](docs/development/CODE_REVIEW_STANDARDS.md) - Code quality standards
+
+**Architecture & Technical Design:**
+- [`docs/architecture/`](docs/architecture/) - Architecture docs, analysis, and technical patterns
 - [`docs/architecture/README.md`](docs/architecture/README.md) - Architecture navigation
+- [`docs/architecture/ARCHITECTURAL_ANALYSIS.md`](docs/architecture/ARCHITECTURAL_ANALYSIS.md) - System analysis
+- [`docs/architecture/ACTION_FACTORY_COMPLETE.md`](docs/architecture/ACTION_FACTORY_COMPLETE.md) - Action factory pattern
 
 **Phase 2 Design:**
 - [`docs/future-multiplayer/`](docs/future-multiplayer/) - Multiplayer design docs
@@ -137,6 +145,8 @@ Q: Quit
 
 **Archive:**
 - [`docs/Archive/`](docs/Archive/) - ❌ Old/conflicting docs (don't read)
+- [`docs/Archive/development-history/`](docs/Archive/development-history/) - Phase completion summaries
+- [`docs/Archive/sessions/`](docs/Archive/sessions/) - Historical session notes
 
 ---
 
@@ -167,9 +177,11 @@ brogue/
 │   ├── START_HERE.md       # 👈 Start here!
 │   ├── MVP_ROADMAP.md      # What to build
 │   ├── BROGUE_CONSOLIDATED_DESIGN.md  # Master design
-│   ├── architecture/       # Phase 2 tech specs
+│   ├── development/        # Testing, debugging, dev guides
+│   ├── architecture/       # Architecture & technical design
+│   ├── systems/            # System-specific docs
 │   ├── future-multiplayer/ # Phase 2 design
-│   └── Archive/            # ❌ Don't read
+│   └── Archive/            # ❌ Historical docs
 │
 ├── scripts/
 │   ├── run_debug.py        # Debug mode
