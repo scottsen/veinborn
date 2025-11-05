@@ -21,6 +21,8 @@ from core.entities import Player, Monster, EntityType
 # Stairs Placement Tests
 # ============================================================================
 
+pytestmark = pytest.mark.unit
+
 class TestStairsPlacement:
     """Tests for placing stairs in the dungeon."""
 
@@ -465,7 +467,6 @@ class TestEdgeCases:
     @pytest.mark.integration
     def test_entities_cleared_on_floor_transition(self, new_game):
         """Old floor entities should be cleared on descent."""
-pytestmark = pytest.mark.unit
 
         game = new_game
 

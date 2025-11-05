@@ -12,6 +12,7 @@ Tests:
 
 import pytest
 from core.pathfinding import (
+
     find_path, get_next_step, get_direction, distance,
     Heuristic, get_neighbors
 )
@@ -377,7 +378,6 @@ class TestPerformance:
 
     def test_many_paths(self):
         """Can compute many paths quickly."""
-pytestmark = pytest.mark.unit
 
         import time
 

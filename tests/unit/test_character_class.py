@@ -22,6 +22,8 @@ from src.core.character_class import (
 from src.core.base.entity import EntityType
 from src.core.exceptions import DataError
 
+pytestmark = pytest.mark.unit
+
 
 class TestCharacterClass:
     """Test CharacterClass enum."""
@@ -375,7 +377,6 @@ class TestClassBalance:
 
     def test_progression_total_balance(self):
         """Progression should maintain class identity."""
-pytestmark = pytest.mark.unit
 
         warrior = CLASS_TEMPLATES[CharacterClass.WARRIOR]
         mage = CLASS_TEMPLATES[CharacterClass.MAGE]

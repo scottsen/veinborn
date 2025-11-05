@@ -11,6 +11,8 @@ import sys
 from pathlib import Path
 
 # Add test directory to path for bot import
+pytestmark = pytest.mark.unit
+
 test_path = Path(__file__).parent.parent
 sys.path.insert(0, str(test_path / "fuzz"))
 
@@ -157,7 +159,6 @@ def test_bot_prioritizes_mining_over_fleeing():
 @pytest.mark.unit
 def test_bot_stops_mining_when_complete():
     """Bot stops trying to mine when turns_remaining is 0."""
-pytestmark = pytest.mark.unit
 
     bot = BrogueBot(verbose=False, mode='strategic')
     game = Game()

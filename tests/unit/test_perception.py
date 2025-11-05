@@ -19,6 +19,8 @@ from src.core.game_state import GameState
 from src.core.base.entity import EntityType
 
 
+pytestmark = pytest.mark.unit
+
 class TestGetVisibleEntities:
     """Test get_visible_entities() with radius-based visibility."""
 
@@ -721,7 +723,6 @@ class TestGetPerceptionInfo:
 
     def test_identifies_nearest_threat(self, new_game):
         """Identifies nearest living monster."""
-pytestmark = pytest.mark.unit
 
         game = new_game
         perception = PerceptionSystem()

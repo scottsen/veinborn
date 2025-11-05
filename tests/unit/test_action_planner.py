@@ -9,6 +9,8 @@ import sys
 from pathlib import Path
 
 # Add src to path
+pytestmark = pytest.mark.unit
+
 src_path = Path(__file__).parent.parent.parent / "src"
 sys.path.insert(0, str(src_path))
 
@@ -340,7 +342,6 @@ class TestPlanNextAction:
 
     def test_plan_next_action_uses_random_mode(self):
         """Should use get_random_action in random mode."""
-pytestmark = pytest.mark.unit
 
         game = Game()
         game.start_new_game()

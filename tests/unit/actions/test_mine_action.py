@@ -19,6 +19,8 @@ from core.base.entity import Entity
 # Validation Tests
 # ============================================================================
 
+pytestmark = pytest.mark.unit
+
 @pytest.mark.unit
 def test_validate_requires_ore_vein_exists(mining_context):
     """Mining fails if ore vein doesn't exist."""
@@ -445,7 +447,6 @@ def test_execute_fails_when_validation_fails(mining_context):
 @pytest.mark.unit
 def test_mining_completion_message_includes_ore_name(mining_context, copper_ore):
     """Completion message includes the name of the ore mined."""
-pytestmark = pytest.mark.unit
 
     player = mining_context.get_player()
     copper_ore.x = player.x + 1

@@ -19,6 +19,8 @@ from src.core.config import ConfigManager, get_player_name
 from src.core.exceptions import DataError
 
 
+pytestmark = pytest.mark.unit
+
 class TestConfigManager:
     """Test ConfigManager functionality."""
 
@@ -299,7 +301,6 @@ class TestConfigIntegration:
 
     def test_xdg_config_path(self):
         """Test XDG config directory support."""
-pytestmark = pytest.mark.unit
 
         with tempfile.TemporaryDirectory() as tmpdir:
             xdg_path = Path(tmpdir) / ".config" / "brogue" / "config"

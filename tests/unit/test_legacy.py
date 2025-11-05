@@ -12,6 +12,7 @@ from pathlib import Path
 from unittest.mock import patch
 
 from core.legacy import (
+
     LegacyVault,
     LegacyOre,
     get_vault,
@@ -626,7 +627,6 @@ def test_vault_add_ore_below_threshold(fresh_vault):
 @pytest.mark.unit
 def test_vault_withdraw_from_empty(fresh_vault):
     """Test withdrawing from empty vault."""
-pytestmark = pytest.mark.unit
 
     ore = fresh_vault.withdraw_ore(0)
     assert ore is None

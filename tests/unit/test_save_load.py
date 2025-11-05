@@ -22,6 +22,8 @@ from src.core.world import Map, TileType
 from src.core.rng import GameRNG
 
 
+pytestmark = pytest.mark.unit
+
 @pytest.fixture
 def temp_save_dir():
     """Create temporary directory for save files."""
@@ -373,7 +375,6 @@ class TestSeededRunPersistence:
 
     def test_seeded_run_continues_correctly(self, save_system):
         """Seeded run produces same results after load."""
-pytestmark = pytest.mark.unit
 
         # Initialize with seed
         GameRNG.initialize(seed="test-seed-123")

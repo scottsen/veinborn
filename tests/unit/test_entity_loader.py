@@ -20,6 +20,8 @@ from src.core.base.entity import EntityType
 from src.core.exceptions import ContentValidationError
 
 
+pytestmark = pytest.mark.unit
+
 class TestEntityLoaderInitialization:
     """Test EntityLoader initialization and loading."""
 
@@ -348,7 +350,6 @@ class TestEntityLoaderIntegration:
 
     def test_data_driven_extensibility(self):
         """Test that system is data-driven (ready for modding)."""
-pytestmark = pytest.mark.unit
 
         loader = EntityLoader()
 

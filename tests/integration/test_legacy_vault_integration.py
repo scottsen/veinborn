@@ -7,7 +7,6 @@ Tests the integration of Legacy Vault with:
 - Game state tracking (pure vs legacy runs)
 """
 
-pytestmark = pytest.mark.integration
 
 import pytest
 from unittest.mock import patch, MagicMock
@@ -24,6 +23,8 @@ from core.base.game_context import GameContext
 # ============================================================================
 # Fixtures
 # ============================================================================
+
+pytestmark = pytest.mark.integration
 
 @pytest.fixture
 def temp_vault_for_integration(tmp_path):
