@@ -19,6 +19,7 @@ from .world import Map
 from .entities import Monster, OreVein, Forge
 from .spawning import EntitySpawner
 from .highscore import HighScoreManager, HighScoreEntry
+from .legacy import get_vault
 
 if TYPE_CHECKING:
     from .base.game_context import GameContext
@@ -117,6 +118,9 @@ class FloorManager:
             # Record high score with victory bonus (Phase 5)
             self._record_high_score()
 
+            # Record victory in Legacy Vault (Phase 6)
+            self._record_victory()
+
             self.game_state.add_message("🎉 VICTORY! You've escaped the dungeon!")
 
             logger.info(
@@ -167,6 +171,36 @@ class FloorManager:
         except Exception as e:
             logger.error(f"Failed to record high score: {e}", exc_info=True)
             # Don't crash on high score failure - game over should still work
+
+    def _record_victory(self) -> None:
+        """
+        Record victory in Legacy Vault (Phase 6).
+
+        Tracks Pure vs Legacy victories for meta-progression stats.
+        """
+        try:
+            vault = get_vault()
+            run_type = self.game_state.run_type
+            vault.record_run(run_type, victory=True)
+
+            # Display victory type to player
+            if run_type == "pure":
+                self.game_state.add_message("🏆 PURE VICTORY! (No Legacy gear used)")
+            else:
+                self.game_state.add_message("⚔️ LEGACY VICTORY! (Legacy gear used)")
+
+            logger.info(
+                f"Victory recorded in Legacy Vault: {run_type}",
+                extra={
+                    'run_type': run_type,
+                    'total_pure_victories': vault.total_pure_victories,
+                    'total_legacy_victories': vault.total_legacy_victories
+                }
+            )
+
+        except Exception as e:
+            logger.error(f"Failed to record victory in Legacy Vault: {e}", exc_info=True)
+            # Don't crash on vault failure - game over should still work
 
     def _generate_new_floor(self) -> None:
         """Generate a new dungeon floor."""

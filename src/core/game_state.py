@@ -54,6 +54,9 @@ class GameState:
     # Player identity (Phase 5: for high scores)
     player_name: str = "Anonymous"
 
+    # Run type (Phase 6: for Legacy Vault tracking)
+    run_type: str = "pure"  # "pure" or "legacy"
+
     def add_message(self, message: str) -> None:
         """Add message to log (max 100 messages)."""
         self.messages.append(message)
