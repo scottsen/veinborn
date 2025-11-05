@@ -11,6 +11,7 @@ rich>=13.7.0               # Rich terminal output
 # ===== Data & Content =====
 pyyaml>=6.0                # YAML content loading (recipes, monsters)
 pydantic>=2.0              # Type-safe models (optional)
+simpleeval>=1.0.0          # Safe expression evaluation for crafting formulas
 
 # ===== Development & Testing =====
 pytest>=7.4.0
