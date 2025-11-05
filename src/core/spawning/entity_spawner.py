@@ -202,3 +202,145 @@ class EntitySpawner:
 
         return GameRNG.get_instance().choice(items)
 
+    def spawn_special_room_entities(self, floor: int, dungeon_map: Map):
+        """
+        Spawn special entities in special rooms.
+
+        This method processes all rooms and spawns appropriate entities
+        based on their room type.
+
+        Args:
+            floor: Current floor number
+            dungeon_map: Map containing rooms
+
+        Returns:
+            Dict of entity lists by type: {'monsters': [...], 'ores': [...], 'items': [...]}
+        """
+        from ..world import RoomType
+
+        monsters = []
+        ores = []
+        items = []  # For future treasure items
+
+        for room in dungeon_map.rooms:
+            if room.room_type == RoomType.TREASURE:
+                # Spawn high-quality ore as treasure (future: actual items)
+                room_ores = self._spawn_treasure_room(room, floor, dungeon_map)
+                ores.extend(room_ores)
+
+            elif room.room_type == RoomType.MONSTER_DEN:
+                # Spawn extra monsters
+                room_monsters = self._spawn_monster_den(room, floor, dungeon_map)
+                monsters.extend(room_monsters)
+
+            elif room.room_type == RoomType.ORE_CHAMBER:
+                # Spawn multiple high-quality ore veins
+                room_ores = self._spawn_ore_chamber(room, floor, dungeon_map)
+                ores.extend(room_ores)
+
+            elif room.room_type == RoomType.SHRINE:
+                # Currently no special spawning (shrine effects are in game logic)
+                # Future: spawn shrine entity with healing/buff effects
+                pass
+
+            elif room.room_type == RoomType.TRAP:
+                # Currently no special spawning (traps are in game logic)
+                # Future: spawn trap entities
+                pass
+
+        logger.info(
+            f"Spawned special room entities on floor {floor}: "
+            f"{len(monsters)} bonus monsters, {len(ores)} bonus ores"
+        )
+
+        return {'monsters': monsters, 'ores': ores, 'items': items}
+
+    def _spawn_treasure_room(self, room, floor: int, dungeon_map: Map) -> List[OreVein]:
+        """Spawn treasure in a treasure room (currently high-quality ore)."""
+        # Spawn 2-3 high-purity ores
+        rng = GameRNG.get_instance()
+        num_treasures = rng.randint(2, 3)
+
+        ores = []
+        ore_weights = self.config.get_ore_spawn_weights(floor)
+
+        for _ in range(num_treasures):
+            # Find position within the room
+            x = rng.randint(room.x + 1, room.x + room.width - 2)
+            y = rng.randint(room.y + 1, room.y + room.height - 2)
+
+            # Skip if position is blocked
+            if not dungeon_map.is_walkable(x, y):
+                continue
+
+            ore_type = self._weighted_random_choice(ore_weights)
+            ore = self.entity_loader.create_ore_vein(ore_type, x, y, floor)
+
+            # Boost purity for treasure rooms (80-95 range)
+            ore.purity = min(100, rng.randint(80, 95))
+
+            ores.append(ore)
+            logger.debug(f"Spawned treasure ore {ore_type} (purity:{ore.purity}) at ({x}, {y})")
+
+        return ores
+
+    def _spawn_monster_den(self, room, floor: int, dungeon_map: Map) -> List[Monster]:
+        """Spawn extra monsters in a monster den."""
+        # Spawn 2-4 extra monsters
+        rng = GameRNG.get_instance()
+        num_monsters = rng.randint(2, 4)
+
+        monsters = []
+        spawn_weights = self.config.get_monster_spawn_weights(floor)
+
+        for _ in range(num_monsters):
+            # Find position within the room
+            x = rng.randint(room.x + 1, room.x + room.width - 2)
+            y = rng.randint(room.y + 1, room.y + room.height - 2)
+
+            # Skip if position is blocked
+            if not dungeon_map.is_walkable(x, y):
+                continue
+
+            monster_type = self._weighted_random_choice(spawn_weights)
+            monster = self.entity_loader.create_monster(monster_type, x, y)
+
+            # Boost stats slightly for den monsters (+20%)
+            monster.max_hp = int(monster.max_hp * 1.2)
+            monster.hp = monster.max_hp
+            monster.attack = int(monster.attack * 1.2)
+
+            monsters.append(monster)
+            logger.debug(f"Spawned den monster {monster_type} at ({x}, {y})")
+
+        return monsters
+
+    def _spawn_ore_chamber(self, room, floor: int, dungeon_map: Map) -> List[OreVein]:
+        """Spawn multiple high-quality ore veins in an ore chamber."""
+        # Spawn 3-5 ore veins
+        rng = GameRNG.get_instance()
+        num_ores = rng.randint(3, 5)
+
+        ores = []
+        ore_weights = self.config.get_ore_spawn_weights(floor)
+
+        for _ in range(num_ores):
+            # Find position within the room
+            x = rng.randint(room.x + 1, room.x + room.width - 2)
+            y = rng.randint(room.y + 1, room.y + room.height - 2)
+
+            # Skip if position is blocked
+            if not dungeon_map.is_walkable(x, y):
+                continue
+
+            ore_type = self._weighted_random_choice(ore_weights)
+            ore = self.entity_loader.create_ore_vein(ore_type, x, y, floor)
+
+            # Boost purity slightly for chamber ores (70-85 range)
+            ore.purity = min(100, rng.randint(70, 85))
+
+            ores.append(ore)
+            logger.debug(f"Spawned chamber ore {ore_type} (purity:{ore.purity}) at ({x}, {y})")
+
+        return ores
+

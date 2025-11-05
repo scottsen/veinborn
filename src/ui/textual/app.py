@@ -108,7 +108,7 @@ class BrogueApp(App):
 
     TITLE = "Brogue: Walking in Big Brother's Footsteps"
 
-    def __init__(self, player_name=None, character_class=None, seed=None):
+    def __init__(self, player_name=None, character_class=None, seed=None, withdrawn_ore=None, is_legacy_run=False):
         """
         Initialize Brogue app.
 
@@ -116,6 +116,8 @@ class BrogueApp(App):
             player_name: Player name (for high scores)
             character_class: CharacterClass enum (for starting stats)
             seed: Game seed (for reproducibility)
+            withdrawn_ore: LegacyOre from vault (optional)
+            is_legacy_run: Whether this is a legacy run (used vault ore)
         """
         logger.info("BrogueApp.__init__() starting")
         super().__init__()
@@ -127,6 +129,8 @@ class BrogueApp(App):
         self.player_name = player_name or "Anonymous"
         self.character_class = character_class
         self.seed = seed
+        self.withdrawn_ore = withdrawn_ore
+        self.is_legacy_run = is_legacy_run
 
         self.map_widget = None
         self.status_bar = None
@@ -139,11 +143,13 @@ class BrogueApp(App):
         logger.info("compose() starting")
 
         # Initialize game with player configuration
-        logger.info(f"  Starting new game (Player: {self.player_name}, Class: {self.character_class}, Seed: {self.seed})...")
+        logger.info(f"  Starting new game (Player: {self.player_name}, Class: {self.character_class}, Seed: {self.seed}, Legacy: {self.is_legacy_run})...")
         self.game.start_new_game(
             seed=self.seed,
             player_name=self.player_name,
-            character_class=self.character_class
+            character_class=self.character_class,
+            withdrawn_ore=self.withdrawn_ore,
+            is_legacy_run=self.is_legacy_run
         )
         logger.info(f"  Game started: player at ({self.game.state.player.x}, {self.game.state.player.y})")
         logger.info(f"  Map size: {self.game.state.dungeon_map.width}x{self.game.state.dungeon_map.height}")
@@ -285,7 +291,7 @@ class BrogueApp(App):
             self.message_log.update_messages()
 
 
-def run_game(player_name=None, character_class=None, seed=None):
+def run_game(player_name=None, character_class=None, seed=None, withdrawn_ore=None, is_legacy_run=False):
     """
     Run the Brogue game.
 
@@ -293,9 +299,12 @@ def run_game(player_name=None, character_class=None, seed=None):
         player_name: Player name (for high scores)
         character_class: CharacterClass enum (for starting stats)
         seed: Game seed (for reproducibility)
+        withdrawn_ore: LegacyOre from vault (optional)
+        is_legacy_run: Whether this is a legacy run (used vault ore)
     """
-    logger.info(f"run_game() called (player={player_name}, class={character_class}, seed={seed})")
-    app = BrogueApp(player_name=player_name, character_class=character_class, seed=seed)
+    logger.info(f"run_game() called (player={player_name}, class={character_class}, seed={seed}, legacy={is_legacy_run})")
+    app = BrogueApp(player_name=player_name, character_class=character_class, seed=seed,
+                    withdrawn_ore=withdrawn_ore, is_legacy_run=is_legacy_run)
     logger.info("Calling app.run()...")
 
     # CRITICAL: Explicitly disable mouse to prevent terminal escape sequences

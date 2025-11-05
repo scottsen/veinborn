@@ -74,7 +74,9 @@ class Game:
         self,
         seed: Optional[Union[int, str]] = None,
         player_name: Optional[str] = None,
-        character_class: Optional['CharacterClass'] = None
+        character_class: Optional['CharacterClass'] = None,
+        withdrawn_ore: Optional['LegacyOre'] = None,
+        is_legacy_run: bool = False
     ) -> None:
         """
         Initialize a new game.
@@ -85,6 +87,8 @@ class Game:
                   Same seed = same game.
             player_name: Player name (for high scores and display)
             character_class: CharacterClass enum (determines starting stats)
+            withdrawn_ore: LegacyOre from vault to start with (optional)
+            is_legacy_run: Whether this is a legacy run (used vault ore)
         """
         # Initialize RNG with seed (Phase 4: reproducibility)
         rng = GameRNG.initialize(seed)
@@ -130,8 +134,29 @@ class Game:
         # Store player name in game state for high scores (Phase 5)
         self.state.player_name = player_name or "Anonymous"
 
+        # Set run type based on whether legacy ore was used
+        self.state.run_type = "legacy" if is_legacy_run else "pure"
+
         # Create game context (safe API for systems)
         self.context = GameContext(self.state)
+
+        # Add withdrawn ore to player inventory (if provided)
+        if withdrawn_ore:
+            # Create an OreVein entity from the LegacyOre
+            legacy_ore_entity = OreVein(
+                x=player.x,  # Same position as player (in inventory)
+                y=player.y,
+                ore_type=withdrawn_ore.ore_type,
+                hardness=withdrawn_ore.hardness,
+                conductivity=withdrawn_ore.conductivity,
+                malleability=withdrawn_ore.malleability,
+                purity=withdrawn_ore.purity,
+                density=withdrawn_ore.density,
+            )
+            # Mark as fully mined so it's in inventory
+            legacy_ore_entity.stats['mining_turns_remaining'] = 0
+            player.inventory.append(legacy_ore_entity)
+            logger.info(f"Added legacy ore to inventory: {withdrawn_ore.ore_type} (Purity: {withdrawn_ore.purity})")
 
         # Initialize subsystems
         self._initialize_subsystems()
@@ -146,6 +171,11 @@ class Game:
         ore_veins = self.spawner.spawn_ore_veins_for_floor(floor, dungeon_map)
         forges = self.spawner.spawn_forges_for_floor(floor, dungeon_map)
 
+        # Spawn special room entities
+        special_entities = self.spawner.spawn_special_room_entities(floor, dungeon_map)
+        monsters.extend(special_entities['monsters'])
+        ore_veins.extend(special_entities['ores'])
+
         # Add entities to game
         for monster in monsters:
             self.context.add_entity(monster)
@@ -159,6 +189,11 @@ class Game:
         self.state.add_message("Use arrow keys or HJKL to move. Bump into monsters to attack.")
         if forges:
             self.state.add_message(f"Find the {forges[0].name} to craft equipment!")
+
+        # Add legacy ore message if applicable
+        if withdrawn_ore:
+            self.state.add_message(f"You start with {withdrawn_ore.get_quality_tier()} {withdrawn_ore.ore_type} ore from the Legacy Vault!")
+            self.state.add_message("This is a Legacy run. Good luck!")
 
         self.running = True
         logger.info(

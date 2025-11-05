@@ -205,13 +205,12 @@ def create_player_from_class(
         >>> player.max_hp
         30
     """
-    from .base.entity import Entity, EntityType
+    from .entities import Player
 
     template = get_class_template(class_type)
 
-    # Create player entity with class stats
-    player = Entity(
-        entity_type=EntityType.PLAYER,
+    # Create Player entity (not base Entity) with class stats
+    player = Player(
         name=name,
         x=x,
         y=y,
