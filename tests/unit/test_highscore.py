@@ -19,6 +19,8 @@ from datetime import datetime
 from src.core.highscore import HighScoreEntry, HighScoreManager
 
 
+pytestmark = pytest.mark.unit
+
 class TestHighScoreEntry:
     """Test HighScoreEntry dataclass."""
 
@@ -371,6 +373,7 @@ class TestHighScoreManager:
 
     def _create_entry(self, name: str, score: int, seed=None, is_seeded=False, victory=False) -> HighScoreEntry:
         """Helper to create test entry."""
+
         return HighScoreEntry(
             player_name=name,
             timestamp=datetime.now().isoformat(),

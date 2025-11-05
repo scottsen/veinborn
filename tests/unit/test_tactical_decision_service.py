@@ -9,6 +9,8 @@ import sys
 from pathlib import Path
 
 # Add src to path
+pytestmark = pytest.mark.unit
+
 src_path = Path(__file__).parent.parent.parent / "src"
 sys.path.insert(0, str(src_path))
 
@@ -426,6 +428,7 @@ class TestCraftingDecisions:
 
     def test_should_not_craft_when_low_health(self):
         """Should not craft when health is low."""
+
         game = Game()
         game.start_new_game()
 

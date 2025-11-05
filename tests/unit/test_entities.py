@@ -12,6 +12,8 @@ from core.base.entity import Entity
 # Player Tests
 # ============================================================================
 
+pytestmark = pytest.mark.unit
+
 class TestPlayerCreation:
     """Tests for Player initialization."""
 
@@ -384,6 +386,7 @@ class TestPlayerStats:
     @pytest.mark.unit
     def test_getting_nonexistent_stat_no_default(self, fresh_player):
         """Getting nonexistent stat with no default returns 0."""
+
         value = fresh_player.get_stat('nonexistent')
 
         assert value == 0

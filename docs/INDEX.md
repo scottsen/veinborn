@@ -69,30 +69,16 @@
 
 ---
 
-## 🚀 Future Plans
+## 🗃️ Archived Documentation
 
-### Phase 2: Multiplayer (Not Current)
+⚠️ **Note:** The following documentation has been archived as it's either outdated or not part of the current MVP focus.
 
-⚠️ **Important:** These docs are for future reference. Focus on MVP first!
+| Directory | Contents | Location |
+|-----------|----------|----------|
+| **Archive/** | Old/conflicting designs, historical summaries | `../.archived/Archive/` |
+| **future-multiplayer/** | Phase 2 multiplayer designs (16+ docs) | `../.archived/future-multiplayer/` |
 
-| Document | Purpose |
-|----------|---------|
-| **[future-multiplayer/README.md](future-multiplayer/README.md)** | Multiplayer overview + warnings |
-| **[future-multiplayer/BROGUE_TURN_SYSTEM.md](future-multiplayer/BROGUE_TURN_SYSTEM.md)** | Brilliant 4-action turn system |
-| **[future-multiplayer/BROGUE_MINING_CRAFTING_DESIGN.md](future-multiplayer/BROGUE_MINING_CRAFTING_DESIGN.md)** | SWG-style mining design |
-| **[future-multiplayer/](future-multiplayer/)** | Complete multiplayer design (16+ docs) |
-
----
-
-## 🗃️ Archive
-
-| Directory | Contents | Should I Read? |
-|-----------|----------|----------------|
-| **[Archive/](Archive/)** | Old/conflicting designs, historical summaries | ❌ No (outdated) |
-| **[Archive/design/](Archive/design/)** | Rejected design visions | ❌ No (wrong direction) |
-| **[Archive/development-history/](Archive/development-history/)** | Phase completion summaries | 📚 Historical interest only |
-
-**Read [BROGUE_CONSOLIDATED_DESIGN.md](BROGUE_CONSOLIDATED_DESIGN.md) instead!**
+**For current design:** Read [BROGUE_CONSOLIDATED_DESIGN.md](BROGUE_CONSOLIDATED_DESIGN.md) instead!
 
 ---
 

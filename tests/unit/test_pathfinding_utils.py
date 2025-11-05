@@ -8,6 +8,7 @@ Tests the helper functions for combat AI:
 
 import pytest
 from src.core.pathfinding import (
+
     get_adjacent_positions,
     find_closest_adjacent_position,
 )
@@ -310,6 +311,7 @@ class TestEdgeCases:
 
     def test_tiny_map(self):
         """Works on very small maps."""
+
         game_map = SimpleMockMap(width=3, height=3)
 
         target = (1, 1)  # Center of 3x3

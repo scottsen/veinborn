@@ -9,6 +9,8 @@ import sys
 from pathlib import Path
 
 # Add src to path
+pytestmark = pytest.mark.unit
+
 src_path = Path(__file__).parent.parent.parent / "src"
 sys.path.insert(0, str(src_path))
 
@@ -465,6 +467,7 @@ class TestCraftingPerception:
 
     def test_find_forges_returns_all_forges(self, perception):
         """Should return all forges in the game."""
+
         game = Game()
         game.start_new_game()
 

@@ -21,6 +21,8 @@ from src.core.game_state import GameState
 from src.core.base.game_context import GameContext
 
 
+pytestmark = pytest.mark.unit
+
 class TestAISystemInitialization:
     """Test AI system initialization."""
 
@@ -608,6 +610,7 @@ class TestEdgeCases:
 
     def test_no_monsters_no_crash(self):
         """AI system handles no monsters gracefully."""
+
         from src.core.rng import GameRNG
         GameRNG.initialize(42)
 

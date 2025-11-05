@@ -18,6 +18,8 @@ from core.rng import GameRNG
 # Fixtures
 # ============================================================================
 
+pytestmark = pytest.mark.unit
+
 @pytest.fixture
 def test_map():
     """Create a test map with rooms."""
@@ -298,6 +300,7 @@ def test_multiple_special_rooms_spawn_correctly(entity_spawner):
 @pytest.mark.unit
 def test_special_rooms_with_no_valid_positions(entity_spawner):
     """Test special room spawning handles no valid positions gracefully."""
+
     GameRNG.initialize(seed=12345)
 
     # Create a minimal map (may have very small rooms)

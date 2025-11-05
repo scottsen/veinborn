@@ -15,6 +15,8 @@ import pytest
 from src.core.rng import GameRNG
 
 
+pytestmark = pytest.mark.unit
+
 class TestGameRNGInitialization:
     """Test RNG initialization with different seed types."""
 
@@ -343,6 +345,7 @@ class TestGameRNGIntegration:
 
     def test_seed_stored_in_game_state(self):
         """Test that seed is properly stored in GameState."""
+
         from src.core.game import Game
 
         game = Game()

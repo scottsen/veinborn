@@ -20,6 +20,8 @@ from core.base.entity import Entity
 # Validation Tests
 # ============================================================================
 
+pytestmark = pytest.mark.unit
+
 @pytest.mark.unit
 def test_validate_fails_when_out_of_bounds(game_context):
     """Movement fails when destination is out of map bounds."""
@@ -453,6 +455,7 @@ def test_negative_movement():
 @pytest.mark.unit
 def test_monster_can_move():
     """Test that monsters (non-player entities) can also move."""
+
     from core.game_state import GameState
     from core.base.game_context import GameContext
     from core.entities import Player, Monster

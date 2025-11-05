@@ -21,6 +21,8 @@ from core.entities import Player, Monster, EntityType
 # Stairs Placement Tests
 # ============================================================================
 
+pytestmark = pytest.mark.unit
+
 class TestStairsPlacement:
     """Tests for placing stairs in the dungeon."""
 
@@ -377,41 +379,71 @@ class TestDifficultyScaling:
 
     @pytest.mark.integration
     def test_monster_count_increases_with_floor(self, new_game):
-        """Monster count should increase on deeper floors."""
+        """Monster count should meet minimum for each floor depth.
+
+        Each floor has a base count plus random special rooms that may add more.
+        We test that the base formula is respected, not floor-to-floor comparison
+        (since special rooms are random).
+        """
         game = new_game
 
-        # Floor 1: 3 + (1 // 2) = 3 monsters
+        # Floor 1: Base formula is 3 + (1 // 2) = 3 monsters minimum
         floor1_monsters = [e for e in game.state.entities.values()
                           if e.entity_type == EntityType.MONSTER]
-        assert len(floor1_monsters) == 3
+        floor1_count = len(floor1_monsters)
+        assert floor1_count >= 3, f"Floor 1 should have at least 3 monsters, got {floor1_count}"
 
-        # Floor 2: 3 + (2 // 2) = 4 monsters
+        # Floor 2: Base formula is 3 + (2 // 2) = 4 monsters minimum
         game.descend_floor()
         floor2_monsters = [e for e in game.state.entities.values()
                           if e.entity_type == EntityType.MONSTER]
-        assert len(floor2_monsters) == 4
+        floor2_count = len(floor2_monsters)
+        assert floor2_count >= 4, f"Floor 2 should have at least 4 monsters, got {floor2_count}"
 
-        # Floor 3: 3 + (3 // 2) = 4 monsters
+        # Floor 3: Base formula is 3 + (3 // 2) = 4 monsters minimum
         game.descend_floor()
         floor3_monsters = [e for e in game.state.entities.values()
                           if e.entity_type == EntityType.MONSTER]
-        assert len(floor3_monsters) == 4
+        floor3_count = len(floor3_monsters)
+        assert floor3_count >= 4, f"Floor 3 should have at least 4 monsters, got {floor3_count}"
+
+        # Floor 5: Base formula is 3 + (5 // 2) = 5 monsters minimum
+        game.descend_floor()
+        game.descend_floor()
+        floor5_monsters = [e for e in game.state.entities.values()
+                          if e.entity_type == EntityType.MONSTER]
+        floor5_count = len(floor5_monsters)
+        assert floor5_count >= 5, f"Floor 5 should have at least 5 monsters, got {floor5_count}"
 
     @pytest.mark.integration
     def test_ore_count_increases_with_floor(self, new_game):
-        """Ore vein count should increase on deeper floors."""
+        """Ore vein count should meet minimum for each floor depth.
+
+        Each floor has a base count plus random special rooms that may add bonus ore.
+        We test that the base formula is respected, not floor-to-floor comparison
+        (since special rooms are random).
+        """
         game = new_game
 
-        # Floor 1 should have 8 ore veins
+        # Floor 1: Base formula is 8 ore veins minimum
         floor1_ore = [e for e in game.state.entities.values()
                      if e.entity_type == EntityType.ORE_VEIN]
-        assert len(floor1_ore) == 8
+        floor1_count = len(floor1_ore)
+        assert floor1_count >= 8, f"Floor 1 should have at least 8 ore veins, got {floor1_count}"
 
-        # Floor 2 should have 9 ore veins
+        # Floor 2: Base formula is 8 + (2-1) = 9 ore veins minimum
         game.descend_floor()
         floor2_ore = [e for e in game.state.entities.values()
                      if e.entity_type == EntityType.ORE_VEIN]
-        assert len(floor2_ore) == 9
+        floor2_count = len(floor2_ore)
+        assert floor2_count >= 9, f"Floor 2 should have at least 9 ore veins, got {floor2_count}"
+
+        # Floor 3: Base formula is 8 + (3-1) = 10 ore veins minimum
+        game.descend_floor()
+        floor3_ore = [e for e in game.state.entities.values()
+                     if e.entity_type == EntityType.ORE_VEIN]
+        floor3_count = len(floor3_ore)
+        assert floor3_count >= 10, f"Floor 3 should have at least 10 ore veins, got {floor3_count}"
 
     @pytest.mark.integration
     def test_difficulty_formula_floor_5(self, new_game):
@@ -424,15 +456,17 @@ class TestDifficultyScaling:
 
         assert game.state.current_floor == 5
 
-        # Floor 5: monsters = 3 + (5 // 2) = 3 + 2 = 5
+        # Floor 5: Base formula monsters = 3 + (5 // 2) = 3 + 2 = 5
+        # Special rooms may add more, so test for minimum
         monsters = [e for e in game.state.entities.values()
                    if e.entity_type == EntityType.MONSTER]
-        assert len(monsters) == 5
+        assert len(monsters) >= 5, f"Floor 5 should have at least 5 monsters, got {len(monsters)}"
 
-        # Floor 5: ore = 8 + (5-1) = 12
+        # Floor 5: Base formula ore = 8 + (5-1) = 12
+        # Special rooms may add bonus ore, so test for minimum
         ore_veins = [e for e in game.state.entities.values()
                     if e.entity_type == EntityType.ORE_VEIN]
-        assert len(ore_veins) == 12
+        assert len(ore_veins) >= 12, f"Floor 5 should have at least 12 ore veins, got {len(ore_veins)}"
 
 
 # ============================================================================
@@ -465,6 +499,7 @@ class TestEdgeCases:
     @pytest.mark.integration
     def test_entities_cleared_on_floor_transition(self, new_game):
         """Old floor entities should be cleared on descent."""
+
         game = new_game
 
         # Get entity IDs from floor 1

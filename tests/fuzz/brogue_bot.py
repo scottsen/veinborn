@@ -23,6 +23,9 @@ Usage:
     python tests/fuzz/brogue_bot.py --games 1000 -v    # Verbose 1000 games
 """
 
+import pytest
+
+
 import sys
 from pathlib import Path
 import random
@@ -35,6 +38,8 @@ from typing import List, Dict, Optional, Tuple
 import traceback
 
 # Add src to path
+pytestmark = pytest.mark.fuzz
+
 src_path = Path(__file__).parent.parent.parent / "src"
 sys.path.insert(0, str(src_path))
 

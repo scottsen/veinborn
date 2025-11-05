@@ -14,6 +14,8 @@ from core.rng import GameRNG
 # LootGenerator Initialization Tests
 # ============================================================================
 
+pytestmark = pytest.mark.unit
+
 class TestLootGeneratorInit:
     """Tests for LootGenerator initialization."""
 
@@ -380,6 +382,7 @@ class TestLootEdgeCases:
     @pytest.mark.unit
     def test_generate_loot_with_default_rng(self, generator):
         """Can generate loot without providing RNG (uses default)."""
+
         items = generator.generate_loot('goblin')
         # Should not crash
         assert isinstance(items, list)

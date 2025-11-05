@@ -4,6 +4,7 @@ Integration tests for Phase 5 systems (Config, Classes, High Scores).
 Tests the complete flow from game start to high score recording.
 """
 
+
 import tempfile
 from pathlib import Path
 import pytest
@@ -13,6 +14,8 @@ from src.core.character_class import CharacterClass
 from src.core.highscore import HighScoreManager, HighScoreEntry
 from src.core.config.user_config import ConfigManager
 
+
+pytestmark = pytest.mark.integration
 
 class TestGameStartIntegration:
     """Test game start with player name and character class."""

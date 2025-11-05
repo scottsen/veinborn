@@ -7,12 +7,15 @@ Tests the full crafting → equipping → combat loop:
 3. Use equipment bonuses in combat
 """
 
+
 import pytest
 from src.core.game import Game
 from src.core.entities import Player, Monster
 from src.core.actions import CraftAction, EquipAction, AttackAction
 from src.core.base.entity import Entity, EntityType
 
+
+pytestmark = pytest.mark.integration
 
 class TestEquipmentSystem:
     """Test complete equipment system integration."""

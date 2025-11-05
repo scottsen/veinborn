@@ -12,6 +12,8 @@ from core.pathfinding import find_path, get_direction
 from core.world import Map
 
 
+pytestmark = pytest.mark.unit
+
 class EntityOccupiedMap:
     """Mock map that tracks entity positions."""
 
@@ -316,6 +318,7 @@ class TestRealWorldScenario:
         """
         Fix: Goblin should path ADJACENT to player, not to player position.
         """
+
         # Player at (9, 18)
         player_pos = (9, 18)
 
