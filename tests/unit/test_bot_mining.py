@@ -157,6 +157,8 @@ def test_bot_prioritizes_mining_over_fleeing():
 @pytest.mark.unit
 def test_bot_stops_mining_when_complete():
     """Bot stops trying to mine when turns_remaining is 0."""
+pytestmark = pytest.mark.unit
+
     bot = BrogueBot(verbose=False, mode='strategic')
     game = Game()
     game.start_new_game(player_name='TestBot')

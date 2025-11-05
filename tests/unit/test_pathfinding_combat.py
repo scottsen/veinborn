@@ -316,6 +316,8 @@ class TestRealWorldScenario:
         """
         Fix: Goblin should path ADJACENT to player, not to player position.
         """
+pytestmark = pytest.mark.unit
+
         # Player at (9, 18)
         player_pos = (9, 18)
 

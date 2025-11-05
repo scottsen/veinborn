@@ -310,6 +310,8 @@ class TestEdgeCases:
 
     def test_tiny_map(self):
         """Works on very small maps."""
+pytestmark = pytest.mark.unit
+
         game_map = SimpleMockMap(width=3, height=3)
 
         target = (1, 1)  # Center of 3x3

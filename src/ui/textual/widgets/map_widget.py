@@ -7,7 +7,25 @@ from rich.style import Style
 
 from core.world import TileType
 from core.base.entity import EntityType
-from ui.style_registry import ORE_STYLES, TERRAIN_STYLES
+
+
+# Ore vein display styles
+ORE_STYLES = {
+    'copper': Style(color="yellow", bold=True),
+    'iron': Style(color="bright_white", bold=True),
+    'mithril': Style(color="bright_cyan", bold=True),
+    'adamantite': Style(color="bright_magenta", bold=True),
+}
+
+# Terrain display styles
+TERRAIN_STYLES = {
+    'wall': Style(color="white"),
+    'floor': Style(color="grey50", dim=True),
+    'door': Style(color="cyan"),
+    'stairs': Style(color="cyan", bold=True),
+    'stairs_up': Style(color="cyan", bold=True),
+    'stairs_down': Style(color="cyan", bold=True),
+}
 
 
 class MapWidget(Widget):
@@ -108,7 +126,12 @@ class MapWidget(Widget):
 
     def _get_ore_vein_style(self, ore_vein):
         """Get display style for ore vein based on type."""
-        return ORE_STYLES.get(ore_vein.name, Style(color="white", bold=True))
+        # Fuzzy match: check if any ore type is in the vein name
+        vein_name_lower = ore_vein.name.lower()
+        for ore_type, style in ORE_STYLES.items():
+            if ore_type in vein_name_lower:
+                return style
+        return Style(color="white", bold=True)
 
     def _get_terrain_style(self, tile_type):
         """Get display style for terrain tile."""

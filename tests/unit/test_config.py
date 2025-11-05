@@ -299,6 +299,8 @@ class TestConfigIntegration:
 
     def test_xdg_config_path(self):
         """Test XDG config directory support."""
+pytestmark = pytest.mark.unit
+
         with tempfile.TemporaryDirectory() as tmpdir:
             xdg_path = Path(tmpdir) / ".config" / "brogue" / "config"
 

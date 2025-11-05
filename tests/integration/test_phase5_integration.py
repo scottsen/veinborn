@@ -4,6 +4,8 @@ Integration tests for Phase 5 systems (Config, Classes, High Scores).
 Tests the complete flow from game start to high score recording.
 """
 
+pytestmark = pytest.mark.integration
+
 import tempfile
 from pathlib import Path
 import pytest

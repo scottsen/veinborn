@@ -384,6 +384,8 @@ class TestPlayerStats:
     @pytest.mark.unit
     def test_getting_nonexistent_stat_no_default(self, fresh_player):
         """Getting nonexistent stat with no default returns 0."""
+pytestmark = pytest.mark.unit
+
         value = fresh_player.get_stat('nonexistent')
 
         assert value == 0

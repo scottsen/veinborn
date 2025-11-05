@@ -23,6 +23,10 @@ Usage:
     python tests/fuzz/brogue_bot.py --games 1000 -v    # Verbose 1000 games
 """
 
+import pytest
+
+pytestmark = pytest.mark.fuzz
+
 import sys
 from pathlib import Path
 import random

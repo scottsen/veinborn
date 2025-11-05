@@ -128,6 +128,8 @@ def test_attack_validation_requires_adjacency(game_context, weak_goblin):
 @pytest.mark.unit
 def test_attack_deals_damage_to_living_target(game_context, weak_goblin):
     """Attack successfully damages living targets."""
+pytestmark = pytest.mark.unit
+
     game_context.add_entity(weak_goblin)
 
     player = game_context.get_player()

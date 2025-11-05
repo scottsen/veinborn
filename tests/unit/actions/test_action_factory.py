@@ -298,6 +298,8 @@ def test_factory_with_game_over(game_context):
 @pytest.mark.unit
 def test_factory_ore_vein_at_player_position(game_context, copper_ore):
     """Factory handles ore vein at exact player position."""
+pytestmark = pytest.mark.unit
+
     # Place ore vein at player's exact position (edge case)
     player = game_context.get_player()
     copper_ore.x = player.x

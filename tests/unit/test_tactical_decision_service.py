@@ -426,6 +426,8 @@ class TestCraftingDecisions:
 
     def test_should_not_craft_when_low_health(self):
         """Should not craft when health is low."""
+pytestmark = pytest.mark.unit
+
         game = Game()
         game.start_new_game()
 

@@ -340,6 +340,8 @@ class TestPlanNextAction:
 
     def test_plan_next_action_uses_random_mode(self):
         """Should use get_random_action in random mode."""
+pytestmark = pytest.mark.unit
+
         game = Game()
         game.start_new_game()
 

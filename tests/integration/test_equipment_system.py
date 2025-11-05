@@ -7,6 +7,8 @@ Tests the full crafting → equipping → combat loop:
 3. Use equipment bonuses in combat
 """
 
+pytestmark = pytest.mark.integration
+
 import pytest
 from src.core.game import Game
 from src.core.entities import Player, Monster

@@ -30,7 +30,7 @@
 
 **For current status:** See `PROJECT_STATUS.md` (comprehensive report)
 **For next steps:** See `MVP_CURRENT_FOCUS.md` (updated 2025-11-05)
-**For future multiplayer:** See `future-multiplayer/` directory
+**For future multiplayer:** See `../.archived/future-multiplayer/` directory (Phase 2 designs)
 
 ---
 
@@ -166,7 +166,7 @@ def generate_dungeon():
 - Brilliant turn system: "4 actions per round, anyone can take them"
 - 4 classes (Warrior, Mage, Healer, Rogue)
 - NATS message bus, WebSocket connections
-- See: `docs/future-multiplayer/`
+- See: `../.archived/future-multiplayer/` (archived Phase 2 designs)
 
 ---
 
@@ -232,14 +232,11 @@ projects/brogue/
 │   │   ├── BASE_CLASS_ARCHITECTURE.md   # Design patterns
 │   │   └── CONTENT_SYSTEM.md            # YAML + scripting
 │   │
-│   ├── future-multiplayer/ # Phase 2 design docs (NOT CURRENT)
-│   │   ├── README.md                         # Overview + warnings
-│   │   ├── BROGUE_TURN_SYSTEM.md
-│   │   ├── BROGUE_MINING_CRAFTING_DESIGN.md
-│   │   ├── MESSAGING_ARCHITECTURE.md
-│   │   └── ... (16+ detailed design docs)
-│   │
-│   └── Archive/            # ❌ OLD - Don't read (wrong design visions)
+│   └── systems/            # System-specific documentation
+│
+├── .archived/              # ❌ Archived documentation (not current focus)
+│   ├── Archive/            # Historical designs and summaries
+│   └── future-multiplayer/ # Phase 2 multiplayer designs
 │
 ├── scripts/
 │   ├── run_debug.py        # Run with debug logging
@@ -247,8 +244,7 @@ projects/brogue/
 │
 ├── tests/                  # Test files
 │
-├── run_textual.py          # ⭐ Main entry point
-└── run.py                  # Legacy entry point
+└── run_textual.py          # ⭐ Main entry point
 ```
 
 **⭐ = Essential files to understand**

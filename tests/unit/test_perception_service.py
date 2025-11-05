@@ -465,6 +465,8 @@ class TestCraftingPerception:
 
     def test_find_forges_returns_all_forges(self, perception):
         """Should return all forges in the game."""
+pytestmark = pytest.mark.unit
+
         game = Game()
         game.start_new_game()
 

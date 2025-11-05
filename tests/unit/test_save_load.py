@@ -373,6 +373,8 @@ class TestSeededRunPersistence:
 
     def test_seeded_run_continues_correctly(self, save_system):
         """Seeded run produces same results after load."""
+pytestmark = pytest.mark.unit
+
         # Initialize with seed
         GameRNG.initialize(seed="test-seed-123")
         rng = GameRNG.get_instance()

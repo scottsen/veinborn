@@ -721,6 +721,8 @@ class TestGetPerceptionInfo:
 
     def test_identifies_nearest_threat(self, new_game):
         """Identifies nearest living monster."""
+pytestmark = pytest.mark.unit
+
         game = new_game
         perception = PerceptionSystem()
         player = game.state.player

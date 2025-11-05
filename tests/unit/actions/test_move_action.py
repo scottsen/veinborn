@@ -453,6 +453,8 @@ def test_negative_movement():
 @pytest.mark.unit
 def test_monster_can_move():
     """Test that monsters (non-player entities) can also move."""
+pytestmark = pytest.mark.unit
+
     from core.game_state import GameState
     from core.base.game_context import GameContext
     from core.entities import Player, Monster

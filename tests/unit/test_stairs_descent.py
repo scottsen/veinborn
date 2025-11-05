@@ -465,6 +465,8 @@ class TestEdgeCases:
     @pytest.mark.integration
     def test_entities_cleared_on_floor_transition(self, new_game):
         """Old floor entities should be cleared on descent."""
+pytestmark = pytest.mark.unit
+
         game = new_game
 
         # Get entity IDs from floor 1

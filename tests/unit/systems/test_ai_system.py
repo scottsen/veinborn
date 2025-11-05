@@ -608,6 +608,8 @@ class TestEdgeCases:
 
     def test_no_monsters_no_crash(self):
         """AI system handles no monsters gracefully."""
+pytestmark = pytest.mark.unit
+
         from src.core.rng import GameRNG
         GameRNG.initialize(42)
 

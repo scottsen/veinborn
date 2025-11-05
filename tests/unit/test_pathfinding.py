@@ -377,6 +377,8 @@ class TestPerformance:
 
     def test_many_paths(self):
         """Can compute many paths quickly."""
+pytestmark = pytest.mark.unit
+
         import time
 
         game_map = SimpleMockMap(width=50, height=50)

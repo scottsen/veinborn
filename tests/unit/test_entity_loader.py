@@ -348,6 +348,8 @@ class TestEntityLoaderIntegration:
 
     def test_data_driven_extensibility(self):
         """Test that system is data-driven (ready for modding)."""
+pytestmark = pytest.mark.unit
+
         loader = EntityLoader()
 
         # Verify we can query what's available

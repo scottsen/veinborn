@@ -18,6 +18,10 @@ Usage:
     python tests/fuzz/warrior_bot.py --games 1 --debug # Full trace logging
 """
 
+import pytest
+
+pytestmark = pytest.mark.fuzz
+
 import sys
 from pathlib import Path
 

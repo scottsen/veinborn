@@ -371,6 +371,8 @@ class TestHighScoreManager:
 
     def _create_entry(self, name: str, score: int, seed=None, is_seeded=False, victory=False) -> HighScoreEntry:
         """Helper to create test entry."""
+pytestmark = pytest.mark.unit
+
         return HighScoreEntry(
             player_name=name,
             timestamp=datetime.now().isoformat(),

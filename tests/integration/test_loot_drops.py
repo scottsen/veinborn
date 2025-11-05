@@ -2,6 +2,8 @@
 
 Tests complete combat → loot drop workflow.
 """
+pytestmark = pytest.mark.integration
+
 import pytest
 from core.entities import Monster, EntityType
 from core.actions.attack_action import AttackAction

@@ -343,6 +343,8 @@ class TestGameRNGIntegration:
 
     def test_seed_stored_in_game_state(self):
         """Test that seed is properly stored in GameState."""
+pytestmark = pytest.mark.unit
+
         from src.core.game import Game
 
         game = Game()

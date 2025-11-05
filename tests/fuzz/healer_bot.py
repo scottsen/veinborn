@@ -16,6 +16,10 @@ Usage:
     python tests/fuzz/healer_bot.py --games 50 -v  # 50 verbose games
 """
 
+import pytest
+
+pytestmark = pytest.mark.fuzz
+
 import sys
 from pathlib import Path
 
