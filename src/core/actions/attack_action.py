@@ -16,6 +16,7 @@ from ..base.action import Action, ActionOutcome, ActionResult
 from ..base.game_context import GameContext
 from ..base.entity import EntityType
 from ..loot import LootGenerator
+from ..events import create_attack_event, create_entity_died_event
 
 logger = logging.getLogger(__name__)
 
@@ -141,12 +142,13 @@ class AttackAction(Action):
         outcome.messages.append(
             f"{actor.name} hits {target.name} for {actual_damage} damage!"
         )
-        outcome.events.append({
-            'type': 'entity_damaged',
-            'attacker_id': self.actor_id,
-            'target_id': self.target_id,
-            'damage': actual_damage,
-        })
+        # Use event builder helper for type-safe event creation
+        outcome.events.append(create_attack_event(
+            attacker_id=self.actor_id,
+            defender_id=self.target_id,
+            damage=actual_damage,
+            killed=not target.is_alive,
+        ))
         return outcome
 
     def _handle_target_death(self, context: GameContext, actor, target, outcome: ActionOutcome):
@@ -154,11 +156,13 @@ class AttackAction(Action):
         self._log_target_death(actor, target)
 
         outcome.messages.append(f"{target.name} died!")
-        outcome.events.append({
-            'type': 'entity_died',
-            'entity_id': self.target_id,
-            'killer_id': self.actor_id,
-        })
+        # Use event builder helper for type-safe event creation
+        outcome.events.append(create_entity_died_event(
+            entity_id=self.target_id,
+            entity_name=target.name,
+            killer_id=self.actor_id,
+            cause="combat",
+        ))
 
         # Award XP if player killed monster
         if actor.entity_type == EntityType.PLAYER:
