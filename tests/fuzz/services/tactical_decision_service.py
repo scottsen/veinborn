@@ -316,7 +316,7 @@ class TacticalDecisionService:
 
         Craft if:
         - Have craftable ore
-        - Near a forge
+        - Forge exists on this floor
         - Not in immediate danger
 
         Args:
@@ -335,11 +335,11 @@ class TacticalDecisionService:
         if not craftable:
             return False
 
-        # Check if there's a forge nearby
+        # Check if there's a forge on this floor
         forge = self.perception.find_nearest_forge(game)
         if not forge:
             return False
 
-        # Only prioritize if forge is reasonably close
-        distance = game.state.player.distance_to(forge)
-        return distance <= 8
+        # Prioritize crafting regardless of distance - better gear is worth the walk!
+        # (Previously limited to distance <= 8, which was too restrictive)
+        return True

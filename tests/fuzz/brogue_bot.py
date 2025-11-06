@@ -23,7 +23,12 @@ Usage:
     python tests/fuzz/brogue_bot.py --games 1000 -v    # Verbose 1000 games
 """
 
-import pytest
+try:
+    import pytest
+    pytestmark = pytest.mark.fuzz
+except ImportError:
+    # pytest not available - bot can still run standalone
+    pytestmark = None
 
 
 import sys
@@ -38,8 +43,6 @@ from typing import List, Dict, Optional, Tuple
 import traceback
 
 # Add src to path
-pytestmark = pytest.mark.fuzz
-
 src_path = Path(__file__).parent.parent.parent / "src"
 sys.path.insert(0, str(src_path))
 
@@ -402,18 +405,16 @@ class BrogueBot:
                     # Use ActionPlanner.plan_next_action which handles all modes
                     action_type, kwargs = self.planner.plan_next_action(game, mode=self.mode)
 
-                # Execute action
+                # Execute action - keep executing instant actions until one takes a turn
+                # This ensures crafted items are equipped immediately (equip is instant)
                 try:
-                    action_succeeded = game.handle_player_action(action_type, **kwargs)
-                    if not action_succeeded:
-                        self.log(f"   ⚠️  Action {action_type} {kwargs} FAILED!")
-
-                    # Track mining statistics (Phase 3)
-                    if action_succeeded:
-                        if action_type == 'survey':
+                    # Helper to track a single action's statistics
+                    def track_action_stats(act_type, act_kwargs):
+                        """Track statistics for a specific action."""
+                        if act_type == 'survey':
                             self.stats.total_ore_surveyed += 1
 
-                        elif action_type == 'mine':
+                        elif act_type == 'mine':
                             # Check if we mined successfully (safely handle missing inventory)
                             if hasattr(game.state.player, 'inventory'):
                                 # Ore items have ore_type in stats, not as attribute
@@ -443,7 +444,7 @@ class BrogueBot:
                                 # Player missing inventory attribute - shouldn't happen, but be defensive
                                 game_stats['prev_ore_count'] = 0
 
-                        elif action_type == 'craft':
+                        elif act_type == 'craft':
                             # Track crafting statistics
                             if hasattr(game.state.player, 'inventory'):
                                 equipment_in_inventory = [item for item in game.state.player.inventory
@@ -465,9 +466,37 @@ class BrogueBot:
                             else:
                                 game_stats['prev_equipment_count'] = 0
 
-                        elif action_type == 'equip':
+                        elif act_type == 'equip':
                             # Track equipping statistics
                             self.stats.total_equipment_equipped += 1
+
+                    # Execute first action
+                    action_took_turn = game.handle_player_action(action_type, **kwargs)
+                    track_action_stats(action_type, kwargs)
+
+                    if not action_took_turn:
+                        self.log(f"   ⚡ Instant action: {action_type} (no turn consumed)")
+
+                    # Track successful instant actions for this turn
+                    instant_actions_count = 0
+                    max_instant_actions = 10  # Safety limit to prevent infinite loops
+
+                    # Keep executing actions while they're instant (don't consume a turn)
+                    while not action_took_turn and instant_actions_count < max_instant_actions:
+                        instant_actions_count += 1
+
+                        # Plan next action
+                        action_type, kwargs = self.planner.plan_next_action(game, mode=self.mode)
+
+                        # Execute it
+                        action_took_turn = game.handle_player_action(action_type, **kwargs)
+                        track_action_stats(action_type, kwargs)
+
+                        if not action_took_turn:
+                            self.log(f"   ⚡ Instant action #{instant_actions_count}: {action_type}")
+
+                    if instant_actions_count >= max_instant_actions:
+                        self.log(f"   ⚠️  Hit max instant actions limit ({max_instant_actions})!")
 
                 except Exception as e:
                     self.log_error(
