@@ -325,6 +325,9 @@ class RecipeManager:
         if not craftable:
             return None
 
+        # ADD LOGGING: Show craftable recipes for debugging
+        logger.info(f"Craftable recipes: {[(r.recipe_id, r.item_type, r.get_required_ore_count()) for r in craftable[:5]]}")
+
         # Define tier ordering for ore types
         ore_tier_order = {
             'adamantite': 4,
@@ -359,7 +362,12 @@ class RecipeManager:
 
         # Sort and return best recipe
         sorted_recipes = sorted(craftable, key=recipe_priority)
-        return sorted_recipes[0].recipe_id
+        selected = sorted_recipes[0]
+
+        # ADD LOGGING: Show selected recipe for debugging
+        logger.info(f"Selected recipe: {selected.recipe_id} (type: {selected.item_type}, ore: {selected.get_required_ore_count()})")
+
+        return selected.recipe_id
 
     def can_craft(
         self,

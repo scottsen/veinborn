@@ -469,6 +469,13 @@ class BrogueBot:
                         elif act_type == 'equip':
                             # Track equipping statistics
                             self.stats.total_equipment_equipped += 1
+                            # ADD DETAILED LOGGING: Track what's being equipped
+                            equipped_item_id = act_kwargs.get('item_id', 'unknown')
+                            equipped_item = [item for item in game.state.player.inventory
+                                           if item.entity_id == equipped_item_id]
+                            if equipped_item:
+                                item = equipped_item[0]
+                                self.log(f"   🎽 Equipped: {item.name} (slot: {item.get_stat('equipment_slot')})")
 
                     # Execute first action
                     action_took_turn = game.handle_player_action(action_type, **kwargs)
