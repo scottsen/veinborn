@@ -307,9 +307,11 @@ class PerceptionService:
     
     def has_unequipped_gear(self, game) -> Optional:
         """
-        Check if player has gear in inventory that isn't equipped.
+        Find best unequipped item that's an upgrade over current gear.
 
-        Returns first unequipped item, or None.
+        Returns None if:
+        - No unequipped items
+        - All unequipped items are worse than equipped gear
         """
         player = game.state.player
 
@@ -336,13 +338,24 @@ class PerceptionService:
                     if hasattr(player, 'equipped_weapon') and player.equipped_weapon:
                         if player.equipped_weapon.entity_id == item.entity_id:
                             continue
+                        # NEW: Check if this is an upgrade (only equip better weapons)
+                        current_attack = player.equipped_weapon.get_stat('attack_bonus', 0)
+                        new_attack = item.get_stat('attack_bonus', 0)
+                        if new_attack <= current_attack:
+                            continue  # Not an upgrade, skip it
+
                 elif equipment_slot == 'armor':
                     # Skip if this item is already the equipped armor
                     if hasattr(player, 'equipped_armor') and player.equipped_armor:
                         if player.equipped_armor.entity_id == item.entity_id:
                             continue
+                        # NEW: Check if this is an upgrade (only equip better armor)
+                        current_defense = player.equipped_armor.get_stat('defense_bonus', 0)
+                        new_defense = item.get_stat('defense_bonus', 0)
+                        if new_defense <= current_defense:
+                            continue  # Not an upgrade, skip it
 
-                # This item is not currently equipped, return it
+                # This item passed all checks - it's an upgrade!
                 return item
 
         return None
