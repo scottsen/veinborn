@@ -516,5 +516,81 @@ class TestCraftingPerception:
         assert result.x == 2 and result.y == 2
 
 
+class TestEquipmentPerception:
+    """Tests for equipment-related perception."""
+
+    def test_has_unequipped_gear_ignores_ore_items(self, perception):
+        """Ore items should not be considered as unequipped gear."""
+        game = Game()
+        game.start_new_game()
+        player = game.state.player
+
+        # Create an ore item (has properties but no equipment_slot)
+        ore = Entity(
+            entity_type="ITEM",
+            name="Copper Ore",
+            x=player.x, y=player.y
+        )
+        ore.set_stat('ore_type', 'copper')
+        ore.set_stat('purity', 50)
+        ore.set_stat('hardness', 45)
+        # Ore does NOT have equipment_slot
+
+        player.add_to_inventory(ore)
+
+        result = perception.has_unequipped_gear(game)
+
+        # Should return None because ore is not equippable gear
+        assert result is None
+
+    def test_has_unequipped_gear_finds_actual_equipment(self, perception):
+        """Should find actual equipment items (with equipment_slot stat)."""
+        game = Game()
+        game.start_new_game()
+        player = game.state.player
+
+        # Create actual equipment (has equipment_slot)
+        sword = Entity(
+            entity_type="ITEM",
+            name="Iron Sword",
+            x=player.x, y=player.y
+        )
+        sword.set_stat('equipment_slot', 'weapon')
+        sword.set_stat('attack_bonus', 5)
+        sword.set_stat('equipped', False)
+
+        player.add_to_inventory(sword)
+
+        result = perception.has_unequipped_gear(game)
+
+        # Should find the sword
+        assert result is not None
+        assert result.name == "Iron Sword"
+        assert result.get_stat('equipment_slot') == 'weapon'
+
+    def test_has_unequipped_gear_ignores_equipped_items(self, perception):
+        """Should not return items that are already equipped."""
+        game = Game()
+        game.start_new_game()
+        player = game.state.player
+
+        # Create equipped armor
+        armor = Entity(
+            entity_type="ITEM",
+            name="Iron Armor",
+            x=player.x, y=player.y
+        )
+        armor.set_stat('equipment_slot', 'armor')
+        armor.set_stat('defense_bonus', 3)
+        armor.set_stat('equipped', True)  # Already equipped
+
+        player.add_to_inventory(armor)
+
+        result = perception.has_unequipped_gear(game)
+
+        # Should return None because armor is already equipped
+        assert result is None
+
+
 if __name__ == '__main__':
     pytest.main([__file__, '-v'])

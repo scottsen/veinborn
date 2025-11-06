@@ -316,12 +316,12 @@ class PerceptionService:
         if not hasattr(player, 'inventory') or not player.inventory:
             return None
 
-        # Equipment items are Entity objects with equipment stats (not a separate class)
+        # Equipment items are Entity objects with equipment_slot stat
+        # (ore items may have attack/defense bonuses but aren't equippable)
         for item in player.inventory:
-            # Check if item has equipment stats (attack_bonus or defense_bonus)
-            is_equipment = (item.get_stat('attack_bonus') is not None or
-                          item.get_stat('defense_bonus') is not None)
-            if is_equipment and not item.get_stat('equipped', False):
+            # Check if item has equipment_slot (weapon or armor)
+            equipment_slot = item.get_stat('equipment_slot')
+            if equipment_slot and not item.get_stat('equipped', False):
                 return item
 
         return None
@@ -332,6 +332,7 @@ class PerceptionService:
         Check if player has enough ore to craft something.
 
         Returns recipe_id if craftable, None otherwise.
+        Uses RecipeManager's suggest_recipe() for intelligent recipe selection.
         """
         from core.crafting import RecipeManager
         player = game.state.player
@@ -339,33 +340,16 @@ class PerceptionService:
         if not hasattr(player, 'inventory') or not player.inventory:
             return None
 
-        # Get available recipes
+        # Use RecipeManager's smart recipe suggestion
         recipe_manager = RecipeManager()
-
-        # Check recipes in priority order (best equipment first)
-        priority_recipes = [
-            # Weapons (by tier)
-            'adamantite_greatsword',
-            'mithril_sword',
-            'iron_battle_axe',
-            'iron_sword',
-            'copper_sword',
-            'copper_dagger',
-            # Armor (by tier)
-            'adamantite_plate',
-            'mithril_chestplate',
-            'iron_chestplate',
-            'copper_chestplate',
-        ]
-
         current_floor = game.context.get_floor()
 
-        for recipe_id in priority_recipes:
-            can_craft, _ = recipe_manager.can_craft(recipe_id, player.inventory, current_floor)
-            if can_craft:
-                return recipe_id
-
-        return None
+        # Get best craftable recipe (prioritizes higher tier, weapons over armor)
+        return recipe_manager.suggest_recipe(
+            player.inventory,
+            current_floor,
+            preference='balanced'  # Can be 'offense', 'defense', or 'balanced'
+        )
 
     # ========================================================================
     # Threat Assessment

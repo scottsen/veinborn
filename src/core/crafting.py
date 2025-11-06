@@ -304,6 +304,62 @@ class RecipeManager:
 
         return craftable
 
+    def suggest_recipe(
+        self,
+        player_inventory: List[Any],
+        current_floor: int,
+        preference: str = 'balanced'
+    ) -> Optional[str]:
+        """
+        Suggest the best recipe to craft based on current situation.
+
+        Args:
+            player_inventory: Player's inventory
+            current_floor: Current dungeon floor
+            preference: 'offense', 'defense', or 'balanced'
+
+        Returns:
+            recipe_id of best recipe, or None if nothing craftable
+        """
+        craftable = self.get_craftable_recipes(player_inventory, current_floor)
+        if not craftable:
+            return None
+
+        # Define tier ordering for ore types
+        ore_tier_order = {
+            'adamantite': 4,
+            'mithril': 3,
+            'iron': 2,
+            'copper': 1
+        }
+
+        # Sort by priority: higher tier first, then by preference
+        def recipe_priority(recipe: CraftingRecipe) -> tuple:
+            ore_type = recipe.get_required_ore_type()
+            tier = ore_tier_order.get(ore_type, 0)
+
+            # Secondary sort by item type based on preference
+            is_weapon = recipe.item_type == 'weapon'
+            is_armor = recipe.item_type == 'armor'
+
+            if preference == 'offense':
+                # Prefer weapons
+                type_priority = 1 if is_weapon else 0
+            elif preference == 'defense':
+                # Prefer armor
+                type_priority = 1 if is_armor else 0
+            else:  # balanced
+                # Alternate: slightly prefer weapons
+                type_priority = 1 if is_weapon else 0
+
+            # Return tuple: (tier, type_priority, ore_count)
+            # Negated for reverse sorting (higher = better)
+            return (-tier, -type_priority, recipe.get_required_ore_count())
+
+        # Sort and return best recipe
+        sorted_recipes = sorted(craftable, key=recipe_priority)
+        return sorted_recipes[0].recipe_id
+
     def can_craft(
         self,
         recipe_id: str,

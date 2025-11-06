@@ -109,16 +109,15 @@ class ActionPlanner:
             craftable = self.perception.has_craftable_ore(game)
             forge = self.perception.find_nearest_forge(game)
             if forge and craftable:
-                dist = game.state.player.distance_to(forge)
                 if game.state.player.is_adjacent(forge):
                     # Adjacent to forge - craft!
                     self.log(f"🔨 Crafting {craftable} at forge!")
                     return ('craft', {'forge_id': forge.entity_id, 'recipe_id': craftable})
-                elif dist > 2:
-                    # Seek adjacent tile to forge (forge blocks movement)
+                else:
+                    # Not adjacent - pathfind to forge (regardless of distance)
+                    dist = game.state.player.distance_to(forge)
                     self.log(f"🔨 Seeking forge to craft {craftable}! (distance: {dist:.1f})")
                     return self.move_towards_adjacent(game, forge)
-                # If close but not adjacent (dist <= 2), explore randomly
 
         # Priority 3: Descend if ready
         if self.decisions.should_descend(game):

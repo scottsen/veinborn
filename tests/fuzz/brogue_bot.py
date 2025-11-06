@@ -443,6 +443,32 @@ class BrogueBot:
                                 # Player missing inventory attribute - shouldn't happen, but be defensive
                                 game_stats['prev_ore_count'] = 0
 
+                        elif action_type == 'craft':
+                            # Track crafting statistics
+                            if hasattr(game.state.player, 'inventory'):
+                                equipment_in_inventory = [item for item in game.state.player.inventory
+                                                        if item.get_stat('equipment_slot') is not None]
+                                prev_equip_count = game_stats.get('prev_equipment_count', 0)
+                                curr_equip_count = len(equipment_in_inventory)
+                                if curr_equip_count > prev_equip_count:
+                                    equipment = equipment_in_inventory[-1]  # Most recent
+                                    self.stats.total_equipment_crafted += 1
+
+                                    # Track by equipment type
+                                    equipment_slot = equipment.get_stat('equipment_slot')
+                                    if equipment_slot == 'weapon':
+                                        self.stats.weapons_crafted += 1
+                                    elif equipment_slot == 'armor':
+                                        self.stats.armor_crafted += 1
+
+                                game_stats['prev_equipment_count'] = len(equipment_in_inventory)
+                            else:
+                                game_stats['prev_equipment_count'] = 0
+
+                        elif action_type == 'equip':
+                            # Track equipping statistics
+                            self.stats.total_equipment_equipped += 1
+
                 except Exception as e:
                     self.log_error(
                         f"Action failed on turn {turn}: {action_type} {kwargs}",
