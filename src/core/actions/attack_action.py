@@ -12,11 +12,13 @@ Handles:
 import logging
 from dataclasses import dataclass
 from typing import Optional
+from simpleeval import simple_eval
 from ..base.action import Action, ActionOutcome, ActionResult
 from ..base.game_context import GameContext
 from ..base.entity import EntityType
 from ..loot import LootGenerator
 from ..events import create_attack_event, create_entity_died_event
+from ..config.config_loader import ConfigLoader
 
 logger = logging.getLogger(__name__)
 
@@ -102,7 +104,7 @@ class AttackAction(Action):
         )
 
     def _calculate_and_apply_damage(self, actor, target) -> int:
-        """Calculate damage and apply to target."""
+        """Calculate damage and apply to target using configured formula."""
         # Import Player locally to avoid circular imports
         from ..entities import Player
 
@@ -118,9 +120,27 @@ class AttackAction(Action):
         else:
             target_defense = target.defense
 
-        # Calculate damage (minimum 1)
-        damage = max(1, actor_attack - target_defense)
-        return target.take_damage(damage)
+        # Get damage formula from config
+        config = ConfigLoader.get_config()
+        formula = config.get_damage_formula()
+        min_damage = config.get_min_damage()
+
+        # Evaluate formula
+        try:
+            damage = simple_eval(
+                formula,
+                names={
+                    'attacker_attack': actor_attack,
+                    'defender_defense': target_defense,
+                    'max': max,
+                    'min': min,
+                }
+            )
+        except Exception as e:
+            logger.error(f"Formula evaluation failed: {e}, using fallback")
+            damage = max(1, actor_attack - target_defense)
+
+        return target.take_damage(int(damage))
 
     def _log_damage(self, actor, target, actual_damage: int):
         """Log damage dealt."""
