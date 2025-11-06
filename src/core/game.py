@@ -33,6 +33,8 @@ from .spawning import EntitySpawner
 from .turn_processor import TurnProcessor
 from .floor_manager import FloorManager
 from .save_load import SaveSystem, SaveLoadError
+from .events import EventBus, GameEventType
+from .telemetry import StatsTracker, GameTelemetry, PerformanceTelemetry
 
 logger = logging.getLogger(__name__)
 
@@ -68,7 +70,13 @@ class Game:
         # Save/load system
         self.save_system = SaveSystem()
 
-        logger.debug("Game initialized with configuration and entity loader")
+        # Event system and telemetry (Phase 2-ready, Lua-ready)
+        self.event_bus = EventBus()
+        self.stats_tracker = StatsTracker()
+        self.game_telemetry = GameTelemetry()
+        self.perf_telemetry = PerformanceTelemetry()
+
+        logger.debug("Game initialized with configuration, entity loader, and event system")
 
     def start_new_game(
         self,
@@ -257,7 +265,13 @@ class Game:
                 }
             )
 
-        # Check for floor transition event
+        # Publish events to EventBus (Phase 2-ready pattern)
+        # This integrates with ActionOutcome.events field that was always there!
+        if outcome.events:
+            self.event_bus.publish_all(outcome.events)
+            logger.debug(f"Published {len(outcome.events)} events to EventBus")
+
+        # Check for floor transition event (special handling)
         for event in outcome.events:
             if event.get('type') == 'descend_floor':
                 self.descend_floor()
@@ -335,7 +349,74 @@ class Game:
         self.floor_manager = FloorManager(self.context, self.spawner)
         self.action_factory = ActionFactory(self.context)
 
+        # Subscribe telemetry systems to events (Phase 2-ready pattern)
+        self._subscribe_event_handlers()
+
         logger.debug("Subsystems initialized successfully")
+
+    def _subscribe_event_handlers(self) -> None:
+        """
+        Subscribe event handlers to EventBus.
+
+        This demonstrates the event-ready pattern from EVENTS_ASYNC_OBSERVABILITY_GUIDE.md:
+        - StatsTracker methods work as direct calls OR event subscribers
+        - Adding new subscribers requires zero refactoring
+        - Lua scripts can subscribe in Phase 3 using same pattern
+        """
+        # Subscribe StatsTracker to combat events
+        self.event_bus.subscribe(
+            GameEventType.ATTACK_RESOLVED,
+            self.stats_tracker.on_attack_resolved,
+            subscriber_name="StatsTracker.on_attack_resolved"
+        )
+
+        self.event_bus.subscribe(
+            GameEventType.ENTITY_DIED,
+            self.stats_tracker.on_entity_died,
+            subscriber_name="StatsTracker.on_entity_died"
+        )
+
+        # Subscribe to mining events
+        self.event_bus.subscribe(
+            GameEventType.ORE_MINED,
+            self.stats_tracker.on_ore_mined,
+            subscriber_name="StatsTracker.on_ore_mined"
+        )
+
+        self.event_bus.subscribe(
+            GameEventType.ORE_SURVEYED,
+            self.stats_tracker.on_ore_surveyed,
+            subscriber_name="StatsTracker.on_ore_surveyed"
+        )
+
+        # Subscribe to crafting events
+        self.event_bus.subscribe(
+            GameEventType.ITEM_CRAFTED,
+            self.stats_tracker.on_item_crafted,
+            subscriber_name="StatsTracker.on_item_crafted"
+        )
+
+        self.event_bus.subscribe(
+            GameEventType.CRAFTING_FAILED,
+            self.stats_tracker.on_crafting_failed,
+            subscriber_name="StatsTracker.on_crafting_failed"
+        )
+
+        # Subscribe to floor events
+        self.event_bus.subscribe(
+            GameEventType.FLOOR_CHANGED,
+            self.stats_tracker.on_floor_changed,
+            subscriber_name="StatsTracker.on_floor_changed"
+        )
+
+        # Subscribe to turn events
+        self.event_bus.subscribe(
+            GameEventType.TURN_ENDED,
+            self.stats_tracker.on_turn_ended,
+            subscriber_name="StatsTracker.on_turn_ended"
+        )
+
+        logger.info(f"Event handlers subscribed: {len(self.event_bus.subscribers)} event types")
 
     def load_game(self, slot_name: str = "quicksave") -> bool:
         """

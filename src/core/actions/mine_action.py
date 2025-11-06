@@ -14,6 +14,7 @@ from dataclasses import dataclass
 from ..base.action import Action, ActionOutcome
 from ..base.game_context import GameContext
 from ..base.entity import EntityType
+from ..events import create_ore_mined_event, GameEventType
 
 logger = logging.getLogger(__name__)
 
@@ -126,11 +127,15 @@ class MineAction(Action):
         # Store mining state for interruption handling
         actor.set_stat('mining_action', self.to_dict())
 
+        # Add mining started event on first progress update
         outcome.events.append({
-            'type': 'mining_progress',
-            'actor_id': self.actor_id,
-            'ore_vein_id': self.ore_vein_id,
-            'turns_remaining': self.turns_remaining,
+            'type': GameEventType.MINING_STARTED.value if self.turns_remaining == ore_vein.get_stat('mining_turns', 3) - 1 else 'mining_progress',
+            'data': {
+                'actor_id': self.actor_id,
+                'ore_vein_id': self.ore_vein_id,
+                'turns_remaining': self.turns_remaining,
+            },
+            'timestamp': __import__('time').time(),
         })
 
         return outcome
@@ -212,12 +217,21 @@ class MineAction(Action):
             }
         )
 
-        outcome.events.append({
-            'type': 'ore_mined',
-            'actor_id': self.actor_id,
-            'ore_id': ore_item.entity_id,
-            'properties': ore_vein.stats,
-        })
+        # Use event builder helper for type-safe ore mined event
+        from ..entities import OreVein
+        if isinstance(ore_vein, OreVein):
+            outcome.events.append(create_ore_mined_event(
+                ore_id=ore_item.entity_id,
+                miner_id=self.actor_id,
+                ore_type=ore_vein.ore_type,
+                properties={
+                    'hardness': ore_vein.hardness,
+                    'conductivity': ore_vein.conductivity,
+                    'malleability': ore_vein.malleability,
+                    'purity': ore_vein.purity,
+                    'density': ore_vein.density,
+                },
+            ))
 
     def to_dict(self) -> dict:
         return {
