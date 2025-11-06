@@ -1,3 +1,15 @@
+---
+project: brogue
+type: software
+status: active
+beth_topics:
+- brogue
+- software
+tags:
+- development
+- code
+---
+
 # Brogue
 
 **NetHack + SWG Mining + Multiplayer Co-op**
