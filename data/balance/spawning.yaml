@@ -1,0 +1,111 @@
+# Spawning Configuration
+#
+# This file centralizes all spawning-related parameters that were previously
+# hardcoded in the game logic. It covers:
+# - Special room entity counts and bonuses
+# - Ore vein positioning rules
+# - Special room assignment probabilities
+#
+# Design Goals:
+# - Make monster density easily tunable
+# - Allow designers to adjust special room rewards without touching code
+# - Centralize magic numbers for better game balance iteration
+
+# Special Room Entity Spawning
+# These rooms provide bonus rewards and challenges beyond standard spawning
+special_rooms:
+  # Treasure Room - High-quality ore rewards
+  treasure_room:
+    ore_count:
+      min: 2
+      max: 3
+      description: "Number of ore veins to spawn in treasure rooms"
+
+    ore_purity:
+      min: 80
+      max: 95
+      description: "Purity range for treasure room ores (higher = better quality)"
+
+    description: "Treasure rooms contain 2-3 high-purity ore veins"
+
+  # Monster Den - Extra dangerous encounters
+  monster_den:
+    monster_count:
+      min: 2
+      max: 4
+      description: "Number of extra monsters to spawn in monster dens"
+
+    stat_boost_multiplier: 1.2
+    description: "Monster dens spawn 2-4 extra monsters with +20% boosted stats"
+
+  # Ore Chamber - Rich mining location
+  ore_chamber:
+    ore_count:
+      min: 3
+      max: 5
+      description: "Number of ore veins to spawn in ore chambers"
+
+    ore_purity:
+      min: 70
+      max: 85
+      description: "Purity range for ore chamber ores"
+
+    description: "Ore chambers contain 3-5 good-quality ore veins"
+
+# Ore Vein Positioning Rules
+ore_positioning:
+  wall_adjacency_probability: 0.1
+  description: "10% chance for wall-adjacent floor tiles to become ore spawn positions"
+  explanation: "Ore veins spawn adjacent to walls for a 'embedded in rock' feel"
+
+# Special Room Assignment Configuration
+special_room_assignment:
+  # Percentage of eligible rooms that become special
+  percentage:
+    min: 0.2  # 20% minimum
+    max: 0.3  # 30% maximum
+    description: "20-30% of rooms (excluding start/stairs rooms) become special"
+
+  # Room type weights - higher weight = more common
+  # Total weight: 9
+  room_type_weights:
+    treasure_room: 2
+    monster_den: 2
+    ore_chamber: 3  # Most common - fits game's mining theme
+    shrine: 1       # Rare healing/buff locations
+    trap_room: 1    # Rare hazardous locations
+
+  description: "Weighted random selection determines special room types"
+
+# Monster Density Configuration
+# This section provides easy tuning knobs for adjusting overall game difficulty
+monster_density:
+  description: "These multipliers affect monster counts globally"
+
+  # Global multiplier for all monster spawns
+  global_multiplier: 1.0
+  explanation: "Set to 1.5 for 50% more monsters, 0.75 for 25% fewer"
+
+  # Per-tier multipliers (override global for specific floor ranges)
+  tier_multipliers:
+    early_game:  # Floors 1-6
+      multiplier: 1.0
+      description: "Early floors use standard spawn rates"
+
+    mid_game:    # Floors 7-20
+      multiplier: 1.0
+      description: "Mid floors use standard spawn rates"
+
+    late_game:   # Floors 21+
+      multiplier: 1.0
+      description: "Late floors use standard spawn rates"
+
+# Configuration Versioning
+meta:
+  version: "1.0.0"
+  created: "2025-11-06"
+  description: "Initial extraction of hardcoded spawning parameters"
+  related_files:
+    - "monster_spawns.yaml - monster counts and type weights"
+    - "ore_veins.yaml - ore counts and type weights"
+    - "game_constants.yaml - general game balance"

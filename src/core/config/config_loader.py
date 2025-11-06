@@ -35,6 +35,7 @@ class GameConfig:
     monster_spawns: Dict[str, Any]
     ore_veins: Dict[str, Any]
     game_constants: Dict[str, Any]
+    spawning: Dict[str, Any]
 
     def get_monster_count_for_floor(self, floor: int) -> int:
         """
@@ -142,6 +143,62 @@ class GameConfig:
 
         return value
 
+    def get_special_room_config(self, room_type: str) -> Dict[str, Any]:
+        """
+        Get spawning configuration for a special room type.
+
+        Args:
+            room_type: Type of special room (treasure_room, monster_den, ore_chamber)
+
+        Returns:
+            Dictionary containing spawn configuration for that room type
+        """
+        return self.spawning['special_rooms'].get(room_type, {})
+
+    def get_ore_positioning_config(self) -> Dict[str, Any]:
+        """
+        Get ore vein positioning configuration.
+
+        Returns:
+            Dictionary containing ore positioning rules
+        """
+        return self.spawning['ore_positioning']
+
+    def get_special_room_assignment_config(self) -> Dict[str, Any]:
+        """
+        Get special room assignment configuration.
+
+        Returns:
+            Dictionary containing room assignment rules and weights
+        """
+        return self.spawning['special_room_assignment']
+
+    def get_monster_density_multiplier(self, floor: int) -> float:
+        """
+        Get the monster density multiplier for a given floor.
+
+        This allows global or tier-based adjustments to monster counts.
+
+        Args:
+            floor: Floor number (1-based)
+
+        Returns:
+            Multiplier to apply to monster counts
+        """
+        density_config = self.spawning['monster_density']
+        global_mult = density_config['global_multiplier']
+
+        # Check tier-specific multipliers
+        tier_mults = density_config['tier_multipliers']
+        if 1 <= floor <= 6:
+            tier_mult = tier_mults['early_game']['multiplier']
+        elif 7 <= floor <= 20:
+            tier_mult = tier_mults['mid_game']['multiplier']
+        else:
+            tier_mult = tier_mults['late_game']['multiplier']
+
+        return global_mult * tier_mult
+
 
 class ConfigLoader:
     """
@@ -178,11 +235,13 @@ class ConfigLoader:
         monster_spawns = cls._load_yaml(config_dir / "monster_spawns.yaml")
         ore_veins = cls._load_yaml(config_dir / "ore_veins.yaml")
         game_constants = cls._load_yaml(config_dir / "game_constants.yaml")
+        spawning = cls._load_yaml(config_dir / "spawning.yaml")
 
         cls._instance = GameConfig(
             monster_spawns=monster_spawns,
             ore_veins=ore_veins,
             game_constants=game_constants,
+            spawning=spawning,
         )
 
         logger.info("Configuration loaded successfully")
