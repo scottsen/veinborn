@@ -1,0 +1,182 @@
+# Dungeon Generation Configuration
+#
+# This file centralizes all dungeon generation parameters that were previously
+# hardcoded in world.py. It controls the Binary Space Partitioning (BSP) algorithm
+# used to create dungeon layouts.
+#
+# Design Goals:
+# - Make dungeon layouts easily tunable without code changes
+# - Allow creation of custom dungeon types (small/large/maze-like)
+# - Enable floor-specific variations in dungeon complexity
+# - Support modding and experimentation by non-programmers
+#
+# BSP Algorithm Overview:
+# 1. Start with full map rectangle
+# 2. Recursively split into smaller regions (binary space partitioning)
+# 3. Create a room in each leaf region
+# 4. Connect rooms with L-shaped corridors
+#
+# Configuration Impact:
+# - bsp.min_split_size: Controls when to stop splitting (larger = fewer, bigger rooms)
+# - bsp.aspect_ratio_threshold: Controls split direction preference
+# - bsp.split_ratio: Controls how evenly regions are split
+# - rooms: Controls size of rooms within each BSP leaf
+# - corridors: Controls corridor generation style
+
+# Binary Space Partitioning Algorithm Parameters
+bsp:
+  # Minimum size for BSP cell before stopping splits
+  # Smaller values = more rooms (more splits possible)
+  # Larger values = fewer rooms (splits stop earlier)
+  min_split_size: 6
+  description: "Don't split BSP cells smaller than this (in tiles)"
+
+  # Aspect ratio threshold for determining split direction
+  # If width/height > threshold, prefer vertical split
+  # If height/width > threshold, prefer horizontal split
+  aspect_ratio_threshold: 1.25
+  description: "When region is 1.25x longer in one dimension, force split in that direction"
+
+  # Split position ratio range (min to max)
+  # Controls how evenly the BSP cell is split
+  # 0.33 to 0.67 means split can be anywhere from 33% to 67% along the dimension
+  split_ratio:
+    min: 0.33  # Minimum split position (1/3)
+    max: 0.67  # Maximum split position (2/3)
+    description: "Split BSP cells between 33-67% of their size for variety"
+
+# Room Configuration
+rooms:
+  # Minimum room dimensions
+  # Rooms will be at least this size (width × height)
+  min_size: 4
+  description: "Minimum room dimensions (tiles)"
+
+  # Padding between room and BSP cell boundary
+  # Ensures rooms don't touch BSP cell edges
+  # Creates natural spacing between adjacent rooms
+  padding: 1
+  description: "Space between room edges and BSP cell boundaries (tiles)"
+
+  explanation: "Rooms are created within BSP leaf cells with padding for spacing"
+
+# Corridor Configuration
+corridors:
+  # Corridor generation style
+  # Currently only L-shaped is implemented
+  # Future options: straight, winding, maze
+  style: "l_shaped"
+  description: "Corridor shape connecting rooms"
+
+  # Probability of choosing horizontal-first vs vertical-first for L-shaped corridors
+  # 0.5 = 50/50 chance, creates variety in corridor layouts
+  direction_probability: 0.5
+  description: "Probability of horizontal-first vs vertical-first L-shaped corridors"
+
+# Floor-Specific Overrides (optional)
+# These override base settings for specific floors
+# Useful for creating variety across dungeon depth
+floor_overrides:
+  # Example: Floor 1 could have smaller rooms for a cramped start
+  # floor_1:
+  #   rooms:
+  #     min_size: 3
+  #   bsp:
+  #     min_split_size: 5
+
+  # Example: Deep floors could have larger, more open layouts
+  # floor_10:
+  #   rooms:
+  #     min_size: 5
+  #   bsp:
+  #     min_split_size: 8
+
+  description: "Floor-specific parameter overrides (currently empty, can be customized)"
+
+# Dungeon Presets
+# Pre-configured dungeon types for easy experimentation
+# To use a preset, copy its values to the main configuration sections above
+presets:
+  # Standard dungeon (current default)
+  standard:
+    description: "Default balanced dungeon layout"
+    bsp:
+      min_split_size: 6
+      aspect_ratio_threshold: 1.25
+      split_ratio:
+        min: 0.33
+        max: 0.67
+    rooms:
+      min_size: 4
+      padding: 1
+    corridors:
+      style: "l_shaped"
+      direction_probability: 0.5
+
+  # Small cramped dungeons - many small rooms
+  small_cramped:
+    description: "Many small rooms, tight spaces, challenging navigation"
+    bsp:
+      min_split_size: 5  # More splits = more rooms
+      aspect_ratio_threshold: 1.25
+      split_ratio:
+        min: 0.33
+        max: 0.67
+    rooms:
+      min_size: 3  # Smaller minimum room size
+      padding: 1
+    corridors:
+      style: "l_shaped"
+      direction_probability: 0.5
+
+  # Large open dungeons - fewer, bigger rooms
+  large_open:
+    description: "Fewer large rooms, more open combat spaces"
+    bsp:
+      min_split_size: 10  # Fewer splits = fewer rooms
+      aspect_ratio_threshold: 1.5  # More tolerance for aspect ratio
+      split_ratio:
+        min: 0.4
+        max: 0.6
+    rooms:
+      min_size: 6  # Larger minimum room size
+      padding: 2  # More spacing between rooms
+    corridors:
+      style: "l_shaped"
+      direction_probability: 0.5
+
+  # Maze-like - maximum room density
+  maze:
+    description: "Maximum room count, complex interconnected layout"
+    bsp:
+      min_split_size: 4  # Minimal size for maximum splits
+      aspect_ratio_threshold: 1.1  # Split more freely
+      split_ratio:
+        min: 0.4
+        max: 0.6
+    rooms:
+      min_size: 3  # Small rooms
+      padding: 1
+    corridors:
+      style: "l_shaped"
+      direction_probability: 0.5
+
+# Configuration Metadata
+meta:
+  version: "1.0.0"
+  created: "2025-11-06"
+  description: "Dungeon generation parameters for BSP algorithm"
+  related_files:
+    - "spawning.yaml - Special room types and entity spawning"
+    - "monster_spawns.yaml - Monster counts and types"
+    - "ore_veins.yaml - Ore vein distribution"
+  notes: |
+    This configuration extracts all hardcoded dungeon generation parameters
+    from world.py, completing the architectural refactoring series.
+
+    To customize dungeons:
+    1. Adjust values in the main sections (bsp, rooms, corridors)
+    2. Or copy a preset and modify it
+    3. Or add floor_overrides for specific floors
+
+    The defaults maintain exact current behavior for backward compatibility.

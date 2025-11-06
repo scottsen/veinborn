@@ -15,7 +15,7 @@ Usage:
 import yaml
 import logging
 from pathlib import Path
-from typing import Dict, Any, List, Optional
+from typing import Dict, Any, List, Optional, Tuple
 from dataclasses import dataclass
 
 from ..exceptions import ContentValidationError
@@ -38,6 +38,7 @@ class GameConfig:
     spawning: Dict[str, Any]
     ai_behaviors: Dict[str, Any]
     formulas: Dict[str, Any]
+    dungeon_generation: Dict[str, Any]
 
     def get_monster_count_for_floor(self, floor: int) -> int:
         """
@@ -255,6 +256,104 @@ class GameConfig:
         """Get crafting tier multiplier for ore type."""
         return self.formulas['crafting']['tier_multipliers'].get(ore_type, 1.0)
 
+    # Dungeon Generation Configuration Accessors
+
+    def get_bsp_min_split_size(self) -> int:
+        """
+        Get minimum BSP cell size before stopping splits.
+
+        Returns:
+            Minimum size in tiles
+        """
+        return self.dungeon_generation['bsp']['min_split_size']
+
+    def get_bsp_aspect_ratio_threshold(self) -> float:
+        """
+        Get aspect ratio threshold for BSP split direction.
+
+        When a BSP cell's aspect ratio exceeds this threshold,
+        the split direction is forced to reduce elongation.
+
+        Returns:
+            Aspect ratio threshold (e.g., 1.25)
+        """
+        return self.dungeon_generation['bsp']['aspect_ratio_threshold']
+
+    def get_bsp_split_ratio_range(self) -> Tuple[float, float]:
+        """
+        Get BSP split position ratio range.
+
+        Returns:
+            Tuple of (min_ratio, max_ratio) for split positioning
+        """
+        split_ratio = self.dungeon_generation['bsp']['split_ratio']
+        return (split_ratio['min'], split_ratio['max'])
+
+    def get_room_min_size(self) -> int:
+        """
+        Get minimum room size.
+
+        Returns:
+            Minimum room dimension in tiles
+        """
+        return self.dungeon_generation['rooms']['min_size']
+
+    def get_room_padding(self) -> int:
+        """
+        Get padding between rooms and BSP cell boundaries.
+
+        Returns:
+            Padding in tiles
+        """
+        return self.dungeon_generation['rooms']['padding']
+
+    def get_corridor_style(self) -> str:
+        """
+        Get corridor generation style.
+
+        Returns:
+            Corridor style (e.g., 'l_shaped')
+        """
+        return self.dungeon_generation['corridors']['style']
+
+    def get_corridor_direction_probability(self) -> float:
+        """
+        Get corridor direction choice probability.
+
+        For L-shaped corridors, this is the probability of
+        choosing horizontal-first vs vertical-first.
+
+        Returns:
+            Probability (0.0 to 1.0)
+        """
+        return self.dungeon_generation['corridors']['direction_probability']
+
+    def get_dungeon_floor_overrides(self, floor: int) -> Dict[str, Any]:
+        """
+        Get dungeon configuration overrides for a specific floor.
+
+        Args:
+            floor: Floor number (1-based)
+
+        Returns:
+            Dictionary of overrides for the floor, or empty dict if none
+        """
+        overrides = self.dungeon_generation.get('floor_overrides', {})
+        return overrides.get(f'floor_{floor}', {})
+
+    def get_dungeon_preset(self, preset_name: str) -> Dict[str, Any]:
+        """
+        Get a dungeon generation preset configuration.
+
+        Args:
+            preset_name: Name of preset (e.g., 'standard', 'small_cramped', 'maze')
+
+        Returns:
+            Dictionary containing preset configuration
+        """
+        presets = self.dungeon_generation.get('presets', {})
+        return presets.get(preset_name, {})
+
 
 class ConfigLoader:
     """
@@ -294,6 +393,7 @@ class ConfigLoader:
         spawning = cls._load_yaml(config_dir / "spawning.yaml")
         ai_behaviors = cls._load_yaml(config_dir / "ai_behaviors.yaml")
         formulas = cls._load_yaml(config_dir / "formulas.yaml")
+        dungeon_generation = cls._load_yaml(config_dir / "dungeon_generation.yaml")
 
         cls._instance = GameConfig(
             monster_spawns=monster_spawns,
@@ -302,6 +402,7 @@ class ConfigLoader:
             spawning=spawning,
             ai_behaviors=ai_behaviors,
             formulas=formulas,
+            dungeon_generation=dungeon_generation,
         )
 
         logger.info("Configuration loaded successfully")
