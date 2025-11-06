@@ -344,13 +344,14 @@ class RecipeManager:
 
             if preference == 'offense':
                 # Prefer weapons
-                type_priority = 1 if is_weapon else 0
+                type_priority = 2 if is_weapon else 0
             elif preference == 'defense':
                 # Prefer armor
-                type_priority = 1 if is_armor else 0
+                type_priority = 2 if is_armor else 0
             else:  # balanced
-                # Alternate: slightly prefer weapons
-                type_priority = 1 if is_weapon else 0
+                # Truly balanced: prefer armor slightly to compensate for 2-ore requirement
+                # This encourages bots to mine enough ore for armor recipes
+                type_priority = 2 if is_armor else 1
 
             # Return tuple: (tier, type_priority, ore_count)
             # Negated for reverse sorting (higher = better)
