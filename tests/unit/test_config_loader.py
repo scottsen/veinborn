@@ -235,3 +235,99 @@ class TestConfigVersioning:
         meta = config.formulas['meta']
         assert 'version' in meta
         assert meta['version'] == '1.0.0'
+
+
+class TestDungeonGenerationConfiguration:
+    """Test dungeon generation configuration loading and access."""
+
+    def test_dungeon_generation_loaded(self):
+        """Dungeon generation configuration is loaded."""
+        config = ConfigLoader.get_config()
+
+        assert config.dungeon_generation is not None
+        assert 'bsp' in config.dungeon_generation
+        assert 'rooms' in config.dungeon_generation
+        assert 'corridors' in config.dungeon_generation
+
+    def test_bsp_configuration(self):
+        """BSP algorithm parameters are accessible."""
+        config = ConfigLoader.get_config()
+
+        min_split_size = config.get_bsp_min_split_size()
+        aspect_ratio = config.get_bsp_aspect_ratio_threshold()
+        split_ratio_min, split_ratio_max = config.get_bsp_split_ratio_range()
+
+        assert min_split_size == 6
+        assert aspect_ratio == 1.25
+        assert split_ratio_min == 0.33
+        assert split_ratio_max == 0.67
+
+    def test_room_configuration(self):
+        """Room parameters are accessible."""
+        config = ConfigLoader.get_config()
+
+        min_size = config.get_room_min_size()
+        padding = config.get_room_padding()
+
+        assert min_size == 4
+        assert padding == 1
+
+    def test_corridor_configuration(self):
+        """Corridor parameters are accessible."""
+        config = ConfigLoader.get_config()
+
+        style = config.get_corridor_style()
+        direction_prob = config.get_corridor_direction_probability()
+
+        assert style == "l_shaped"
+        assert direction_prob == 0.5
+
+    def test_floor_overrides_empty_by_default(self):
+        """Floor overrides return empty dict when none configured."""
+        config = ConfigLoader.get_config()
+
+        overrides = config.get_dungeon_floor_overrides(1)
+
+        # Default config has no overrides
+        assert overrides == {}
+
+    def test_dungeon_presets(self):
+        """Dungeon presets are accessible."""
+        config = ConfigLoader.get_config()
+
+        standard = config.get_dungeon_preset('standard')
+        small = config.get_dungeon_preset('small_cramped')
+        large = config.get_dungeon_preset('large_open')
+        maze = config.get_dungeon_preset('maze')
+
+        assert standard is not None
+        assert 'bsp' in standard
+        assert 'rooms' in standard
+
+        assert small is not None
+        assert small['bsp']['min_split_size'] == 5
+        assert small['rooms']['min_size'] == 3
+
+        assert large is not None
+        assert large['bsp']['min_split_size'] == 10
+        assert large['rooms']['min_size'] == 6
+
+        assert maze is not None
+        assert maze['bsp']['min_split_size'] == 4
+
+    def test_unknown_preset_returns_empty(self):
+        """Unknown preset returns empty dict."""
+        config = ConfigLoader.get_config()
+
+        unknown = config.get_dungeon_preset('nonexistent')
+
+        assert unknown == {}
+
+    def test_dungeon_generation_meta(self):
+        """Dungeon generation config has metadata."""
+        config = ConfigLoader.get_config()
+
+        assert 'meta' in config.dungeon_generation
+        meta = config.dungeon_generation['meta']
+        assert 'version' in meta
+        assert meta['version'] == '1.0.0'
