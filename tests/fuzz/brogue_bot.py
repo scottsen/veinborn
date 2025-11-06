@@ -469,13 +469,33 @@ class BrogueBot:
                         elif act_type == 'equip':
                             # Track equipping statistics
                             self.stats.total_equipment_equipped += 1
-                            # ADD DETAILED LOGGING: Track what's being equipped
+                            # ADD DETAILED LOGGING: Track what's being equipped with upgrade info
                             equipped_item_id = act_kwargs.get('item_id', 'unknown')
                             equipped_item = [item for item in game.state.player.inventory
                                            if item.entity_id == equipped_item_id]
                             if equipped_item:
                                 item = equipped_item[0]
-                                self.log(f"   🎽 Equipped: {item.name} (slot: {item.get_stat('equipment_slot')})")
+                                slot = item.get_stat('equipment_slot')
+
+                                # Track upgrade vs sidegrade vs downgrade
+                                is_upgrade = False
+                                stat_diff = 0
+
+                                if slot == 'weapon':
+                                    new_attack = item.get_stat('attack_bonus', 0)
+                                    if hasattr(game.state.player, 'equipped_weapon') and game.state.player.equipped_weapon:
+                                        old_attack = game.state.player.equipped_weapon.get_stat('attack_bonus', 0)
+                                        stat_diff = new_attack - old_attack
+                                        is_upgrade = stat_diff > 0
+                                elif slot == 'armor':
+                                    new_defense = item.get_stat('defense_bonus', 0)
+                                    if hasattr(game.state.player, 'equipped_armor') and game.state.player.equipped_armor:
+                                        old_defense = game.state.player.equipped_armor.get_stat('defense_bonus', 0)
+                                        stat_diff = new_defense - old_defense
+                                        is_upgrade = stat_diff > 0
+
+                                upgrade_type = "UPGRADE" if is_upgrade else "FIRST" if stat_diff == 0 else "DOWNGRADE"
+                                self.log(f"   🎽 Equipped: {item.name} ({upgrade_type} {stat_diff:+d} | slot: {slot})")
 
                     # Execute first action
                     action_took_turn = game.handle_player_action(action_type, **kwargs)

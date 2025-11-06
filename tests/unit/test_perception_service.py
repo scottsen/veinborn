@@ -591,6 +591,86 @@ class TestEquipmentPerception:
         # Should return None because armor is already equipped
         assert result is None
 
+    def test_has_unequipped_gear_only_returns_upgrades(self, perception):
+        """Bot only equips items that are stat upgrades."""
+        game = Game()
+        game.start_new_game()
+        player = game.state.player
+
+        # Clear inventory
+        player.inventory = []
+
+        # Equip a weapon with attack_bonus=5
+        good_weapon = Entity(entity_type="ITEM", name='Iron Sword', x=player.x, y=player.y)
+        good_weapon.set_stat('attack_bonus', 5)
+        good_weapon.set_stat('equipment_slot', 'weapon')
+        good_weapon.set_stat('equipped', True)
+        player.add_to_inventory(good_weapon)
+        player.equipped_weapon = good_weapon
+
+        # Add a worse weapon (attack_bonus=3) to inventory
+        bad_weapon = Entity(entity_type="ITEM", name='Rusty Sword', x=player.x, y=player.y)
+        bad_weapon.set_stat('attack_bonus', 3)
+        bad_weapon.set_stat('equipment_slot', 'weapon')
+        bad_weapon.set_stat('equipped', False)
+        player.add_to_inventory(bad_weapon)
+
+        # Bot should NOT return the worse weapon
+        result = perception.has_unequipped_gear(game)
+        assert result is None  # No upgrades available
+
+        # Add a better weapon (attack_bonus=8)
+        better_weapon = Entity(entity_type="ITEM", name='Steel Sword', x=player.x, y=player.y)
+        better_weapon.set_stat('attack_bonus', 8)
+        better_weapon.set_stat('equipment_slot', 'weapon')
+        better_weapon.set_stat('equipped', False)
+        player.add_to_inventory(better_weapon)
+
+        # Bot SHOULD return the better weapon
+        result = perception.has_unequipped_gear(game)
+        assert result is not None
+        assert result.entity_id == better_weapon.entity_id
+
+    def test_has_unequipped_gear_only_returns_armor_upgrades(self, perception):
+        """Bot only equips armor that is a defense upgrade."""
+        game = Game()
+        game.start_new_game()
+        player = game.state.player
+
+        # Clear inventory
+        player.inventory = []
+
+        # Equip armor with defense_bonus=4
+        good_armor = Entity(entity_type="ITEM", name='Iron Armor', x=player.x, y=player.y)
+        good_armor.set_stat('defense_bonus', 4)
+        good_armor.set_stat('equipment_slot', 'armor')
+        good_armor.set_stat('equipped', True)
+        player.add_to_inventory(good_armor)
+        player.equipped_armor = good_armor
+
+        # Add worse armor (defense_bonus=2) to inventory
+        bad_armor = Entity(entity_type="ITEM", name='Leather Armor', x=player.x, y=player.y)
+        bad_armor.set_stat('defense_bonus', 2)
+        bad_armor.set_stat('equipment_slot', 'armor')
+        bad_armor.set_stat('equipped', False)
+        player.add_to_inventory(bad_armor)
+
+        # Bot should NOT return the worse armor
+        result = perception.has_unequipped_gear(game)
+        assert result is None  # No upgrades available
+
+        # Add better armor (defense_bonus=6)
+        better_armor = Entity(entity_type="ITEM", name='Steel Armor', x=player.x, y=player.y)
+        better_armor.set_stat('defense_bonus', 6)
+        better_armor.set_stat('equipment_slot', 'armor')
+        better_armor.set_stat('equipped', False)
+        player.add_to_inventory(better_armor)
+
+        # Bot SHOULD return the better armor
+        result = perception.has_unequipped_gear(game)
+        assert result is not None
+        assert result.entity_id == better_armor.entity_id
+
 
 if __name__ == '__main__':
     pytest.main([__file__, '-v'])
