@@ -36,6 +36,8 @@ class GameConfig:
     ore_veins: Dict[str, Any]
     game_constants: Dict[str, Any]
     spawning: Dict[str, Any]
+    ai_behaviors: Dict[str, Any]
+    formulas: Dict[str, Any]
 
     def get_monster_count_for_floor(self, floor: int) -> int:
         """
@@ -199,6 +201,60 @@ class GameConfig:
 
         return global_mult * tier_mult
 
+    def get_ai_behavior_config(self, ai_type: str) -> Dict[str, Any]:
+        """
+        Get configuration for an AI behavior type.
+
+        Args:
+            ai_type: Type of AI behavior (aggressive, defensive, passive, etc.)
+
+        Returns:
+            Dictionary containing behavior parameters
+        """
+        behaviors = self.ai_behaviors.get('behaviors', {})
+        return behaviors.get(ai_type, behaviors.get('aggressive', {}))
+
+    def get_default_ai_for_monster(self, monster_type: str) -> str:
+        """
+        Get default AI type for a monster type.
+
+        Args:
+            monster_type: Monster type name (rat, goblin, etc.)
+
+        Returns:
+            AI type string (defaults to 'aggressive')
+        """
+        defaults = self.ai_behaviors.get('default_ai_by_type', {})
+        return defaults.get(monster_type, 'aggressive')
+
+    def get_damage_formula(self) -> str:
+        """Get damage calculation formula."""
+        return self.formulas['combat']['damage']['formula']
+
+    def get_min_damage(self) -> int:
+        """Get minimum damage value."""
+        return self.formulas['combat']['damage']['min_damage']
+
+    def get_mining_turns_formula(self) -> str:
+        """Get mining turns calculation formula."""
+        return self.formulas['mining']['formula']
+
+    def get_mining_base_turns(self) -> int:
+        """Get base mining turns."""
+        return self.formulas['mining']['base_turns']
+
+    def get_mining_min_turns(self) -> int:
+        """Get minimum mining turns."""
+        return self.formulas['mining']['min_turns']
+
+    def get_mining_max_turns(self) -> int:
+        """Get maximum mining turns."""
+        return self.formulas['mining']['max_turns']
+
+    def get_tier_multiplier(self, ore_type: str) -> float:
+        """Get crafting tier multiplier for ore type."""
+        return self.formulas['crafting']['tier_multipliers'].get(ore_type, 1.0)
+
 
 class ConfigLoader:
     """
@@ -236,12 +292,16 @@ class ConfigLoader:
         ore_veins = cls._load_yaml(config_dir / "ore_veins.yaml")
         game_constants = cls._load_yaml(config_dir / "game_constants.yaml")
         spawning = cls._load_yaml(config_dir / "spawning.yaml")
+        ai_behaviors = cls._load_yaml(config_dir / "ai_behaviors.yaml")
+        formulas = cls._load_yaml(config_dir / "formulas.yaml")
 
         cls._instance = GameConfig(
             monster_spawns=monster_spawns,
             ore_veins=ore_veins,
             game_constants=game_constants,
             spawning=spawning,
+            ai_behaviors=ai_behaviors,
+            formulas=formulas,
         )
 
         logger.info("Configuration loaded successfully")
@@ -260,6 +320,20 @@ class ConfigLoader:
         """
         cls._instance = None
         return cls.load(config_dir)
+
+    @classmethod
+    def get_config(cls) -> GameConfig:
+        """
+        Get the current configuration instance.
+
+        If not yet loaded, loads it first.
+
+        Returns:
+            GameConfig instance
+        """
+        if cls._instance is None:
+            return cls.load()
+        return cls._instance
 
     @staticmethod
     def _load_yaml(file_path: Path) -> Dict[str, Any]:

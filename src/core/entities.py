@@ -19,6 +19,7 @@ from .constants import (
     TROLL_HP, TROLL_ATTACK, TROLL_DEFENSE, TROLL_XP_REWARD,
     MINING_MIN_TURNS, MINING_MAX_TURNS,
 )
+from .config.config_loader import ConfigLoader
 
 
 class AIState(Enum):
@@ -265,9 +266,16 @@ class OreVein(Entity):
         object.__setattr__(self, 'name', f"{self.ore_type.title()} Ore Vein")
         object.__setattr__(self, 'content_id', self.ore_type)
 
-        # Calculate mining time based on hardness
-        turns_range = MINING_MAX_TURNS - MINING_MIN_TURNS
-        mining_turns = MINING_MIN_TURNS + (self.hardness * turns_range // 100)
+        # Calculate mining time based on hardness using configured formula
+        try:
+            config = ConfigLoader.get_config()
+            min_turns = config.get_mining_min_turns()
+            max_turns = config.get_mining_max_turns()
+            mining_turns = min_turns + (self.hardness * (max_turns - min_turns) // 100)
+        except Exception:
+            # Fallback to constants if config fails
+            turns_range = MINING_MAX_TURNS - MINING_MIN_TURNS
+            mining_turns = MINING_MIN_TURNS + (self.hardness * turns_range // 100)
 
         # Store ore properties in stats dict
         self.set_stat('ore_type', self.ore_type)

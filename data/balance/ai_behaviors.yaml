@@ -1,0 +1,61 @@
+# AI Behavior Configuration
+#
+# Defines different monster AI types and their decision-making parameters.
+# Each AI type controls how monsters react to the player and environment.
+
+# AI Behavior Types
+behaviors:
+  # Aggressive - Chase and attack player on sight
+  aggressive:
+    description: "Chase and attack player relentlessly"
+    chase_range: 10  # Tiles - how far monster will pursue player
+    attack_on_sight: true
+    flee_threshold: 0.0  # Never flee
+
+  # Defensive - Attack when threatened, otherwise patrol
+  defensive:
+    description: "Attack when player gets close, otherwise patrol area"
+    chase_range: 5  # Shorter pursuit range
+    attack_on_sight: true
+    flee_threshold: 0.3  # Flee when HP < 30%
+    patrol_enabled: true
+
+  # Passive - Wander randomly, only attack if attacked first
+  passive:
+    description: "Wander peacefully unless provoked"
+    chase_range: 0  # Don't chase
+    attack_on_sight: false
+    flee_threshold: 0.5  # Flee when HP < 50%
+    wander_enabled: true
+
+  # Coward - Always flee from player
+  coward:
+    description: "Always run away from player"
+    chase_range: 0
+    attack_on_sight: false
+    flee_threshold: 1.0  # Always flee
+    flee_range: 8  # Start fleeing when player within 8 tiles
+
+  # Guard - Stay near spawn point, defend area
+  guard:
+    description: "Guard a specific location, attack intruders"
+    chase_range: 6
+    attack_on_sight: true
+    flee_threshold: 0.2
+    guard_radius: 4  # Don't stray more than 4 tiles from spawn
+
+# Monster AI Assignments
+# (Can override in monster YAML files)
+default_ai_by_type:
+  rat: passive
+  bat: coward
+  goblin: aggressive
+  orc: aggressive
+  troll: aggressive
+  dragon: defensive
+
+# Configuration Versioning
+meta:
+  version: "1.0.0"
+  created: "2025-11-06"
+  description: "AI behavior system with multiple behavior types"

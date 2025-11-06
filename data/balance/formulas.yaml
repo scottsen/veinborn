@@ -1,0 +1,78 @@
+# Game Formula Configuration
+#
+# Centralizes all mathematical formulas used in game mechanics.
+# Makes it easy to tune combat balance, progression curves, etc.
+
+# Combat Formulas
+combat:
+  # Damage Calculation
+  damage:
+    formula: "max(1, attacker_attack - defender_defense)"
+    description: "Base damage formula, minimum 1 damage"
+    min_damage: 1
+    max_damage: 9999
+
+  # Critical Hit
+  critical_hit:
+    chance: 0.1  # 10% chance
+    multiplier: 2.0  # Double damage
+
+  # Accuracy (future)
+  accuracy:
+    base_chance: 0.9  # 90% hit chance
+    formula: "0.9"  # Can add attacker_dex / defender_dex later
+
+# Health & Regeneration
+health:
+  # HP Regeneration
+  regen_per_turn: 0  # Currently no passive regen
+  regen_out_of_combat: 1  # Regen 1 HP/turn when not in combat (10+ turns)
+
+  # Healing Items (future)
+  potion_heal_percent: 0.5  # Heal 50% of max HP
+
+# Mining Formulas
+mining:
+  # Mining Time Calculation
+  base_turns: 3
+  min_turns: 3
+  max_turns: 5
+  formula: "min_turns + (hardness * (max_turns - min_turns) // 100)"
+  description: "Mining turns based on ore hardness (0-100)"
+
+  # Mining Success Rate (currently 100%)
+  success_rate: 1.0
+
+# Crafting Formulas
+crafting:
+  # Crafting Time
+  base_turns: 1  # Instant crafting currently
+
+  # Item Stat Calculation
+  weapon_attack:
+    formula: "base_attack * (1 + purity/100) * tier_multiplier"
+    description: "Attack = base × purity bonus × tier"
+
+  armor_defense:
+    formula: "base_defense * (1 + purity/100) * tier_multiplier"
+    description: "Defense = base × purity bonus × tier"
+
+  # Tier Multipliers
+  tier_multipliers:
+    copper: 1.0
+    iron: 1.3
+    steel: 1.6
+    adamantite: 2.0
+
+# Experience & Progression (future)
+progression:
+  xp_per_monster_level: 10
+  xp_formula: "monster_level * 10"
+  level_up_threshold: 100
+
+# Configuration Versioning
+meta:
+  version: "1.0.0"
+  created: "2025-11-06"
+  description: "Game formulas and balance parameters"
+  notes: "Formulas use simpleeval syntax for safety"
