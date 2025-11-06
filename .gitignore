@@ -58,7 +58,6 @@ htmlcov/
 pytest.ini
 
 # --- Temporary data ---
-data/highscores.json
 data/entities/
 data/balance/
 *.tmp
