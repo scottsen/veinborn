@@ -76,11 +76,12 @@ class Room:
 
 class Map:
     """Game map with BSP generation."""
-    def __init__(self, width: int = 80, height: int = 24):
+    def __init__(self, width: int = 80, height: int = 24, config=None):
         self.width = width
         self.height = height
         self.tiles = [[Tile() for _ in range(height)] for _ in range(width)]
         self.rooms: List[Room] = []
+        self.config = config  # GameConfig for spawning rules
 
         # PERFORMANCE: Cache stairs positions (searched 1,290x per game!)
         self._stairs_down_cache: Optional[Tuple[int, int]] = None
@@ -318,7 +319,13 @@ class Map:
                         if adjacent_to_wall:
                             break
 
-                    if adjacent_to_wall and GameRNG.get_instance().random() < 0.1:  # 10% chance
+                    # Get spawn probability from config (default 0.1 if no config)
+                    spawn_prob = 0.1  # Default
+                    if self.config:
+                        ore_pos_config = self.config.get_ore_positioning_config()
+                        spawn_prob = ore_pos_config['wall_adjacency_probability']
+
+                    if adjacent_to_wall and GameRNG.get_instance().random() < spawn_prob:
                         positions.append((x, y))
 
                     if len(positions) >= count:
@@ -348,20 +355,36 @@ class Map:
 
         rng = GameRNG.get_instance()
 
-        # Define available special room types with weights
-        # (type, weight) - higher weight = more common
-        special_types = [
-            (RoomType.TREASURE, 2),      # Moderate treasure rooms
-            (RoomType.MONSTER_DEN, 2),   # Moderate monster dens
-            (RoomType.ORE_CHAMBER, 3),   # Common ore chambers (fits game theme)
-            (RoomType.SHRINE, 1),        # Rare shrines
-            (RoomType.TRAP, 1),          # Rare trap rooms
-        ]
+        # Get special room configuration (with defaults for backward compatibility)
+        if self.config:
+            assignment_config = self.config.get_special_room_assignment_config()
+            room_weights = assignment_config['room_type_weights']
+            special_types = [
+                (RoomType.TREASURE, room_weights['treasure_room']),
+                (RoomType.MONSTER_DEN, room_weights['monster_den']),
+                (RoomType.ORE_CHAMBER, room_weights['ore_chamber']),
+                (RoomType.SHRINE, room_weights['shrine']),
+                (RoomType.TRAP, room_weights['trap_room']),
+            ]
+            percentage_config = assignment_config['percentage']
+            min_pct = percentage_config['min']
+            max_pct = percentage_config['max']
+        else:
+            # Default values if no config provided
+            special_types = [
+                (RoomType.TREASURE, 2),
+                (RoomType.MONSTER_DEN, 2),
+                (RoomType.ORE_CHAMBER, 3),
+                (RoomType.SHRINE, 1),
+                (RoomType.TRAP, 1),
+            ]
+            min_pct = 0.2
+            max_pct = 0.3
 
-        # Calculate how many special rooms to create (20-30% of eligible rooms)
+        # Calculate how many special rooms to create
         # Exclude first and last room
         eligible_rooms = self.rooms[1:-1]
-        num_special = max(1, int(len(eligible_rooms) * rng.uniform(0.2, 0.3)))
+        num_special = max(1, int(len(eligible_rooms) * rng.uniform(min_pct, max_pct)))
 
         # Randomly select rooms to make special
         special_rooms = rng.sample(eligible_rooms, min(num_special, len(eligible_rooms)))

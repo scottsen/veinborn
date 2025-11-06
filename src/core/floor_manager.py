@@ -206,7 +206,8 @@ class FloorManager:
         """Generate a new dungeon floor."""
         self.game_state.dungeon_map = Map(
             width=DEFAULT_MAP_WIDTH,
-            height=DEFAULT_MAP_HEIGHT
+            height=DEFAULT_MAP_HEIGHT,
+            config=self.spawner.config  # Pass config from spawner
         )
         logger.debug(
             f"Generated new map: {DEFAULT_MAP_WIDTH}x{DEFAULT_MAP_HEIGHT}"

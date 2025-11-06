@@ -257,9 +257,14 @@ class EntitySpawner:
 
     def _spawn_treasure_room(self, room, floor: int, dungeon_map: Map) -> List[OreVein]:
         """Spawn treasure in a treasure room (currently high-quality ore)."""
-        # Spawn 2-3 high-purity ores
         rng = GameRNG.get_instance()
-        num_treasures = rng.randint(2, 3)
+
+        # Get configuration from spawning.yaml
+        treasure_config = self.config.get_special_room_config('treasure_room')
+        num_treasures = rng.randint(
+            treasure_config['ore_count']['min'],
+            treasure_config['ore_count']['max']
+        )
 
         ores = []
         ore_weights = self.config.get_ore_spawn_weights(floor)
@@ -276,8 +281,11 @@ class EntitySpawner:
             ore_type = self._weighted_random_choice(ore_weights)
             ore = self.entity_loader.create_ore_vein(ore_type, x, y, floor)
 
-            # Boost purity for treasure rooms (80-95 range)
-            ore.purity = min(100, rng.randint(80, 95))
+            # Boost purity for treasure rooms (from config)
+            ore.purity = min(100, rng.randint(
+                treasure_config['ore_purity']['min'],
+                treasure_config['ore_purity']['max']
+            ))
 
             ores.append(ore)
             logger.debug(f"Spawned treasure ore {ore_type} (purity:{ore.purity}) at ({x}, {y})")
@@ -286,9 +294,15 @@ class EntitySpawner:
 
     def _spawn_monster_den(self, room, floor: int, dungeon_map: Map) -> List[Monster]:
         """Spawn extra monsters in a monster den."""
-        # Spawn 2-4 extra monsters
         rng = GameRNG.get_instance()
-        num_monsters = rng.randint(2, 4)
+
+        # Get configuration from spawning.yaml
+        den_config = self.config.get_special_room_config('monster_den')
+        num_monsters = rng.randint(
+            den_config['monster_count']['min'],
+            den_config['monster_count']['max']
+        )
+        stat_boost = den_config['stat_boost_multiplier']
 
         monsters = []
         spawn_weights = self.config.get_monster_spawn_weights(floor)
@@ -305,10 +319,10 @@ class EntitySpawner:
             monster_type = self._weighted_random_choice(spawn_weights)
             monster = self.entity_loader.create_monster(monster_type, x, y)
 
-            # Boost stats slightly for den monsters (+20%)
-            monster.max_hp = int(monster.max_hp * 1.2)
+            # Boost stats from config
+            monster.max_hp = int(monster.max_hp * stat_boost)
             monster.hp = monster.max_hp
-            monster.attack = int(monster.attack * 1.2)
+            monster.attack = int(monster.attack * stat_boost)
 
             monsters.append(monster)
             logger.debug(f"Spawned den monster {monster_type} at ({x}, {y})")
@@ -317,9 +331,14 @@ class EntitySpawner:
 
     def _spawn_ore_chamber(self, room, floor: int, dungeon_map: Map) -> List[OreVein]:
         """Spawn multiple high-quality ore veins in an ore chamber."""
-        # Spawn 3-5 ore veins
         rng = GameRNG.get_instance()
-        num_ores = rng.randint(3, 5)
+
+        # Get configuration from spawning.yaml
+        chamber_config = self.config.get_special_room_config('ore_chamber')
+        num_ores = rng.randint(
+            chamber_config['ore_count']['min'],
+            chamber_config['ore_count']['max']
+        )
 
         ores = []
         ore_weights = self.config.get_ore_spawn_weights(floor)
@@ -336,8 +355,11 @@ class EntitySpawner:
             ore_type = self._weighted_random_choice(ore_weights)
             ore = self.entity_loader.create_ore_vein(ore_type, x, y, floor)
 
-            # Boost purity slightly for chamber ores (70-85 range)
-            ore.purity = min(100, rng.randint(70, 85))
+            # Boost purity from config
+            ore.purity = min(100, rng.randint(
+                chamber_config['ore_purity']['min'],
+                chamber_config['ore_purity']['max']
+            ))
 
             ores.append(ore)
             logger.debug(f"Spawned chamber ore {ore_type} (purity:{ore.purity}) at ({x}, {y})")
