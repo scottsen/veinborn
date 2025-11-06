@@ -321,7 +321,28 @@ class PerceptionService:
         for item in player.inventory:
             # Check if item has equipment_slot (weapon or armor)
             equipment_slot = item.get_stat('equipment_slot')
-            if equipment_slot and not item.get_stat('equipped', False):
+            is_equipped_stat = item.get_stat('equipped', False)
+
+            if equipment_slot:
+                # Skip if item has 'equipped' stat set to True
+                if is_equipped_stat:
+                    continue
+
+                # FIX EQUIP SPAM: Also check if this exact item is already equipped
+                # by comparing to actor.equipped_weapon or actor.equipped_armor
+                # (Some items may not have 'equipped' stat but are still equipped)
+                if equipment_slot == 'weapon':
+                    # Skip if this item is already the equipped weapon
+                    if hasattr(player, 'equipped_weapon') and player.equipped_weapon:
+                        if player.equipped_weapon.entity_id == item.entity_id:
+                            continue
+                elif equipment_slot == 'armor':
+                    # Skip if this item is already the equipped armor
+                    if hasattr(player, 'equipped_armor') and player.equipped_armor:
+                        if player.equipped_armor.entity_id == item.entity_id:
+                            continue
+
+                # This item is not currently equipped, return it
                 return item
 
         return None

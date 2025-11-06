@@ -318,6 +318,7 @@ class TacticalDecisionService:
         - Have craftable ore
         - Forge exists on this floor
         - Not in immediate danger
+        - Strategic ore accumulation (prefer 2+ ore for armor recipes)
 
         Args:
             game: Game instance
@@ -339,6 +340,30 @@ class TacticalDecisionService:
         forge = self.perception.find_nearest_forge(game)
         if not forge:
             return False
+
+        # ADD ORE ACCUMULATION STRATEGY: Prefer to accumulate more ore before crafting
+        # This encourages bots to craft armor (2 ore) instead of only weapons (1 ore)
+        player = game.state.player
+        ore_counts = {}
+        for item in player.inventory:
+            ore_type = item.get_stat('ore_type')
+            if ore_type:
+                ore_counts[ore_type] = ore_counts.get(ore_type, 0) + 1
+
+        # If we have 2+ of any ore type, prioritize crafting (can make armor!)
+        max_ore = max(ore_counts.values()) if ore_counts else 0
+        if max_ore >= 2:
+            if self.verbose:
+                logger.debug(f" should_craft: True (have {max_ore} ore - can craft armor)")
+            return True
+
+        # If we only have 1 ore, only craft if low health or danger
+        # (This allows emergency weapon crafting but encourages accumulation)
+        if max_ore == 1:
+            should_craft_now = self.is_low_health(game)
+            if self.verbose:
+                logger.debug(f" should_craft: {should_craft_now} (only 1 ore - waiting to accumulate unless urgent)")
+            return should_craft_now
 
         # Prioritize crafting regardless of distance - better gear is worth the walk!
         # (Previously limited to distance <= 8, which was too restrictive)
