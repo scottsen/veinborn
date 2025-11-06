@@ -180,8 +180,8 @@ def test_mining_progress_creates_event(mining_context, copper_ore):
     # Check for mining_progress event
     progress_events = [e for e in outcome.events if e['type'] == 'mining_progress']
     assert len(progress_events) == 1
-    assert progress_events[0]['ore_vein_id'] == copper_ore.entity_id
-    assert progress_events[0]['turns_remaining'] == 1
+    assert progress_events[0]['data']['ore_vein_id'] == copper_ore.entity_id
+    assert progress_events[0]['data']['turns_remaining'] == 1
 
 
 @pytest.mark.unit
@@ -266,8 +266,8 @@ def test_mining_completion_creates_ore_mined_event(mining_context, copper_ore):
     # Check for ore_mined event
     mined_events = [e for e in outcome.events if e['type'] == 'ore_mined']
     assert len(mined_events) == 1
-    assert 'properties' in mined_events[0]
-    assert 'ore_id' in mined_events[0]
+    assert 'properties' in mined_events[0]['data']
+    assert 'ore_id' in mined_events[0]['data']
 
 
 # ============================================================================
