@@ -33,7 +33,10 @@ def test_factory_initialization(game_context):
     assert 'survey' in available_actions
     assert 'mine' in available_actions
     assert 'descend' in available_actions
-    assert len(available_actions) == 4
+    assert 'attack' in available_actions
+    assert 'craft' in available_actions
+    assert 'equip' in available_actions
+    assert len(available_actions) == 7
 
 
 @pytest.mark.unit
@@ -207,11 +210,14 @@ def test_get_available_actions(game_context):
     actions = factory.get_available_actions()
 
     assert isinstance(actions, dict)
-    assert len(actions) == 4
+    assert len(actions) == 7
     assert 'Move in a direction' in actions['move']
     assert 'Survey adjacent ore vein' in actions['survey']
     assert 'Mine adjacent ore vein' in actions['mine']
     assert 'Descend stairs' in actions['descend']
+    assert 'Attack an adjacent enemy' in actions['attack']
+    assert 'Craft equipment' in actions['craft']
+    assert 'Equip an item' in actions['equip']
 
 
 # ============================================================================

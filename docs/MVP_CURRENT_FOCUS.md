@@ -3,7 +3,7 @@
 **Status:** ✅ **MVP FEATURE-COMPLETE** - Now in Polish & Content Phase
 **Phase:** MVP Polish (Single-Player)
 **Last Updated:** 2025-11-05
-**Test Status:** 474 passing, 16 skipped (97% pass rate)
+**Test Status:** 544 passing, 0 skipped (100% pass rate)
 
 ---
 
@@ -185,15 +185,16 @@ python3 run_textual.py
 
 ### Low Priority (Future)
 
-#### 7. Advanced AI Features (16 Tests Skipped)
+#### 7. Advanced AI Features
 **Why:** Current simple aggressive AI works well, state machine is future enhancement
 
-**Skipped Tests:**
+**Future Enhancements:**
 - Idle/Chasing/Wandering/Fleeing state machines
 - Line-of-sight checks
 - Monster coordination
 
 **Estimated Time:** 12-16 hours (not urgent)
+**Note:** Removed placeholder tests (2025-11-05) - will write fresh tests when implementing
 
 #### 8. Performance Optimization
 **Current Performance:** Unknown (needs profiling)
@@ -308,7 +309,7 @@ python3 run_textual.py
 # Run all tests
 python3 -m pytest tests/ -v
 
-# Expected: 474 passed, 16 skipped
+# Expected: 544 passed, 0 skipped
 ```
 
 ### 3. Read the Code

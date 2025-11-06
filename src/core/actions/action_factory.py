@@ -22,6 +22,9 @@ from .move_action import MoveAction
 from .survey_action import SurveyAction
 from .mine_action import MineAction
 from .descend_action import DescendAction
+from .attack_action import AttackAction
+from .craft_action import CraftAction
+from .equip_action import EquipAction
 
 logger = logging.getLogger(__name__)
 
@@ -165,6 +168,24 @@ class ActionFactory:
             description='Descend stairs to next floor'
         )
 
+        self._handlers['attack'] = ActionHandler(
+            name='attack',
+            create_fn=self._create_attack_action,
+            description='Attack an adjacent enemy'
+        )
+
+        self._handlers['craft'] = ActionHandler(
+            name='craft',
+            create_fn=self._create_craft_action,
+            description='Craft equipment at a forge'
+        )
+
+        self._handlers['equip'] = ActionHandler(
+            name='equip',
+            create_fn=self._create_equip_action,
+            description='Equip an item from inventory'
+        )
+
     # ============================================================================
     # Action Creation Handlers
     # ============================================================================
@@ -278,6 +299,82 @@ class ActionFactory:
         """
         actor_id = context.get_player().entity_id
         return DescendAction(actor_id)
+
+    def _create_attack_action(
+        self,
+        context: GameContext,
+        kwargs: dict
+    ) -> Optional[Action]:
+        """
+        Create an attack action.
+
+        Args:
+            context: Game context
+            kwargs: Must contain 'target_id'
+
+        Returns:
+            AttackAction or None
+        """
+        actor_id = context.get_player().entity_id
+        target_id = kwargs.get('target_id')
+
+        if not target_id:
+            logger.debug("Attack action failed: no target_id provided")
+            context.game_state.add_message("No target to attack")
+            return None
+
+        return AttackAction(actor_id, target_id)
+
+    def _create_craft_action(
+        self,
+        context: GameContext,
+        kwargs: dict
+    ) -> Optional[Action]:
+        """
+        Create a craft action.
+
+        Args:
+            context: Game context
+            kwargs: Must contain 'forge_id' and 'recipe_id'
+
+        Returns:
+            CraftAction or None
+        """
+        actor_id = context.get_player().entity_id
+        forge_id = kwargs.get('forge_id')
+        recipe_id = kwargs.get('recipe_id')
+
+        if not forge_id or not recipe_id:
+            logger.debug("Craft action failed: missing forge_id or recipe_id")
+            context.game_state.add_message("Cannot craft: missing forge or recipe")
+            return None
+
+        return CraftAction(actor_id, forge_id, recipe_id)
+
+    def _create_equip_action(
+        self,
+        context: GameContext,
+        kwargs: dict
+    ) -> Optional[Action]:
+        """
+        Create an equip action.
+
+        Args:
+            context: Game context
+            kwargs: Must contain 'item_id'
+
+        Returns:
+            EquipAction or None
+        """
+        actor_id = context.get_player().entity_id
+        item_id = kwargs.get('item_id')
+
+        if not item_id:
+            logger.debug("Equip action failed: no item_id provided")
+            context.game_state.add_message("No item to equip")
+            return None
+
+        return EquipAction(actor_id, item_id)
 
     # ============================================================================
     # Helper Methods

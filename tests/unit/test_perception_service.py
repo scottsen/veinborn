@@ -220,7 +220,13 @@ class TestOrePerception:
         """Should find ore at diagonal position (tests adjacency bug fix)."""
         game = Game()
         game.start_new_game()
+
+        # Clear existing entities to avoid conflicts
+        game.state.entities.clear()
+
         player = game.state.player
+        # Re-add player after clearing
+        game.state.entities[player.entity_id] = player
 
         # Place player at (5, 5)
         player.x, player.y = 5, 5
@@ -231,7 +237,7 @@ class TestOrePerception:
             content_id="iron",
             x=6, y=6
         )
-        game.state.entities[1] = ore
+        game.state.entities[ore.entity_id] = ore
 
         result = perception.find_adjacent_ore(game)
 

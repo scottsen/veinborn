@@ -248,9 +248,9 @@
 
 ### Overall Test Results
 ```
-520 passed, 16 skipped, 1 failed in 11.11s
-Pass Rate: 97% (100% of critical tests passing)
-Note: 1 failure in perception.py (minor issue, not blocking)
+544 passed, 0 skipped, 0 failed in 12.57s
+Pass Rate: 100% (all tests passing)
+Note: All tests passing as of 2025-11-05
 ```
 
 ### Test Coverage by System
@@ -264,16 +264,13 @@ Note: 1 failure in perception.py (minor issue, not blocking)
 | High Scores | 10 | ✅ All Passing |
 | **Legacy Vault** | **47** | **✅ All Passing** (13 integration + 34 unit) |
 | Combat | 40+ | ✅ All Passing |
-| Monster AI | 40+ | ✅ All Passing (16 skipped) |
+| Monster AI | 40+ | ✅ All Passing |
 | Character Classes | 13 | ✅ All Passing |
 | RNG System | 30+ | ✅ All Passing |
 | Action Factory | 18 | ✅ All Passing |
 | Loot System | 3 | ✅ All Passing |
 
-### Skipped Tests (16)
-- **Reason:** "State machine AI not yet implemented - MVP uses simple aggressive AI"
-- **System:** Advanced AI behaviors (wandering, fleeing, LOS checks)
-- **Priority:** Low (current AI works well for MVP)
+**Note:** Removed 16 skipped placeholder tests for unimplemented state machine AI (2025-11-05). Will write fresh tests when implementing that feature.
 
 ---
 
@@ -361,7 +358,7 @@ All main documentation is now accurate and up-to-date:
 ### Low Priority (Future)
 
 7. **Advanced AI Features**
-   - Implement state machine AI (16 skipped tests)
+   - Implement state machine AI (future enhancement)
    - Add wandering, fleeing behaviors
    - Monster coordination tactics
 

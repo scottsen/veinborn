@@ -376,8 +376,8 @@ context.add_message("Mining complete!")
 ## 📊 Project Stats (Current)
 
 - **Files:** 103 Python files
-- **Tests:** 474 passing (16 skipped)
-- **Pass Rate:** 97%
+- **Tests:** 544 passing (0 skipped)
+- **Pass Rate:** 100%
 - **Lines of Code:** ~15,000+
 - **Data Files:** 9 YAML files
 - **Monsters:** 9 types (need 15-20)

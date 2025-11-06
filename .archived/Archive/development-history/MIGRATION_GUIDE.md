@@ -210,7 +210,7 @@ If you're reading old docs, use this checklist:
 ### When Reading MVP_CURRENT_FOCUS.md
 
 - ❌ Ignore "What We're Building NOW" (outdated)
-- ✅ Test count is accurate (474 passing)
+- ✅ Test count is accurate (544 passing, 0 skipped)
 - ✅ System completion list is mostly accurate
 - ➡️ Check last updated date (2025-11-05 version is accurate)
 
@@ -347,7 +347,7 @@ If you see these phrases, be skeptical:
 **Answer:** That's misleading. Mining was completed months ago.
 
 **Evidence:**
-- `PROJECT_STATUS.md` shows 474 passing tests
+- `PROJECT_STATUS.md` shows 544 passing tests
 - Mining tests were written and passed long ago
 - Game has been playable with mining for weeks
 

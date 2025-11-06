@@ -249,9 +249,12 @@ class Action(ABC):
         entity = context.get_entity(entity_id)
 
         if not entity:
-            self._log_validation_failure(
-                f"{entity_name} not found",
-                **{f"{entity_name}_id": entity_id}
+            # Log at DEBUG level for entity not found - this is common when
+            # entities die/despawn and is not an error condition
+            action_type = self.get_action_type()
+            logger.debug(
+                f"{action_type} validation failed: {entity_name} not found",
+                extra={'actor_id': self.actor_id, f"{entity_name}_id": entity_id}
             )
             return None
 
@@ -266,9 +269,11 @@ class Action(ABC):
             return None
 
         if require_alive and not entity.is_alive:
-            self._log_validation_failure(
-                f"{entity_name} is dead",
-                **{f"{entity_name}_name": entity.name}
+            # Log at DEBUG level for dead entities - this is common during combat
+            action_type = self.get_action_type()
+            logger.debug(
+                f"{action_type} validation failed: {entity_name} is dead",
+                extra={'actor_id': self.actor_id, f"{entity_name}_name": entity.name}
             )
             return None
 
