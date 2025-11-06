@@ -6,6 +6,7 @@ from typing import List, Tuple, Optional
 from enum import Enum
 
 from .rng import GameRNG
+from .config.config_loader import ConfigLoader
 
 
 class TileType(Enum):
@@ -102,9 +103,17 @@ class Map:
             for y in range(self.height):
                 self.tiles[x][y] = Tile(TileType.WALL)
 
+        # Load dungeon generation configuration
+        try:
+            dungeon_config = ConfigLoader.get_config()
+            min_split_size = dungeon_config.get_bsp_min_split_size()
+        except Exception:
+            # Fallback to hardcoded default if config fails
+            min_split_size = 6
+
         # Generate rooms using BSP
         root = BSPNode(0, 0, self.width, self.height)
-        self.split_node(root, min_size=6)
+        self.split_node(root, min_size=min_split_size)
         self.create_rooms(root)
         self.connect_rooms(root)
         self.apply_to_map(root)
@@ -116,26 +125,47 @@ class Map:
         self.place_stairs_down()
 
     def split_node(self, node: 'BSPNode', min_size: int):
-        """Recursively split BSP nodes."""
+        """
+        Recursively split BSP nodes.
+
+        Uses configuration for:
+        - Aspect ratio threshold (when to force split direction)
+        - Split ratio range (where to position the split)
+        """
         if node.width < min_size * 2 or node.height < min_size * 2:
             return
+
+        # Load configuration (with fallbacks)
+        try:
+            dungeon_config = ConfigLoader.get_config()
+            aspect_ratio_threshold = dungeon_config.get_bsp_aspect_ratio_threshold()
+            split_ratio_min, split_ratio_max = dungeon_config.get_bsp_split_ratio_range()
+        except Exception:
+            # Fallback to hardcoded defaults if config fails
+            aspect_ratio_threshold = 1.25
+            split_ratio_min = 0.33
+            split_ratio_max = 0.67
 
         # Decide split direction
         rng = GameRNG.get_instance()
         split_horizontal = rng.choice([True, False])
-        if node.width > node.height * 1.25:
+        if node.width > node.height * aspect_ratio_threshold:
             split_horizontal = False
-        elif node.height > node.width * 1.25:
+        elif node.height > node.width * aspect_ratio_threshold:
             split_horizontal = True
 
-        # Calculate split position
+        # Calculate split position using configured ratios
         if split_horizontal:
-            split_pos = rng.randint(node.height // 3, (node.height * 2) // 3)
+            min_split = int(node.height * split_ratio_min)
+            max_split = int(node.height * split_ratio_max)
+            split_pos = rng.randint(min_split, max_split)
             node.left = BSPNode(node.x, node.y, node.width, split_pos)
             node.right = BSPNode(node.x, node.y + split_pos,
                                node.width, node.height - split_pos)
         else:
-            split_pos = rng.randint(node.width // 3, (node.width * 2) // 3)
+            min_split = int(node.width * split_ratio_min)
+            max_split = int(node.width * split_ratio_max)
+            split_pos = rng.randint(min_split, max_split)
             node.left = BSPNode(node.x, node.y, split_pos, node.height)
             node.right = BSPNode(node.x + split_pos, node.y,
                                node.width - split_pos, node.height)
@@ -145,10 +175,23 @@ class Map:
         self.split_node(node.right, min_size)
 
     def create_rooms(self, node: 'BSPNode'):
-        """Create rooms in leaf nodes."""
+        """
+        Create rooms in leaf nodes.
+
+        Uses configuration for:
+        - Minimum room size
+        - Padding between rooms and BSP cell boundaries
+        """
         if not node.left and not node.right:  # Leaf node
-            padding = 1
-            min_room_size = 4
+            # Load configuration (with fallbacks)
+            try:
+                dungeon_config = ConfigLoader.get_config()
+                padding = dungeon_config.get_room_padding()
+                min_room_size = dungeon_config.get_room_min_size()
+            except Exception:
+                # Fallback to hardcoded defaults if config fails
+                padding = 1
+                min_room_size = 4
 
             # Ensure valid range for room dimensions
             rng = GameRNG.get_instance()
@@ -174,18 +217,31 @@ class Map:
                 self.create_rooms(node.right)
 
     def connect_rooms(self, node: 'BSPNode'):
-        """Create corridors between rooms."""
+        """
+        Create corridors between rooms.
+
+        Uses configuration for:
+        - Corridor direction probability (L-shaped: horizontal-first vs vertical-first)
+        """
         if node.left and node.right:
             left_room = self.get_room(node.left)
             right_room = self.get_room(node.right)
 
             if left_room and right_room:
+                # Load configuration (with fallbacks)
+                try:
+                    dungeon_config = ConfigLoader.get_config()
+                    direction_prob = dungeon_config.get_corridor_direction_probability()
+                except Exception:
+                    # Fallback to hardcoded default if config fails
+                    direction_prob = 0.5
+
                 # Create L-shaped corridor
                 rng = GameRNG.get_instance()
                 start_x, start_y = left_room.center
                 end_x, end_y = right_room.center
 
-                if rng.random() < 0.5:
+                if rng.random() < direction_prob:
                     # Horizontal then vertical
                     for x in range(min(start_x, end_x), max(start_x, end_x) + 1):
                         node.corridors.append((x, start_y))
