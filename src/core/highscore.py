@@ -96,6 +96,9 @@ class HighScoreEntry:
     seed: Optional[Union[int, str]] = None
     is_seeded: bool = False
 
+    # Victory type (meta-progression)
+    victory_type: str = "pure"  # "pure" or "legacy"
+
     @classmethod
     def from_game_state(cls, game_state: 'GameState', player_name: str) -> 'HighScoreEntry':
         """
@@ -138,6 +141,7 @@ class HighScoreEntry:
             death_cause=stats.get('death_cause'),
             seed=getattr(game_state, 'seed', None),
             is_seeded=hasattr(game_state, 'seed') and game_state.seed is not None,
+            victory_type=getattr(game_state, 'run_type', 'pure'),
         )
 
     @staticmethod
@@ -452,21 +456,24 @@ class HighScoreManager:
             >>> print(hsm.format_leaderboard(scores, "TOP 10"))
         """
         lines = []
-        lines.append("=" * 80)
-        lines.append(f"{title:^80}")
-        lines.append("=" * 80)
-        lines.append(f"{'Rank':<6} {'Name':<16} {'Score':>10} {'Floor':>6} {'Turns':>8} {'Seed':<16}")
-        lines.append("-" * 80)
+        lines.append("=" * 88)
+        lines.append(f"{title:^88}")
+        lines.append("=" * 88)
+        lines.append(f"{'Rank':<6} {'Name':<16} {'Score':>10} {'Floor':>6} {'Turns':>8} {'Type':<8} {'Seed':<16}")
+        lines.append("-" * 88)
 
         if not scores:
-            lines.append(f"{'No scores yet!':^80}")
+            lines.append(f"{'No scores yet!':^88}")
         else:
             for i, entry in enumerate(scores, 1):
                 seed_str = str(entry.seed)[:14] if entry.seed else "random"
+                # Get victory type with backward compatibility
+                victory_type = getattr(entry, 'victory_type', 'pure')
+                type_str = f"{'*' if victory_type == 'pure' else 'L'} {victory_type:<6}"
                 lines.append(
                     f"{i:<6} {entry.player_name[:15]:<16} {entry.score:>10} "
-                    f"{entry.floor_reached:>6} {entry.turns_survived:>8} {seed_str:<16}"
+                    f"{entry.floor_reached:>6} {entry.turns_survived:>8} {type_str:<8} {seed_str:<16}"
                 )
 
-        lines.append("=" * 80)
+        lines.append("=" * 88)
         return "\n".join(lines)

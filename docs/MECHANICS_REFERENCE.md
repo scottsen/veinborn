@@ -634,6 +634,119 @@ Answer: Yes, significant upgrade!
 
 ---
 
+## 🏛️ Legacy Vault System
+
+### Overview
+
+The Legacy Vault is Brogue's meta-progression system that preserves high-quality ore (purity 80+) across runs, allowing players to withdraw 1 ore at the start of a new run.
+
+**Design Philosophy:**
+- Pure Victory: No vault ore used (higher prestige, challenge)
+- Legacy Victory: Used 1 vault ore (accessibility, learning)
+- Both paths are valid!
+
+### How It Works
+
+**On Death:**
+- All ore with purity ≥ 80 is saved to Legacy Vault
+- Max capacity: 50 ores
+- Stored in `~/.brogue/legacy_vault.json`
+- FIFO removal when vault is full (oldest ore removed)
+
+**On Run Start:**
+- Choose: Pure run (no vault) or Legacy run (withdraw 1 ore)
+- Withdrawn ore starts in inventory
+- Victory type tracked separately in high scores
+
+### Victory Types
+
+**Pure Victory:**
+- No vault ore used
+- Higher prestige (marked with * in leaderboard)
+- Harder difficulty
+- For veterans and challenge seekers
+
+**Legacy Victory:**
+- Used 1 vault ore from previous runs
+- Easier difficulty (head start with quality ore)
+- Learning tool and bad RNG recovery
+- Marked with L in leaderboard
+
+### Qualification Rules
+
+**Ore Qualification:**
+```python
+# Ore qualifies for vault if:
+ore.purity >= 80
+
+# Examples:
+Copper Ore (purity 79): ❌ Not saved
+Iron Ore (purity 80): ✅ Saved
+Gold Ore (purity 95): ✅ Saved (Legendary!)
+```
+
+**Quality Tiers:**
+- Purity 80-84: Common (barely qualifies)
+- Purity 85-89: Rare
+- Purity 90-94: Epic
+- Purity 95+: Legendary
+
+### Vault Capacity Management
+
+**Max Capacity:** 50 ores
+
+**When Vault is Full:**
+```python
+# FIFO removal (First In, First Out)
+if vault.count() >= 50:
+    vault.remove(oldest_ore)  # Remove lowest priority ore
+    vault.add(new_ore)
+```
+
+**Strategy:**
+- Save best ores (90+ purity) for "learning runs"
+- Use vault to overcome bad RNG streaks
+- Pure runs for challenge/bragging rights
+- Both paths are equally valid!
+
+### Example Flow
+
+**Scenario: First Death with Rare Ore**
+```
+Player inventory on death:
+  - Copper Ore (purity 75) ❌
+  - Iron Ore (purity 85) ✅
+  - Gold Ore (purity 92) ✅
+
+Result:
+  → 2 ores saved to Legacy Vault
+  → Message: "💎 2 rare ore(s) preserved in Legacy Vault!"
+```
+
+**Scenario: Next Run Start**
+```
+Vault contains:
+  [1] Gold Ore (Epic, purity 92)
+  [2] Iron Ore (Rare, purity 85)
+
+Player chooses:
+  Option 1: "Start Pure Run" → No ore, Pure Victory possible
+  Option 2: Withdraw Gold Ore → Legacy run, easier start
+```
+
+**Scenario: Victory**
+```
+Pure Victory:
+  → High Score shows: "* pure"
+  → Higher prestige
+
+Legacy Victory:
+  → High Score shows: "L legacy"
+  → Valid strategy!
+```
+
+---
+
 ## 📚 Related Documentation
 
 - **DATA_FILES_GUIDE.md** - YAML schemas and data structure
