@@ -138,6 +138,131 @@ Check if entity is alive.
 
 **Returns:** `true` if alive, `false` otherwise
 
+## AI Behavior API
+
+Custom AI behaviors control monster decision-making during gameplay. AI behaviors are defined in Lua scripts and registered with the AI system.
+
+### AI Behavior Structure
+
+```lua
+-- scripts/ai/my_behavior.lua
+
+function update(monster, config)
+    -- Decision logic here
+
+    return {
+        action = "attack",  -- Action type
+        target_id = "player_1"  -- Optional parameters
+    }
+end
+```
+
+### AI Helper Methods
+
+#### `brogue.ai.get_target(monster_id)`
+Get monster's current target (usually player).
+
+**Parameters:**
+- `monster_id` (string): Monster entity ID
+
+**Returns:** Target entity table or `nil`
+
+#### `brogue.ai.is_adjacent(monster_id, target_id)`
+Check if monster is adjacent to target.
+
+**Parameters:**
+- `monster_id` (string): Monster entity ID
+- `target_id` (string): Target entity ID
+
+**Returns:** `true` if adjacent (within 1 tile), `false` otherwise
+
+#### `brogue.ai.distance_to(monster_id, target_id)`
+Calculate Manhattan distance between entities.
+
+**Parameters:**
+- `monster_id` (string): Monster entity ID
+- `target_id` (string): Target entity ID
+
+**Returns:** (number) Manhattan distance (|dx| + |dy|)
+
+**Example:**
+```lua
+local distance = brogue.ai.distance_to(monster.id, player.id)
+if distance <= 5 then
+    -- Player is within 5 tiles
+end
+```
+
+#### `brogue.ai.get_config(ai_type)`
+Get behavior configuration from YAML.
+
+**Parameters:**
+- `ai_type` (string): AI behavior type name
+
+**Returns:** Configuration table
+
+### Action Descriptors
+
+AI behaviors return action descriptors to control monster actions:
+
+#### Attack Action
+```lua
+return {
+    action = "attack",
+    target_id = "player_1"
+}
+```
+
+#### Move Towards
+```lua
+return {
+    action = "move_towards",
+    target_id = "player_1"
+}
+```
+
+#### Flee From
+```lua
+return {
+    action = "flee_from",
+    target_id = "player_1"
+}
+```
+
+#### Wander
+```lua
+return {action = "wander"}
+```
+
+#### Idle (do nothing)
+```lua
+return {action = "idle"}
+```
+
+### Configuration
+
+Define behavior configuration in `data/balance/ai_behaviors.yaml`:
+
+```yaml
+behaviors:
+  my_behavior:
+    description: "Custom behavior description"
+    chase_range: 10
+    custom_param: 42
+```
+
+Access in Lua:
+```lua
+function update(monster, config)
+    local range = config.chase_range  -- 10
+    local param = config.custom_param  -- 42
+end
+```
+
+### Complete AI Example
+
+See `scripts/ai/berserker.lua` for a complete working example.
+
 ## Action Script Structure
 
 Every Lua action script must define two functions:
