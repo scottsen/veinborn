@@ -179,3 +179,9 @@ function get_loot_stats()
         loot_tier = get_floor_bonus(loot_state.current_floor),
     }
 end
+
+--- Export loot state for testing
+-- @return table Loot tracking state
+function get_loot_state()
+    return loot_state
+end

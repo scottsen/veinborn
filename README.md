@@ -83,7 +83,7 @@ Both paths are valid! Use the vault to learn or overcome bad luck.
 - Bot equipment intelligence (stat-based upgrade detection)
 
 **📊 Project Health:**
-- **831 tests passing** (comprehensive coverage, +71 from Legacy Vault)
+- **839 tests passing** (comprehensive coverage, +8 from Lua test fixes, +71 from Legacy Vault)
 - **4 of 5 architectural improvements complete**
 - **Lua-ready architecture** (5/5 extensibility score)
 

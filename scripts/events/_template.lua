@@ -94,3 +94,22 @@ function on_turn_ended(event)
         ))
     end
 end
+
+--[[
+    Testing Support
+
+    For unit tests, export your state with a getter function.
+    This allows tests to verify internal state without breaking encapsulation.
+--]]
+
+--- Export handler state for testing
+-- @return table Handler state with all tracked values
+function get_handler_state()
+    return {
+        -- Export only what tests need to verify
+        kills = state.kills,
+        items_crafted = state.items_crafted,
+        -- Can also export nested state
+        damage_stats = damage_stats
+    }
+end

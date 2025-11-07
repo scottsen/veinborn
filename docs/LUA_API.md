@@ -629,4 +629,58 @@ end
 - Cannot modify event data
 - Cannot create new events from handlers (use `brogue.event.emit()` for testing)
 
+## Testing Lua Handlers
+
+### Accessing Internal State in Tests
+
+Lua event handlers use local variables for proper encapsulation. For testing purposes, handlers should expose getter functions to access internal state:
+
+**In your Lua handler:**
+```lua
+-- Private state (encapsulated)
+local state = {
+    kill_count = 0,
+    achievements_unlocked = {}
+}
+
+function on_entity_died(event)
+    state.kill_count = state.kill_count + 1
+end
+
+-- Export state for testing
+function get_state()
+    return state
+end
+```
+
+**In Python tests:**
+```python
+# Load and execute handler
+lua_runtime.execute_file("scripts/events/my_handler.lua")
+
+# Access state via export function
+get_state = lua_runtime.get_global("get_state")
+state = get_state()
+
+# Verify state
+assert state['kill_count'] == 5
+```
+
+### Testing Best Practices
+
+1. **Always use export functions** - Don't try to access local variables directly from Python (impossible by design)
+
+2. **Name export functions consistently** - Use `get_*()` pattern (e.g., `get_stats()`, `get_quests()`, `get_loot_state()`)
+
+3. **Keep exports simple** - Return the raw state table or a shallow copy
+
+4. **Document in comments** - Mark export functions clearly:
+```lua
+--- Export state for testing
+-- @return table Handler state
+function get_state()
+    return state
+end
+```
+
 For more details, see `docs/LUA_EVENT_MODDING_GUIDE.md`.

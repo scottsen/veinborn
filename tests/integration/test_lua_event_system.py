@@ -242,13 +242,15 @@ class TestAchievementSystem:
             )
             event_bus.publish(event)
 
-        # Check achievement unlocked
-        achievements = lua_runtime.get_global("achievements")
+        # Check achievement unlocked using export functions
+        get_achievements = lua_runtime.get_global("get_achievements")
+        achievements = get_achievements()
         assert achievements is not None
         assert achievements['centurion']['unlocked'] is True
 
-        # Check stats
-        stats = lua_runtime.get_global("stats")
+        # Check stats using export function
+        get_stats = lua_runtime.get_global("get_stats")
+        stats = get_stats()
         assert stats['player_kills'] == 100
 
     def test_explorer_achievement_on_floor_10(
@@ -271,8 +273,9 @@ class TestAchievementSystem:
         )
         event_bus.publish(event)
 
-        # Check achievement
-        achievements = lua_runtime.get_global("achievements")
+        # Check achievement using export function
+        get_achievements = lua_runtime.get_global("get_achievements")
+        achievements = get_achievements()
         assert achievements['explorer']['unlocked'] is True
 
     def test_craftsman_achievement_on_50_crafts(
@@ -296,8 +299,9 @@ class TestAchievementSystem:
             )
             event_bus.publish(event)
 
-        # Check achievement
-        achievements = lua_runtime.get_global("achievements")
+        # Check achievement using export function
+        get_achievements = lua_runtime.get_global("get_achievements")
+        achievements = get_achievements()
         assert achievements['craftsman']['unlocked'] is True
 
 
@@ -316,10 +320,10 @@ class TestQuestTracking:
             "on_entity_died"
         )
 
-        # Activate quest
-        lua_runtime.execute_script("""
-            quests.goblin_slayer.active = true
-        """)
+        # Activate quest using export function
+        get_quests = lua_runtime.get_global("get_quests")
+        quests = get_quests()
+        quests['goblin_slayer']['active'] = True
 
         # Kill 5 goblins
         for i in range(5):
@@ -334,10 +338,9 @@ class TestQuestTracking:
             )
             event_bus.publish(event)
 
-        # Check quest completed
-        completed = lua_runtime.execute_script("""
-            return quests.goblin_slayer.completed
-        """)
+        # Check quest completed using export function
+        quests = get_quests()
+        completed = quests['goblin_slayer']['completed']
         assert completed is True
 
     def test_quest_progress_tracking(
@@ -352,10 +355,10 @@ class TestQuestTracking:
             "on_entity_died"
         )
 
-        # Activate quest
-        lua_runtime.execute_script("""
-            quests.goblin_slayer.active = true
-        """)
+        # Activate quest using export function
+        get_quests = lua_runtime.get_global("get_quests")
+        quests = get_quests()
+        quests['goblin_slayer']['active'] = True
 
         # Kill 3 goblins
         for i in range(3):
@@ -366,15 +369,12 @@ class TestQuestTracking:
             )
             event_bus.publish(event)
 
-        # Check progress
-        progress = lua_runtime.execute_script("""
-            return quests.goblin_slayer.progress
-        """)
+        # Check progress using export function
+        quests = get_quests()
+        progress = quests['goblin_slayer']['progress']
         assert progress == 3
 
-        completed = lua_runtime.execute_script("""
-            return quests.goblin_slayer.completed
-        """)
+        completed = quests['goblin_slayer']['completed']
         assert completed is False  # Not completed yet
 
 
@@ -730,10 +730,10 @@ class TestComplexScenarios:
         registry.register(GameEventType.ENTITY_DIED, str(quest_file), "on_entity_died")
         registry.register(GameEventType.ENTITY_DIED, str(loot_file), "on_entity_died")
 
-        # Activate quest
-        lua_runtime.execute_script("""
-            quests.goblin_slayer.active = true
-        """)
+        # Activate quest using export function
+        get_quests = lua_runtime.get_global("get_quests")
+        quests = get_quests()
+        quests['goblin_slayer']['active'] = True
 
         # Simulate gameplay: Kill 10 goblins
         for i in range(10):
@@ -749,16 +749,17 @@ class TestComplexScenarios:
             event_bus.publish(event)
 
         # Check results across all systems
-        # Achievements: Should track kills
-        stats = lua_runtime.get_global("stats")
+        # Achievements: Should track kills using export function
+        get_stats = lua_runtime.get_global("get_stats")
+        stats = get_stats()
         assert stats['player_kills'] == 10
 
-        # Quest: Should be completed (needs 5 goblins)
-        quest_completed = lua_runtime.execute_script("""
-            return quests.goblin_slayer.completed
-        """)
+        # Quest: Should be completed (needs 5 goblins) using export function
+        quests = get_quests()
+        quest_completed = quests['goblin_slayer']['completed']
         assert quest_completed is True
 
-        # Loot: Should track kill streak
-        loot_state = lua_runtime.get_global("loot_state")
+        # Loot: Should track kill streak using export function
+        get_loot_state = lua_runtime.get_global("get_loot_state")
+        loot_state = get_loot_state()
         assert loot_state is not None
