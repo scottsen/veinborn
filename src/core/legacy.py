@@ -23,7 +23,7 @@ from pathlib import Path
 # Constants
 LEGACY_VAULT_PATH = Path.home() / ".brogue" / "legacy_vault.json"
 PURITY_THRESHOLD = 80
-MAX_VAULT_SIZE = 10
+MAX_VAULT_SIZE = 50  # Increased from 10 to 50 per requirements
 
 
 @dataclass
@@ -227,8 +227,8 @@ class LegacyVault:
         return None
 
     def get_ores(self) -> List[LegacyOre]:
-        """Get all ores in vault."""
-        return self.ores.copy()
+        """Get all ores in vault, sorted by purity (best first)."""
+        return sorted(self.ores, key=lambda ore: ore.purity, reverse=True)
 
     def get_ore_count(self) -> int:
         """Get number of ores in vault."""

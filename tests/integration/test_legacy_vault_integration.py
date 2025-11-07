@@ -430,8 +430,8 @@ def test_death_with_empty_inventory(temp_vault_for_integration, simple_room_map)
 @pytest.mark.integration
 def test_vault_overflow_during_death(temp_vault_for_integration, simple_room_map):
     """Test vault handles overflow correctly when saving on death."""
-    # Fill vault to near capacity (8 ores)
-    for i in range(8):
+    # Fill vault to near capacity (48 ores)
+    for i in range(48):
         ore = OreVein(
             ore_type=f"existing_{i}",
             x=i, y=i,
@@ -440,7 +440,7 @@ def test_vault_overflow_during_death(temp_vault_for_integration, simple_room_map
         )
         temp_vault_for_integration.add_ore(ore, floor=i)
 
-    # Player dies with 5 rare ores (will exceed max of 10)
+    # Player dies with 5 rare ores (will exceed max of 50)
     player = Player(x=10, y=10, hp=0, max_hp=20, attack=5, defense=2)
     player.is_alive = False
     for i in range(5):
@@ -465,17 +465,18 @@ def test_vault_overflow_during_death(temp_vault_for_integration, simple_room_map
     # Death should handle overflow (FIFO)
     turn_processor._check_game_over()
 
-    # Should have exactly 10 ores
+    # Should have exactly 50 ores (MAX_VAULT_SIZE)
     vault = temp_vault_for_integration
-    assert vault.get_ore_count() == 10
+    assert vault.get_ore_count() == 50
     assert vault.is_full()
 
-    # Oldest 3 ores should be removed
-    ores = vault.get_ores()
-    # First ore should be existing_3 (existing_0,1,2 removed)
-    assert "existing_" in ores[0].ore_type or "death_ore_" in ores[0].ore_type
-    # Last ore should be death_ore_4
-    assert "death_ore_" in ores[-1].ore_type
+    # Oldest 3 ores should be removed (existing_0, existing_1, existing_2)
+    # get_ores() returns sorted by purity, so check internal list for FIFO
+    ore_types = [ore.ore_type for ore in vault.ores]
+    assert "existing_0" not in ore_types
+    assert "existing_1" not in ore_types
+    assert "existing_2" not in ore_types
+    assert all(f"death_ore_{i}" in ore_types for i in range(5))
 
 
 # ============================================================================

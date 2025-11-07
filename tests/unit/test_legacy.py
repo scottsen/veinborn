@@ -239,8 +239,8 @@ def test_vault_withdraw_invalid_index(fresh_vault, rare_copper_ore):
 @pytest.mark.unit
 def test_vault_max_capacity(fresh_vault):
     """Test vault enforces max capacity with FIFO."""
-    # Create 12 ores (exceeds max of 10)
-    for i in range(12):
+    # Create 52 ores (exceeds max of 50)
+    for i in range(52):
         ore = OreVein(
             ore_type=f"test_type_{i}",
             x=i,
@@ -253,14 +253,14 @@ def test_vault_max_capacity(fresh_vault):
         )
         fresh_vault.add_ore(ore, floor=i)
 
-    # Should have exactly 10 ores
+    # Should have exactly 50 ores
     assert fresh_vault.get_ore_count() == MAX_VAULT_SIZE
     assert fresh_vault.is_full()
 
     # First two ores should be removed (FIFO)
     ores = fresh_vault.get_ores()
-    assert ores[0].floor_found == 2  # First ore (floor 0, 1) removed
-    assert ores[-1].floor_found == 11  # Last ore kept
+    assert ores[0].floor_found >= 2  # First ores (floor 0, 1) removed
+    assert ores[-1].floor_found == 51  # Last ore kept
 
 
 @pytest.mark.unit
@@ -285,9 +285,20 @@ def test_vault_fifo_order(fresh_vault):
     )
     fresh_vault.add_ore(new_ore, floor=100)
 
+    # Verify FIFO: vault still at max capacity
+    assert fresh_vault.get_ore_count() == MAX_VAULT_SIZE
+
+    # get_ores() returns sorted by purity (best first)
     ores = fresh_vault.get_ores()
-    assert ores[0].floor_found == 1  # ore_0 removed, ore_1 is now first
-    assert ores[-1].ore_type == "new_ore"  # New ore added to end
+    # new_ore (purity 95) should be first in sorted list
+    assert ores[0].ore_type == "new_ore"
+    assert ores[0].purity == 95
+
+    # Check internal list to verify FIFO (oldest ore_0 removed)
+    # All remaining ores should be ore_1 through ore_49 + new_ore
+    ore_types = [ore.ore_type for ore in fresh_vault.ores]
+    assert "ore_0" not in ore_types  # ore_0 was removed (oldest)
+    assert "new_ore" in ore_types  # new_ore was added
 
 
 # ============================================================================
@@ -493,8 +504,9 @@ def test_vault_save_and_load(temp_vault_path, rare_copper_ore, legendary_mithril
     assert vault2.total_pure_victories == 1
 
     ores = vault2.get_ores()
-    assert ores[0].ore_type == "copper"
-    assert ores[1].ore_type == "mithril"
+    # get_ores() returns sorted by purity (best first)
+    assert ores[0].ore_type == "mithril"  # Purity 99 (best)
+    assert ores[1].ore_type == "copper"   # Purity 90
 
 
 @pytest.mark.unit

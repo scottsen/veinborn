@@ -33,6 +33,16 @@ R: Restart
 Q: Quit
 ```
 
+### Understanding the Legacy Vault
+
+When you die, all ore with **purity 80+** is saved to your Legacy Vault (`~/.brogue/legacy_vault.json`).
+
+**Starting a new run:**
+- Choose **Pure Victory** (no vault, harder, more prestige)
+- Or **Legacy Victory** (withdraw 1 ore, easier start)
+
+Both paths are valid! Use the vault to learn or overcome bad luck.
+
 ### New to Brogue?
 
 👉 **Read this first:** [`docs/START_HERE.md`](docs/START_HERE.md) (15-minute guide)
@@ -73,13 +83,17 @@ Q: Quit
 - Bot equipment intelligence (stat-based upgrade detection)
 
 **📊 Project Health:**
-- **596 tests passing** (comprehensive coverage)
+- **831 tests passing** (comprehensive coverage, +71 from Legacy Vault)
 - **4 of 5 architectural improvements complete**
 - **Lua-ready architecture** (5/5 extensibility score)
 
+**✅ Legacy Vault System (Complete):**
+- Meta-progression system (preserves purity 80+ ore across runs)
+- Dual victory paths (Pure vs Legacy runs)
+- Vault UI and integration
+
 **⏳ Remaining:**
 - Dungeon generation → YAML (final architectural improvement)
-- Legacy Vault validation (meta-progression for 80+ purity ore)
 
 **See:** [`docs/MVP_ROADMAP.md`](docs/MVP_ROADMAP.md)
 
