@@ -400,3 +400,65 @@ class ActionFactory:
                 return ore_vein
 
         return None
+
+    # ============================================================================
+    # Lua Action Registration
+    # ============================================================================
+
+    def register_lua_action(
+        self,
+        action_type: str,
+        script_path: str,
+        lua_runtime: 'LuaRuntime',
+        description: str = "Lua scripted action"
+    ) -> None:
+        """
+        Register a Lua scripted action.
+
+        This is a convenience method that creates an ActionHandler for a Lua script
+        and registers it with the factory.
+
+        Args:
+            action_type: String identifier for the action (e.g., "fireball")
+            script_path: Path to Lua script file (relative to scripts directory)
+            lua_runtime: Shared LuaRuntime instance
+            description: Human-readable description of the action
+
+        Example:
+            factory.register_lua_action(
+                "fireball",
+                "actions/fireball.lua",
+                lua_runtime,
+                "Cast a fireball spell"
+            )
+        """
+        from .lua_action import LuaAction
+        from pathlib import Path
+
+        def create_lua_action(context: GameContext, kwargs: dict) -> Optional[Action]:
+            """Create function for Lua action handler."""
+            # Extract actor_id from kwargs
+            actor_id = kwargs.pop('actor_id', None)
+            if not actor_id:
+                actor_id = context.get_player().entity_id
+
+            try:
+                return LuaAction(
+                    actor_id=actor_id,
+                    action_type=action_type,
+                    lua_runtime=lua_runtime,
+                    script_path=Path(script_path),
+                    **kwargs
+                )
+            except Exception as e:
+                logger.error(f"Failed to create Lua action {action_type}: {e}")
+                return None
+
+        handler = ActionHandler(
+            name=action_type,
+            create_fn=create_lua_action,
+            description=description
+        )
+
+        self.register_handler(action_type, handler)
+        logger.info(f"Registered Lua action: {action_type} from {script_path}")
