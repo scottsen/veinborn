@@ -309,7 +309,7 @@ class TestQuestTracking:
     """Test quest tracking integration."""
 
     def test_quest_completion_on_5_goblin_kills(
-        self, event_bus, lua_runtime, examples_dir, registry
+        self, api, event_bus, lua_runtime, examples_dir, registry
     ):
         """Test that Goblin Slayer quest completes on 5 goblin kills."""
         quest_file = examples_dir / "quest_tracker.lua"
@@ -717,7 +717,7 @@ class TestComplexScenarios:
     """Test complex real-world scenarios."""
 
     def test_complete_gameplay_scenario(
-        self, event_bus, lua_runtime, examples_dir, registry
+        self, api, event_bus, lua_runtime, examples_dir, registry
     ):
         """Test complete scenario with achievements, quests, and loot."""
         # Load all example handlers

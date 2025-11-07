@@ -413,7 +413,14 @@ class TestDynamicLootExample:
         for i in range(3):
             event = GameEvent(
                 event_type=GameEventType.ENTITY_DIED,
-                data={'entity_id': f'goblin_{i}', 'killer_id': 'player_1'},
+                data={
+                    'entity_id': f'goblin_{i}',
+                    'entity_name': 'Goblin',
+                    'entity_type': 'monster',
+                    'floor': 1,
+                    'position': {'x': i, 'y': 1},
+                    'killer_id': 'player_1'
+                },
                 turn=i + 1
             )
             handler.handle(event)

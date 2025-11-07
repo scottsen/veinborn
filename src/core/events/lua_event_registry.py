@@ -84,7 +84,7 @@ class LuaEventRegistry:
 
         try:
             # Check if already registered for this event
-            if script_path in self.subscriptions[event_type]:
+            if handler_key in self.subscriptions[event_type]:
                 logger.warning(
                     f"Handler already registered: {handler_key} for {event_type.value}"
                 )
@@ -111,7 +111,7 @@ class LuaEventRegistry:
             self.event_bus.subscribe_lua(event_type, handler)
 
             # Track subscription
-            self.subscriptions[event_type].append(script_path)
+            self.subscriptions[event_type].append(handler_key)
             self.script_events[script_path].add(event_type)
 
             logger.info(
@@ -139,35 +139,39 @@ class LuaEventRegistry:
             True if successfully unregistered, False if not found
         """
         try:
-            if script_path not in self.subscriptions[event_type]:
+            # Find all handler_keys for this script_path and event_type
+            handler_keys_to_remove = [
+                hk for hk in self.subscriptions[event_type]
+                if hk.startswith(f"{script_path}::")
+            ]
+
+            if not handler_keys_to_remove:
                 logger.warning(
                     f"Handler not found for unregistration: {script_path} "
                     f"for {event_type.value}"
                 )
                 return False
 
-            # Find the handler to unsubscribe
-            # Note: We need to find the handler by script path
-            handler_to_remove = None
-            for handler_key, handler in self.handlers.items():
-                if handler.script_path == script_path:
-                    handler_to_remove = handler
-                    break
+            # Remove all handlers for this script from this event
+            for handler_key in handler_keys_to_remove:
+                handler_to_remove = self.handlers.get(handler_key)
 
-            if handler_to_remove:
-                # Unsubscribe from EventBus
-                self.event_bus.unsubscribe_lua(event_type, handler_to_remove)
+                if handler_to_remove:
+                    # Unsubscribe from EventBus
+                    self.event_bus.unsubscribe_lua(event_type, handler_to_remove)
 
-            # Remove from tracking
-            self.subscriptions[event_type].remove(script_path)
+                # Remove from tracking
+                self.subscriptions[event_type].remove(handler_key)
+
+            # Update script_events
             self.script_events[script_path].discard(event_type)
 
-            # If script has no more subscriptions, remove handler
+            # If script has no more subscriptions, remove handler and script_events entry
             if not self.script_events[script_path]:
                 del self.script_events[script_path]
-                # Remove handler from handlers dict
+                # Remove all handlers from handlers dict for this script
                 for key in list(self.handlers.keys()):
-                    if self.handlers[key] == handler_to_remove:
+                    if key.startswith(f"{script_path}::"):
                         del self.handlers[key]
 
             logger.info(
@@ -193,11 +197,11 @@ class LuaEventRegistry:
             List of LuaEventHandler instances for this event type
         """
         handlers = []
-        for script_path in self.subscriptions.get(event_type, []):
-            # Find handlers for this script
-            for handler in self.handlers.values():
-                if handler.script_path == script_path:
-                    handlers.append(handler)
+        for handler_key in self.subscriptions.get(event_type, []):
+            # Get handler by handler_key
+            handler = self.handlers.get(handler_key)
+            if handler:
+                handlers.append(handler)
         return handlers
 
     def load_from_directory(self, directory: str) -> int:

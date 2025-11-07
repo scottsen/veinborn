@@ -289,7 +289,14 @@ end
         # Publish event
         event = GameEvent(
             event_type=GameEventType.ENTITY_DIED,
-            data={'entity_id': 'goblin_1'},
+            data={
+                'entity_id': 'goblin_1',
+                'entity_name': 'Goblin',
+                'entity_type': 'monster',
+                'floor': 1,
+                'position': {'x': 5, 'y': 5},
+                'killer_id': 'player_1'
+            },
             turn=1
         )
         event_bus.publish(event)
@@ -360,7 +367,14 @@ end
         # Publish event
         event = GameEvent(
             event_type=GameEventType.ENTITY_DIED,
-            data={'entity_id': 'goblin_1', 'killer_id': 'player_1'},
+            data={
+                'entity_id': 'goblin_1',
+                'entity_name': 'Goblin',
+                'entity_type': 'monster',
+                'floor': 1,
+                'position': {'x': 5, 'y': 5},
+                'killer_id': 'player_1'
+            },
             turn=42
         )
         event_bus.publish(event)
