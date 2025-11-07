@@ -76,3 +76,6 @@ SESSION_SUMMARY_*.md
 *.session
 *.debug
 
+# --- UV lock file (generated during testing) ---
+uv.lock
+

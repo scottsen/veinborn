@@ -240,8 +240,9 @@ class EventBus:
 
         # Notify subscribers
         subscribers = self.subscribers.get(event.event_type, [])
+        lua_subscribers = self.lua_subscribers.get(event.event_type, [])
 
-        if not subscribers:
+        if not subscribers and not lua_subscribers:
             logger.debug(
                 f"Event published with no subscribers: {event.event_type.value}",
                 extra={'event_type': event.event_type.value, 'data': event.data}
@@ -249,7 +250,6 @@ class EventBus:
             return
 
         # Count total subscribers (Python + Lua)
-        lua_subscribers = self.lua_subscribers.get(event.event_type, [])
         total_subscribers = len(subscribers) + len(lua_subscribers)
 
         logger.debug(
