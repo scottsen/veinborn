@@ -6,11 +6,15 @@ typed manner with proper serialization.
 """
 
 import logging
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, TYPE_CHECKING
 import lupa
 
 from ..base.game_context import GameContext
 from ..base.entity import Entity, EntityType
+
+if TYPE_CHECKING:
+    from ..events import EventBus, GameEventType
+    from ..events.lua_event_registry import LuaEventRegistry
 
 logger = logging.getLogger(__name__)
 
@@ -29,16 +33,26 @@ class GameContextAPI:
         brogue.modify_stat(player.id, "hp", -10)
     """
 
-    def __init__(self, context: GameContext, lua: lupa.LuaRuntime):
+    def __init__(
+        self,
+        context: GameContext,
+        lua: lupa.LuaRuntime,
+        event_bus: Optional['EventBus'] = None,
+        lua_event_registry: Optional['LuaEventRegistry'] = None
+    ):
         """
         Initialize GameContext API bridge.
 
         Args:
             context: GameContext instance to wrap
             lua: Lua runtime to register API in
+            event_bus: Optional EventBus for event subscription (Phase 3)
+            lua_event_registry: Optional LuaEventRegistry for event management (Phase 3)
         """
         self.context = context
         self.lua = lua
+        self.event_bus = event_bus
+        self.lua_event_registry = lua_event_registry
         self._register_api()
         logger.debug("GameContextAPI registered in Lua environment")
 
@@ -86,10 +100,20 @@ class GameContextAPI:
         ai_table["idle"] = self._ai_idle
         brogue_table["ai"] = ai_table
 
+        # Register event methods in brogue.event table (Phase 3)
+        event_table = self.lua.table()
+        event_table["subscribe"] = self._event_subscribe
+        event_table["unsubscribe"] = self._event_unsubscribe
+        event_table["get_types"] = self._event_get_types
+        event_table["emit"] = self._event_emit
+        brogue_table["event"] = event_table
+
         # Set brogue table as global
         self.lua.globals()["brogue"] = brogue_table
-        logger.debug("Registered brogue API with %d methods (%d AI methods)",
-                     len(brogue_table), len(ai_table))
+        logger.debug(
+            "Registered brogue API with %d methods (%d AI, %d event methods)",
+            len(brogue_table), len(ai_table), len(event_table)
+        )
 
     # Entity serialization
 
@@ -583,3 +607,185 @@ class GameContextAPI:
             Action descriptor: {action = "idle"}
         """
         return {"action": "idle"}
+
+    # Event system methods (Phase 3)
+
+    def _event_subscribe(
+        self,
+        event_type: str,
+        script_path: str,
+        handler_function: Optional[str] = None
+    ) -> bool:
+        """
+        Subscribe Lua script to event type.
+
+        Called from Lua as: brogue.event.subscribe("entity_died", "scripts/events/achievements.lua")
+
+        Args:
+            event_type: Event type name (e.g., "entity_died")
+            script_path: Path to Lua script containing handler
+            handler_function: Handler function name (default: "on_<event_type>")
+
+        Returns:
+            True if successfully subscribed, False otherwise
+        """
+        if self.event_bus is None or self.lua_event_registry is None:
+            logger.error(
+                "Event subscription not available - EventBus or Registry not initialized"
+            )
+            return False
+
+        try:
+            # Import here to avoid circular dependency
+            from ..events import GameEventType
+
+            # Convert event type string to enum
+            try:
+                event_enum = GameEventType(event_type)
+            except ValueError:
+                logger.error(f"Invalid event type: {event_type}")
+                return False
+
+            # Default handler function name
+            if handler_function is None:
+                handler_function = f"on_{event_type}"
+
+            # Register handler
+            success = self.lua_event_registry.register(
+                event_enum,
+                script_path,
+                handler_function
+            )
+
+            if success:
+                logger.info(
+                    f"Lua event subscription: {script_path}::{handler_function} → {event_type}"
+                )
+            else:
+                logger.warning(
+                    f"Failed to subscribe: {script_path}::{handler_function} → {event_type}"
+                )
+
+            return success
+
+        except Exception as e:
+            logger.error(f"Error subscribing to event: {e}", exc_info=True)
+            return False
+
+    def _event_unsubscribe(self, event_type: str, script_path: str) -> bool:
+        """
+        Unsubscribe Lua script from event type.
+
+        Called from Lua as: brogue.event.unsubscribe("entity_died", "scripts/events/achievements.lua")
+
+        Args:
+            event_type: Event type name
+            script_path: Path to script to unsubscribe
+
+        Returns:
+            True if successfully unsubscribed, False otherwise
+        """
+        if self.event_bus is None or self.lua_event_registry is None:
+            logger.error(
+                "Event unsubscription not available - EventBus or Registry not initialized"
+            )
+            return False
+
+        try:
+            from ..events import GameEventType
+
+            # Convert event type string to enum
+            try:
+                event_enum = GameEventType(event_type)
+            except ValueError:
+                logger.error(f"Invalid event type: {event_type}")
+                return False
+
+            # Unregister handler
+            success = self.lua_event_registry.unregister(event_enum, script_path)
+
+            if success:
+                logger.info(f"Unsubscribed: {script_path} from {event_type}")
+            else:
+                logger.warning(f"Failed to unsubscribe: {script_path} from {event_type}")
+
+            return success
+
+        except Exception as e:
+            logger.error(f"Error unsubscribing from event: {e}", exc_info=True)
+            return False
+
+    def _event_get_types(self) -> List[str]:
+        """
+        Get list of all available event types.
+
+        Called from Lua as: local types = brogue.event.get_types()
+
+        Returns:
+            Lua table (1-indexed) of event type strings
+        """
+        try:
+            from ..events import GameEventType
+
+            # Get all event type values
+            event_types = [event_type.value for event_type in GameEventType]
+
+            # Convert to Lua table (1-indexed)
+            lua_table = self.lua.table()
+            for i, event_type in enumerate(event_types, 1):
+                lua_table[i] = event_type
+
+            return lua_table
+
+        except Exception as e:
+            logger.error(f"Error getting event types: {e}", exc_info=True)
+            return self.lua.table()  # Empty table
+
+    def _event_emit(self, event_type: str, data: Dict[str, Any]) -> bool:
+        """
+        Manually emit an event (for testing/debugging).
+
+        Called from Lua as: brogue.event.emit("entity_died", {entity_id = "goblin_1"})
+
+        Args:
+            event_type: Event type name
+            data: Event data dictionary
+
+        Returns:
+            True if successfully emitted, False otherwise
+        """
+        if self.event_bus is None:
+            logger.error("Event emission not available - EventBus not initialized")
+            return False
+
+        try:
+            from ..events import GameEvent, GameEventType
+
+            # Convert event type string to enum
+            try:
+                event_enum = GameEventType(event_type)
+            except ValueError:
+                logger.error(f"Invalid event type: {event_type}")
+                return False
+
+            # Convert Lua table to Python dict if needed
+            if hasattr(data, 'items'):
+                # Already a dict or dict-like
+                event_data = dict(data)
+            else:
+                event_data = {}
+
+            # Create and publish event
+            event = GameEvent(
+                event_type=event_enum,
+                data=event_data,
+                turn=self.context.get_turn_count()
+            )
+
+            self.event_bus.publish(event)
+            logger.debug(f"Manually emitted event: {event_type}")
+            return True
+
+        except Exception as e:
+            logger.error(f"Error emitting event: {e}", exc_info=True)
+            return False

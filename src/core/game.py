@@ -34,7 +34,11 @@ from .turn_processor import TurnProcessor
 from .floor_manager import FloorManager
 from .save_load import SaveSystem, SaveLoadError
 from .events import EventBus, GameEventType
+from .events.lua_event_registry import LuaEventRegistry
+from .scripting.lua_runtime import LuaRuntime
+from .scripting.game_context_api import GameContextAPI
 from .telemetry import StatsTracker, GameTelemetry, PerformanceTelemetry
+from pathlib import Path
 
 logger = logging.getLogger(__name__)
 
@@ -75,6 +79,11 @@ class Game:
         self.stats_tracker = StatsTracker()
         self.game_telemetry = GameTelemetry()
         self.perf_telemetry = PerformanceTelemetry()
+
+        # Lua event system (Phase 3)
+        self.lua_runtime = LuaRuntime()
+        self.lua_event_registry: Optional[LuaEventRegistry] = None
+        self.game_context_api: Optional[GameContextAPI] = None
 
         logger.debug("Game initialized with configuration, entity loader, and event system")
 
@@ -349,8 +358,14 @@ class Game:
         self.floor_manager = FloorManager(self.context, self.spawner)
         self.action_factory = ActionFactory(self.context)
 
+        # Initialize Lua event system (Phase 3)
+        self._initialize_lua_event_system()
+
         # Subscribe telemetry systems to events (Phase 2-ready pattern)
         self._subscribe_event_handlers()
+
+        # Load Lua event handlers from scripts/events/ (Phase 3)
+        self._load_lua_event_handlers()
 
         logger.debug("Subsystems initialized successfully")
 
@@ -417,6 +432,63 @@ class Game:
         )
 
         logger.info(f"Event handlers subscribed: {len(self.event_bus.subscribers)} event types")
+
+    def _initialize_lua_event_system(self) -> None:
+        """
+        Initialize Lua event system (Phase 3).
+
+        This creates the LuaEventRegistry and GameContextAPI with event support.
+        """
+        if not self.state or not self.context:
+            logger.warning("Cannot initialize Lua event system without state and context")
+            return
+
+        try:
+            # Create Lua event registry
+            self.lua_event_registry = LuaEventRegistry(self.lua_runtime, self.event_bus)
+
+            # Create GameContextAPI with event support
+            self.game_context_api = GameContextAPI(
+                self.context,
+                self.lua_runtime.lua,
+                event_bus=self.event_bus,
+                lua_event_registry=self.lua_event_registry
+            )
+
+            logger.info("Lua event system initialized")
+
+        except Exception as e:
+            logger.error(f"Failed to initialize Lua event system: {e}", exc_info=True)
+
+    def _load_lua_event_handlers(self) -> None:
+        """
+        Load Lua event handlers from scripts/events/ directory (Phase 3).
+
+        This auto-loads all Lua event handlers with @subscribe annotations.
+        Handlers are loaded automatically on game start.
+        """
+        if self.lua_event_registry is None:
+            logger.debug("Lua event registry not initialized, skipping handler loading")
+            return
+
+        try:
+            # Determine scripts directory
+            scripts_dir = Path(__file__).parent.parent.parent / "scripts" / "events"
+
+            if not scripts_dir.exists():
+                logger.info(f"Lua event handler directory not found: {scripts_dir}")
+                return
+
+            # Load handlers from directory
+            count = self.lua_event_registry.load_from_directory(str(scripts_dir))
+
+            if count > 0:
+                logger.info(f"Loaded {count} Lua event handler(s)")
+            else:
+                logger.debug("No Lua event handlers found")
+
+        except Exception as e:
+            logger.error(f"Failed to load Lua event handlers: {e}", exc_info=True)
 
     def load_game(self, slot_name: str = "quicksave") -> bool:
         """

@@ -348,3 +348,285 @@ Available libraries:
 - `math.*` - Mathematical functions
 - `string.*` - String manipulation
 - `table.*` - Table operations
+
+---
+
+# Event System API (Phase 3)
+
+The Event System allows Lua scripts to subscribe to and respond to game events, enabling achievements, quests, dynamic systems, and custom game modes.
+
+## Event Subscription
+
+### brogue.event.subscribe(event_type, script_path, [handler_function])
+
+Subscribe a Lua script to a game event.
+
+**Parameters:**
+- `event_type` (string): Event type to subscribe to (e.g., `"entity_died"`)
+- `script_path` (string): Path to Lua script containing handler
+- `handler_function` (string, optional): Handler function name (default: `"on_<event_type>"`)
+
+**Returns:** `true` if successful, `false` otherwise
+
+**Example:**
+```lua
+-- Subscribe achievements.lua to entity_died events
+brogue.event.subscribe("entity_died", "scripts/events/achievements.lua")
+
+-- Explicitly specify handler function name
+brogue.event.subscribe("entity_died", "scripts/events/achievements.lua", "on_entity_died")
+```
+
+### brogue.event.unsubscribe(event_type, script_path)
+
+Unsubscribe a script from an event type.
+
+**Parameters:**
+- `event_type` (string): Event type to unsubscribe from
+- `script_path` (string): Path to script to unsubscribe
+
+**Returns:** `true` if successful, `false` otherwise
+
+**Example:**
+```lua
+brogue.event.unsubscribe("entity_died", "scripts/events/achievements.lua")
+```
+
+### brogue.event.get_types()
+
+Get list of all available event types.
+
+**Returns:** Lua table (1-indexed) of event type strings
+
+**Example:**
+```lua
+local types = brogue.event.get_types()
+for i = 1, #types do
+    print("Event type:", types[i])
+end
+```
+
+### brogue.event.emit(event_type, data)
+
+Manually emit an event (for testing/debugging).
+
+**Parameters:**
+- `event_type` (string): Event type name
+- `data` (table): Event data
+
+**Returns:** `true` if successful, `false` otherwise
+
+**Example:**
+```lua
+brogue.event.emit("entity_died", {
+    entity_id = "goblin_1",
+    entity_name = "Goblin",
+    killer_id = "player_1",
+    cause = "combat"
+})
+```
+
+## Event Handler Structure
+
+Event handlers receive an event table with the following structure:
+
+```lua
+event = {
+    type = "entity_died",          -- Event type string
+    data = {                        -- Event-specific data
+        entity_id = "goblin_1",
+        entity_name = "Goblin",
+        killer_id = "player_1",
+        cause = "combat",
+    },
+    turn = 42,                      -- Turn number when event occurred
+    timestamp = 1699234567.123,     -- Unix timestamp (seconds)
+}
+```
+
+## Available Event Types
+
+**Combat Events:**
+- `attack_resolved` - Attack executed
+- `entity_damaged` - Entity took damage
+- `entity_died` - Entity died
+- `entity_healed` - Entity was healed
+
+**Movement Events:**
+- `entity_moved` - Any entity moved
+- `player_moved` - Player moved specifically
+
+**Mining Events:**
+- `ore_surveyed` - Ore examined
+- `ore_mined` - Ore successfully mined
+- `mining_started` - Mining action started
+- `mining_completed` - Mining action completed
+
+**Crafting Events:**
+- `item_crafted` - Item successfully crafted
+- `crafting_started` - Crafting started
+- `crafting_failed` - Crafting failed
+
+**Item Events:**
+- `item_picked_up` - Item added to inventory
+- `item_dropped` - Item removed from inventory
+- `item_equipped` - Equipment worn
+- `item_unequipped` - Equipment removed
+- `item_used` - Consumable used
+
+**Floor Events:**
+- `floor_changed` - Player moved to different floor
+- `floor_generated` - New floor created
+
+**Turn Events:**
+- `turn_started` - New turn began
+- `turn_ended` - Turn completed
+
+**Game Events:**
+- `game_started` - New game started
+- `game_over` - Game ended
+
+## Auto-Loading with Annotations
+
+Event handlers can be auto-loaded using annotation comments:
+
+```lua
+-- @subscribe: entity_died, item_crafted
+-- @handler: on_entity_died, on_item_crafted
+
+function on_entity_died(event)
+    -- Handler implementation
+end
+
+function on_item_crafted(event)
+    -- Handler implementation
+end
+```
+
+Place scripts in `scripts/events/` directory for automatic loading on game start.
+
+## Example Event Handlers
+
+### Simple Kill Counter
+
+```lua
+-- scripts/events/kill_counter.lua
+-- @subscribe: entity_died
+
+local kills = 0
+
+function on_entity_died(event)
+    if event.data.killer_id == "player_1" then
+        kills = kills + 1
+        brogue.add_message("Total kills: " .. kills)
+    end
+end
+```
+
+### Achievement System
+
+```lua
+-- scripts/events/achievements.lua
+-- @subscribe: entity_died
+
+local achievements = {
+    centurion = {unlocked = false, target = 100}
+}
+local kills = 0
+
+function on_entity_died(event)
+    if event.data.killer_id == "player_1" then
+        kills = kills + 1
+
+        if kills == 100 and not achievements.centurion.unlocked then
+            achievements.centurion.unlocked = true
+            brogue.add_message("Achievement Unlocked: Centurion (100 kills)")
+        end
+    end
+end
+```
+
+### Quest Tracker
+
+```lua
+-- scripts/events/quest.lua
+-- @subscribe: entity_died
+
+local quest = {
+    active = true,
+    progress = 0,
+    target = 5,
+    name = "Goblin Slayer"
+}
+
+function on_entity_died(event)
+    if not quest.active then return end
+
+    local entity_name = event.data.entity_name or ""
+    if string.find(string.lower(entity_name), "goblin") then
+        quest.progress = quest.progress + 1
+        brogue.add_message(string.format(
+            "Quest: %s [%d/%d]",
+            quest.name,
+            quest.progress,
+            quest.target
+        ))
+
+        if quest.progress >= quest.target then
+            brogue.add_message("Quest Complete!")
+            quest.active = false
+        end
+    end
+end
+```
+
+## Best Practices
+
+1. **Early Return:** Check conditions early and return if event doesn't apply
+```lua
+function on_entity_died(event)
+    if event.data.killer_id ~= "player_1" then
+        return  -- Not a player kill, ignore
+    end
+    -- Process player kill
+end
+```
+
+2. **Error Handling:** Use pcall for risky operations
+```lua
+function on_entity_died(event)
+    local success, err = pcall(function()
+        -- Risky code here
+    end)
+    if not success then
+        brogue.add_message("Error: " .. err)
+    end
+end
+```
+
+3. **State Persistence:** Use module-level variables for state
+```lua
+-- State persists across handler calls (same session)
+local state = {
+    kills = 0,
+    achievements = {}
+}
+
+function on_entity_died(event)
+    state.kills = state.kills + 1
+end
+```
+
+4. **Performance:** Keep handlers fast (<3 seconds)
+- Avoid expensive loops
+- Filter early
+- Batch UI updates
+
+## Limitations
+
+- Handler timeout: 3 seconds per handler
+- State does NOT persist across game sessions (future enhancement)
+- Cannot modify event data
+- Cannot create new events from handlers (use `brogue.event.emit()` for testing)
+
+For more details, see `docs/LUA_EVENT_MODDING_GUIDE.md`.
