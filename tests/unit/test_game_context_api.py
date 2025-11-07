@@ -586,3 +586,133 @@ class TestComplexScenarios:
         assert monster1.hp == 15  # 30 - 15
         assert monster2.hp == 35  # 50 - 15
         assert len(mock_game_state.messages) == 2  # Two hit messages
+
+
+class TestAIHelperMethods:
+    """Test AI-specific helper methods."""
+
+    def test_ai_table_exists(self, api, lua_runtime):
+        """Test that brogue.ai table is registered."""
+        result = lua_runtime.execute_script("return brogue.ai ~= nil")
+        assert result is True
+
+    def test_ai_get_target(self, game_context, lua_runtime, mock_game_state):
+        """Test AI getting target (player)."""
+        player = Entity(
+            entity_id="player_1",
+            name="Hero",
+            entity_type=EntityType.PLAYER,
+            x=10,
+            y=10,
+        )
+        mock_game_state.player = player
+
+        api = GameContextAPI(game_context, lua_runtime.lua)
+
+        result = lua_runtime.execute_script("""
+            local target = brogue.ai.get_target("monster_1")
+            return target.name
+        """)
+
+        assert result == "Hero"
+
+    def test_ai_is_adjacent_true(self, game_context, lua_runtime, mock_game_state):
+        """Test AI adjacency check - adjacent entities."""
+        monster = Entity(entity_id="monster_1", x=5, y=5)
+        player = Entity(entity_id="player_1", x=6, y=5)
+        mock_game_state.entities["monster_1"] = monster
+        mock_game_state.entities["player_1"] = player
+
+        api = GameContextAPI(game_context, lua_runtime.lua)
+
+        result = lua_runtime.execute_script("""
+            return brogue.ai.is_adjacent("monster_1", "player_1")
+        """)
+
+        assert result is True
+
+    def test_ai_is_adjacent_false(self, game_context, lua_runtime, mock_game_state):
+        """Test AI adjacency check - non-adjacent entities."""
+        monster = Entity(entity_id="monster_1", x=5, y=5)
+        player = Entity(entity_id="player_1", x=10, y=10)
+        mock_game_state.entities["monster_1"] = monster
+        mock_game_state.entities["player_1"] = player
+
+        api = GameContextAPI(game_context, lua_runtime.lua)
+
+        result = lua_runtime.execute_script("""
+            return brogue.ai.is_adjacent("monster_1", "player_1")
+        """)
+
+        assert result is False
+
+    def test_ai_distance_to(self, game_context, lua_runtime, mock_game_state):
+        """Test AI distance calculation."""
+        monster = Entity(entity_id="monster_1", x=5, y=5)
+        player = Entity(entity_id="player_1", x=10, y=8)
+        mock_game_state.entities["monster_1"] = monster
+        mock_game_state.entities["player_1"] = player
+
+        api = GameContextAPI(game_context, lua_runtime.lua)
+
+        result = lua_runtime.execute_script("""
+            return brogue.ai.distance_to("monster_1", "player_1")
+        """)
+
+        # Manhattan distance: |10-5| + |8-5| = 5 + 3 = 8
+        assert result == 8
+
+    def test_ai_attack_descriptor(self, game_context, lua_runtime):
+        """Test AI attack action descriptor."""
+        api = GameContextAPI(game_context, lua_runtime.lua)
+
+        result = lua_runtime.execute_script("""
+            local action = brogue.ai.attack("monster_1", "player_1")
+            return action.action, action.target_id
+        """)
+
+        assert result == ("attack", "player_1")
+
+    def test_ai_move_towards_descriptor(self, game_context, lua_runtime):
+        """Test AI move_towards action descriptor."""
+        api = GameContextAPI(game_context, lua_runtime.lua)
+
+        result = lua_runtime.execute_script("""
+            local action = brogue.ai.move_towards("monster_1", "player_1")
+            return action.action, action.target_id
+        """)
+
+        assert result == ("move_towards", "player_1")
+
+    def test_ai_flee_from_descriptor(self, game_context, lua_runtime):
+        """Test AI flee_from action descriptor."""
+        api = GameContextAPI(game_context, lua_runtime.lua)
+
+        result = lua_runtime.execute_script("""
+            local action = brogue.ai.flee_from("monster_1", "player_1")
+            return action.action, action.target_id
+        """)
+
+        assert result == ("flee_from", "player_1")
+
+    def test_ai_wander_descriptor(self, game_context, lua_runtime):
+        """Test AI wander action descriptor."""
+        api = GameContextAPI(game_context, lua_runtime.lua)
+
+        result = lua_runtime.execute_script("""
+            local action = brogue.ai.wander("monster_1")
+            return action.action
+        """)
+
+        assert result == "wander"
+
+    def test_ai_idle_descriptor(self, game_context, lua_runtime):
+        """Test AI idle action descriptor."""
+        api = GameContextAPI(game_context, lua_runtime.lua)
+
+        result = lua_runtime.execute_script("""
+            local action = brogue.ai.idle("monster_1")
+            return action.action
+        """)
+
+        assert result == "idle"

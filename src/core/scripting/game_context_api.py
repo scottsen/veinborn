@@ -73,9 +73,23 @@ class GameContextAPI:
         brogue_table["heal"] = self._heal
         brogue_table["is_alive"] = self._is_alive
 
+        # Register AI-specific methods in brogue.ai table
+        ai_table = self.lua.table()
+        ai_table["get_target"] = self._ai_get_target
+        ai_table["is_adjacent"] = self._ai_is_adjacent
+        ai_table["distance_to"] = self._ai_distance_to
+        ai_table["get_config"] = self._ai_get_config
+        ai_table["attack"] = self._ai_attack
+        ai_table["move_towards"] = self._ai_move_towards
+        ai_table["flee_from"] = self._ai_flee_from
+        ai_table["wander"] = self._ai_wander
+        ai_table["idle"] = self._ai_idle
+        brogue_table["ai"] = ai_table
+
         # Set brogue table as global
         self.lua.globals()["brogue"] = brogue_table
-        logger.debug("Registered brogue API with %d methods", len(brogue_table))
+        logger.debug("Registered brogue API with %d methods (%d AI methods)",
+                     len(brogue_table), len(ai_table))
 
     # Entity serialization
 
@@ -405,3 +419,167 @@ class GameContextAPI:
         except Exception as e:
             logger.error(f"Error checking if alive: {e}")
             return False
+
+    # AI-specific methods
+
+    def _ai_get_target(self, monster_id: str) -> Optional[Dict[str, Any]]:
+        """
+        Get monster's current target (usually the player).
+
+        Args:
+            monster_id: Monster entity ID
+
+        Returns:
+            Target entity as Lua table, or None if no target
+        """
+        try:
+            # For now, AI monsters always target the player
+            # Future: Could support custom target tracking
+            player = self.context.get_player()
+            return self._entity_to_lua(player)
+        except Exception as e:
+            logger.error(f"Error getting AI target: {e}")
+            return None
+
+    def _ai_is_adjacent(self, monster_id: str, target_id: str) -> bool:
+        """
+        Check if monster is adjacent to target.
+
+        Args:
+            monster_id: Monster entity ID
+            target_id: Target entity ID
+
+        Returns:
+            True if adjacent (within 1 tile), False otherwise
+        """
+        try:
+            monster = self.context.get_entity(monster_id)
+            target = self.context.get_entity(target_id)
+
+            if not monster or not target:
+                return False
+
+            dx = abs(monster.x - target.x)
+            dy = abs(monster.y - target.y)
+
+            # Adjacent means within 1 tile (including diagonals)
+            return dx <= 1 and dy <= 1 and (dx + dy) > 0
+        except Exception as e:
+            logger.error(f"Error checking adjacency: {e}")
+            return False
+
+    def _ai_distance_to(self, monster_id: str, target_id: str) -> int:
+        """
+        Calculate Manhattan distance between monster and target.
+
+        Args:
+            monster_id: Monster entity ID
+            target_id: Target entity ID
+
+        Returns:
+            Manhattan distance (|dx| + |dy|), or 999 if error
+        """
+        try:
+            monster = self.context.get_entity(monster_id)
+            target = self.context.get_entity(target_id)
+
+            if not monster or not target:
+                return 999
+
+            return abs(monster.x - target.x) + abs(monster.y - target.y)
+        except Exception as e:
+            logger.error(f"Error calculating distance: {e}")
+            return 999
+
+    def _ai_get_config(self, ai_type: str) -> Dict[str, Any]:
+        """
+        Get AI behavior configuration from YAML.
+
+        Args:
+            ai_type: AI behavior type name
+
+        Returns:
+            Configuration dict for the AI type
+        """
+        try:
+            config = self.context.config.get_ai_behavior_config(ai_type)
+            # Convert to Lua table
+            lua_config = self.lua.table()
+            for key, value in config.items():
+                lua_config[key] = value
+            return lua_config
+        except Exception as e:
+            logger.error(f"Error getting AI config: {e}")
+            return self.lua.table()  # Empty table
+
+    def _ai_attack(self, monster_id: str, target_id: str) -> Dict[str, Any]:
+        """
+        Create attack action descriptor.
+
+        Args:
+            monster_id: Monster entity ID
+            target_id: Target entity ID
+
+        Returns:
+            Action descriptor: {action = "attack", target_id = ...}
+        """
+        return {
+            "action": "attack",
+            "target_id": target_id
+        }
+
+    def _ai_move_towards(self, monster_id: str, target_id: str) -> Dict[str, Any]:
+        """
+        Create move-towards action descriptor.
+
+        Args:
+            monster_id: Monster entity ID
+            target_id: Target entity ID
+
+        Returns:
+            Action descriptor: {action = "move_towards", target_id = ...}
+        """
+        return {
+            "action": "move_towards",
+            "target_id": target_id
+        }
+
+    def _ai_flee_from(self, monster_id: str, target_id: str) -> Dict[str, Any]:
+        """
+        Create flee action descriptor.
+
+        Args:
+            monster_id: Monster entity ID
+            target_id: Target entity ID
+
+        Returns:
+            Action descriptor: {action = "flee_from", target_id = ...}
+        """
+        return {
+            "action": "flee_from",
+            "target_id": target_id
+        }
+
+    def _ai_wander(self, monster_id: str) -> Dict[str, str]:
+        """
+        Create wander action descriptor.
+
+        Args:
+            monster_id: Monster entity ID
+
+        Returns:
+            Action descriptor: {action = "wander"}
+        """
+        return {"action": "wander"}
+
+    def _ai_idle(self, monster_id: str) -> Dict[str, str]:
+        """
+        Create idle action descriptor.
+
+        Args:
+            monster_id: Monster entity ID
+
+        Returns:
+            Action descriptor: {action = "idle"}
+        """
+        return {"action": "idle"}
