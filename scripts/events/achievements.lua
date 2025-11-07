@@ -167,3 +167,15 @@ function get_achievement_stats()
         turns = stats.turns_survived,
     }
 end
+
+--- Export stats for testing
+-- @return table Achievement stats
+function get_stats()
+    return stats
+end
+
+--- Export achievements for testing
+-- @return table Achievements data
+function get_achievements()
+    return achievements
+end

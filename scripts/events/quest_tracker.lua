@@ -165,3 +165,9 @@ function activate_quest(quest_id)
 
     return true
 end
+
+--- Export quests for testing
+-- @return table Quest state
+function get_quests()
+    return quests
+end

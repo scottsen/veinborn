@@ -162,8 +162,9 @@ class TestAchievementsExample:
             )
             handler.handle(event)
 
-        # Check that kills are tracked
-        stats = lua_runtime.get_global("stats")
+        # Check that kills are tracked using export function
+        get_stats = lua_runtime.get_global("get_stats")
+        stats = get_stats()
         assert stats is not None
         assert stats['player_kills'] == 100
 
@@ -186,8 +187,9 @@ class TestAchievementsExample:
         )
         handler.handle(event)
 
-        # Check that kill wasn't counted
-        stats = lua_runtime.get_global("stats")
+        # Check that kill wasn't counted using export function
+        get_stats = lua_runtime.get_global("get_stats")
+        stats = get_stats()
         assert stats['player_kills'] == 0
 
     def test_achievements_tracks_floors(self, api, lua_runtime, examples_dir):
@@ -209,8 +211,9 @@ class TestAchievementsExample:
         )
         handler.handle(event)
 
-        # Check deepest floor
-        stats = lua_runtime.get_global("stats")
+        # Check deepest floor using export function
+        get_stats = lua_runtime.get_global("get_stats")
+        stats = get_stats()
         assert stats['deepest_floor'] == 15
 
     def test_achievements_tracks_crafting(self, api, lua_runtime, examples_dir):
@@ -233,8 +236,9 @@ class TestAchievementsExample:
             )
             handler.handle(event)
 
-        # Check crafting count
-        stats = lua_runtime.get_global("stats")
+        # Check crafting count using export function
+        get_stats = lua_runtime.get_global("get_stats")
+        stats = get_stats()
         assert stats['items_crafted'] == 50
 
 
@@ -280,8 +284,9 @@ class TestQuestTrackerExample:
         with open(quest_file, 'r') as f:
             lua_runtime.execute_script(f.read())
 
-        # Check for quests table
-        quests = lua_runtime.get_global("quests")
+        # Check for quests table using export function
+        get_quests = lua_runtime.get_global("get_quests")
+        quests = get_quests()
         assert quests is not None
         assert 'goblin_slayer' in quests
 
@@ -296,10 +301,10 @@ class TestQuestTrackerExample:
         )
         handler.load()
 
-        # Get quest and activate it
-        lua_runtime.execute_script("""
-            quests.goblin_slayer.active = true
-        """)
+        # Get quest and activate it using export function
+        get_quests = lua_runtime.get_global("get_quests")
+        quests = get_quests()
+        quests['goblin_slayer']['active'] = True
 
         # Simulate killing 3 goblins
         for i in range(3):
@@ -314,10 +319,9 @@ class TestQuestTrackerExample:
             )
             handler.handle(event)
 
-        # Check quest progress
-        progress = lua_runtime.execute_script("""
-            return quests.goblin_slayer.progress
-        """)
+        # Check quest progress using export function
+        quests = get_quests()
+        progress = quests['goblin_slayer']['progress']
         assert progress == 3
 
     def test_quest_tracker_completion(self, api, lua_runtime, examples_dir):
@@ -331,10 +335,10 @@ class TestQuestTrackerExample:
         )
         handler.load()
 
-        # Activate quest
-        lua_runtime.execute_script("""
-            quests.goblin_slayer.active = true
-        """)
+        # Activate quest using export function
+        get_quests = lua_runtime.get_global("get_quests")
+        quests = get_quests()
+        quests['goblin_slayer']['active'] = True
 
         # Kill 5 goblins (target)
         for i in range(5):
@@ -349,10 +353,9 @@ class TestQuestTrackerExample:
             )
             handler.handle(event)
 
-        # Check quest completed
-        completed = lua_runtime.execute_script("""
-            return quests.goblin_slayer.completed
-        """)
+        # Check quest completed using export function
+        quests = get_quests()
+        completed = quests['goblin_slayer']['completed']
         assert completed is True
 
 
@@ -415,10 +418,10 @@ class TestDynamicLootExample:
             )
             handler.handle(event)
 
-        # Check kill streak
-        streak = lua_runtime.execute_script("""
-            return loot_state.kill_streak
-        """)
+        # Check kill streak using export function
+        get_loot_state = lua_runtime.get_global("get_loot_state")
+        loot_state = get_loot_state()
+        streak = loot_state['kill_streak']
         assert streak == 3
 
     def test_dynamic_loot_floor_tracking(self, api, lua_runtime, examples_dir):
@@ -440,10 +443,10 @@ class TestDynamicLootExample:
         )
         handler.handle(event)
 
-        # Check current floor
-        current_floor = lua_runtime.execute_script("""
-            return loot_state.current_floor
-        """)
+        # Check current floor using export function
+        get_loot_state = lua_runtime.get_global("get_loot_state")
+        loot_state = get_loot_state()
+        current_floor = loot_state['current_floor']
         assert current_floor == 15
 
 
