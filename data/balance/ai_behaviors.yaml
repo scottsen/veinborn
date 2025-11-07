@@ -44,6 +44,28 @@ behaviors:
     flee_threshold: 0.2
     guard_radius: 4  # Don't stray more than 4 tiles from spawn
 
+  # Berserker - Lua AI: Aggressive, enrages when wounded
+  berserker:
+    description: "Aggressive fighter, enraged when wounded"
+    chase_range: 8
+    enraged_chase_range: 15
+    enrage_threshold: 0.7  # Enrage when HP < 70%
+    attack_on_sight: true
+
+  # Sniper - Lua AI: Ranged attacker, maintains distance
+  sniper:
+    description: "Ranged attacker, maintains distance"
+    ideal_range_min: 4
+    ideal_range_max: 6
+    flee_threshold: 0.3
+
+  # Summoner - Lua AI: Summons allies, avoids combat
+  summoner:
+    description: "Summons allies, avoids direct combat"
+    summon_distance: 8
+    flee_distance: 4
+    summon_cooldown: 10
+
 # Monster AI Assignments
 # (Can override in monster YAML files)
 default_ai_by_type:
