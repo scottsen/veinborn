@@ -12,7 +12,7 @@ from pathlib import Path
 from typing import Dict, List, Optional, Set
 from collections import defaultdict
 
-from ..events import GameEvent, GameEventType, EventBus
+from .events import GameEvent, GameEventType, EventBus
 from ..scripting.lua_runtime import LuaRuntime
 from .lua_event_handler import LuaEventHandler
 

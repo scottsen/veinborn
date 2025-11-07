@@ -10,7 +10,7 @@ from pathlib import Path
 from typing import Any, Dict, Optional
 import lupa
 
-from ..events import GameEvent
+from .events import GameEvent
 from ..scripting.lua_runtime import LuaRuntime, LuaTimeoutError
 
 logger = logging.getLogger(__name__)

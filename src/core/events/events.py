@@ -22,7 +22,7 @@ import logging
 import time
 
 if TYPE_CHECKING:
-    from .events.lua_event_handler import LuaEventHandler
+    from .lua_event_handler import LuaEventHandler
 
 logger = logging.getLogger(__name__)
 
