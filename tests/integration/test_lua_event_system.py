@@ -64,9 +64,8 @@ def game_context(mock_game_state):
 @pytest.fixture
 def api(game_context, lua_runtime, event_bus, registry):
     """Create GameContextAPI with full event support."""
-    api = GameContextAPI(game_context, lua_runtime.lua)
-    api.event_bus = event_bus
-    api.lua_event_registry = registry
+    # Pass event_bus and registry during init so _register_api() can use them
+    api = GameContextAPI(game_context, lua_runtime.lua, event_bus, registry)
     return api
 
 
@@ -88,7 +87,7 @@ class TestEndToEndEventFlow:
     """Test complete event flow from publishing to handler execution."""
 
     def test_event_published_to_lua_handler(
-        self, event_bus, lua_runtime, temp_script_dir, registry
+        self, api, event_bus, lua_runtime, temp_script_dir, registry
     ):
         """Test that events flow from EventBus to Lua handler."""
         script_file = temp_script_dir / "test_handler.lua"
@@ -692,7 +691,7 @@ end
 class TestEventHistory:
     """Test event history functionality."""
 
-    def test_event_history_tracking(self, event_bus, lua_runtime, temp_script_dir, registry):
+    def test_event_history_tracking(self, api, event_bus, lua_runtime, temp_script_dir, registry):
         """Test that event history is tracked when enabled."""
         # History should be enabled by fixture
         assert event_bus.enable_history is True

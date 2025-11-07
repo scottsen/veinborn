@@ -58,9 +58,8 @@ def registry(lua_runtime, event_bus):
 @pytest.fixture
 def api(game_context, lua_runtime, event_bus, registry):
     """Create GameContextAPI with event support."""
-    api = GameContextAPI(game_context, lua_runtime.lua)
-    api.event_bus = event_bus
-    api.lua_event_registry = registry
+    # Pass event_bus and registry during init so _register_api() can use them
+    api = GameContextAPI(game_context, lua_runtime.lua, event_bus, registry)
     return api
 
 

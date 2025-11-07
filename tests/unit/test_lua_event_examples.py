@@ -11,11 +11,14 @@ Tests cover:
 
 import pytest
 from pathlib import Path
+from unittest.mock import Mock
 
 from core.events.lua_event_handler import LuaEventHandler
 from core.events.lua_event_registry import LuaEventRegistry
 from core.events.events import EventBus, GameEvent, GameEventType
 from core.scripting.lua_runtime import LuaRuntime
+from core.scripting.game_context_api import GameContextAPI
+from core.base.game_context import GameContext
 
 
 @pytest.fixture
@@ -34,6 +37,32 @@ def event_bus():
 def registry(lua_runtime, event_bus):
     """Create LuaEventRegistry instance."""
     return LuaEventRegistry(lua_runtime, event_bus)
+
+
+@pytest.fixture
+def mock_game_state():
+    """Create mock game state."""
+    game_state = Mock()
+    game_state.entities = {}
+    game_state.messages = []
+    game_state.turn_count = 1
+    game_state.current_floor = 1
+    return game_state
+
+
+@pytest.fixture
+def game_context(mock_game_state):
+    """Create GameContext with mock state."""
+    return GameContext(mock_game_state)
+
+
+@pytest.fixture
+def api(game_context, lua_runtime, event_bus, registry):
+    """Create GameContextAPI with full event support."""
+    # Pass event_bus and registry during init so _register_api() can use them
+    # This ensures brogue table is available in Lua environment
+    api = GameContextAPI(game_context, lua_runtime.lua, event_bus, registry)
+    return api
 
 
 @pytest.fixture
@@ -113,7 +142,7 @@ class TestAchievementsExample:
             assert handler_func is not None, f"Missing handler: {handler_name}"
             assert callable(handler_func), f"Handler not callable: {handler_name}"
 
-    def test_achievements_tracks_kills(self, lua_runtime, examples_dir):
+    def test_achievements_tracks_kills(self, api, lua_runtime, examples_dir):
         """Test that achievements tracks player kills correctly."""
         achievements_file = examples_dir / "achievements.lua"
 
@@ -138,7 +167,7 @@ class TestAchievementsExample:
         assert stats is not None
         assert stats['player_kills'] == 100
 
-    def test_achievements_ignores_non_player_kills(self, lua_runtime, examples_dir):
+    def test_achievements_ignores_non_player_kills(self, api, lua_runtime, examples_dir):
         """Test that achievements ignores kills by other entities."""
         achievements_file = examples_dir / "achievements.lua"
 
@@ -161,7 +190,7 @@ class TestAchievementsExample:
         stats = lua_runtime.get_global("stats")
         assert stats['player_kills'] == 0
 
-    def test_achievements_tracks_floors(self, lua_runtime, examples_dir):
+    def test_achievements_tracks_floors(self, api, lua_runtime, examples_dir):
         """Test that achievements tracks floor progression."""
         achievements_file = examples_dir / "achievements.lua"
 
@@ -184,7 +213,7 @@ class TestAchievementsExample:
         stats = lua_runtime.get_global("stats")
         assert stats['deepest_floor'] == 15
 
-    def test_achievements_tracks_crafting(self, lua_runtime, examples_dir):
+    def test_achievements_tracks_crafting(self, api, lua_runtime, examples_dir):
         """Test that achievements tracks item crafting."""
         achievements_file = examples_dir / "achievements.lua"
 
@@ -244,7 +273,7 @@ class TestQuestTrackerExample:
             assert handler_func is not None
             assert callable(handler_func)
 
-    def test_quest_tracker_has_quest_data(self, lua_runtime, examples_dir):
+    def test_quest_tracker_has_quest_data(self, api, lua_runtime, examples_dir):
         """Test that quest tracker defines quests."""
         quest_file = examples_dir / "quest_tracker.lua"
 
@@ -256,7 +285,7 @@ class TestQuestTrackerExample:
         assert quests is not None
         assert 'goblin_slayer' in quests
 
-    def test_quest_tracker_progress(self, lua_runtime, examples_dir):
+    def test_quest_tracker_progress(self, api, lua_runtime, examples_dir):
         """Test that quest tracker updates progress on kills."""
         quest_file = examples_dir / "quest_tracker.lua"
 
@@ -291,7 +320,7 @@ class TestQuestTrackerExample:
         """)
         assert progress == 3
 
-    def test_quest_tracker_completion(self, lua_runtime, examples_dir):
+    def test_quest_tracker_completion(self, api, lua_runtime, examples_dir):
         """Test that quest completes when target reached."""
         quest_file = examples_dir / "quest_tracker.lua"
 
@@ -366,7 +395,7 @@ class TestDynamicLootExample:
             assert handler_func is not None
             assert callable(handler_func)
 
-    def test_dynamic_loot_tracks_kill_streak(self, lua_runtime, examples_dir):
+    def test_dynamic_loot_tracks_kill_streak(self, api, lua_runtime, examples_dir):
         """Test that dynamic loot tracks kill streaks."""
         loot_file = examples_dir / "dynamic_loot.lua"
 
@@ -392,7 +421,7 @@ class TestDynamicLootExample:
         """)
         assert streak == 3
 
-    def test_dynamic_loot_floor_tracking(self, lua_runtime, examples_dir):
+    def test_dynamic_loot_floor_tracking(self, api, lua_runtime, examples_dir):
         """Test that dynamic loot tracks floor changes."""
         loot_file = examples_dir / "dynamic_loot.lua"
 
