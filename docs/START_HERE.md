@@ -55,7 +55,19 @@ A mechanical roguelike where you dive into procedural dungeons, hunt for perfect
 ### 1. Run the Game
 
 ```bash
-cd /home/scottsen/src/tia/projects/brogue
+# Easy way (recommended)
+./brogue
+
+# Or install system-wide (then run from anywhere)
+./install.sh
+brogue
+
+# Advanced options
+./brogue --debug    # Debug logging
+./brogue --safe     # Terminal reset on crash
+./brogue --help     # Show help
+
+# Old way (still works)
 python3 run_textual.py
 ```
 
@@ -571,23 +583,26 @@ Example:
 ## Quick Reference: Running the Game
 
 ```bash
-# Main game (Textual UI)
+# Easy launcher (recommended)
+./brogue              # Normal mode
+./brogue --debug      # Debug mode (full logging)
+./brogue --safe       # Safe mode (terminal reset on crash)
+./brogue --help       # Show help
+
+# Install system-wide (optional)
+./install.sh          # Installs 'brogue' command to ~/.local/bin
+
+# Old way (still works)
 python3 run_textual.py
-
-# Debug mode (full logging)
 python3 scripts/run_debug.py
-
-# Safe mode (terminal reset on crash)
 python3 scripts/run_safe.py
 
 # Run tests
 python3 -m pytest tests/
-
-# Run specific test
 python3 -m pytest tests/test_widgets.py
 ```
 
-**Terminal stuck?** Run `./fix_terminal.sh` to reset.
+**Terminal stuck?** Run `reset` or use `./brogue --safe` next time.
 
 ---
 

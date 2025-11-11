@@ -23,15 +23,27 @@ A mechanical roguelike where you and your bros dive into procedural dungeons, hu
 ### Play the Game (Current Prototype)
 
 ```bash
-# Run the game
-python3 run_textual.py
+# Easy way (recommended)
+./brogue
 
-# Controls
-Arrows/HJKL: Move
-YUBN: Diagonal
-R: Restart
-Q: Quit
+# Or install system-wide
+./install.sh
+brogue
+
+# Advanced options
+./brogue --debug    # Debug mode with logging
+./brogue --safe     # Safe mode (terminal reset)
+./brogue --help     # Show help
+
+# Old way (still works)
+python3 run_textual.py
 ```
+
+**Controls:**
+- `Arrows/HJKL`: Move
+- `YUBN`: Diagonal movement
+- `R`: Restart game
+- `Q`: Quit
 
 ### Understanding the Legacy Vault
 

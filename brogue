@@ -1,0 +1,88 @@
+#!/usr/bin/env bash
+# Brogue Game Launcher
+# Simple wrapper to run the game without typing "python3 run_textual.py"
+
+set -e
+
+# Get the directory where this script lives
+SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+cd "$SCRIPT_DIR"
+
+# Colors for output
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+NC='\033[0m' # No Color
+
+# Parse command line arguments
+MODE="normal"
+if [ $# -gt 0 ]; then
+    case "$1" in
+        --debug|-d)
+            MODE="debug"
+            ;;
+        --safe|-s)
+            MODE="safe"
+            ;;
+        --help|-h)
+            echo "Brogue Game Launcher"
+            echo ""
+            echo "Usage: ./brogue [OPTIONS]"
+            echo ""
+            echo "Options:"
+            echo "  (no args)        Run the game normally"
+            echo "  --debug, -d      Run with debug logging"
+            echo "  --safe, -s       Run with terminal reset (if game crashes)"
+            echo "  --help, -h       Show this help message"
+            echo ""
+            echo "Controls:"
+            echo "  Arrows/HJKL      Move"
+            echo "  YUBN             Diagonal movement"
+            echo "  R                Restart game"
+            echo "  Q                Quit"
+            echo ""
+            exit 0
+            ;;
+        *)
+            echo -e "${RED}Unknown option: $1${NC}"
+            echo "Use --help for usage information"
+            exit 1
+            ;;
+    esac
+fi
+
+# Check if Python is available
+if ! command -v python3 &> /dev/null; then
+    echo -e "${RED}Error: python3 not found${NC}"
+    echo "Please install Python 3.10+ to run Brogue"
+    exit 1
+fi
+
+# Check if dependencies are installed
+if ! python3 -c "import textual" 2>/dev/null; then
+    echo -e "${YELLOW}Warning: Dependencies not installed${NC}"
+    echo "Installing dependencies..."
+    pip install -q -r requirements.txt
+fi
+
+# Run the game based on mode
+case "$MODE" in
+    debug)
+        echo -e "${GREEN}Starting Brogue in debug mode...${NC}"
+        python3 scripts/run_debug.py
+        ;;
+    safe)
+        echo -e "${GREEN}Starting Brogue in safe mode...${NC}"
+        python3 scripts/run_safe.py
+        ;;
+    *)
+        echo -e "${GREEN}Starting Brogue...${NC}"
+        python3 run_textual.py
+        ;;
+esac
+
+# If terminal is messed up after crash
+if [ $? -ne 0 ]; then
+    echo -e "${RED}Game exited with error${NC}"
+    echo "If your terminal is broken, run: reset"
+fi
