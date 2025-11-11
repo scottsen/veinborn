@@ -1,9 +1,9 @@
 # Brogue MVP: Current Focus & Next Steps
 
 **Status:** ✅ **MVP FEATURE-COMPLETE** - Now in Polish & Content Phase
-**Phase:** MVP Polish (Single-Player)
-**Last Updated:** 2025-11-05
-**Test Status:** 544 passing, 0 skipped (100% pass rate)
+**Phase:** MVP Polish + Lua Advanced Features
+**Last Updated:** 2025-11-06
+**Test Status:** 857/860 passing (99.7% pass rate)
 
 ---
 
@@ -32,8 +32,10 @@ The single-player MVP is **feature-complete** with all core systems working:
 9. ✅ **Loot System** - Monster drops, loot tables (DONE - 3 tests passing)
 10. ✅ **Combat System** - Turn-based tactical combat (DONE - 40+ tests passing)
 11. ✅ **Monster AI** - Pathfinding, aggression (DONE - 40+ tests passing)
+12. ✅ **Legacy Vault System** - Meta-progression (DONE - 47 tests passing)
+13. ✅ **Lua Event System** - Phase 3 complete (event handlers, achievements, quests)
 
-**Test Evidence:** 474 tests passing (97% pass rate)
+**Test Evidence:** 857/860 tests passing (99.7% pass rate)
 
 ---
 
@@ -44,7 +46,8 @@ The single-player MVP is **feature-complete** with all core systems working:
 The core game is complete and playable. Focus now shifts to:
 - Playtesting and balance tuning
 - Content expansion (more monsters, recipes)
-- Completing partial features (Legacy Vault)
+- Lua advanced features (AI behaviors, custom actions)
+- Fix remaining 3 test failures
 - Polish and user experience improvements
 
 ---
@@ -80,25 +83,20 @@ python3 run_textual.py
 - Any crashes or bugs?
 - Are monster types varied enough?
 
-#### 2. Complete Legacy Vault System (50% Done)
-**Why:** Meta-progression feature designed but not fully implemented
+#### 2. Fix Remaining 3 Test Failures
+**Why:** Get to 100% test passing (860/860)
 
-**What Exists:**
-- ✅ Ore quality definitions (purity tracking)
-- ✅ Rare ore criteria (purity 80+)
+**Current Status:**
+- ✅ 857/860 passing (99.7%)
+- ⚠️ 3 tests need investigation/fixes
+- ✅ Legacy test_perception flakiness addressed (deterministic now)
 
-**What's Missing:**
-- [ ] Vault storage system (save rare ore on death)
-- [ ] Withdrawal UI (take 1 ore at run start)
-- [ ] Pure vs Legacy run tracking
-- [ ] Vault persistence (`~/.brogue/legacy_vault.json`)
+**Next Steps:**
+- [ ] Identify remaining 3 failing tests
+- [ ] Fix or mark as expected failures
+- [ ] Verify test suite stability
 
-**Files to Create/Modify:**
-- `src/core/legacy.py` - Vault management logic
-- `src/ui/textual/widgets/legacy_widget.py` - Vault UI
-- `data/legacy_vault.json` - Persistent storage
-
-**Estimated Time:** 4-6 hours
+**Estimated Time:** 1-2 days
 
 #### 3. Content Expansion (60% Complete)
 **Why:** Design calls for 15-20 monster types, we have 9
@@ -235,7 +233,9 @@ python3 run_textual.py
 
 ### 🔨 Phase 2: Polish (CURRENT - November 2025)
 - [ ] Playtest and balance pass
-- [ ] Complete Legacy Vault (50% done)
+- [x] Complete Legacy Vault (100% done - 47 tests passing!)
+- [x] Lua Event System (100% done - Phase 3 complete!)
+- [ ] Fix remaining 3 test failures (857/860 → 860/860)
 - [ ] Content expansion (more monsters, recipes)
 - [ ] Tutorial system
 - [ ] Special room types
@@ -277,10 +277,12 @@ python3 run_textual.py
 - `data/entities/ores.yaml` - 4 ore types ✅
 - `data/balance/loot_tables.yaml` - Loot definitions ✅
 
-### Tests (474 Passing):
+### Tests (857/860 Passing - 99.7%):
 - `tests/unit/` - Unit tests ✅
 - `tests/integration/` - Integration tests ✅
+- `tests/fuzz/` - Bot testing ✅
 - All systems have comprehensive test coverage ✅
+- **3 failing tests** remaining for investigation
 
 ---
 
@@ -358,8 +360,9 @@ python3 -m pytest tests/ -v
 
 ### "What's actually missing?"
 Very little! Main gaps:
-- Legacy Vault (meta-progression) - 50% done
-- More monster types (have 9, want 15-20)
+- Fix remaining 3 test failures (99.7% → 100%)
+- Lua advanced features (AI behaviors, custom actions)
+- More monster types (have 19, excellent coverage!)
 - Tutorial system (new player UX)
 - Special room types (content variety)
 
