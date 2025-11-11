@@ -77,12 +77,26 @@ python3 run_textual.py
 - **R:** Restart game
 - **Q:** Quit
 
-### 2. Play Around
+### 2. Learn How to Play
 
-- Move with arrow keys
-- Bump into monsters to attack (`r` = rat, `g` = goblin, `o` = orc)
+👉 **[Read HOW_TO_PLAY.md](../HOW_TO_PLAY.md)** - Complete 5-minute guide!
+
+**Quick Start:**
+- Move with arrow keys or `HJKL`
+- Bump into monsters to attack (`g` = goblin, `o` = orc, `T` = troll)
+- Press `s` next to ore veins (◆) to survey properties
+- Press `m` to mine ore (takes 3-5 turns, you're vulnerable!)
+- Find forges, press `c` to craft equipment
+- Press `e` to equip crafted gear
 - Watch your HP in the status bar
-- Die and restart (it's a roguelike!)
+- Die and learn (it's a roguelike!)
+
+**The guide covers:**
+- Complete controls reference
+- Your first game step-by-step
+- Mining & crafting strategies
+- Character classes explained
+- Common mistakes to avoid
 
 ### 3. Explore the Code
 
