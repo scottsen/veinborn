@@ -15,18 +15,20 @@
 - ✅ Save/load system (26 tests passing)
 - ✅ Character classes (13 tests passing)
 - ✅ Floor progression (23 tests passing)
-- **474 tests passing total!**
+- ✅ Legacy Vault system (47 tests passing)
+- ✅ Lua Event System (Phase 3 complete!)
+- **857/860 tests passing (99.7%)!**
 
 **What we're building NOW (Polish Phase):**
 - 🔨 Playtesting and balance tuning
-- 🔨 Complete Legacy Vault (50% done)
+- 🔨 Fix remaining 3 test failures
 - 🔨 Content expansion (more monsters, recipes)
 - 🔨 Tutorial system
+- 🔨 Lua advanced features (AI behaviors, actions)
 
 **What we're NOT building yet:**
 - ❌ Multiplayer (Phase 4, multiple months out)
 - ❌ NATS message bus, microservices
-- ❌ Lua scripting (Phase 3)
 
 **For current status:** See `PROJECT_STATUS.md` (comprehensive report)
 **For next steps:** See `MVP_CURRENT_FOCUS.md` (updated 2025-11-05)
@@ -103,14 +105,15 @@ def generate_dungeon():
 
 ### 📋 Implementation Status
 
-**Current State:** MVP is feature-complete! 474 tests passing. Game is fully playable.
+**Current State:** MVP is feature-complete! 857/860 tests passing (99.7%). Game is fully playable.
 
 **What exists (ALL WORKING):**
 - ✅ Complete documentation (you're reading it!)
 - ✅ Game design finalized
 - ✅ Architecture implemented
 - ✅ Core game code (COMPLETE - 103 Python files)
-- ✅ Comprehensive test suite (544 passing tests, 0 skipped)
+- ✅ Comprehensive test suite (857/860 passing tests)
+- ✅ Lua Event System (Phase 3 complete!)
 
 **What's been built (MVP Phase 1 - COMPLETE):**
 - ✅ Core Game Loop: Turn-based movement and combat
@@ -152,10 +155,10 @@ def generate_dungeon():
 - ✅ Difficulty scaling with depth
 - ✅ Monster and ore progression
 
-**Meta-Progression** (PARTIAL):
-- ⚠️ Legacy Vault (50% done - needs implementation)
+**Meta-Progression** (COMPLETE):
+- ✅ Legacy Vault (100% complete - 47 tests passing)
 - ✅ High Score tracking (COMPLETE - 10 tests)
-- ✅ Pure Victory vs Legacy Victory designed
+- ✅ Pure Victory vs Legacy Victory implemented
 
 **See full status:** `docs/PROJECT_STATUS.md` (comprehensive report)
 
@@ -207,9 +210,9 @@ projects/brogue/
 │   │   ├── game.py         # ⭐ Game loop, state management
 │   │   ├── entities.py     # ⭐ Player, monsters, items
 │   │   ├── world.py        # ⭐ Map generation (BSP algorithm)
-│   │   ├── recipes.py      # TODO: Crafting system
-│   │   ├── legacy.py       # TODO: Legacy Vault
-│   │   └── save.py         # TODO: Save/load
+│   │   ├── crafting.py     # ⭐ Crafting system (COMPLETE)
+│   │   ├── legacy.py       # ⭐ Legacy Vault (COMPLETE)
+│   │   └── save_load.py    # ⭐ Save/load (COMPLETE)
 │   │
 │   └── ui/
 │       └── textual/        # ⭐ Textual UI widgets
@@ -217,8 +220,13 @@ projects/brogue/
 │           └── widgets/
 │
 ├── data/
-│   ├── recipes/            # TODO: Recipe YAML files
-│   └── saves/              # TODO: Save games
+│   ├── balance/            # ⭐ Game balance (recipes, spawning, etc)
+│   ├── entities/           # ⭐ Entity definitions (monsters, ores)
+│   └── highscores.json     # ⭐ High score persistence
+│
+├── ~/.brogue/
+│   ├── saves/              # ⭐ Save games
+│   └── legacy_vault.json   # ⭐ Meta-progression vault
 │
 ├── docs/
 │   ├── START_HERE.md       # 👈 You are here
@@ -367,7 +375,7 @@ Every run is different:
 - "Pure Victory" (no legacy) vs "Legacy Victory"
 - Encourages replay without removing stakes
 
-### 4. Mining/Crafting (Phase 1 - TODO)
+### 4. Mining/Crafting (Phase 1 - COMPLETE)
 
 **The hook that makes Brogue unique:**
 
