@@ -20,18 +20,36 @@ A mechanical roguelike where you and your bros dive into procedural dungeons, hu
 
 ## Quick Start
 
-### Play the Game (Current Prototype)
+### Play the Game
 
 ```bash
 # Run the game
-python3 run_textual.py
+./brogue
 
-# Controls
-Arrows/HJKL: Move
-YUBN: Diagonal
-R: Restart
-Q: Quit
+# Or install system-wide
+./install.sh
+brogue
+
+# Advanced options
+./brogue --debug    # Debug mode with logging
+./brogue --safe     # Safe mode (terminal reset)
+./brogue --help     # Show help
 ```
+
+**New to Brogue?** 👉 **[Read HOW_TO_PLAY.md](HOW_TO_PLAY.md)** - 5-minute guide to your first game
+
+**Quick Controls:**
+- `Arrows/HJKL`: Move
+- `YUBN`: Diagonal movement
+- `s`: Survey ore
+- `m`: Mine ore
+- `c`: Craft (at forge)
+- `e`: Equip items
+- `>`: Descend stairs
+- `R`: Restart game
+- `Q`: Quit
+
+**Gameplay Loop:** Explore → Mine ore → Craft equipment → Fight monsters → Go deeper → Die → Learn → Repeat!
 
 ### Understanding the Legacy Vault
 

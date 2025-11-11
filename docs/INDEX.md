@@ -6,13 +6,24 @@
 
 ## 🎯 Start Here (New to Brogue?)
 
+### For Players
 | Document | Time | Purpose |
 |----------|------|---------|
-| **[README.md](../README.md)** | 5 min | Project overview, quick start |
-| **[START_HERE.md](START_HERE.md)** | 15 min | Developer onboarding guide |
-| **[QUICK_REFERENCE.md](QUICK_REFERENCE.md)** | 2 min | Commands, file locations, common tasks |
+| **[HOW_TO_PLAY.md](../HOW_TO_PLAY.md)** ⭐ | 5 min | **Complete gameplay guide - START HERE!** |
+| **[QUICK_REFERENCE.md](QUICK_REFERENCE.md)** | 2 min | Controls & keybinds quick lookup |
+| **[README.md](../README.md)** | 5 min | Project overview |
 
-**Recommended path:** README → START_HERE → Pick a task → Code!
+**Recommended path:** HOW_TO_PLAY → Play the game → Have fun!
+
+### For Developers
+| Document | Time | Purpose |
+|----------|------|---------|
+| **[START_HERE.md](START_HERE.md)** ⭐ | 15 min | **Developer onboarding - START HERE!** |
+| **[PROJECT_STATUS.md](PROJECT_STATUS.md)** | 10 min | What's implemented (everything!) |
+| **[MVP_CURRENT_FOCUS.md](MVP_CURRENT_FOCUS.md)** | 5 min | Current priorities |
+| **[QUICK_REFERENCE.md](QUICK_REFERENCE.md)** | 2 min | Commands, file locations |
+
+**Recommended path:** START_HERE → PROJECT_STATUS → Pick a task → Code!
 
 ---
 

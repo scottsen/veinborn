@@ -11,6 +11,7 @@ Tests cover:
 """
 
 import pytest
+import signal
 import tempfile
 from pathlib import Path
 import lupa
@@ -315,7 +316,7 @@ class TestSyntaxValidation:
 class TestTimeoutProtection:
     """Test timeout protection for long-running scripts."""
 
-    @pytest.mark.skip(reason="Timeout requires Unix signals, may not work in all environments")
+    @pytest.mark.skip(reason="Signal-based timeout doesn't work reliably with lupa's C-level execution")
     def test_infinite_loop_timeout(self):
         """Test that infinite loops are terminated."""
         runtime = LuaRuntime(default_timeout=1.0)
@@ -326,7 +327,7 @@ class TestTimeoutProtection:
                 end
             """)
 
-    @pytest.mark.skip(reason="Timeout requires Unix signals, may not work in all environments")
+    @pytest.mark.skip(reason="Signal-based timeout doesn't work reliably with lupa's C-level execution")
     def test_long_computation_timeout(self):
         """Test that long computations are terminated."""
         runtime = LuaRuntime(default_timeout=1.0)

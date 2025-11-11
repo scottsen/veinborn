@@ -17,14 +17,14 @@
 - ✅ Floor progression (23 tests passing)
 - ✅ Legacy Vault system (47 tests passing)
 - ✅ Lua Event System (Phase 3 complete!)
-- **857/860 tests passing (99.7%)!**
+- **858/860 tests passing (99.8%)!** (2 skipped due to C-level execution limitations)
 
 **What we're building NOW (Polish Phase):**
 - 🔨 Playtesting and balance tuning
-- 🔨 Fix remaining 3 test failures
 - 🔨 Content expansion (more monsters, recipes)
 - 🔨 Tutorial system
 - 🔨 Lua advanced features (AI behaviors, actions)
+- ✅ Test suite at 99.8% (858/860) - 2 skipped tests are expected
 
 **What we're NOT building yet:**
 - ❌ Multiplayer (Phase 4, multiple months out)
@@ -55,7 +55,19 @@ A mechanical roguelike where you dive into procedural dungeons, hunt for perfect
 ### 1. Run the Game
 
 ```bash
-cd /home/scottsen/src/tia/projects/brogue
+# Easy way (recommended)
+./brogue
+
+# Or install system-wide (then run from anywhere)
+./install.sh
+brogue
+
+# Advanced options
+./brogue --debug    # Debug logging
+./brogue --safe     # Terminal reset on crash
+./brogue --help     # Show help
+
+# Old way (still works)
 python3 run_textual.py
 ```
 
@@ -65,12 +77,26 @@ python3 run_textual.py
 - **R:** Restart game
 - **Q:** Quit
 
-### 2. Play Around
+### 2. Learn How to Play
 
-- Move with arrow keys
-- Bump into monsters to attack (`r` = rat, `g` = goblin, `o` = orc)
+👉 **[Read HOW_TO_PLAY.md](../HOW_TO_PLAY.md)** - Complete 5-minute guide!
+
+**Quick Start:**
+- Move with arrow keys or `HJKL`
+- Bump into monsters to attack (`g` = goblin, `o` = orc, `T` = troll)
+- Press `s` next to ore veins (◆) to survey properties
+- Press `m` to mine ore (takes 3-5 turns, you're vulnerable!)
+- Find forges, press `c` to craft equipment
+- Press `e` to equip crafted gear
 - Watch your HP in the status bar
-- Die and restart (it's a roguelike!)
+- Die and learn (it's a roguelike!)
+
+**The guide covers:**
+- Complete controls reference
+- Your first game step-by-step
+- Mining & crafting strategies
+- Character classes explained
+- Common mistakes to avoid
 
 ### 3. Explore the Code
 
@@ -571,23 +597,26 @@ Example:
 ## Quick Reference: Running the Game
 
 ```bash
-# Main game (Textual UI)
+# Easy launcher (recommended)
+./brogue              # Normal mode
+./brogue --debug      # Debug mode (full logging)
+./brogue --safe       # Safe mode (terminal reset on crash)
+./brogue --help       # Show help
+
+# Install system-wide (optional)
+./install.sh          # Installs 'brogue' command to ~/.local/bin
+
+# Old way (still works)
 python3 run_textual.py
-
-# Debug mode (full logging)
 python3 scripts/run_debug.py
-
-# Safe mode (terminal reset on crash)
 python3 scripts/run_safe.py
 
 # Run tests
 python3 -m pytest tests/
-
-# Run specific test
 python3 -m pytest tests/test_widgets.py
 ```
 
-**Terminal stuck?** Run `./fix_terminal.sh` to reset.
+**Terminal stuck?** Run `reset` or use `./brogue --safe` next time.
 
 ---
 

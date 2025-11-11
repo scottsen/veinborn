@@ -1,27 +1,60 @@
 # Brogue Quick Reference
 
-**Last Updated:** 2025-11-05
-**For:** Developers working on Brogue MVP
+**Last Updated:** 2025-11-11
+**For:** Players & Developers
 
 ---
 
-## 🚀 Essential Commands
+## 🎮 For Players: How to Play
+
+👉 **[Read HOW_TO_PLAY.md](../HOW_TO_PLAY.md)** - Complete 5-minute gameplay guide!
+
+### Quick Controls Reference
+
+**Movement:**
+- `Arrows` or `HJKL`: Move in 4 directions
+- `YUBN`: Move diagonally
+- Hold `Shift`: Fast movement
+
+**Actions:**
+- Walk into monster: Attack
+- `s`: Survey ore (check properties)
+- `m`: Mine ore (takes 3-5 turns)
+- `c`: Craft (when at forge)
+- `e`: Equip/unequip items
+- `i`: View inventory
+- `>`: Descend stairs
+- `<`: Ascend stairs
+- `R`: Restart game
+- `Q`: Quit
+
+**Pro Tips:**
+- Survey before mining (check if ore is worth it!)
+- Clear monsters before mining (you're vulnerable!)
+- Purity 80+ ore saves to Legacy Vault on death
+- Equip crafted items with `e` key
+
+---
+
+## 🚀 For Developers: Essential Commands
 
 ### Running the Game
 ```bash
-# Standard play
+# Easy launcher (recommended)
+./brogue
+
+# With options
+./brogue --debug    # Debug logging
+./brogue --safe     # Safe mode (terminal reset)
+./brogue --help     # Show help
+
+# Old way (still works)
 python3 run_textual.py
-
-# With debug logging
 python3 scripts/run_debug.py
-
-# Safe mode (auto terminal reset)
 python3 scripts/run_safe.py
 
 # Terminal stuck? Fix it:
 reset
-# or
-stty sane
 ```
 
 ### Testing
