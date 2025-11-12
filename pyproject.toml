@@ -28,6 +28,7 @@ dependencies = [
     "rich>=13.7.0",
     "pyyaml>=6.0",
     "simpleeval>=1.0.0",
+    "websockets>=12.0",
 ]
 
 [project.optional-dependencies]
@@ -39,6 +40,8 @@ dev = [
 
 [project.scripts]
 brogue = "ui.textual.app:main"
+brogue-server = "server.run_server:main"
+brogue-test-client = "server.test_client:main"
 
 [project.urls]
 Homepage = "https://github.com/scottsen/brogue"
