@@ -32,6 +32,7 @@ class TestClient:
         self.session_id = None
         self.player_id = None
         self.player_name = None
+        self.player_entity_id = None  # Entity ID for sending actions
 
     async def connect(self, player_name: str):
         """Connect to the server and authenticate.
@@ -123,6 +124,33 @@ class TestClient:
         await self.ws.send(msg.to_json())
         print(f"Sent chat: {message}")
 
+    async def send_move(self, dx: int, dy: int):
+        """Send a movement action.
+
+        Args:
+            dx: X offset (-1, 0, 1)
+            dy: Y offset (-1, 0, 1)
+        """
+        if not self.ws:
+            print("✗ Not connected")
+            return
+
+        if not self.player_entity_id:
+            print("✗ Game not started or entity ID unknown")
+            return
+
+        # Create MoveAction serialized format
+        action_data = {
+            "action_type": "MoveAction",
+            "actor_id": self.player_entity_id,
+            "dx": dx,
+            "dy": dy,
+        }
+
+        msg = Message(type="action", data={"action_data": action_data})
+        await self.ws.send(msg.to_json())
+        print(f"Sent move: dx={dx}, dy={dy}")
+
     async def listen(self):
         """Listen for messages from the server."""
         if not self.ws:
@@ -170,6 +198,20 @@ class TestClient:
                 print(f"   Round: {state.get('round_number', 0)}")
                 print(f"   Actions: {state.get('actions_this_round', 0)}/{state.get('actions_per_round', 4)}")
 
+                # Extract player entity ID for movement
+                players = state.get("players", [])
+                for player in players:
+                    if player.get("player_id") == self.player_id:
+                        old_entity_id = self.player_entity_id
+                        self.player_entity_id = player.get("entity_id")
+                        if not old_entity_id and self.player_entity_id:
+                            print(f"   Your entity: {self.player_entity_id}")
+                            print(f"   Use /move <dir> to move (n,s,e,w,ne,nw,se,sw)")
+
+                        # Show position
+                        pos = player.get("position", {})
+                        print(f"   Your position: ({pos.get('x', 0)}, {pos.get('y', 0)})")
+
         elif msg_type == "player_joined":
             name = message.data.get("player_name", "Unknown")
             print(f"\n👤 {name} joined the game")
@@ -195,6 +237,7 @@ class TestClient:
         print("  /create <name>  - Create a new game")
         print("  /join <id>      - Join a game by ID")
         print("  /ready          - Mark yourself as ready")
+        print("  /move <dir>     - Move (n, s, e, w, ne, nw, se, sw)")
         print("  /quit           - Disconnect")
         print("  <message>       - Send chat message")
         print("=" * 60 + "\n")
@@ -233,6 +276,28 @@ class TestClient:
                             await self.join_game(parts[1])
                     elif cmd == "/ready":
                         await self.send_ready()
+                    elif cmd == "/move":
+                        if len(parts) < 2:
+                            print("Usage: /move <direction>")
+                            print("Directions: n, s, e, w, ne, nw, se, sw")
+                        else:
+                            direction = parts[1].lower()
+                            # Map direction to dx, dy
+                            dir_map = {
+                                "n": (0, -1),
+                                "s": (0, 1),
+                                "e": (1, 0),
+                                "w": (-1, 0),
+                                "ne": (1, -1),
+                                "nw": (-1, -1),
+                                "se": (1, 1),
+                                "sw": (-1, 1),
+                            }
+                            if direction in dir_map:
+                                dx, dy = dir_map[direction]
+                                await self.send_move(dx, dy)
+                            else:
+                                print(f"Unknown direction: {direction}")
                     else:
                         print(f"Unknown command: {cmd}")
                 else:
