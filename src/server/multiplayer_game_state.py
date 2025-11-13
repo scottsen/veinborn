@@ -4,13 +4,14 @@ Extends the single-player GameState to support multiple players
 while maintaining compatibility with existing single-player code.
 """
 
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Tuple
 from dataclasses import dataclass, field
 import logging
 
 from core.game_state import GameState
 from core.entities import Player
 from core.base.entity import Entity
+from core.rng import GameRNG
 
 logger = logging.getLogger(__name__)
 
@@ -60,6 +61,9 @@ class MultiplayerGameState:
         self.actions_this_round = 0
         self.round_number = 0
 
+        # Spawn positions (calculated after dungeon generation)
+        self.spawn_positions: List[tuple] = []
+
     def add_player(
         self, player_id: str, player_name: str, player_class: str = "warrior"
     ) -> bool:
@@ -81,18 +85,45 @@ class MultiplayerGameState:
             logger.warning(f"Player {player_id} already in game")
             return False
 
-        # Create player entity
-        # TODO: Use proper player class initialization
-        player_entity = Player(name=player_name, x=0, y=0)
-
-        # If this is the first player, initialize GameState
+        # If this is the first player, initialize GameState with dungeon generation
         if self.game_state is None:
+            # Initialize RNG with seed if provided
+            if self.seed is not None:
+                rng = GameRNG.get_instance()
+                rng.seed(self.seed)
+                logger.info(f"Initialized RNG with seed: {self.seed}")
+
+            # Create temporary player entity at (0, 0) to initialize GameState
+            temp_player = Player(name=player_name, x=0, y=0)
             self.game_state = GameState(
-                player=player_entity,
+                player=temp_player,
                 seed=self.seed,
                 player_name=player_name,
             )
-            entity_id = "player"  # Single player uses "player" as ID
+
+            # Generate spawn positions for all potential players
+            self.spawn_positions = self.game_state.dungeon_map.find_player_spawn_positions(
+                self.max_players
+            )
+            logger.info(f"Generated {len(self.spawn_positions)} spawn positions for multiplayer game")
+
+        # Get spawn position for this player
+        player_index = len(self.player_slots)
+        if player_index < len(self.spawn_positions):
+            spawn_x, spawn_y = self.spawn_positions[player_index]
+        else:
+            # Fallback to first room center if we run out of spawn positions
+            spawn_x, spawn_y = self.game_state.dungeon_map.find_starting_position()
+            logger.warning(f"No spawn position available for player {player_index}, using fallback")
+
+        # Create player entity at spawn position
+        player_entity = Player(name=player_name, x=spawn_x, y=spawn_y)
+
+        # Assign entity ID and add to game state
+        if player_index == 0:
+            # First player uses "player" as ID and replaces the temp player
+            entity_id = "player"
+            self.game_state.player = player_entity
         else:
             # Additional players get unique IDs
             entity_id = f"player_{player_id[:8]}"
@@ -110,7 +141,7 @@ class MultiplayerGameState:
         self.player_slots[player_id] = slot
         self.entity_to_player[entity_id] = player_id
 
-        logger.info(f"Added player {player_name} (ID: {player_id}, entity: {entity_id})")
+        logger.info(f"Added player {player_name} (ID: {player_id}, entity: {entity_id}) at position ({spawn_x}, {spawn_y})")
         return True
 
     def remove_player(self, player_id: str) -> bool:

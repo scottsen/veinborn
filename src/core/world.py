@@ -314,6 +314,48 @@ class Map:
             return self.rooms[0].center
         return (1, 1)
 
+    def find_player_spawn_positions(self, count: int) -> List[Tuple[int, int]]:
+        """
+        Find spawn positions for multiple players in different rooms.
+
+        Players spawn in the first N rooms, centered or near the center.
+        This ensures they start in different areas of the dungeon.
+
+        Args:
+            count: Number of spawn positions to find
+
+        Returns:
+            List of (x, y) tuples for player spawn positions
+        """
+        positions = []
+
+        # Use the first N rooms for player spawns
+        for i, room in enumerate(self.rooms[:count]):
+            if len(positions) >= count:
+                break
+
+            # Try room center first
+            cx, cy = room.center
+            if self.is_walkable(cx, cy):
+                positions.append((cx, cy))
+            else:
+                # Center isn't walkable, find any walkable tile in room
+                found = False
+                for x in range(room.x, room.x + room.width):
+                    for y in range(room.y, room.y + room.height):
+                        if self.is_walkable(x, y):
+                            positions.append((x, y))
+                            found = True
+                            break
+                    if found:
+                        break
+
+        # Fallback if we don't have enough rooms
+        if len(positions) < count:
+            logger.warning(f"Only found {len(positions)} spawn positions, requested {count}")
+
+        return positions
+
     def find_monster_positions(self, count: int) -> List[Tuple[int, int]]:
         """
         Find walkable positions for monsters.

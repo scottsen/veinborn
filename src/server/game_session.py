@@ -2,14 +2,19 @@
 
 import asyncio
 import time
+import logging
 from dataclasses import dataclass, field
 from typing import Dict, List, Optional, Set
 from uuid import uuid4
 
 from core.game_state import GameState
 from core.base.action import Action
+from core.base.game_context import GameContext
+from core.systems.ai_system import AISystem
 from server.messages import Message, MessageType
 from server.multiplayer_game_state import MultiplayerGameState
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass
@@ -48,6 +53,10 @@ class GameSession:
         self.is_started = False
         self.is_finished = False
         self.created_at = time.time()
+
+        # Game context and systems (initialized when game starts)
+        self.game_context: Optional[GameContext] = None
+        self.ai_system: Optional[AISystem] = None
 
         # Turn management
         self.actions_this_round = 0
@@ -169,6 +178,14 @@ class GameSession:
                 else:
                     logger.error(f"Failed to add player {player_info.player_name}")
 
+            # Initialize game context and AI system
+            if self.mp_game_state.game_state:
+                self.game_context = GameContext(self.mp_game_state.game_state)
+                self.ai_system = AISystem(self.game_context)
+                logger.info("Initialized GameContext and AISystem for multiplayer game")
+            else:
+                logger.error("Failed to initialize game state for multiplayer game")
+
             self.is_started = True
             logger.info(f"Game {self.game_id} started with {len(self.players)} players")
 
@@ -229,11 +246,21 @@ class GameSession:
         if not self.mp_game_state or not self.mp_game_state.game_state:
             return
 
-        # TODO: Implement monster AI turn processing
-        # This will integrate with the existing AI system
-        # For now, just increment turn count
+        # Run AI system to process monster turns
+        if self.ai_system:
+            try:
+                self.ai_system.update()
+                logger.debug("Processed monster turns via AI system")
+            except Exception as e:
+                logger.error(f"Error processing monster turns: {e}", exc_info=True)
+        else:
+            logger.warning("AI system not initialized, skipping monster turn")
+
+        # Increment turn count
         self.mp_game_state.game_state.turn_count += 1
-        pass
+
+        # Clean up dead entities
+        self.mp_game_state.game_state.cleanup_dead_entities()
 
     def get_state_dict(self) -> Dict:
         """Get the current game state as a dictionary.
