@@ -39,8 +39,38 @@ class GameContext:
         return self.game_state.entities.get(entity_id)
 
     def get_player(self) -> 'Entity':
-        """Get the player entity."""
+        """Get the player entity (first player in multiplayer)."""
         return self.game_state.player
+
+    def get_all_players(self) -> List['Entity']:
+        """
+        Get all player entities (for multiplayer support).
+
+        Returns:
+            List of all player entities (alive and dead)
+        """
+        from .entity import EntityType
+        players = []
+
+        # First player is stored separately
+        if self.game_state.player:
+            players.append(self.game_state.player)
+
+        # Additional players are in entities dict with PLAYER type
+        for entity in self.game_state.entities.values():
+            if entity.entity_type == EntityType.PLAYER and entity != self.game_state.player:
+                players.append(entity)
+
+        return players
+
+    def get_alive_players(self) -> List['Entity']:
+        """
+        Get all alive player entities (for multiplayer AI targeting).
+
+        Returns:
+            List of alive player entities
+        """
+        return [p for p in self.get_all_players() if p.is_alive]
 
     def get_entities_by_type(self, entity_type: 'EntityType') -> List['Entity']:
         """Get all entities of a type."""
