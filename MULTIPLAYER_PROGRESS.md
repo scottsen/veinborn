@@ -1,8 +1,8 @@
 # Brogue Multiplayer Implementation Progress
 
-**Status**: Phase 2 IN PROGRESS 🚧
+**Status**: Phase 2 NEARLY COMPLETE 🚀
 **Date**: 2025-11-13
-**Branch**: `claude/continue-multiplayer-work-011CV5AVgDSUkiye4mvjXxLK`
+**Branch**: `claude/phase-2-core-features-011CV5BZpTX5yto9Pwc8S8Nq`
 
 ## Executive Summary
 
@@ -12,11 +12,12 @@ Phase 1 is complete, and Phase 2 core features have been implemented. Players ca
 - Coordinate with ready status ✅
 - Spawn in different rooms of the dungeon ✅ (NEW)
 - Move around together in real-time ✅
-- Fight monsters with AI ✅ (NEW)
+- Fight monsters with intelligent AI ✅ (NEW)
+- Monsters target nearest player ✅ (NEW)
 - See synchronized game state updates ✅
 
 **Phase 1 Goal Achieved**: 2 players can move around together ✅
-**Phase 2 Progress**: Dungeon generation, distributed spawning, and monster AI integrated
+**Phase 2 Nearly Complete**: Dungeon generation, distributed spawning, monster AI, and nearest-player targeting all working!
 
 ## What's Been Implemented
 
@@ -298,14 +299,19 @@ Bob> Hi Alice, race you to floor 26!
    - Monsters now act after each round of player actions
    - Added cleanup of dead entities after monster turns
 
+### ✅ Phase 2 Recently Completed (2025-11-13)
+
+4. **AI Targeting Optimization** ✅
+   - Added `get_all_players()` and `get_alive_players()` to GameContext
+   - Implemented `_get_nearest_player()` method in AISystem
+   - Updated all AI behaviors (aggressive, defensive, passive, coward, guard)
+   - Monsters now intelligently target nearest alive player
+   - Properly handles player death (removes dead players from targeting)
+   - Supports any number of players dynamically
+
 ### ⚠️ Phase 2 Remaining
 
-1. **AI Targeting Optimization**
-   - Currently monsters only target the first player (via `get_player()`)
-   - Should target nearest player from all alive players
-   - Need to update AI behaviors to consider all players
-
-2. **Combat Balance**
+1. **Combat Balance** (Next Priority)
    - Monsters may be too easy/hard for multiple players
    - Health scaling needed
    - Damage distribution across players

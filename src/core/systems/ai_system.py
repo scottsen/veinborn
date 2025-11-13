@@ -92,6 +92,33 @@ class AISystem(System):
             # Execute behavior
             self._execute_behavior(monster, ai_type, behavior_config)
 
+    def _get_nearest_player(self, monster) -> Optional['Entity']:
+        """
+        Get the nearest alive player to a monster (for multiplayer support).
+
+        Args:
+            monster: Monster entity
+
+        Returns:
+            Nearest alive player entity, or None if no players alive
+        """
+        alive_players = self.context.get_alive_players()
+
+        if not alive_players:
+            return None
+
+        # Find nearest player by Manhattan distance
+        nearest_player = None
+        nearest_distance = float('inf')
+
+        for player in alive_players:
+            distance = abs(monster.x - player.x) + abs(monster.y - player.y)
+            if distance < nearest_distance:
+                nearest_distance = distance
+                nearest_player = player
+
+        return nearest_player
+
     def _execute_behavior(
         self,
         monster,
@@ -124,10 +151,11 @@ class AISystem(System):
         monster,
         config: Dict[str, Any]
     ) -> None:
-        """Aggressive: Chase and attack player."""
-        player = self.context.get_player()
+        """Aggressive: Chase and attack nearest player."""
+        player = self._get_nearest_player(monster)
 
-        if not player.is_alive:
+        if not player:
+            self._wander(monster)
             return
 
         distance = abs(monster.x - player.x) + abs(monster.y - player.y)
@@ -152,9 +180,9 @@ class AISystem(System):
         config: Dict[str, Any]
     ) -> None:
         """Defensive: Attack when close, flee when low HP, otherwise patrol."""
-        player = self.context.get_player()
+        player = self._get_nearest_player(monster)
 
-        if not player.is_alive:
+        if not player:
             self._wander(monster)
             return
 
@@ -188,9 +216,9 @@ class AISystem(System):
         config: Dict[str, Any]
     ) -> None:
         """Passive: Wander peacefully, flee if attacked."""
-        player = self.context.get_player()
+        player = self._get_nearest_player(monster)
 
-        if not player.is_alive:
+        if not player:
             self._wander(monster)
             return
 
@@ -198,7 +226,7 @@ class AISystem(System):
         was_attacked = monster.get_stat('was_attacked_last_turn', False)
 
         if was_attacked:
-            # Flee when attacked
+            # Flee when attacked - flee from nearest player
             hp_ratio = monster.hp / monster.max_hp
             flee_threshold = config.get('flee_threshold', 0.5)
 
@@ -216,10 +244,10 @@ class AISystem(System):
         monster,
         config: Dict[str, Any]
     ) -> None:
-        """Coward: Always flee from player."""
-        player = self.context.get_player()
+        """Coward: Always flee from nearest player."""
+        player = self._get_nearest_player(monster)
 
-        if not player.is_alive:
+        if not player:
             self._wander(monster)
             return
 
@@ -236,8 +264,8 @@ class AISystem(System):
         monster,
         config: Dict[str, Any]
     ) -> None:
-        """Guard: Defend spawn area, don't chase too far."""
-        player = self.context.get_player()
+        """Guard: Defend spawn area, attack nearest player within radius."""
+        player = self._get_nearest_player(monster)
 
         # Get spawn position (stored when monster created)
         spawn_x = monster.get_stat('spawn_x', monster.x)
@@ -257,7 +285,7 @@ class AISystem(System):
             self._move_towards(monster, spawn_point)
             return
 
-        if not player.is_alive:
+        if not player:
             self._wander(monster)
             return
 
