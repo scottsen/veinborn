@@ -1,19 +1,22 @@
 # Brogue Multiplayer Implementation Progress
 
-**Status**: Phase 1 COMPLETE ✅
-**Date**: 2025-11-12
-**Branch**: `claude/multiplayer-progress-011CV3GJJmEvZkhQFEQe5HoT`
+**Status**: Phase 2 IN PROGRESS 🚧
+**Date**: 2025-11-13
+**Branch**: `claude/continue-multiplayer-work-011CV5AVgDSUkiye4mvjXxLK`
 
 ## Executive Summary
 
-The core multiplayer foundation is **fully implemented and ready for testing**. Two (or more) players can now:
-- Connect to a WebSocket server
-- Create/join game sessions
-- Coordinate with ready status
-- Move around together in real-time
-- See synchronized game state updates
+Phase 1 is complete, and Phase 2 core features have been implemented. Players can now:
+- Connect to a WebSocket server ✅
+- Create/join game sessions ✅
+- Coordinate with ready status ✅
+- Spawn in different rooms of the dungeon ✅ (NEW)
+- Move around together in real-time ✅
+- Fight monsters with AI ✅ (NEW)
+- See synchronized game state updates ✅
 
 **Phase 1 Goal Achieved**: 2 players can move around together ✅
+**Phase 2 Progress**: Dungeon generation, distributed spawning, and monster AI integrated
 
 ## What's Been Implemented
 
@@ -272,23 +275,37 @@ Bob> Hi Alice, race you to floor 26!
 11. ✅ After 4 total actions, monster turn processes (placeholder)
 12. ✅ Round counter increments
 
-## What's NOT Yet Implemented
+## Phase 2 Implementation (2025-11-13)
 
-### ⚠️ Phase 2 Needs
+### ✅ Completed Features
 
-1. **Dungeon Generation for Multiplayer**
-   - Currently uses single-player dungeon
-   - Need shared dungeon generation
-   - Need coordinated player spawning (not same tile)
-   - Need to ensure stairs/forges/ore accessible to all
+1. **Dungeon Generation for Multiplayer** ✅
+   - Added `find_player_spawn_positions()` method to Map class
+   - Generates spawn positions in different rooms for each player
+   - Properly initializes RNG with seed for consistent dungeon generation
+   - Players spawn in first N rooms of the dungeon
 
-2. **Monster Turn Processing**
-   - Placeholder exists in `_process_monster_turn()`
-   - Need to integrate existing AI system
-   - Monsters should target nearest player
-   - Need to handle monster actions against multiple players
+2. **Distributed Player Spawning** ✅
+   - Modified `MultiplayerGameState.add_player()` to use spawn positions
+   - First player initializes dungeon with proper seed
+   - Subsequent players get assigned to different rooms
+   - Fallback to first room center if spawn positions exhausted
 
-3. **Combat Balance**
+3. **Monster AI Integration** ✅
+   - Added GameContext initialization in `GameSession.start_game()`
+   - Created AISystem instance with GameContext
+   - Wired up `_process_monster_turn()` to call `ai_system.update()`
+   - Monsters now act after each round of player actions
+   - Added cleanup of dead entities after monster turns
+
+### ⚠️ Phase 2 Remaining
+
+1. **AI Targeting Optimization**
+   - Currently monsters only target the first player (via `get_player()`)
+   - Should target nearest player from all alive players
+   - Need to update AI behaviors to consider all players
+
+2. **Combat Balance**
    - Monsters may be too easy/hard for multiple players
    - Health scaling needed
    - Damage distribution across players
