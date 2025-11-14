@@ -233,6 +233,8 @@ class BrogueServer:
             await self.handle_join_game(session_id, session, message)
         elif msg_type == MessageType.LEAVE_GAME.value:
             await self.handle_leave_game(session_id, session, message)
+        elif msg_type == MessageType.RECONNECT.value:
+            await self.handle_reconnect(session_id, session, message)
         elif msg_type == MessageType.READY.value:
             await self.handle_ready(session_id, session, message)
         elif msg_type == MessageType.ACTION.value:
@@ -306,12 +308,22 @@ class BrogueServer:
     async def handle_leave_game(
         self, session_id: str, session: Session, message: Message
     ):
-        """Handle leave game request."""
+        """Handle leave game request (intentional departure)."""
         if not session.game_id:
             await self.send_error(session_id, "Not in a game")
             return
 
         game_id = session.game_id
+        game = await self.game_manager.get_game(game_id)
+
+        if not game:
+            await self.send_error(session_id, "Game not found")
+            return
+
+        # Mark player as having left (not just disconnected)
+        await game.leave_player(session.player_id)
+
+        # Remove from game manager
         success, error = await self.game_manager.leave_game(session.player_id)
 
         if success:
@@ -328,6 +340,44 @@ class BrogueServer:
             await self.broadcast_game_state(game_id)
         else:
             await self.send_error(session_id, error or "Failed to leave game")
+
+    async def handle_reconnect(
+        self, session_id: str, session: Session, message: Message
+    ):
+        """Handle reconnection request."""
+        if not session.game_id:
+            await self.send_error(session_id, "Not in a game to reconnect to")
+            return
+
+        game = await self.game_manager.get_game(session.game_id)
+        if not game:
+            await self.send_error(session_id, "Game not found")
+            return
+
+        # Attempt to reconnect player
+        success, error = await game.reconnect_player(session.player_id)
+
+        if not success:
+            await self.send_error(session_id, error or "Failed to reconnect")
+            return
+
+        # Reconnection successful
+        session.mark_active()
+        self.connections[session_id] = self.connections.get(session_id)
+
+        await self.send_message_to_session(
+            session_id,
+            Message.system("Reconnected successfully", "success"),
+        )
+
+        # Notify other players
+        await self.broadcast_to_game(
+            session.game_id,
+            Message.player_reconnected(session.player_id, session.player_name),
+        )
+
+        # Send full game state to reconnecting player
+        await self.broadcast_game_state(session.game_id, force_full_state=True)
 
     async def handle_ready(self, session_id: str, session: Session, message: Message):
         """Handle player ready status."""
@@ -417,17 +467,41 @@ class BrogueServer:
             Message.chat_message(session.player_id, session.player_name, chat_text),
         )
 
-    async def disconnect_client(self, session_id: str, reason: str = "Disconnected"):
-        """Disconnect a client and clean up.
+    async def disconnect_client(
+        self, session_id: str, reason: str = "Disconnected", preserve_session: bool = True
+    ):
+        """Disconnect a client and optionally preserve session for reconnection.
 
         Args:
             session_id: Session to disconnect
             reason: Disconnect reason
+            preserve_session: If True, preserve session for reconnection; if False, clean up completely
         """
-        # Remove from game if in one
         session = self.auth_manager.get_session(session_id)
+
         if session and session.game_id:
-            await self.game_manager.leave_game(session.player_id)
+            game = await self.game_manager.get_game(session.game_id)
+
+            if game and preserve_session:
+                # Mark player as disconnected but keep them in the game
+                await game.disconnect_player(session.player_id)
+
+                # Mark session as inactive but don't invalidate
+                session.mark_inactive()
+
+                # Notify other players
+                await self.broadcast_to_game(
+                    session.game_id,
+                    Message.player_disconnected(session.player_id, session.player_name),
+                )
+
+                logger.info(
+                    f"Player {session.player_name} disconnected from game {session.game_id}. "
+                    f"Session preserved for reconnection. ({reason})"
+                )
+            else:
+                # Permanently remove from game
+                await self.game_manager.leave_game(session.player_id)
 
         # Close WebSocket
         websocket = self.connections.pop(session_id, None)
@@ -437,11 +511,15 @@ class BrogueServer:
             except Exception:
                 pass
 
-        # Clean up session
+        # Clean up connection tracking
         self.session_to_player.pop(session_id, None)
-        self.auth_manager.invalidate_session(session_id)
 
-        logger.info(f"Client disconnected: {session_id} ({reason})")
+        if not preserve_session:
+            # Fully invalidate session
+            self.auth_manager.invalidate_session(session_id)
+            logger.info(f"Client disconnected and session invalidated: {session_id} ({reason})")
+        else:
+            logger.info(f"Client disconnected but session preserved: {session_id} ({reason})")
 
     async def send_message(self, websocket: WebSocketServerProtocol, message: Message):
         """Send a message to a WebSocket.
@@ -526,9 +604,34 @@ class BrogueServer:
                 if expired > 0:
                     logger.info(f"Cleaned up {expired} expired sessions")
 
-                # TODO: Clean up abandoned games
+                # Clean up players with expired reconnection timeouts
+                total_removed = 0
+                for game_id, game in list(self.game_manager._games.items()):
+                    removed_players = await game.cleanup_expired_disconnections()
 
-                await asyncio.sleep(60)  # Run every minute
+                    if removed_players:
+                        total_removed += len(removed_players)
+
+                        # Notify remaining players and update state
+                        for player_id in removed_players:
+                            # Try to get player info for notification
+                            session = self.auth_manager.get_session_by_player(player_id)
+                            if session:
+                                await self.broadcast_to_game(
+                                    game_id,
+                                    Message.system(
+                                        f"{session.player_name} was removed due to reconnection timeout",
+                                        "warning"
+                                    ),
+                                )
+
+                        # Update game state
+                        await self.broadcast_game_state(game_id)
+
+                if total_removed > 0:
+                    logger.info(f"Removed {total_removed} players due to reconnection timeout")
+
+                await asyncio.sleep(10)  # Run every 10 seconds for reconnection timeouts
 
             except Exception as e:
                 logger.error(f"Error in cleanup task: {e}", exc_info=True)

@@ -17,6 +17,7 @@ class Session:
     created_at: float = field(default_factory=time.time)
     last_seen: float = field(default_factory=time.time)
     game_id: Optional[str] = None
+    is_active: bool = True  # False when connection is lost but session preserved
 
     def is_expired(self, expiry_seconds: int) -> bool:
         """Check if session has expired."""
@@ -29,6 +30,15 @@ class Session:
     def is_idle(self, idle_seconds: int) -> bool:
         """Check if session is idle."""
         return (time.time() - self.last_seen) > idle_seconds
+
+    def mark_inactive(self) -> None:
+        """Mark session as inactive (disconnected but preserved)."""
+        self.is_active = False
+
+    def mark_active(self) -> None:
+        """Mark session as active (connected)."""
+        self.is_active = True
+        self.update_activity()
 
 
 class AuthManager:
