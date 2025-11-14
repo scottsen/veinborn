@@ -77,6 +77,7 @@ class MultiplayerGameState:
         Returns:
             True if player was added successfully
         """
+        from core.character_class import CharacterClass, create_player_from_class
         if len(self.player_slots) >= self.max_players:
             logger.warning(f"Cannot add player {player_name}: game is full")
             return False
@@ -116,8 +117,19 @@ class MultiplayerGameState:
             spawn_x, spawn_y = self.game_state.dungeon_map.find_starting_position()
             logger.warning(f"No spawn position available for player {player_index}, using fallback")
 
-        # Create player entity at spawn position
-        player_entity = Player(name=player_name, x=spawn_x, y=spawn_y)
+        # Create player entity at spawn position with class
+        try:
+            class_type = CharacterClass.from_string(player_class)
+            player_entity = create_player_from_class(
+                class_type=class_type,
+                x=spawn_x,
+                y=spawn_y,
+                name=player_name
+            )
+            logger.info(f"Created {player_class} player entity for {player_name}")
+        except Exception as e:
+            logger.error(f"Failed to create player with class {player_class}: {e}, using default")
+            player_entity = Player(name=player_name, x=spawn_x, y=spawn_y)
 
         # Assign entity ID and add to game state
         if player_index == 0:
@@ -234,10 +246,16 @@ class MultiplayerGameState:
         players_info = []
         for slot in self.player_slots.values():
             player_entity = slot.player_entity
+            # Get class from entity stats if available
+            player_class = player_entity.stats.get('class', 'Warrior') if hasattr(player_entity, 'stats') else 'Warrior'
+            class_type = player_entity.stats.get('class_type', 'warrior') if hasattr(player_entity, 'stats') else 'warrior'
+
             players_info.append(
                 {
                     "player_id": slot.player_id,
                     "player_name": slot.player_name,
+                    "player_class": class_type,
+                    "player_class_display": player_class,
                     "entity_id": slot.entity_id,
                     "is_active": slot.is_active,
                     "is_alive": slot.is_alive,
@@ -249,6 +267,10 @@ class MultiplayerGameState:
                         "current": player_entity.hp,
                         "max": player_entity.max_hp,
                     },
+                    "stats": {
+                        "attack": player_entity.attack,
+                        "defense": player_entity.defense,
+                    }
                 }
             )
 

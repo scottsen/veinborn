@@ -248,6 +248,7 @@ class BrogueServer:
         """Handle create game request."""
         game_name = message.data.get("game_name", "Unnamed Game")
         max_players = message.data.get("max_players", 4)
+        player_class = message.data.get("player_class", "warrior")
 
         game = await self.game_manager.create_game(
             game_name=game_name,
@@ -255,9 +256,9 @@ class BrogueServer:
             actions_per_round=config.actions_per_round,
         )
 
-        # Auto-join creator
+        # Auto-join creator with their selected class
         success, error = await self.game_manager.join_game(
-            game.game_id, session.player_id, session.player_name
+            game.game_id, session.player_id, session.player_name, player_class
         )
 
         if success:
@@ -265,7 +266,7 @@ class BrogueServer:
             await self.send_message_to_session(
                 session_id,
                 Message.system(
-                    f"Created game '{game_name}' (ID: {game.game_id})", "success"
+                    f"Created game '{game_name}' as {player_class} (ID: {game.game_id})", "success"
                 ),
             )
             await self.broadcast_game_state(game.game_id)
@@ -281,20 +282,22 @@ class BrogueServer:
             await self.send_error(session_id, "Missing game_id")
             return
 
+        player_class = message.data.get("player_class", "warrior")
+
         success, error = await self.game_manager.join_game(
-            game_id, session.player_id, session.player_name
+            game_id, session.player_id, session.player_name, player_class
         )
 
         if success:
             session.game_id = game_id
             await self.send_message_to_session(
                 session_id,
-                Message.system(f"Joined game {game_id}", "success"),
+                Message.system(f"Joined game {game_id} as {player_class}", "success"),
             )
             # Notify all players in game
             await self.broadcast_to_game(
                 game_id,
-                Message.player_joined(session.player_id, session.player_name),
+                Message.player_joined(session.player_id, session.player_name, player_class),
             )
             await self.broadcast_game_state(game_id)
         else:
@@ -491,18 +494,26 @@ class BrogueServer:
             if session:
                 await self.send_message_to_session(session.session_id, message)
 
-    async def broadcast_game_state(self, game_id: str):
+    async def broadcast_game_state(self, game_id: str, force_full_state: bool = False):
         """Broadcast current game state to all players.
 
         Args:
             game_id: Game ID
+            force_full_state: If True, send full state instead of delta
         """
         game = await self.game_manager.get_game(game_id)
         if not game:
             return
 
-        state_dict = game.get_state_dict()
-        await self.broadcast_to_game(game_id, Message.state(state_dict))
+        state_dict = game.get_state_dict(use_delta=not force_full_state)
+
+        # Send appropriate message type based on whether it's a delta or full state
+        if state_dict.get("type") == "delta":
+            # Send delta message
+            await self.broadcast_to_game(game_id, Message.delta(state_dict))
+        else:
+            # Send full state message
+            await self.broadcast_to_game(game_id, Message.state(state_dict))
 
     async def cleanup_task(self):
         """Background task for cleanup operations."""

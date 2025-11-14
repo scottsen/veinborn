@@ -20,6 +20,7 @@ except ImportError:
     sys.exit(1)
 
 from server.messages import Message
+from server.state_delta import StateDelta
 
 
 class TestClient:
@@ -33,6 +34,9 @@ class TestClient:
         self.player_id = None
         self.player_name = None
         self.player_entity_id = None  # Entity ID for sending actions
+
+        # State tracking for delta compression
+        self.current_state = None
 
     async def connect(self, player_name: str):
         """Connect to the server and authenticate.
@@ -72,33 +76,35 @@ class TestClient:
             print(f"✗ Connection error: {e}")
             return False
 
-    async def create_game(self, game_name: str = "Test Game"):
+    async def create_game(self, game_name: str = "Test Game", player_class: str = "warrior"):
         """Create a new game.
 
         Args:
             game_name: Name for the game
+            player_class: Character class (warrior, mage, rogue, healer)
         """
         if not self.ws:
             print("✗ Not connected")
             return
 
-        msg = Message.create_game(game_name, max_players=4)
+        msg = Message.create_game(game_name, max_players=4, player_class=player_class)
         await self.ws.send(msg.to_json())
-        print(f"Sent create game request: '{game_name}'")
+        print(f"Sent create game request: '{game_name}' as {player_class}")
 
-    async def join_game(self, game_id: str):
+    async def join_game(self, game_id: str, player_class: str = "warrior"):
         """Join an existing game.
 
         Args:
             game_id: Game ID to join
+            player_class: Character class (warrior, mage, rogue, healer)
         """
         if not self.ws:
             print("✗ Not connected")
             return
 
-        msg = Message.join_game(game_id)
+        msg = Message.join_game(game_id, player_class=player_class)
         await self.ws.send(msg.to_json())
-        print(f"Sent join game request: {game_id}")
+        print(f"Sent join game request: {game_id} as {player_class}")
 
     async def send_ready(self):
         """Send ready status."""
@@ -190,7 +196,9 @@ class TestClient:
 
         elif msg_type == "state":
             state = message.data.get("state", {})
-            print(f"\n📊 Game State Update:")
+            # Store current state for delta handling
+            self.current_state = state
+            print(f"\n📊 Game State Update (Full):")
             print(f"   Game: {state.get('game_name', 'Unknown')}")
             print(f"   Players: {state.get('player_count', 0)}/{state.get('max_players', 0)}")
             if state.get("is_started"):
@@ -212,9 +220,46 @@ class TestClient:
                         pos = player.get("position", {})
                         print(f"   Your position: ({pos.get('x', 0)}, {pos.get('y', 0)})")
 
+        elif msg_type == "delta":
+            # Apply delta to current state
+            if self.current_state is None:
+                print(f"\n⚠ Received delta without current state, ignoring")
+            else:
+                delta_data = message.data
+                self.current_state = StateDelta.apply_delta(self.current_state, delta_data)
+                print(f"\n📊 Game State Update (Delta):")
+
+                # Show what changed
+                changes = delta_data.get("changes", {})
+                if changes.get("players"):
+                    print(f"   Player changes: {len(changes['players'])} updates")
+                if changes.get("new_messages"):
+                    print(f"   New messages: {len(changes['new_messages'])}")
+                if delta_data.get("no_changes"):
+                    print(f"   No changes")
+
+                # Show current state
+                if self.current_state.get("is_started"):
+                    print(f"   Turn: {delta_data.get('turn_count', 0)}")
+                    print(f"   Round: {delta_data.get('round_number', 0)}")
+                    print(f"   Actions: {delta_data.get('actions_this_round', 0)}")
+
+                # Update entity ID if needed
+                players = self.current_state.get("players", [])
+                for player in players:
+                    if player.get("player_id") == self.player_id:
+                        old_entity_id = self.player_entity_id
+                        self.player_entity_id = player.get("entity_id")
+
+                        # Show position if it changed
+                        if "players" in changes:
+                            pos = player.get("position", {})
+                            print(f"   Your position: ({pos.get('x', 0)}, {pos.get('y', 0)})")
+
         elif msg_type == "player_joined":
             name = message.data.get("player_name", "Unknown")
-            print(f"\n👤 {name} joined the game")
+            player_class = message.data.get("player_class", "warrior")
+            print(f"\n👤 {name} joined the game as {player_class}")
 
         elif msg_type == "player_left":
             name = message.data.get("player_name", "Unknown")
@@ -234,12 +279,12 @@ class TestClient:
         print("Interactive Mode")
         print("=" * 60)
         print("Commands:")
-        print("  /create <name>  - Create a new game")
-        print("  /join <id>      - Join a game by ID")
-        print("  /ready          - Mark yourself as ready")
-        print("  /move <dir>     - Move (n, s, e, w, ne, nw, se, sw)")
-        print("  /quit           - Disconnect")
-        print("  <message>       - Send chat message")
+        print("  /create <name> [class]  - Create a new game (warrior, mage, rogue, healer)")
+        print("  /join <id> [class]      - Join a game by ID")
+        print("  /ready                  - Mark yourself as ready")
+        print("  /move <dir>             - Move (n, s, e, w, ne, nw, se, sw)")
+        print("  /quit                   - Disconnect")
+        print("  <message>               - Send chat message")
         print("=" * 60 + "\n")
 
         # Start listening task
@@ -267,13 +312,20 @@ class TestClient:
                         print("Disconnecting...")
                         break
                     elif cmd == "/create":
-                        game_name = parts[1] if len(parts) > 1 else "Test Game"
-                        await self.create_game(game_name)
+                        # Parse: /create <name> [class]
+                        args = parts[1].split() if len(parts) > 1 else []
+                        game_name = args[0] if len(args) > 0 else "Test Game"
+                        player_class = args[1] if len(args) > 1 else "warrior"
+                        await self.create_game(game_name, player_class)
                     elif cmd == "/join":
+                        # Parse: /join <id> [class]
                         if len(parts) < 2:
-                            print("Usage: /join <game_id>")
+                            print("Usage: /join <game_id> [class]")
                         else:
-                            await self.join_game(parts[1])
+                            args = parts[1].split()
+                            game_id = args[0]
+                            player_class = args[1] if len(args) > 1 else "warrior"
+                            await self.join_game(game_id, player_class)
                     elif cmd == "/ready":
                         await self.send_ready()
                     elif cmd == "/move":

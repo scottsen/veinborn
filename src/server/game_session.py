@@ -13,6 +13,7 @@ from core.base.game_context import GameContext
 from core.systems.ai_system import AISystem
 from server.messages import Message, MessageType
 from server.multiplayer_game_state import MultiplayerGameState
+from server.state_delta import StateDelta
 
 logger = logging.getLogger(__name__)
 
@@ -23,6 +24,7 @@ class PlayerInfo:
 
     player_id: str
     player_name: str
+    player_class: str = "warrior"  # Character class (warrior, mage, rogue, healer)
     entity_id: Optional[str] = None
     is_ready: bool = False
     is_alive: bool = True
@@ -62,6 +64,10 @@ class GameSession:
         self.actions_this_round = 0
         self.pending_actions: asyncio.Queue = asyncio.Queue()
 
+        # State tracking for delta compression
+        self.last_state: Optional[Dict] = None
+        self.use_delta_compression = True  # Enable/disable delta compression
+
         # Locks
         self._lock = asyncio.Lock()
 
@@ -73,12 +79,13 @@ class GameSession:
             and not self.is_finished
         )
 
-    async def add_player(self, player_id: str, player_name: str) -> bool:
+    async def add_player(self, player_id: str, player_name: str, player_class: str = "warrior") -> bool:
         """Add a player to the game session.
 
         Args:
             player_id: Unique player ID
             player_name: Player display name
+            player_class: Character class (warrior, mage, rogue, healer)
 
         Returns:
             True if player was added, False otherwise
@@ -93,6 +100,7 @@ class GameSession:
             player_info = PlayerInfo(
                 player_id=player_id,
                 player_name=player_name,
+                player_class=player_class,
             )
             self.players[player_id] = player_info
             self.player_order.append(player_id)
@@ -169,7 +177,7 @@ class GameSession:
             # Add all players to the game
             for player_id, player_info in self.players.items():
                 success = self.mp_game_state.add_player(
-                    player_id, player_info.player_name
+                    player_id, player_info.player_name, player_info.player_class
                 )
                 if success:
                     # Store entity ID in player info
@@ -262,11 +270,14 @@ class GameSession:
         # Clean up dead entities
         self.mp_game_state.game_state.cleanup_dead_entities()
 
-    def get_state_dict(self) -> Dict:
+    def get_state_dict(self, use_delta: bool = None) -> Dict:
         """Get the current game state as a dictionary.
 
+        Args:
+            use_delta: Whether to use delta compression (defaults to self.use_delta_compression)
+
         Returns:
-            Dictionary representation of game state
+            Dictionary representation of game state or delta
         """
         base_state = {
             "game_id": self.game_id,
@@ -286,12 +297,31 @@ class GameSession:
                 {
                     "player_id": p.player_id,
                     "player_name": p.player_name,
+                    "player_class": p.player_class,
                     "is_ready": p.is_ready,
                 }
                 for p in self.players.values()
             ]
 
-        return base_state
+        # Apply delta compression if enabled
+        if use_delta is None:
+            use_delta = self.use_delta_compression
+
+        if use_delta and self.is_started:
+            delta = StateDelta.compute_delta(self.last_state, base_state)
+
+            # Update last state
+            self.last_state = base_state.copy()
+
+            # Log compression ratio
+            if logger.isEnabledFor(logging.DEBUG):
+                StateDelta.estimate_compression_ratio(self.last_state, base_state, delta)
+
+            return delta
+        else:
+            # First state or delta disabled - send full state
+            self.last_state = base_state.copy()
+            return base_state
 
     def get_player_count(self) -> int:
         """Get the number of players in the game."""
@@ -300,6 +330,15 @@ class GameSession:
     def get_player_names(self) -> List[str]:
         """Get list of player names."""
         return [p.player_name for p in self.players.values()]
+
+    def reset_state_tracking(self) -> None:
+        """Reset state tracking for delta compression.
+
+        This forces the next state broadcast to be a full state.
+        Useful when a player reconnects and needs the full state.
+        """
+        self.last_state = None
+        logger.debug(f"Reset state tracking for game {self.game_id}")
 
 
 class GameSessionManager:
@@ -342,7 +381,7 @@ class GameSessionManager:
         return self._games.get(game_id)
 
     async def join_game(
-        self, game_id: str, player_id: str, player_name: str
+        self, game_id: str, player_id: str, player_name: str, player_class: str = "warrior"
     ) -> tuple[bool, Optional[str]]:
         """Join a player to a game.
 
@@ -350,6 +389,7 @@ class GameSessionManager:
             game_id: Game to join
             player_id: Player ID
             player_name: Player name
+            player_class: Character class (warrior, mage, rogue, healer)
 
         Returns:
             Tuple of (success, error_message)
@@ -366,7 +406,7 @@ class GameSessionManager:
             if player_id in self._player_to_game:
                 return False, "Player is already in another game"
 
-            success = await game.add_player(player_id, player_name)
+            success = await game.add_player(player_id, player_name, player_class)
             if success:
                 self._player_to_game[player_id] = game_id
                 return True, None
