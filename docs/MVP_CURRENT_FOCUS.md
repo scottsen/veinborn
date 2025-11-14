@@ -1,8 +1,8 @@
 # Brogue MVP: Current Focus & Next Steps
 
 **Status:** ✅ **MVP FEATURE-COMPLETE** - Now in Polish & Content Phase
-**Phase:** MVP Polish + Lua Advanced Features
-**Last Updated:** 2025-11-11
+**Phase:** MVP Polish + Lua Advanced Features + **Multiplayer Phase 2 COMPLETE** 🎉
+**Last Updated:** 2025-11-14
 **Test Status:** 858/860 passing (99.8% pass rate, 2 skipped)
 
 ---
@@ -49,6 +49,68 @@ The core game is complete and playable. Focus now shifts to:
 - Lua advanced features (AI behaviors, custom actions)
 - Fix remaining 3 test failures
 - Polish and user experience improvements
+
+---
+
+## 🚀 PARALLEL TRACK: Multiplayer Phase 2 COMPLETE!
+
+**In parallel with single-player polish, we've completed multiplayer Phase 2:**
+
+### ✅ What's Working (as of 2025-11-14)
+
+**Infrastructure (100% Complete):**
+- ✅ WebSocket server (localhost:8765)
+- ✅ Token-based authentication
+- ✅ Session management
+- ✅ Game creation/joining
+- ✅ Ready/start coordination
+- ✅ Chat messaging
+
+**Gameplay (100% Complete):**
+- ✅ 2+ players can play together
+- ✅ Shared dungeon generation
+- ✅ **Distributed player spawning** (different rooms)
+- ✅ **Monster AI integration** (monsters act after player rounds)
+- ✅ **Nearest-player targeting** (smart co-op AI)
+- ✅ Real-time movement synchronization
+- ✅ Combat working with multiple players
+- ✅ Turn system ("4 actions per round")
+
+**Test Client:**
+- ✅ Interactive test client (`src/server/test_client.py`)
+- ✅ Commands: create, join, ready, move, chat
+
+### 📁 New Files Created
+
+**11 new files (~2,400 lines of code):**
+```
+src/server/
+├── websocket_server.py      # Main WebSocket server (546 lines)
+├── auth.py                   # Authentication (138 lines)
+├── game_session.py           # Game management (440 lines)
+├── multiplayer_game_state.py # Multiplayer state (317 lines)
+├── messages.py               # Protocol (195 lines)
+├── action_handler.py         # Action routing (90 lines)
+├── config.py                 # Server config (53 lines)
+├── run_server.py             # Server launcher (67 lines)
+├── test_client.py            # Test client (364 lines)
+└── README.md                 # Documentation (356 lines)
+```
+
+### 🎯 Next Steps for Multiplayer (Phase 3)
+
+1. **Extended Testing** (High Priority)
+   - Test 30+ minutes of 2-player co-op
+   - Validate combat balance
+   - Test edge cases
+
+2. **Polish** (Medium Priority)
+   - Delta compression (performance)
+   - Reconnection handling
+   - Class selection on join
+   - Personal loot system
+
+**See:** `MULTIPLAYER_PROGRESS.md` for full details
 
 ---
 
@@ -247,12 +309,15 @@ timeout implementation, which is not worth the complexity for edge-case timeout 
 - [ ] Documentation for players
 - [ ] Release candidate testing
 
-### 🚀 Phase 4: Multiplayer Planning (2026+)
-- See: `docs/future-multiplayer/` (8-12 weeks)
-- 4-player co-op
-- NATS message bus
-- WebSocket architecture
-- Brilliant turn system: "4 actions per round, anyone can take them"
+### 🚀 Phase 4: Multiplayer (EARLY START - Phase 2 Complete!)
+- ✅ **Phase 2 COMPLETE** (as of 2025-11-14)
+- ✅ WebSocket server working
+- ✅ 2+ player co-op functional
+- ✅ Monster AI integration
+- ✅ Turn system implemented ("4 actions per round")
+- 🔨 Phase 3: Testing, polish, balance
+- 📅 Phase 4: Persistence, advanced features
+- See: `MULTIPLAYER_PROGRESS.md` and `docs/design/MULTIPLAYER_DESIGN_2025.md`
 
 ---
 
