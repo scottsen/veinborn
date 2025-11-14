@@ -23,6 +23,7 @@ class PlayerInfo:
 
     player_id: str
     player_name: str
+    player_class: str = "warrior"  # Character class (warrior, mage, rogue, healer)
     entity_id: Optional[str] = None
     is_ready: bool = False
     is_alive: bool = True
@@ -73,12 +74,13 @@ class GameSession:
             and not self.is_finished
         )
 
-    async def add_player(self, player_id: str, player_name: str) -> bool:
+    async def add_player(self, player_id: str, player_name: str, player_class: str = "warrior") -> bool:
         """Add a player to the game session.
 
         Args:
             player_id: Unique player ID
             player_name: Player display name
+            player_class: Character class (warrior, mage, rogue, healer)
 
         Returns:
             True if player was added, False otherwise
@@ -93,6 +95,7 @@ class GameSession:
             player_info = PlayerInfo(
                 player_id=player_id,
                 player_name=player_name,
+                player_class=player_class,
             )
             self.players[player_id] = player_info
             self.player_order.append(player_id)
@@ -169,7 +172,7 @@ class GameSession:
             # Add all players to the game
             for player_id, player_info in self.players.items():
                 success = self.mp_game_state.add_player(
-                    player_id, player_info.player_name
+                    player_id, player_info.player_name, player_info.player_class
                 )
                 if success:
                     # Store entity ID in player info
@@ -286,6 +289,7 @@ class GameSession:
                 {
                     "player_id": p.player_id,
                     "player_name": p.player_name,
+                    "player_class": p.player_class,
                     "is_ready": p.is_ready,
                 }
                 for p in self.players.values()
@@ -342,7 +346,7 @@ class GameSessionManager:
         return self._games.get(game_id)
 
     async def join_game(
-        self, game_id: str, player_id: str, player_name: str
+        self, game_id: str, player_id: str, player_name: str, player_class: str = "warrior"
     ) -> tuple[bool, Optional[str]]:
         """Join a player to a game.
 
@@ -350,6 +354,7 @@ class GameSessionManager:
             game_id: Game to join
             player_id: Player ID
             player_name: Player name
+            player_class: Character class (warrior, mage, rogue, healer)
 
         Returns:
             Tuple of (success, error_message)
@@ -366,7 +371,7 @@ class GameSessionManager:
             if player_id in self._player_to_game:
                 return False, "Player is already in another game"
 
-            success = await game.add_player(player_id, player_name)
+            success = await game.add_player(player_id, player_name, player_class)
             if success:
                 self._player_to_game[player_id] = game_id
                 return True, None

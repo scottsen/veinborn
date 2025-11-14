@@ -72,33 +72,35 @@ class TestClient:
             print(f"✗ Connection error: {e}")
             return False
 
-    async def create_game(self, game_name: str = "Test Game"):
+    async def create_game(self, game_name: str = "Test Game", player_class: str = "warrior"):
         """Create a new game.
 
         Args:
             game_name: Name for the game
+            player_class: Character class (warrior, mage, rogue, healer)
         """
         if not self.ws:
             print("✗ Not connected")
             return
 
-        msg = Message.create_game(game_name, max_players=4)
+        msg = Message.create_game(game_name, max_players=4, player_class=player_class)
         await self.ws.send(msg.to_json())
-        print(f"Sent create game request: '{game_name}'")
+        print(f"Sent create game request: '{game_name}' as {player_class}")
 
-    async def join_game(self, game_id: str):
+    async def join_game(self, game_id: str, player_class: str = "warrior"):
         """Join an existing game.
 
         Args:
             game_id: Game ID to join
+            player_class: Character class (warrior, mage, rogue, healer)
         """
         if not self.ws:
             print("✗ Not connected")
             return
 
-        msg = Message.join_game(game_id)
+        msg = Message.join_game(game_id, player_class=player_class)
         await self.ws.send(msg.to_json())
-        print(f"Sent join game request: {game_id}")
+        print(f"Sent join game request: {game_id} as {player_class}")
 
     async def send_ready(self):
         """Send ready status."""
@@ -214,7 +216,8 @@ class TestClient:
 
         elif msg_type == "player_joined":
             name = message.data.get("player_name", "Unknown")
-            print(f"\n👤 {name} joined the game")
+            player_class = message.data.get("player_class", "warrior")
+            print(f"\n👤 {name} joined the game as {player_class}")
 
         elif msg_type == "player_left":
             name = message.data.get("player_name", "Unknown")
@@ -234,12 +237,12 @@ class TestClient:
         print("Interactive Mode")
         print("=" * 60)
         print("Commands:")
-        print("  /create <name>  - Create a new game")
-        print("  /join <id>      - Join a game by ID")
-        print("  /ready          - Mark yourself as ready")
-        print("  /move <dir>     - Move (n, s, e, w, ne, nw, se, sw)")
-        print("  /quit           - Disconnect")
-        print("  <message>       - Send chat message")
+        print("  /create <name> [class]  - Create a new game (warrior, mage, rogue, healer)")
+        print("  /join <id> [class]      - Join a game by ID")
+        print("  /ready                  - Mark yourself as ready")
+        print("  /move <dir>             - Move (n, s, e, w, ne, nw, se, sw)")
+        print("  /quit                   - Disconnect")
+        print("  <message>               - Send chat message")
         print("=" * 60 + "\n")
 
         # Start listening task
@@ -267,13 +270,20 @@ class TestClient:
                         print("Disconnecting...")
                         break
                     elif cmd == "/create":
-                        game_name = parts[1] if len(parts) > 1 else "Test Game"
-                        await self.create_game(game_name)
+                        # Parse: /create <name> [class]
+                        args = parts[1].split() if len(parts) > 1 else []
+                        game_name = args[0] if len(args) > 0 else "Test Game"
+                        player_class = args[1] if len(args) > 1 else "warrior"
+                        await self.create_game(game_name, player_class)
                     elif cmd == "/join":
+                        # Parse: /join <id> [class]
                         if len(parts) < 2:
-                            print("Usage: /join <game_id>")
+                            print("Usage: /join <game_id> [class]")
                         else:
-                            await self.join_game(parts[1])
+                            args = parts[1].split()
+                            game_id = args[0]
+                            player_class = args[1] if len(args) > 1 else "warrior"
+                            await self.join_game(game_id, player_class)
                     elif cmd == "/ready":
                         await self.send_ready()
                     elif cmd == "/move":

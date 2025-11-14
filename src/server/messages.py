@@ -143,32 +143,37 @@ class Message:
         )
 
     @classmethod
-    def create_game(cls, game_name: str, max_players: int = 4) -> "Message":
+    def create_game(cls, game_name: str, max_players: int = 4, player_class: str = "warrior") -> "Message":
         """Create game creation request."""
         return cls(
             type=MessageType.CREATE_GAME.value,
             data={
                 "game_name": game_name,
                 "max_players": max_players,
+                "player_class": player_class,
             },
         )
 
     @classmethod
-    def join_game(cls, game_id: str) -> "Message":
+    def join_game(cls, game_id: str, player_class: str = "warrior") -> "Message":
         """Create join game request."""
         return cls(
             type=MessageType.JOIN_GAME.value,
-            data={"game_id": game_id},
+            data={
+                "game_id": game_id,
+                "player_class": player_class,
+            },
         )
 
     @classmethod
-    def player_joined(cls, player_id: str, player_name: str) -> "Message":
+    def player_joined(cls, player_id: str, player_name: str, player_class: str = "warrior") -> "Message":
         """Create player joined notification."""
         return cls(
             type=MessageType.PLAYER_JOINED.value,
             data={
                 "player_id": player_id,
                 "player_name": player_name,
+                "player_class": player_class,
             },
         )
 
