@@ -250,6 +250,18 @@ class MultiplayerGameState:
             player_class = player_entity.stats.get('class', 'Warrior') if hasattr(player_entity, 'stats') else 'Warrior'
             class_type = player_entity.stats.get('class_type', 'warrior') if hasattr(player_entity, 'stats') else 'warrior'
 
+            # Serialize inventory
+            inventory_data = []
+            if hasattr(player_entity, 'inventory'):
+                for item in player_entity.inventory:
+                    inventory_data.append({
+                        "entity_id": item.entity_id,
+                        "content_id": item.content_id,
+                        "name": item.name,
+                        "entity_type": item.entity_type.value if hasattr(item.entity_type, 'value') else str(item.entity_type),
+                        "stats": dict(item.stats) if hasattr(item, 'stats') else {}
+                    })
+
             players_info.append(
                 {
                     "player_id": slot.player_id,
@@ -270,7 +282,8 @@ class MultiplayerGameState:
                     "stats": {
                         "attack": player_entity.attack,
                         "defense": player_entity.defense,
-                    }
+                    },
+                    "inventory": inventory_data
                 }
             )
 
