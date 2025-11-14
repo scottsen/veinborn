@@ -236,8 +236,82 @@ class AttackAction(Action):
         if not monster_type:
             return
 
-        # Generate loot items (TODO: Pass floor_number from context when available)
-        dropped_items = self.loot_generator.generate_loot(monster_type, floor_number=1)
+        # Check if multiplayer mode (more than one player total, regardless of alive status)
+        all_players = context.get_all_players()
+        is_multiplayer = len(all_players) > 1
+
+        if is_multiplayer:
+            # Multiplayer: Generate personal loot for each alive player
+            alive_players = context.get_alive_players()
+            self._generate_personal_loot(context, target, monster_type, alive_players, outcome)
+        else:
+            # Single-player: Drop loot on ground (existing behavior)
+            self._generate_shared_loot(context, target, monster_type, outcome)
+
+    def _generate_personal_loot(self, context: GameContext, target, monster_type: str,
+                                alive_players: list, outcome: ActionOutcome):
+        """
+        Generate personal loot for each alive player (multiplayer mode).
+
+        Each player gets their own independent loot roll added directly to inventory.
+        """
+        floor_number = context.get_floor()
+        total_items_generated = 0
+        player_loot_map = {}  # Track which items each player received
+
+        for player in alive_players:
+            # Generate loot for this specific player
+            items = self.loot_generator.generate_loot(monster_type, floor_number=floor_number)
+
+            if not items:
+                continue
+
+            # Add items to player's inventory
+            items_added = []
+            items_dropped = []
+
+            for item in items:
+                if player.add_to_inventory(item):
+                    items_added.append(item)
+                else:
+                    # Inventory full - drop on ground at player's position
+                    item.x = player.x
+                    item.y = player.y
+                    context.add_entity(item)
+                    items_dropped.append(item)
+
+            # Track loot for this player
+            if items_added or items_dropped:
+                player_loot_map[player.entity_id] = {
+                    'player_name': player.name,
+                    'items_added': items_added,
+                    'items_dropped': items_dropped
+                }
+                total_items_generated += len(items_added) + len(items_dropped)
+
+        # Add messages and events
+        if total_items_generated > 0:
+            self._add_personal_loot_messages(outcome, target, player_loot_map)
+            self._add_personal_loot_event(outcome, target, monster_type, player_loot_map)
+
+            logger.info(f"Personal loot distributed from {target.name}",
+                       extra={'monster_type': monster_type, 'num_players': len(player_loot_map),
+                             'total_items': total_items_generated})
+        else:
+            logger.debug(f"No personal loot generated for any player from {target.name}",
+                        extra={'monster_type': monster_type})
+
+    def _generate_shared_loot(self, context: GameContext, target, monster_type: str,
+                             outcome: ActionOutcome):
+        """
+        Generate shared loot placed on ground (single-player mode).
+
+        This is the original behavior where items are placed at monster's position.
+        """
+        floor_number = context.get_floor()
+
+        # Generate loot items
+        dropped_items = self.loot_generator.generate_loot(monster_type, floor_number=floor_number)
         if not dropped_items:
             logger.debug(f"No loot dropped from {target.name}", extra={'monster_type': monster_type})
             return
@@ -285,6 +359,60 @@ class AttackAction(Action):
                 {'entity_id': item.entity_id, 'item_id': item.content_id, 'name': item.name}
                 for item in dropped_items
             ],
+        })
+
+    def _add_personal_loot_messages(self, outcome: ActionOutcome, target, player_loot_map: dict):
+        """Add personal loot messages for multiplayer."""
+        for player_id, loot_info in player_loot_map.items():
+            player_name = loot_info['player_name']
+            items_added = loot_info['items_added']
+            items_dropped = loot_info['items_dropped']
+
+            # Message for items added to inventory
+            if items_added:
+                if len(items_added) == 1:
+                    outcome.messages.append(
+                        f"{player_name} received: {items_added[0].name}"
+                    )
+                else:
+                    item_names = ', '.join(item.name for item in items_added)
+                    outcome.messages.append(
+                        f"{player_name} received {len(items_added)} items: {item_names}"
+                    )
+
+            # Message for items dropped (inventory full)
+            if items_dropped:
+                if len(items_dropped) == 1:
+                    outcome.messages.append(
+                        f"{player_name}'s inventory full! {items_dropped[0].name} dropped on ground"
+                    )
+                else:
+                    outcome.messages.append(
+                        f"{player_name}'s inventory full! {len(items_dropped)} items dropped on ground"
+                    )
+
+    def _add_personal_loot_event(self, outcome: ActionOutcome, target, monster_type: str,
+                                 player_loot_map: dict):
+        """Add personal loot event for multiplayer."""
+        outcome.events.append({
+            'type': 'personal_loot_dropped',
+            'monster_id': self.target_id,
+            'monster_type': monster_type,
+            'position': (target.x, target.y),
+            'player_loot': {
+                player_id: {
+                    'player_name': loot_info['player_name'],
+                    'items_added': [
+                        {'entity_id': item.entity_id, 'item_id': item.content_id, 'name': item.name}
+                        for item in loot_info['items_added']
+                    ],
+                    'items_dropped': [
+                        {'entity_id': item.entity_id, 'item_id': item.content_id, 'name': item.name}
+                        for item in loot_info['items_dropped']
+                    ]
+                }
+                for player_id, loot_info in player_loot_map.items()
+            },
         })
 
     def to_dict(self) -> dict:

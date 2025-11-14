@@ -139,6 +139,12 @@ class StateDelta:
         if old_stats != new_stats:
             delta["stats"] = new_stats
 
+        # Check inventory (for personal loot system)
+        old_inventory = old_player.get("inventory", [])
+        new_inventory = new_player.get("inventory", [])
+        if old_inventory != new_inventory:
+            delta["inventory"] = new_inventory
+
         return delta if delta else None
 
     @staticmethod
