@@ -6,7 +6,9 @@
 
 ## ⚠️ IMPORTANT: Current Development Phase
 
-**We are in MVP Polish Phase (Single-Player)**
+**We have TWO active tracks:**
+
+### Track A: Single-Player MVP (Polish Phase)
 
 **What we've COMPLETED:**
 - ✅ Single-player roguelike (fully playable!)
@@ -19,20 +21,33 @@
 - ✅ Lua Event System (Phase 3 complete!)
 - **858/860 tests passing (99.8%)!** (2 skipped due to C-level execution limitations)
 
-**What we're building NOW (Polish Phase):**
+**What we're building NOW:**
 - 🔨 Playtesting and balance tuning
 - 🔨 Content expansion (more monsters, recipes)
 - 🔨 Tutorial system
 - 🔨 Lua advanced features (AI behaviors, actions)
-- ✅ Test suite at 99.8% (858/860) - 2 skipped tests are expected
 
-**What we're NOT building yet:**
-- ❌ Multiplayer (Phase 4, multiple months out)
-- ❌ NATS message bus, microservices
+### Track B: Multiplayer (Phase 2 COMPLETE! 🎉)
 
-**For current status:** See `PROJECT_STATUS.md` (comprehensive report)
-**For next steps:** See `MVP_CURRENT_FOCUS.md` (updated 2025-11-05)
-**For future multiplayer:** See `../.archived/future-multiplayer/` directory (Phase 2 designs)
+**What we've COMPLETED (as of 2025-11-14):**
+- ✅ **WebSocket server infrastructure** (11 new files, ~2,400 lines)
+- ✅ **2+ player co-op working** (connect, join, play together)
+- ✅ **Shared dungeon generation** (seeded for consistency)
+- ✅ **Distributed player spawning** (players start in different rooms)
+- ✅ **Monster AI integration** (monsters act after player rounds)
+- ✅ **Nearest-player targeting** (smart co-op AI)
+- ✅ **Turn system** ("4 actions per round, anyone can take them")
+- ✅ **Test client** for validation
+
+**What we're building NEXT (Multiplayer Phase 3):**
+- 🔨 Extended testing (30+ min co-op sessions)
+- 🔨 Combat balance for multiple players
+- 🔨 Delta compression (performance)
+- 🔨 Reconnection handling
+
+**For current status:** See `MVP_CURRENT_FOCUS.md` (updated 2025-11-14)
+**For multiplayer details:** See `MULTIPLAYER_PROGRESS.md`
+**For multiplayer design:** See `docs/design/MULTIPLAYER_DESIGN_2025.md`
 
 ---
 
@@ -188,14 +203,24 @@ def generate_dungeon():
 
 **See full status:** `docs/PROJECT_STATUS.md` (comprehensive report)
 
-### 🚀 Future (After MVP)
+### 🚀 Multiplayer (Phase 2 COMPLETE!)
 
-**Multiplayer Phase 2** (8-12 weeks):
-- 4-player co-op
-- Brilliant turn system: "4 actions per round, anyone can take them"
-- 4 classes (Warrior, Mage, Healer, Rogue)
-- NATS message bus, WebSocket connections
-- See: `../.archived/future-multiplayer/` (archived Phase 2 designs)
+**Phase 2 Complete** (as of 2025-11-14):
+- ✅ 2+ player co-op working!
+- ✅ WebSocket server infrastructure
+- ✅ Turn system: "4 actions per round, anyone can take them"
+- ✅ Shared dungeon generation
+- ✅ Monster AI integration
+- ✅ Test client for validation
+
+**Phase 3 Next** (Testing & Polish):
+- Extended co-op testing
+- Combat balance for multiplayer
+- Delta compression
+- Reconnection handling
+- Class selection on join
+
+**See:** `MULTIPLAYER_PROGRESS.md` and `docs/design/MULTIPLAYER_DESIGN_2025.md`
 
 ---
 
