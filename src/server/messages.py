@@ -11,6 +11,7 @@ class MessageType(Enum):
 
     # Client -> Server
     AUTH = "auth"
+    RECONNECT = "reconnect"
     ACTION = "action"
     CHAT = "chat"
     QUICK_COMMAND = "quick_command"
@@ -32,6 +33,8 @@ class MessageType(Enum):
     GAME_END = "game_end"
     PLAYER_JOINED = "player_joined"
     PLAYER_LEFT = "player_left"
+    PLAYER_DISCONNECTED = "player_disconnected"
+    PLAYER_RECONNECTED = "player_reconnected"
 
 
 @dataclass
@@ -197,4 +200,34 @@ class Message:
                 "game_id": game_id,
                 "players": players,
             },
+        )
+
+    @classmethod
+    def player_disconnected(cls, player_id: str, player_name: str) -> "Message":
+        """Create player disconnected notification."""
+        return cls(
+            type=MessageType.PLAYER_DISCONNECTED.value,
+            data={
+                "player_id": player_id,
+                "player_name": player_name,
+            },
+        )
+
+    @classmethod
+    def player_reconnected(cls, player_id: str, player_name: str) -> "Message":
+        """Create player reconnected notification."""
+        return cls(
+            type=MessageType.PLAYER_RECONNECTED.value,
+            data={
+                "player_id": player_id,
+                "player_name": player_name,
+            },
+        )
+
+    @classmethod
+    def reconnect(cls, session_id: str) -> "Message":
+        """Create reconnection request."""
+        return cls(
+            type=MessageType.RECONNECT.value,
+            data={"session_id": session_id},
         )

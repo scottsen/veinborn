@@ -4,6 +4,7 @@ import asyncio
 import time
 import logging
 from dataclasses import dataclass, field
+from enum import Enum
 from typing import Dict, List, Optional, Set
 from uuid import uuid4
 
@@ -18,6 +19,13 @@ from server.state_delta import StateDelta
 logger = logging.getLogger(__name__)
 
 
+class ConnectionStatus(Enum):
+    """Player connection status."""
+    CONNECTED = "connected"
+    DISCONNECTED = "disconnected"
+    LEFT = "left"
+
+
 @dataclass
 class PlayerInfo:
     """Information about a player in a game session."""
@@ -29,6 +37,48 @@ class PlayerInfo:
     is_ready: bool = False
     is_alive: bool = True
     joined_at: float = field(default_factory=time.time)
+
+    # Reconnection handling
+    connection_status: ConnectionStatus = ConnectionStatus.CONNECTED
+    disconnected_at: Optional[float] = None
+    reconnect_timeout_seconds: int = 120  # 2 minutes default
+
+    def mark_disconnected(self) -> None:
+        """Mark player as disconnected."""
+        self.connection_status = ConnectionStatus.DISCONNECTED
+        self.disconnected_at = time.time()
+        logger.info(f"Player {self.player_name} marked as disconnected")
+
+    def mark_reconnected(self) -> None:
+        """Mark player as reconnected."""
+        self.connection_status = ConnectionStatus.CONNECTED
+        self.disconnected_at = None
+        logger.info(f"Player {self.player_name} reconnected successfully")
+
+    def mark_left(self) -> None:
+        """Mark player as having left the game."""
+        self.connection_status = ConnectionStatus.LEFT
+        logger.info(f"Player {self.player_name} left the game")
+
+    def is_connected(self) -> bool:
+        """Check if player is currently connected."""
+        return self.connection_status == ConnectionStatus.CONNECTED
+
+    def is_disconnected(self) -> bool:
+        """Check if player is disconnected but can rejoin."""
+        return self.connection_status == ConnectionStatus.DISCONNECTED
+
+    def has_left(self) -> bool:
+        """Check if player has permanently left."""
+        return self.connection_status == ConnectionStatus.LEFT
+
+    def is_reconnect_timeout_expired(self) -> bool:
+        """Check if reconnection timeout has expired."""
+        if not self.is_disconnected() or self.disconnected_at is None:
+            return False
+
+        elapsed = time.time() - self.disconnected_at
+        return elapsed > self.reconnect_timeout_seconds
 
 
 class GameSession:
@@ -124,11 +174,122 @@ class GameSession:
             if player_id in self.player_order:
                 self.player_order.remove(player_id)
 
-            # If game is running and no players left, mark as finished
-            if self.is_started and len(self.players) == 0:
+            # If game is running and no connected/disconnected players left, mark as finished
+            connected_count = sum(
+                1 for p in self.players.values()
+                if not p.has_left()
+            )
+            if self.is_started and connected_count == 0:
                 self.is_finished = True
 
             return True
+
+    async def disconnect_player(self, player_id: str) -> bool:
+        """Mark a player as disconnected but keep them in the game.
+
+        Args:
+            player_id: Player ID to disconnect
+
+        Returns:
+            True if player was marked as disconnected, False otherwise
+        """
+        async with self._lock:
+            if player_id not in self.players:
+                return False
+
+            player_info = self.players[player_id]
+            player_info.mark_disconnected()
+
+            logger.info(
+                f"Player {player_info.player_name} disconnected from game {self.game_id}. "
+                f"Will be removed in {player_info.reconnect_timeout_seconds}s if not reconnected."
+            )
+
+            return True
+
+    async def reconnect_player(self, player_id: str) -> tuple[bool, Optional[str]]:
+        """Reconnect a previously disconnected player.
+
+        Args:
+            player_id: Player ID to reconnect
+
+        Returns:
+            Tuple of (success, error_message)
+        """
+        async with self._lock:
+            if player_id not in self.players:
+                return False, "Player not in game"
+
+            player_info = self.players[player_id]
+
+            if not player_info.is_disconnected():
+                if player_info.has_left():
+                    return False, "Player has left the game"
+                else:
+                    return False, "Player is already connected"
+
+            # Check if reconnect timeout has expired
+            if player_info.is_reconnect_timeout_expired():
+                return False, "Reconnection timeout expired"
+
+            # Mark player as reconnected
+            player_info.mark_reconnected()
+
+            logger.info(
+                f"Player {player_info.player_name} reconnected to game {self.game_id}"
+            )
+
+            return True, None
+
+    async def leave_player(self, player_id: str) -> bool:
+        """Mark a player as having voluntarily left the game.
+
+        Args:
+            player_id: Player ID
+
+        Returns:
+            True if successful, False otherwise
+        """
+        async with self._lock:
+            if player_id not in self.players:
+                return False
+
+            player_info = self.players[player_id]
+            player_info.mark_left()
+
+            logger.info(
+                f"Player {player_info.player_name} left game {self.game_id}"
+            )
+
+            # Check if all players have left
+            connected_count = sum(
+                1 for p in self.players.values()
+                if not p.has_left()
+            )
+            if connected_count == 0:
+                self.is_finished = True
+
+            return True
+
+    async def cleanup_expired_disconnections(self) -> List[str]:
+        """Remove players whose reconnection timeout has expired.
+
+        Returns:
+            List of player IDs that were removed
+        """
+        removed_players = []
+
+        async with self._lock:
+            for player_id, player_info in list(self.players.items()):
+                if player_info.is_reconnect_timeout_expired():
+                    logger.info(
+                        f"Removing player {player_info.player_name} from game {self.game_id} "
+                        f"due to reconnection timeout"
+                    )
+                    await self.remove_player(player_id)
+                    removed_players.append(player_id)
+
+        return removed_players
 
     async def set_player_ready(self, player_id: str, ready: bool = True) -> bool:
         """Set a player's ready status.
@@ -218,11 +379,15 @@ class GameSession:
             if player_id not in self.players:
                 return False, "Player not in game"
 
+            # Check if player is disconnected - reject action from disconnected players
+            player_info = self.players[player_id]
+            if player_info.is_disconnected():
+                return False, "Player is disconnected - AI is controlling this character"
+
             if not self.mp_game_state or not self.mp_game_state.game_state:
                 return False, "Game state not initialized"
 
             # Validate action belongs to player
-            player_info = self.players[player_id]
             if player_info.entity_id and action.actor_id != player_info.entity_id:
                 return False, "Action actor does not match player entity"
 
@@ -248,6 +413,82 @@ class GameSession:
             except Exception as e:
                 logger.error(f"Action execution error: {e}", exc_info=True)
                 return False, f"Action execution failed: {str(e)}"
+
+    async def process_disconnected_player_action(self, player_id: str) -> tuple[bool, Optional[str]]:
+        """Process an AI-controlled action for a disconnected player.
+
+        This method generates a defensive "wait" action for disconnected players.
+
+        Args:
+            player_id: Disconnected player ID
+
+        Returns:
+            Tuple of (success, error_message)
+        """
+        async with self._lock:
+            if not self.is_started or self.is_finished:
+                return False, "Game is not active"
+
+            if player_id not in self.players:
+                return False, "Player not in game"
+
+            player_info = self.players[player_id]
+
+            if not player_info.is_disconnected():
+                return False, "Player is not disconnected"
+
+            if not self.mp_game_state or not self.mp_game_state.game_state:
+                return False, "Game state not initialized"
+
+            # Import WaitAction here to avoid circular imports
+            from core.actions.wait_action import WaitAction
+
+            # Generate a defensive wait action for the disconnected player
+            try:
+                wait_action = WaitAction(actor_id=player_info.entity_id)
+                outcome = wait_action.execute(self.mp_game_state.game_state)
+
+                if not outcome.success:
+                    logger.warning(
+                        f"AI action for disconnected player {player_info.player_name} failed: {outcome.message}"
+                    )
+                    return False, outcome.message
+
+                # Increment action counter
+                self.mp_game_state.increment_actions()
+
+                logger.debug(
+                    f"AI executed wait action for disconnected player {player_info.player_name}"
+                )
+
+                # Check if round is complete
+                if self.mp_game_state.actions_this_round >= self.actions_per_round:
+                    await self._process_monster_turn()
+                    self.mp_game_state.increment_round()
+
+                # Update player alive status
+                self.mp_game_state.update_player_alive_status()
+
+                return True, None
+
+            except Exception as e:
+                logger.error(
+                    f"Error processing AI action for disconnected player: {e}",
+                    exc_info=True
+                )
+                return False, f"AI action failed: {str(e)}"
+
+    def get_disconnected_players(self) -> List[str]:
+        """Get list of disconnected player IDs.
+
+        Returns:
+            List of player IDs who are disconnected
+        """
+        return [
+            player_id
+            for player_id, player_info in self.players.items()
+            if player_info.is_disconnected() and player_info.is_alive
+        ]
 
     async def _process_monster_turn(self) -> None:
         """Process all monster actions for the current round."""
