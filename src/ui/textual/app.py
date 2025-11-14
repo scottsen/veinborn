@@ -7,7 +7,7 @@ from textual.app import App, ComposeResult
 from textual.binding import Binding
 
 from core.game import Game
-from ui.textual.widgets import MapWidget, StatusBar, Sidebar
+from ui.textual.widgets import MapWidget, StatusBar, Sidebar, ChatInput
 from ui.textual.widgets.message_log import MessageLog
 
 # Setup logging
@@ -98,6 +98,9 @@ class BrogueApp(App):
         Binding("space", "wait", "Wait/Pass Turn", show=False),
         # Stairs
         Binding(">", "descend", "Descend Stairs (>)", show=True),
+        # Chat (multiplayer)
+        Binding("c", "chat", "Chat", show=True),
+        Binding("enter", "chat", "Chat", show=False),
         # Save/Load
         Binding("S", "save_game", "Save Game", show=True),
         Binding("L", "load_game", "Load Game", show=True),
@@ -108,7 +111,7 @@ class BrogueApp(App):
 
     TITLE = "Brogue: Walking in Big Brother's Footsteps"
 
-    def __init__(self, player_name=None, character_class=None, seed=None, withdrawn_ore=None, is_legacy_run=False):
+    def __init__(self, player_name=None, character_class=None, seed=None, withdrawn_ore=None, is_legacy_run=False, multiplayer_client=None):
         """
         Initialize Brogue app.
 
@@ -118,6 +121,7 @@ class BrogueApp(App):
             seed: Game seed (for reproducibility)
             withdrawn_ore: LegacyOre from vault (optional)
             is_legacy_run: Whether this is a legacy run (used vault ore)
+            multiplayer_client: Optional MultiplayerClient for multiplayer games
         """
         logger.info("BrogueApp.__init__() starting")
         super().__init__()
@@ -132,10 +136,15 @@ class BrogueApp(App):
         self.withdrawn_ore = withdrawn_ore
         self.is_legacy_run = is_legacy_run
 
+        # Multiplayer support
+        self.multiplayer_client = multiplayer_client
+        self.is_multiplayer = multiplayer_client is not None
+
         self.map_widget = None
         self.status_bar = None
         self.sidebar = None
         self.message_log = None
+        self.chat_input = None
         logger.info("BrogueApp.__init__() complete")
 
     def compose(self) -> ComposeResult:
@@ -164,6 +173,8 @@ class BrogueApp(App):
         self.sidebar = Sidebar(game_state=self.game.state)
         logger.info("  Creating MessageLog...")
         self.message_log = MessageLog(game_state=self.game.state)
+        logger.info("  Creating ChatInput...")
+        self.chat_input = ChatInput()
 
         # Yield widgets
         logger.info("  Yielding widgets...")
@@ -171,6 +182,7 @@ class BrogueApp(App):
         yield self.sidebar
         yield self.map_widget
         yield self.message_log
+        yield self.chat_input  # Chat input overlays on top
         logger.info("compose() complete")
 
     async def action_move(self, dx: int, dy: int) -> None:
@@ -265,9 +277,58 @@ class BrogueApp(App):
         self.game.restart_game()
         self.refresh_ui()
 
+    async def action_chat(self) -> None:
+        """Open chat input (async Textual handler)."""
+        if self.chat_input:
+            # Show chat input with callback for when message is submitted
+            self.chat_input.show(on_submit=self._send_chat_message)
+
+    def _send_chat_message(self, message: str):
+        """Send a chat message (callback from ChatInput).
+
+        Args:
+            message: Chat message text
+        """
+        if self.is_multiplayer and self.multiplayer_client:
+            # In multiplayer mode, send to server
+            import asyncio
+            asyncio.create_task(self.multiplayer_client.send_chat(message))
+            logger.info(f"Sent chat message: {message}")
+        else:
+            # In single-player mode, just show it locally (for testing)
+            if self.message_log:
+                self.message_log.add_chat_message(self.player_name, message)
+            logger.info(f"Chat (single-player): {message}")
+
+    def _handle_chat_message(self, chat_msg):
+        """Handle incoming chat message from multiplayer client.
+
+        Args:
+            chat_msg: ChatMessage object from multiplayer client
+        """
+        if self.message_log:
+            self.message_log.add_chat_message(chat_msg.player_name, chat_msg.message)
+        logger.debug(f"Received chat from {chat_msg.player_name}: {chat_msg.message}")
+
+    def _handle_system_message(self, message: str):
+        """Handle system message from multiplayer client.
+
+        Args:
+            message: System message text
+        """
+        if self.message_log:
+            self.message_log.add_system_message(message)
+        logger.info(f"System message: {message}")
+
     def on_mount(self) -> None:
         """Called when app is mounted."""
         logger.info("on_mount() called - app is mounting")
+
+        # Set up multiplayer client callbacks if in multiplayer mode
+        if self.multiplayer_client:
+            logger.info("Setting up multiplayer client callbacks")
+            self.multiplayer_client.on_chat_message = self._handle_chat_message
+            self.multiplayer_client.on_system_message = self._handle_system_message
 
     def on_ready(self) -> None:
         """Called when app is ready."""
