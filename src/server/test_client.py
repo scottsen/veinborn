@@ -20,6 +20,7 @@ except ImportError:
     sys.exit(1)
 
 from server.messages import Message
+from server.state_delta import StateDelta
 
 
 class TestClient:
@@ -33,6 +34,9 @@ class TestClient:
         self.player_id = None
         self.player_name = None
         self.player_entity_id = None  # Entity ID for sending actions
+
+        # State tracking for delta compression
+        self.current_state = None
 
     async def connect(self, player_name: str):
         """Connect to the server and authenticate.
@@ -192,7 +196,9 @@ class TestClient:
 
         elif msg_type == "state":
             state = message.data.get("state", {})
-            print(f"\n📊 Game State Update:")
+            # Store current state for delta handling
+            self.current_state = state
+            print(f"\n📊 Game State Update (Full):")
             print(f"   Game: {state.get('game_name', 'Unknown')}")
             print(f"   Players: {state.get('player_count', 0)}/{state.get('max_players', 0)}")
             if state.get("is_started"):
@@ -213,6 +219,42 @@ class TestClient:
                         # Show position
                         pos = player.get("position", {})
                         print(f"   Your position: ({pos.get('x', 0)}, {pos.get('y', 0)})")
+
+        elif msg_type == "delta":
+            # Apply delta to current state
+            if self.current_state is None:
+                print(f"\n⚠ Received delta without current state, ignoring")
+            else:
+                delta_data = message.data
+                self.current_state = StateDelta.apply_delta(self.current_state, delta_data)
+                print(f"\n📊 Game State Update (Delta):")
+
+                # Show what changed
+                changes = delta_data.get("changes", {})
+                if changes.get("players"):
+                    print(f"   Player changes: {len(changes['players'])} updates")
+                if changes.get("new_messages"):
+                    print(f"   New messages: {len(changes['new_messages'])}")
+                if delta_data.get("no_changes"):
+                    print(f"   No changes")
+
+                # Show current state
+                if self.current_state.get("is_started"):
+                    print(f"   Turn: {delta_data.get('turn_count', 0)}")
+                    print(f"   Round: {delta_data.get('round_number', 0)}")
+                    print(f"   Actions: {delta_data.get('actions_this_round', 0)}")
+
+                # Update entity ID if needed
+                players = self.current_state.get("players", [])
+                for player in players:
+                    if player.get("player_id") == self.player_id:
+                        old_entity_id = self.player_entity_id
+                        self.player_entity_id = player.get("entity_id")
+
+                        # Show position if it changed
+                        if "players" in changes:
+                            pos = player.get("position", {})
+                            print(f"   Your position: ({pos.get('x', 0)}, {pos.get('y', 0)})")
 
         elif msg_type == "player_joined":
             name = message.data.get("player_name", "Unknown")

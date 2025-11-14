@@ -494,18 +494,26 @@ class BrogueServer:
             if session:
                 await self.send_message_to_session(session.session_id, message)
 
-    async def broadcast_game_state(self, game_id: str):
+    async def broadcast_game_state(self, game_id: str, force_full_state: bool = False):
         """Broadcast current game state to all players.
 
         Args:
             game_id: Game ID
+            force_full_state: If True, send full state instead of delta
         """
         game = await self.game_manager.get_game(game_id)
         if not game:
             return
 
-        state_dict = game.get_state_dict()
-        await self.broadcast_to_game(game_id, Message.state(state_dict))
+        state_dict = game.get_state_dict(use_delta=not force_full_state)
+
+        # Send appropriate message type based on whether it's a delta or full state
+        if state_dict.get("type") == "delta":
+            # Send delta message
+            await self.broadcast_to_game(game_id, Message.delta(state_dict))
+        else:
+            # Send full state message
+            await self.broadcast_to_game(game_id, Message.state(state_dict))
 
     async def cleanup_task(self):
         """Background task for cleanup operations."""
