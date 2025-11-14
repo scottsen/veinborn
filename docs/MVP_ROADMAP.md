@@ -1,8 +1,8 @@
 # Brogue MVP Roadmap
 
-**Last Updated:** 2025-11-05
-**Status:** ✅ MVP 100% COMPLETE - Ready for Polish & Content
-**Goal:** Feature-complete single-player roguelike with mining/crafting
+**Last Updated:** 2025-11-14
+**Status:** ✅ MVP 100% COMPLETE + Multiplayer Phase 2 Complete! 🎉
+**Goal:** Feature-complete single-player roguelike with mining/crafting + 2+ player co-op
 
 ---
 
@@ -46,7 +46,7 @@
 | **Loot** | ✅ Complete | 3 | `src/core/loot.py` |
 | **Legacy Vault** | ✅ Complete | 47 | `src/core/legacy.py` |
 
-**Total:** 520 tests passing (97% pass rate)
+**Total:** 858/860 tests passing (99.8% pass rate, 2 skipped)
 
 **Deliverable:** Complete single-player game with all MVP systems ✅
 
@@ -106,23 +106,41 @@
 - [x] Character classes with progression
 - [x] Floor descent with difficulty scaling
 - [x] Meta-progression (Legacy Vault)
-- [x] 520 tests passing
+- [x] 858/860 tests passing (99.8%)
 - [x] Game is fully playable
 
-### 🎯 Phase 2 Goals (In Progress)
+### ✅ Phase 2 Multiplayer Complete (Achieved - 2025-11-14!)
+- [x] WebSocket server infrastructure (11 new files, ~2,400 lines)
+- [x] 2+ player co-op functional
+- [x] Shared dungeon generation (distributed spawning)
+- [x] Turn system: "4 actions per round, anyone can take them"
+- [x] Monster AI integration (nearest-player targeting)
+- [x] Test client for validation
+
+### 🎯 Phase 3 Goals (In Progress - Dual-Track)
+
+**Single-Player Polish:**
 - [ ] 30+ hours of playtesting completed
 - [ ] Balance feels good across all classes
-- [ ] Legacy Vault withdrawal UI complete
-- [ ] 15-20 monster types
+- [ ] 19 monster types ✅ (goal: 15-20)
 - [ ] Tutorial system guides new players
 - [ ] Special room types add variety
 - [ ] No critical bugs
 
-### 🚀 Ready for Phase 3 (Launch Prep)
-- [ ] All Phase 2 criteria met
-- [ ] External playtesters give positive feedback
+**Multiplayer Testing:**
+- [ ] 30+ min co-op testing sessions
+- [ ] Combat balance for multiplayer validated
+- [ ] Delta compression (performance)
+- [ ] Reconnection handling
+- [ ] Class selection on join
+- [ ] Personal loot system
+
+### 🚀 Ready for Phase 4 (Launch Prep)
+- [ ] All Phase 3 criteria met
+- [ ] External playtesters give positive feedback (both modes)
 - [ ] "One more run" factor is strong
 - [ ] Performance is good (< 100ms gen, 60 FPS)
+- [ ] Multiplayer stress-tested
 
 ---
 

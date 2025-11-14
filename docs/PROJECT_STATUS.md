@@ -1,24 +1,31 @@
 # Brogue Project Status Report
 
-**Last Updated:** 2025-11-05
-**Status:** ✅ MVP Complete - Ready for Polish & Content
+**Last Updated:** 2025-11-14
+**Status:** ✅ MVP Complete + Multiplayer Phase 2 Complete 🎉
 
 ---
 
 ## Executive Summary
 
-**The Brogue MVP is feature-complete and ready for playtesting.** All core systems documented in the roadmap have been implemented and tested. The project has:
+**The Brogue MVP is feature-complete AND multiplayer Phase 2 is working!** All core single-player systems are implemented and tested, plus 2+ player co-op is functional. The project has:
 
-- ✅ **520 passing tests** (97% pass rate) - up from 474!
-- ✅ **Legacy Vault system 100% complete** - all 13 integration tests passing
+**Single-Player (Complete):**
+- ✅ **858/860 passing tests** (99.8% pass rate)
+- ✅ **All Phase 1 MVP systems complete**: Mining, Crafting, Equipment, Save/Load, Character Classes, Legacy Vault, Lua Events
 - ✅ **Content expansion complete** - 19 monster types, 23 recipes (6 legendary)
-- ✅ **All Phase 1 MVP systems complete**: Mining, Crafting, Equipment, Save/Load, Character Classes, Legacy Vault
 - ✅ **Game runs successfully** with full Textual UI
-- ✅ **Documentation updated** to reflect actual state
 
-**Current Phase:** MVP Complete - Ready for Playtesting
-**Ready For:** Playtesting, balance tuning, tutorial system
-**Next:** Polish, special rooms, advanced AI (optional)
+**Multiplayer (Phase 2 Complete - as of 2025-11-14):**
+- ✅ **WebSocket server infrastructure** (11 new files, ~2,400 lines)
+- ✅ **2+ player co-op working** (connect, join, play together)
+- ✅ **Shared dungeon generation** (distributed player spawning)
+- ✅ **Monster AI integration** (nearest-player targeting)
+- ✅ **Turn system** ("4 actions per round, anyone can take them")
+- ✅ **Test client** for validation
+
+**Current Phase:** Dual-track - Single-player polish + Multiplayer Phase 3 testing
+**Ready For:** Playtesting both modes, balance tuning, content expansion
+**Next:** Extended multiplayer testing, tutorial system, special rooms
 
 ---
 
@@ -187,7 +194,45 @@
 
 ---
 
-### ✅ ALL Systems Complete!
+### 🚀 Multiplayer Systems (Phase 2 Complete - 2025-11-14)
+
+#### WebSocket Infrastructure (100% Complete)
+- **Status:** Fully implemented and tested
+- **Features:**
+  - ✅ WebSocket server (localhost:8765)
+  - ✅ Token-based authentication
+  - ✅ Session management (create, join, ready, start)
+  - ✅ Chat messaging
+  - ✅ Real-time state synchronization
+- **Files:** `src/server/websocket_server.py`, `src/server/auth.py`, `src/server/game_session.py`
+- **New Code:** 11 files, ~2,400 lines
+
+#### Multiplayer Gameplay (100% Complete)
+- **Status:** 2+ player co-op functional
+- **Features:**
+  - ✅ Shared dungeon generation (seeded for consistency)
+  - ✅ Distributed player spawning (different rooms)
+  - ✅ Turn system: "4 actions per round, anyone can take them"
+  - ✅ Real-time movement synchronization
+  - ✅ Combat with multiple players
+  - ✅ Monster AI integration (acts after player rounds)
+  - ✅ Nearest-player targeting (smart co-op AI)
+- **Files:** `src/server/multiplayer_game_state.py`, `src/server/action_handler.py`
+- **Test Client:** `src/server/test_client.py` (interactive validation)
+
+#### Multiplayer Phase 3 (In Progress)
+- **Next Steps:**
+  - Extended testing (30+ min co-op sessions)
+  - Combat balance for multiple players
+  - Delta compression (performance optimization)
+  - Reconnection handling
+  - Class selection on join
+  - Personal loot system
+- **See:** `MULTIPLAYER_PROGRESS.md` and `docs/design/MULTIPLAYER_DESIGN_2025.md`
+
+---
+
+### ✅ ALL Single-Player Systems Complete!
 
 #### Legacy Vault System (100% Complete)
 - **Implemented:** Full Legacy Vault meta-progression system
@@ -248,9 +293,10 @@
 
 ### Overall Test Results
 ```
-544 passed, 0 skipped, 0 failed in 12.57s
-Pass Rate: 100% (all tests passing)
-Note: All tests passing as of 2025-11-05
+858 passed, 2 skipped, 0 failed
+Pass Rate: 99.8% (858/860)
+Note: 2 skipped tests are Lua timeout edge cases (C-level execution limitation)
+Last verified: 2025-11-14
 ```
 
 ### Test Coverage by System
@@ -318,7 +364,13 @@ All main documentation is now accurate and up-to-date:
 
 ## What's Next? (Real Priorities)
 
-### High Priority (Ready Now)
+### 🎯 DUAL-TRACK DEVELOPMENT
+
+**We're now working on TWO parallel tracks:**
+
+---
+
+### Track A: Single-Player Polish (High Priority)
 
 1. **Playtest & Balance** (HIGHEST PRIORITY)
    - Play the game extensively (works end-to-end)
@@ -327,46 +379,58 @@ All main documentation is now accurate and up-to-date:
    - Test crafting stat formulas
    - Validate equipment bonuses with all 19 monster types
 
-2. **Legacy Vault Withdrawal UI**
-   - Add UI for withdrawing ore at run start
-   - Implement withdrawal flow in game initialization
-   - Test Pure vs Legacy run marking
+2. **Tutorial System**
+   - First-run tutorial messages
+   - Help screen (H key)
+   - Keybind reference UI
 
 3. **Special Room Types**
    - Create treasure rooms, monster dens, ore chambers
    - Add shrines, trap rooms
    - Implement special room mechanics
 
-### Medium Priority
-
-4. **Tutorial System**
-   - First-run tutorial messages
-   - Help screen (H key)
-   - Keybind reference UI
-
-5. **Polish & UX**
+4. **Polish & UX**
    - Improve message log formatting
    - Add visual effects for mining progress
    - Better ore property visualization
    - Equipment comparison UI
 
-6. **Performance**
+---
+
+### Track B: Multiplayer Phase 3 (High Priority)
+
+5. **Extended Multiplayer Testing** (CRITICAL)
+   - Test 30+ minutes of 2-player co-op sessions
+   - Validate combat balance with multiple players
+   - Test edge cases (disconnects, rejoins, etc.)
+   - Document gameplay issues
+
+6. **Multiplayer Polish**
+   - Delta compression (performance optimization)
+   - Reconnection handling
+   - Class selection on join
+   - Personal loot system
+   - Party Legacy Vault
+
+7. **Multiplayer Content**
+   - Boss fights designed for co-op
+   - Class synergies (Warrior/Mage/Healer/Rogue)
+   - Special abilities for each class
+
+---
+
+### Medium Priority (Both Tracks)
+
+8. **Performance**
    - Optimize map generation (< 100ms goal)
    - Profile game loop (60+ FPS goal)
    - Check for memory leaks
+   - WebSocket message optimization
 
-### Low Priority (Future)
-
-7. **Advanced AI Features**
+9. **Advanced AI Features**
    - Implement state machine AI (future enhancement)
    - Add wandering, fleeing behaviors
    - Monster coordination tactics
-
-8. **Phase 2 Planning**
-   - Multiplayer design review
-   - NATS infrastructure planning
-   - WebSocket architecture
-   - See: `docs/future-multiplayer/`
 
 ---
 
@@ -405,20 +469,23 @@ python3 -m pytest tests/ -v
 
 ## Conclusion
 
-**The Brogue MVP is feature-complete and ready for playtesting.** All documented Phase 1 systems are implemented and tested. The project needs:
+**The Brogue MVP is feature-complete AND multiplayer Phase 2 is working!** All documented Phase 1 systems are implemented, tested, and PLAYABLE. Multiplayer co-op is functional with 2+ players. The project needs:
 
-1. ✅ **Immediate:** Documentation updates (this report addresses that)
-2. ⚠️ **Short-term:** Playtesting, balance tuning, Legacy Vault completion
-3. 📦 **Medium-term:** Content expansion (more monsters, recipes, rooms)
-4. 🚀 **Long-term:** Phase 2 multiplayer planning
+1. ✅ **Immediate:** Dual-track testing (single-player balance + multiplayer co-op sessions)
+2. ⚠️ **Short-term:** Tutorial system, special rooms, multiplayer polish
+3. 📦 **Medium-term:** Content expansion (boss fights, class abilities, more recipes)
+4. 🚀 **Long-term:** Multiplayer Phase 4 (persistence, advanced features)
 
-**Recommendation:** Focus on polish and content before starting Phase 2. The single-player game is solid and ready for players.
+**Recommendation:** Continue dual-track development - polish single-player while testing/refining multiplayer. Both modes are playable and ready for testing.
+
+**Major Achievement:** Went from "multiplayer is 8-12 weeks away" to "multiplayer Phase 2 complete" in parallel with single-player polish!
 
 ---
 
-**Last Updated:** 2025-11-05
-**Test Suite:** 520 tests (97% passing, 16 skipped)
-**Codebase:** 103 Python files, ~15,000+ lines of code
+**Last Updated:** 2025-11-14
+**Test Suite:** 858/860 tests passing (99.8%)
+**Codebase:** 114+ Python files, ~17,400+ lines of code
+**Multiplayer:** 11 new files, ~2,400 lines (Phase 2 complete)
 
 ---
 

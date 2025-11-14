@@ -31,11 +31,13 @@
 
 | Document | Purpose | Audience |
 |----------|---------|----------|
-| **[PROJECT_STATUS.md](PROJECT_STATUS.md)** | ✅ Comprehensive status report (520 tests, 100% accurate) | Everyone |
+| **[STATUS_DASHBOARD.md](STATUS_DASHBOARD.md)** ⭐ | 🎯 **One-page at-a-glance status** (2 min read) | Everyone |
+| **[PROJECT_STATUS.md](PROJECT_STATUS.md)** | ✅ Comprehensive status report (858/860 tests, 100% accurate) | Everyone |
 | **[MVP_CURRENT_FOCUS.md](MVP_CURRENT_FOCUS.md)** | 🎯 Current priorities and next steps | Developers |
 | **[MVP_ROADMAP.md](MVP_ROADMAP.md)** | 📋 High-level roadmap | Project managers |
 
-**When in doubt about "what's done?"** → Check **PROJECT_STATUS.md** (100% accurate)
+**Quick status check:** → **STATUS_DASHBOARD.md** (2 min)
+**Detailed status:** → **PROJECT_STATUS.md** (10 min, 100% accurate)
 
 ---
 
