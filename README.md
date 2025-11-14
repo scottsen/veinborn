@@ -4,10 +4,17 @@ type: software
 status: active
 beth_topics:
 - brogue
-- software
+- roguelike
+- multiplayer
+- game-development
+- websocket
+- crafting-system
 tags:
 - development
 - code
+- game
+- python
+- textual
 ---
 
 # Brogue
