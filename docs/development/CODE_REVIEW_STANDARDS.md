@@ -51,6 +51,65 @@ Use this during code reviews to ensure consistency with project standards.
 
 ---
 
+## 🔍 AST Code Analysis Tools
+
+The TIA AST domain provides powerful code analysis via **hierarchical commands**:
+
+```bash
+# Browse available scanners
+tia ast scanner list
+
+# Run specific scanner
+tia ast scanner run security src --critical-only
+tia ast scanner run complexity src --complex-only
+
+# Comprehensive audit (runs all scanners)
+tia ast scanner audit src
+
+# Get scanner information
+tia ast scanner info dangerous
+```
+
+### 🎮 Brogue-Specific Scanners
+
+Brogue has **5 custom scanners** designed specifically for this project's needs:
+
+```bash
+# Check CODE_REVIEW_STANDARDS.md compliance
+tia ast scan --scanner brogue-standards src/
+
+# Validate Action pattern compliance
+tia ast scan --scanner brogue-action-validator src/
+
+# Find duplicate actor lookup patterns
+tia ast scan --scanner brogue-actor-lookup src/
+
+# Detect hardcoded game balance values
+tia ast scan --scanner brogue-magic-numbers src/
+
+# Verify Phase 3 factory migration
+tia ast scan --scanner brogue-deprecated-factory src/
+```
+
+**What They Check:**
+- ✅ **brogue-standards**: Function length, complexity, type hints, docstrings, exception hierarchy
+- ✅ **brogue-action-validator**: Action class patterns, proper validation methods, ActionOutcome returns
+- ✅ **brogue-actor-lookup**: Duplicate `game_state.entities.get()` patterns (should use helpers)
+- ✅ **brogue-magic-numbers**: Hardcoded values that should be in YAML configs
+- ✅ **brogue-deprecated-factory**: Old factory patterns that should use new architecture
+
+**Quick Scans:**
+- **Security**: `tia ast scanner run security src --critical-only`
+- **Complexity**: `tia ast scanner run complexity src --complex-only`
+- **Functions**: `tia ast functions src --complex-only`
+- **Dependencies**: `tia ast dependencies src --circular-only`
+- **Brogue Standards**: `tia ast scan --scanner brogue-standards src/`
+- **Brogue Actions**: `tia ast scan --scanner brogue-action-validator src/core/actions`
+
+See [Tools](#tools) section below for complete command reference.
+
+---
+
 ## Detailed Standards
 
 ### 1. Code Style Standards
@@ -721,8 +780,9 @@ Check each file against:
 - [ ] Quick Reference Checklist (top of this doc)
 - [ ] Detailed standards (above)
 - [ ] Run tests: `pytest --cov=src`
-- [ ] Check complexity: `tia ast metrics src`
-- [ ] Check security: `tia ast dangerous src`
+- [ ] Check complexity: `tia ast scanner run complexity src`
+- [ ] Check security: `tia ast scanner run security src --critical-only`
+- [ ] Run comprehensive audit: `tia ast scanner audit src`
 
 ### 3. Categorize Issues
 
@@ -771,17 +831,31 @@ Format:
 # Run tests with coverage
 pytest --cov=src --cov-report=term-missing
 
-# Check code complexity
-tia ast metrics src
+# Browse available AST scanners
+tia ast scanner list
 
-# Check for security issues
-tia ast dangerous src
+# Run comprehensive audit (all scanners)
+tia ast scanner audit src
+
+# Check code complexity
+tia ast scanner run complexity src --complex-only
+
+# Check for security issues (critical only)
+tia ast scanner run security src --critical-only
 
 # Check for circular dependencies
 tia ast dependencies src --circular-only
 
 # Check specific file
-tia ast metrics src/core/game.py
+tia ast scanner run metrics src/core/game.py
+
+# Get detailed info about a scanner
+tia ast scanner info dangerous
+
+# Brogue-specific scanners
+tia ast scan --scanner brogue-standards src/                    # CODE_REVIEW_STANDARDS.md compliance
+tia ast scan --scanner brogue-action-validator src/core/actions # Action pattern validation
+tia ast scan --scanner brogue-magic-numbers src/                # Hardcoded values detection
 ```
 
 ### Manual Checks
@@ -790,11 +864,17 @@ tia ast metrics src/core/game.py
 # Read code with structure view
 tia read src/core/game.py
 
-# Search for patterns
-tia ast search "exception" src
+# Search for patterns (semantic AST search)
+tia ast search "exception" src --type all
 
-# View function signatures
-tia ast functions src/core/game.py
+# View function signatures and complexity
+tia ast functions src/core/game.py --signatures --details
+
+# AST tree visualization
+tia ast tree src/core/game.py --complexity
+
+# Iterate through files with filters
+tia ast iterate src --type files --filter 'is_python=true'
 ```
 
 ---
@@ -851,6 +931,6 @@ Use these as comparison points:
 
 ---
 
-**Last Updated:** 2025-10-25
+**Last Updated:** 2025-11-15 (Updated AST commands to hierarchical syntax)
 **Maintainer:** TIA System
 **Review Cycle:** Update after each major refactoring phase
