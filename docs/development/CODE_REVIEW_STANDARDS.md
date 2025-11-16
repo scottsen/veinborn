@@ -98,6 +98,15 @@ tia ast scan --scanner brogue-deprecated-factory src/
 - ✅ **brogue-magic-numbers**: Hardcoded values that should be in YAML configs
 - ✅ **brogue-deprecated-factory**: Old factory patterns that should use new architecture
 
+**💡 Creating Custom Scanners is Easy!**
+These 5 scanners were created in ~2 hours total. Each scanner:
+- Inherits from `BaseScanner` (minimal interface)
+- Implements one method: `scan_file()`
+- Auto-discovered (just name it `*_scanner.py`)
+- Gets all output formats for free (json, yaml, csv, pretty, markdown)
+
+Want to enforce YOUR project patterns? See [TIA's Custom Scanner Guide](https://github.com/scottsen/tia/blob/master/docs/ast/CREATING_CUSTOM_SCANNERS.md) for a 3-minute tutorial.
+
 **Quick Scans:**
 - **Security**: `tia ast scanner run security src --critical-only`
 - **Complexity**: `tia ast scanner run complexity src --complex-only`
