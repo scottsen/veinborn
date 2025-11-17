@@ -338,8 +338,8 @@ If you want to keep the "bro" vibe:
 | **Delvers** | ⚠️ PARTIAL | "Delver" (singular, 2013 first-person roguelike) exists, but plural might work |
 | **Forgebound** | ❌ TAKEN | Medieval survival game on Steam (2025) + mobile game |
 | **Orefall** | ⚠️ PARTIAL | Similar to "Overfall" (2016 roguelike RPG) - risky |
-| **Shaftrunners** | ✅ CLEAR | No game found with this name |
-| **Deephammer** | ✅ CLEAR | Only "Deephaven" (dwarven megagame) exists - no collision! |
+| **Shaftrunners** | ❌ AVOID | Unintended innuendo |
+| **Deephammer** | ❌ AVOID | Unintended innuendo |
 | **Crucible** | ⚠️ PARTIAL | Common word, many games use it |
 | **Veinquest** | ✅ CLEAR | Likely available (not verified) |
 
@@ -358,35 +358,39 @@ If you want to keep the "bro" vibe:
 6. Sounds epic (fits high-end crafting theme)
 7. Easy to pronounce and spell
 
-**Backup Pick: Deephammer** ✅
+**Backup Pick: Delvers** ⚠️
 
 **Why:**
-1. ✅ **VERIFIED CLEAR** - No collision found!
-2. Strong mining/crafting connotation (hammer = tools)
-3. "Deep" suggests dungeon descent
-4. Memorable, one-word name
-5. Dwarven/mining aesthetic (fits crafting theme)
-6. Combat + crafting dual meaning
-
-**Third Choice: Shaftrunners** ✅
-
-**Why:**
-1. ✅ **VERIFIED CLEAR** - No game found with this name!
-2. Clearly multiplayer (plural "runners")
-3. Mining connotation (mine shafts)
-4. Speed/action feel ("runners")
-5. Unique and memorable
-
-**Fourth Choice: Delvers** ⚠️
-
-**Why:**
-1. ⚠️ Partial collision with "Delver" (singular)
+1. ⚠️ Partial collision with "Delver" (singular, but plural differentiation may work)
 2. Simple, punchy, memorable
 3. Multiplayer plural form
 4. Covers both mining and dungeon exploration
 5. Roguelike feel ("delve the dungeon")
+6. Clean, professional name
 
-**AVOID: Forgebound** ❌ - Already taken by Steam game!
+**Third Choice: Legacyborne** ✅
+
+**Why:**
+1. ✅ **VERIFIED CLEAR** - Unique name!
+2. Directly emphasizes your unique Legacy Vault system
+3. "-borne" suffix has gaming precedent (Bloodborne)
+4. Suggests inheritance/progression across runs
+5. Epic feel, memorable
+6. Differentiates from other roguelikes
+
+**Fourth Choice: Vaultbound** ✅
+
+**Why:**
+1. ✅ Likely clear (needs validation)
+2. References Legacy Vault system
+3. "Bound" suggests co-op ("bound together")
+4. Implies destiny/progression
+5. Fantasy feel without innuendo
+
+**AVOID:**
+- ❌ **Forgebound** - Already taken by Steam game!
+- ❌ **Deephammer** - Unintended innuendo
+- ❌ **Shaftrunners** - Unintended innuendo
 
 ---
 
@@ -430,6 +434,25 @@ These emerged during research - worth considering:
 - ✅ Clear mining + dungeon theme
 - ⚠️ Longer title
 - ⚠️ "The" in title often dropped
+
+#### 21. **Veinforge**
+- ✅ Combines two core systems (veins + forge)
+- ✅ Simple, memorable
+- ✅ Clear game identity
+- Check: Needs validation
+
+#### 22. **Gemdelve** / **Gemfall**
+- ✅ Precious stones suggest value/quality (Purity stat)
+- ✅ "Delve" or "Fall" = dungeon descent
+- ✅ Clean, fantasy feel
+- ⚠️ Less clear it's about ore/metal crafting
+
+#### 23. **Coalescence** / **Coalesce**
+- ✅ Multiplayer connotation (coming together)
+- ✅ Suggests combining materials (crafting)
+- ✅ Unique, elegant
+- ⚠️ May be too abstract
+- ⚠️ Harder to spell/pronounce
 
 ---
 
