@@ -6,6 +6,38 @@
 
 ---
 
+## ✅ DECISION: Veinborn
+
+**Official Name:** Veinborn
+**Domain:** veinborn.gg ($80/yr)
+**PyPI Package:** `pip install veinborn`
+**Status:** VERIFIED CLEAR - No collisions found!
+
+### The Name's Meaning
+
+**Multiple layers of wordplay:**
+
+1. **Ore Veins** → The core mining mechanic (hunt perfect ore vein spawns)
+2. **Born Again** → Legacy Vault meta-progression (reborn between runs)
+3. **"Veins of ore in your veins"** → When you die, purity 80+ ore goes to your Legacy Vault. On your next run, you're literally born with ore in your veins. You ARE the ore you mined.
+
+**Tagline Options:**
+- *"You are born with veins of ore in your veins"*
+- *"Hunt perfect veins, be reborn legendary"*
+- *"From the veins, to your veins"*
+- *"Die with ore, live as ore"*
+
+### Why Veinborn Works
+
+- ✅ **Unique mechanic** → Ore vein system is our hook
+- ✅ **Legacy Vault** → "Born again" with inherited ore
+- ✅ **Epic feel** → "-born" suffix (Bloodborne precedent)
+- ✅ **Multiplayer** → "We're all veinborn" (community identity)
+- ✅ **Simple & memorable** → One word, easy to spell/pronounce
+- ✅ **Available** → PyPI, GitHub, domains all clear
+
+---
+
 ## The Problem: Brogue Already Exists
 
 ### About the Original Brogue (2009)
@@ -326,7 +358,77 @@ If you want to keep the "bro" vibe:
 
 ---
 
-## Validation Results (Checked 2025-11-17)
+## Veinborn Validation Results (Checked 2025-11-17)
+
+**Chosen Name:** Veinborn ✅
+
+| Platform | Status | Details |
+|----------|--------|---------|
+| **Steam** | ✅ CLEAR | No game with this name |
+| **itch.io** | ✅ CLEAR | No game with this name |
+| **PyPI** | ✅ AVAILABLE | 404 - package name ready to claim |
+| **GitHub** | ✅ CLEAR | 0 repositories with this name |
+| **Domain** | 🟡 TO CHECK | veinborn.gg ($80/yr), veinborn.com, veinborn.io |
+
+**Minor (Non-Blocking) References:**
+- Web novel on Moonlight Novels (different medium)
+- NFT collection "VeinBorn" (not a game)
+- Tabletop miniature creature type (very minor)
+- Bandcamp user name (irrelevant)
+
+**Conclusion:** ✅ **GO FOR IT!** No meaningful collisions for a video game.
+
+---
+
+## Migration Plan
+
+### Immediate Steps (Before Someone Else Takes It)
+
+1. **Reserve PyPI package** ✅ PRIORITY
+   ```bash
+   # Create minimal placeholder package
+   pip install twine build
+   # Upload placeholder to claim name
+   ```
+
+2. **Register domain** 🎯 NEXT
+   - Primary: veinborn.gg ($80/yr) ← **DECIDED**
+   - Backup: veinborn.com (check availability)
+   - Optional: veinborn.io (gaming standard)
+
+3. **Update pyproject.toml**
+   ```toml
+   [project]
+   name = "veinborn"  # Change from "brogue"
+   ```
+
+4. **Update all documentation**
+   - README.md
+   - All docs/ files
+   - CHANGELOG.md
+   - Any mentions of "Brogue" → "Veinborn"
+
+5. **Update entry points**
+   ```toml
+   [project.scripts]
+   veinborn = "ui.textual.app:main"
+   veinborn-server = "server.run_server:main"
+   veinborn-test-client = "server.test_client:main"
+   ```
+
+6. **GitHub repo** (optional)
+   - Can stay "brogue" locally (URLs don't change)
+   - Or rename to "veinborn" for consistency
+
+### Timeline Recommendation
+
+- **Today:** Reserve PyPI name, check domains
+- **This week:** Update pyproject.toml and docs
+- **Before launch:** Register veinborn.gg, update all branding
+
+---
+
+## Alternative Names Considered (For Reference)
 
 ✅ **CLEAR** - No collision found
 ⚠️ **PARTIAL** - Similar games exist, may cause confusion
@@ -334,7 +436,8 @@ If you want to keep the "bro" vibe:
 
 | Name | Status | Notes |
 |------|--------|-------|
-| **Veinborne** | ✅ CLEAR | Only "VEIN" (zombie survival) and "Code Vein" (action RPG) exist - no collision! |
+| **Veinborn** | ✅ **CHOSEN** | **Official decision - see above** |
+| **Veinborne** | ✅ CLEAR | Similar to chosen name, also available |
 | **Delvers** | ⚠️ PARTIAL | "Delver" (singular, 2013 first-person roguelike) exists, but plural might work |
 | **Forgebound** | ❌ TAKEN | Medieval survival game on Steam (2025) + mobile game |
 | **Orefall** | ⚠️ PARTIAL | Similar to "Overfall" (2016 roguelike RPG) - risky |
@@ -345,52 +448,44 @@ If you want to keep the "bro" vibe:
 
 ---
 
-## My Personal Recommendation
+## Final Recommendation (DECIDED)
 
-**Top Pick: Veinborne** ✅
+**✅ CHOSEN: Veinborn**
 
-**Why:**
-1. ✅ **VERIFIED CLEAR** - No existing game with this name!
-2. Directly references your unique mechanic (ore veins)
-3. Evocative and memorable
-4. Suggests legacy/inheritance (Legacy Vault)
-5. "-borne" suffix has gaming precedent (Bloodborne, etc.)
-6. Sounds epic (fits high-end crafting theme)
-7. Easy to pronounce and spell
+**Why this is the perfect name:**
 
-**Backup Pick: Delvers** ⚠️
+1. **Multiple layers of meaning:**
+   - Ore veins (core mining mechanic)
+   - Born again (Legacy Vault progression)
+   - "Veins of ore in your veins" (you ARE the ore you inherited)
 
-**Why:**
-1. ⚠️ Partial collision with "Delver" (singular, but plural differentiation may work)
-2. Simple, punchy, memorable
-3. Multiplayer plural form
-4. Covers both mining and dungeon exploration
-5. Roguelike feel ("delve the dungeon")
-6. Clean, professional name
+2. **Verified clear:**
+   - ✅ No video game collisions
+   - ✅ PyPI available
+   - ✅ GitHub available
+   - ✅ Clean, professional
 
-**Third Choice: Legacyborne** ✅
+3. **Perfect for the game:**
+   - Unique mechanic emphasis
+   - Legacy Vault thematic fit
+   - Epic "-born" suffix (Bloodborne precedent)
+   - Community identity ("We're all veinborn")
+   - Simple, memorable, pronounceable
 
-**Why:**
-1. ✅ **VERIFIED CLEAR** - Unique name!
-2. Directly emphasizes your unique Legacy Vault system
-3. "-borne" suffix has gaming precedent (Bloodborne)
-4. Suggests inheritance/progression across runs
-5. Epic feel, memorable
-6. Differentiates from other roguelikes
+4. **Domain plan:**
+   - Primary: veinborn.gg ($80/yr)
+   - Professional gaming domain
+   - Short, clean URL
 
-**Fourth Choice: Vaultbound** ✅
+**Other strong candidates (not chosen):**
+- Legacyborne (Legacy Vault focus, but less unique)
+- Delvers (simple, but partial collision with "Delver")
+- Vaultbound (good, but less evocative)
 
-**Why:**
-1. ✅ Likely clear (needs validation)
-2. References Legacy Vault system
-3. "Bound" suggests co-op ("bound together")
-4. Implies destiny/progression
-5. Fantasy feel without innuendo
-
-**AVOID:**
-- ❌ **Forgebound** - Already taken by Steam game!
-- ❌ **Deephammer** - Unintended innuendo
-- ❌ **Shaftrunners** - Unintended innuendo
+**Names to avoid:**
+- ❌ Forgebound (taken by Steam game)
+- ❌ Deephammer (unintended innuendo)
+- ❌ Shaftrunners (unintended innuendo)
 
 ---
 
