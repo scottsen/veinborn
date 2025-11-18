@@ -1,22 +1,3 @@
----
-project: brogue
-type: software
-status: active
-beth_topics:
-- brogue
-- roguelike
-- multiplayer
-- game-development
-- websocket
-- crafting-system
-tags:
-- development
-- code
-- game
-- python
-- textual
----
-
 # Brogue
 
 **NetHack + SWG Mining + Multiplayer Co-op**

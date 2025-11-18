@@ -1,0 +1,11 @@
+# Include data files
+recursive-include data *.yaml
+recursive-include data *.json
+
+# Include documentation
+include README.md
+include LICENSE
+include CHANGELOG.md
+
+# Include requirements
+include requirements.txt
