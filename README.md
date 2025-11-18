@@ -6,17 +6,39 @@ A mechanical roguelike where you and your bros dive into procedural dungeons, hu
 
 ---
 
+## Installation
+
+### From PyPI (Recommended)
+
+```bash
+pip install veinborn  # PyPI package name
+brogue                 # Command to launch
+```
+
+> **Note:** The package is named `veinborn` on PyPI, but the command is still `brogue` for backwards compatibility.
+
+### From Source
+
+```bash
+# Clone and run directly
+git clone https://github.com/scottsen/brogue
+cd brogue
+pip install -e .
+brogue
+```
+
+---
+
 ## Quick Start
 
 ### Play the Game
 
 ```bash
-# Run the game
-./brogue
-
-# Or install system-wide
-./install.sh
+# If installed via pip
 brogue
+
+# Or run from source
+./brogue
 
 # Advanced options
 ./brogue --debug    # Debug mode with logging
