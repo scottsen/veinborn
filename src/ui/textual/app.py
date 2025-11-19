@@ -376,5 +376,10 @@ def run_game(player_name=None, character_class=None, seed=None, withdrawn_ore=No
     logger.info("app.run() returned")
 
 
+def main():
+    """Entry point for pip-installed brogue command."""
+    run_game()
+
+
 if __name__ == "__main__":
     run_game()

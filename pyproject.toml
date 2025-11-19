@@ -3,14 +3,14 @@ requires = ["setuptools>=61.0"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "brogue"
+name = "veinborn"
 version = "0.1.0"
 description = "NetHack + SWG Mining + Multiplayer Co-op - A mechanical roguelike"
 readme = "README.md"
 requires-python = ">=3.10"
 license = {text = "MIT"}
 authors = [
-    {name = "Brogue Team"}
+    {name = "Veinborn Team"}
 ]
 keywords = ["roguelike", "game", "terminal", "procedural", "mining", "crafting"]
 classifiers = [
@@ -50,6 +50,7 @@ Issues = "https://github.com/scottsen/brogue/issues"
 
 [tool.setuptools]
 package-dir = {"" = "src"}
+include-package-data = true
 
 [tool.setuptools.packages.find]
 where = ["src"]

@@ -25,8 +25,8 @@ def setup_logging():
     )
 
 
-async def main():
-    """Main entry point."""
+async def async_main():
+    """Async main entry point."""
     setup_logging()
     logger = logging.getLogger(__name__)
 
@@ -58,10 +58,15 @@ async def main():
     return 0
 
 
-if __name__ == "__main__":
+def main():
+    """Entry point for pip-installed brogue-server command."""
     try:
-        exit_code = asyncio.run(main())
+        exit_code = asyncio.run(async_main())
         sys.exit(exit_code)
     except Exception as e:
         print(f"Fatal error: {e}", file=sys.stderr)
         sys.exit(1)
+
+
+if __name__ == "__main__":
+    main()

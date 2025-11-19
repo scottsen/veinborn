@@ -370,8 +370,8 @@ class TestClient:
             print("Disconnected")
 
 
-async def main():
-    """Main entry point."""
+async def async_main():
+    """Async main entry point."""
     import argparse
 
     parser = argparse.ArgumentParser(description="Brogue multiplayer test client")
@@ -407,10 +407,15 @@ async def main():
     return 0
 
 
-if __name__ == "__main__":
+def main():
+    """Entry point for pip-installed brogue-test-client command."""
     try:
-        exit_code = asyncio.run(main())
+        exit_code = asyncio.run(async_main())
         sys.exit(exit_code)
     except KeyboardInterrupt:
         print("\nInterrupted")
         sys.exit(0)
+
+
+if __name__ == "__main__":
+    main()
