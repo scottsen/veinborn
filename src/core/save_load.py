@@ -1,5 +1,5 @@
 """
-Save/Load system for Brogue.
+Save/Load system for Veinborn.
 
 Handles serialization and deserialization of game state.
 
@@ -50,10 +50,10 @@ class SaveSystem:
         Initialize save system.
 
         Args:
-            save_dir: Directory for save files (default: ~/.brogue/saves)
+            save_dir: Directory for save files (default: ~/.veinborn/saves)
         """
         if save_dir is None:
-            save_dir = Path.home() / ".brogue" / "saves"
+            save_dir = Path.home() / ".veinborn" / "saves"
 
         self.save_dir = Path(save_dir)
         self.save_dir.mkdir(parents=True, exist_ok=True)

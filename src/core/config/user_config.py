@@ -4,8 +4,8 @@ User Configuration Manager
 NetHack-style configuration system with ENV VAR overrides.
 
 Features:
-- Multiple config file locations (~/.broguerc, XDG, /etc)
-- ENV VAR overrides (BROGUE_PLAYER_NAME, etc.)
+- Multiple config file locations (~/.veinbornrc, XDG, /etc)
+- ENV VAR overrides (VEINBORN_PLAYER_NAME, etc.)
 - INI format (human-readable)
 - Type-safe getters (get, get_bool, get_int)
 - Save/create functionality
@@ -24,11 +24,11 @@ logger = logging.getLogger(__name__)
 
 class ConfigManager:
     """
-    Manages user configuration (NetHack-style .broguerc).
+    Manages user configuration (NetHack-style .veinbornrc).
 
     Priority order for resolution:
-    1. ENV VARs (BROGUE_*)
-    2. Config file (~/.broguerc or XDG)
+    1. ENV VARs (VEINBORN_*)
+    2. Config file (~/.veinbornrc or XDG)
     3. Defaults
 
     Example:
@@ -40,9 +40,9 @@ class ConfigManager:
     _instance: Optional['ConfigManager'] = None
 
     CONFIG_PATHS = [
-        Path.home() / ".broguerc",                      # Classic Unix style
-        Path.home() / ".config" / "brogue" / "config",  # XDG style
-        Path("/etc/broguerc"),                          # System-wide (read-only)
+        Path.home() / ".veinbornrc",                        # Classic Unix style
+        Path.home() / ".config" / "veinborn" / "config",    # XDG style
+        Path("/etc/veinbornrc"),                            # System-wide (read-only)
     ]
 
     def __init__(self):
@@ -87,7 +87,7 @@ class ConfigManager:
         Get config value by dot-separated key.
 
         Priority:
-        1. ENV VAR (BROGUE_PLAYER_NAME for player.name)
+        1. ENV VAR (VEINBORN_PLAYER_NAME for player.name)
         2. Config file value
         3. Default parameter
 
@@ -105,8 +105,8 @@ class ConfigManager:
             'Alice' or 'Anonymous' if not set
         """
         # Check ENV VAR override first (convert key to ENV format)
-        # player.name -> BROGUE_PLAYER_NAME
-        env_key = f"BROGUE_{key.upper().replace('.', '_')}"
+        # player.name -> VEINBORN_PLAYER_NAME
+        env_key = f"VEINBORN_{key.upper().replace('.', '_')}"
         if env_value := os.getenv(env_key):
             return env_value
 
@@ -228,16 +228,16 @@ class ConfigManager:
         Create default config file with comments.
 
         Args:
-            path: File path (default: ~/.broguerc)
+            path: File path (default: ~/.veinbornrc)
 
         Example:
             >>> config.create_default_config()
-            # Creates ~/.broguerc with default sections
+            # Creates ~/.veinbornrc with default sections
         """
         if path is None:
-            path = Path.home() / ".broguerc"
+            path = Path.home() / ".veinbornrc"
 
-        default_config = """# Brogue Configuration File
+        default_config = """# Veinborn Configuration File
 # Lines starting with # are comments
 
 [player]
@@ -284,8 +284,8 @@ color_scheme = classic
 def get_player_name(args=None) -> str:
     """
     Resolve player name with priority:
-    1. ENV VAR (BROGUE_PLAYER_NAME)
-    2. Config file (~/.broguerc)
+    1. ENV VAR (VEINBORN_PLAYER_NAME)
+    2. Config file (~/.veinbornrc)
     3. Command-line argument (--name)
     4. Interactive prompt (if TTY)
     5. Default: "Anonymous"
@@ -297,7 +297,7 @@ def get_player_name(args=None) -> str:
         Player name string
     """
     # 1. Check environment variable
-    if name := os.getenv('BROGUE_PLAYER_NAME'):
+    if name := os.getenv('VEINBORN_PLAYER_NAME'):
         return name
 
     # 2. Check config file

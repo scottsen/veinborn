@@ -1,9 +1,9 @@
 """
-Brogue Configuration System
+Veinborn Configuration System
 
 Provides two configuration systems:
 1. ConfigLoader - Game balance/data configuration from YAML files
-2. ConfigManager - User preferences from ~/.broguerc file
+2. ConfigManager - User preferences from ~/.veinbornrc file
 
 Usage:
     # Game balance config

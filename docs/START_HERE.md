@@ -1,6 +1,6 @@
-# Start Here: Brogue Developer Guide
+# Start Here: Veinborn Developer Guide
 
-**Welcome to Brogue!** This guide will get you up to speed in 15 minutes.
+**Welcome to Veinborn!** This guide will get you up to speed in 15 minutes.
 
 ---
 
@@ -51,9 +51,9 @@
 
 ---
 
-## What is Brogue?
+## What is Veinborn?
 
-**Brogue = NetHack + SWG Mining + Multiplayer Co-op**
+**Veinborn = NetHack + SWG Mining + Multiplayer Co-op**
 
 A mechanical roguelike where you dive into procedural dungeons, hunt for perfect ore spawns, craft legendary gear, and fight monsters. Think NetHack's tactical combat meets Star Wars Galaxies' resource hunting.
 
@@ -71,16 +71,16 @@ A mechanical roguelike where you dive into procedural dungeons, hunt for perfect
 
 ```bash
 # Easy way (recommended)
-./brogue
+./veinborn
 
 # Or install system-wide (then run from anywhere)
 ./install.sh
-brogue
+veinborn
 
 # Advanced options
-./brogue --debug    # Debug logging
-./brogue --safe     # Terminal reset on crash
-./brogue --help     # Show help
+./veinborn --debug    # Debug logging
+./veinborn --safe     # Terminal reset on crash
+./veinborn --help     # Show help
 
 # Old way (still works)
 python3 run_textual.py

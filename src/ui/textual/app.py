@@ -1,4 +1,4 @@
-"""Main Textual application for Brogue."""
+"""Main Textual application for Veinborn."""
 import atexit
 import logging
 import signal
@@ -11,7 +11,7 @@ from ui.textual.widgets import MapWidget, StatusBar, Sidebar, ChatInput
 from ui.textual.widgets.message_log import MessageLog
 
 # Setup logging
-logger = logging.getLogger('brogue.app')
+logger = logging.getLogger('veinborn.app')
 
 
 def _restore_terminal():
@@ -66,9 +66,9 @@ signal.signal(signal.SIGTERM, _signal_handler)
 
 
 class BrogueApp(App):
-    """Textual-based Brogue game application."""
+    """Textual-based Veinborn game application."""
 
-    # CSS_PATH = "styles/brogue.tcss"  # Disabled for now, using widget DEFAULT_CSS
+    # CSS_PATH = "styles/veinborn.tcss"  # Disabled for now, using widget DEFAULT_CSS
 
     # Disable mouse tracking - keyboard-only roguelike
     # Prevents terminal getting stuck in mouse mode if app crashes

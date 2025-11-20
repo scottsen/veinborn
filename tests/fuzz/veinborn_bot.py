@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Brogue Automated Testing Bot (Fuzzer)
+Veinborn Automated Testing Bot (Fuzzer)
 
 Plays the game automatically to find bugs. Supports multiple play styles:
 - Random: Chaotic random actions (stress testing)
@@ -17,10 +17,10 @@ Features:
 - Can run overnight unattended
 
 Usage:
-    python tests/fuzz/brogue_bot.py                    # 100 games, strategic
-    python tests/fuzz/brogue_bot.py --mode random      # Random chaos mode
-    python tests/fuzz/brogue_bot.py --mode hybrid      # Mix of both
-    python tests/fuzz/brogue_bot.py --games 1000 -v    # Verbose 1000 games
+    python tests/fuzz/veinborn_bot.py                    # 100 games, strategic
+    python tests/fuzz/veinborn_bot.py --mode random      # Random chaos mode
+    python tests/fuzz/veinborn_bot.py --mode hybrid      # Mix of both
+    python tests/fuzz/veinborn_bot.py --games 1000 -v    # Verbose 1000 games
 """
 
 try:
@@ -133,7 +133,7 @@ class BotStats:
         return self.crashes / max(1, self.games_played)
 
 
-class BrogueBot:
+class VeinbornBot:
     """Automated game-playing bot for testing."""
 
     def __init__(self, verbose: bool = False, mode: str = 'strategic', player_name: str = 'Bot',

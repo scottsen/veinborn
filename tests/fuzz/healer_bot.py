@@ -37,7 +37,7 @@ sys.path.insert(0, str(tests_path))
 
 from core.game import Game
 from core.character_class import CharacterClass
-from brogue_bot import BrogueBot, BotStats, main
+from veinborn_bot import BrogueBot, BotStats, main
 from fuzz.services.tactical_decision_service import CombatConfig, MiningConfig
 
 
@@ -204,5 +204,5 @@ class HealerBot(BrogueBot):
 
 
 if __name__ == "__main__":
-    # Run healer bot using shared main() from brogue_bot
+    # Run healer bot using shared main() from veinborn_bot
     main(bot_class=HealerBot, default_class=CharacterClass.HEALER)

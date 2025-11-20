@@ -8,7 +8,7 @@ Features:
 - Automatic qualification filtering (purity >= 80)
 - Max capacity enforcement (50 ores)
 - Quality-based sorting (best ore first)
-- JSON persistence to ~/.brogue/legacy_vault.json
+- JSON persistence to ~/.veinborn/legacy_vault.json
 
 Design Philosophy:
 - Pure Victory: No vault ore used (prestige/challenge)
@@ -137,10 +137,10 @@ class LegacyVault:
         Initialize Legacy Vault.
 
         Args:
-            vault_path: Custom path for testing (default: ~/.brogue/legacy_vault.json)
+            vault_path: Custom path for testing (default: ~/.veinborn/legacy_vault.json)
         """
         if vault_path is None:
-            vault_path = Path.home() / ".brogue" / "legacy_vault.json"
+            vault_path = Path.home() / ".veinborn" / "legacy_vault.json"
 
         self.vault_path = Path(vault_path)
         self.ores: List[VaultOre] = []
