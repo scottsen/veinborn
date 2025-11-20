@@ -1,7 +1,7 @@
 ---
 # Core Identity
-id: brogue
-name: "Brogue"
+id: veinborn
+name: "Veinborn"
 type: software
 status: planning
 
@@ -19,18 +19,18 @@ priority: medium
 
 # Directory Structure
 paths:
-  root: "/projects/brogue"
-  docs: "/projects/brogue/docs"
-  metadata: "{TIA_DATA_DIR}/projects/brogue.yaml"
+  root: "/projects/veinborn"
+  docs: "/projects/veinborn/docs"
+  metadata: "{TIA_DATA_DIR}/projects/veinborn.yaml"
 
 # Integration Links
 relationships:
   tasks: []
   sessions: []
-  documents: 
-    - "/projects/brogue/README.md"
-    - "/projects/brogue/project.yaml"
-  beth_topics: ["brogue"]
+  documents:
+    - "/projects/veinborn/README.md"
+    - "/projects/veinborn/project.yaml"
+  beth_topics: ["veinborn"]
 
 # Status Tracking
 milestones: {}

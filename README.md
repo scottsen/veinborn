@@ -1,4 +1,4 @@
-# Brogue
+# Veinborn
 
 **NetHack + SWG Mining + Multiplayer Co-op**
 
@@ -11,20 +11,18 @@ A mechanical roguelike where you and your bros dive into procedural dungeons, hu
 ### From PyPI (Recommended)
 
 ```bash
-pip install veinborn  # PyPI package name
-brogue                 # Command to launch
+pip install veinborn
+veinborn              # Launch the game
 ```
-
-> **Note:** The package is named `veinborn` on PyPI, but the command is still `brogue` for backwards compatibility.
 
 ### From Source
 
 ```bash
 # Clone and run directly
-git clone https://github.com/scottsen/brogue
-cd brogue
+git clone https://github.com/scottsen/veinborn
+cd veinborn
 pip install -e .
-brogue
+veinborn
 ```
 
 ---
@@ -35,18 +33,18 @@ brogue
 
 ```bash
 # If installed via pip
-brogue
+veinborn
 
 # Or run from source
-./brogue
+./veinborn
 
 # Advanced options
-./brogue --debug    # Debug mode with logging
-./brogue --safe     # Safe mode (terminal reset)
-./brogue --help     # Show help
+./veinborn --debug    # Debug mode with logging
+./veinborn --safe     # Safe mode (terminal reset)
+./veinborn --help     # Show help
 ```
 
-**New to Brogue?** 👉 **[Read HOW_TO_PLAY.md](HOW_TO_PLAY.md)** - 5-minute guide to your first game
+**New to Veinborn?** 👉 **[Read HOW_TO_PLAY.md](HOW_TO_PLAY.md)** - 5-minute guide to your first game
 
 **Quick Controls:**
 - `Arrows/HJKL`: Move
@@ -63,7 +61,7 @@ brogue
 
 ### Understanding the Legacy Vault
 
-When you die, all ore with **purity 80+** is saved to your Legacy Vault (`~/.brogue/legacy_vault.json`).
+When you die, all ore with **purity 80+** is saved to your Legacy Vault (`~/.veinborn/legacy_vault.json`).
 
 **Starting a new run:**
 - Choose **Pure Victory** (no vault, harder, more prestige)
@@ -71,7 +69,7 @@ When you die, all ore with **purity 80+** is saved to your Legacy Vault (`~/.bro
 
 Both paths are valid! Use the vault to learn or overcome bad luck.
 
-### New to Brogue?
+### New to Veinborn?
 
 👉 **Read this first:** [`docs/START_HERE.md`](docs/START_HERE.md) (15-minute guide)
 
@@ -190,7 +188,7 @@ Both paths are valid! Use the vault to learn or overcome bad luck.
 | [`docs/START_HERE.md`](docs/START_HERE.md) | 15 min | New developer onboarding |
 | [`docs/PROJECT_STATUS.md`](docs/PROJECT_STATUS.md) | 10 min | Comprehensive status report (100% accurate) |
 | [`docs/MVP_CURRENT_FOCUS.md`](docs/MVP_CURRENT_FOCUS.md) | 5 min | What to build right now |
-| [`docs/BROGUE_CONSOLIDATED_DESIGN.md`](docs/BROGUE_CONSOLIDATED_DESIGN.md) | 30 min | Master game design vision |
+| [`docs/VEINBORN_CONSOLIDATED_DESIGN.md`](docs/VEINBORN_CONSOLIDATED_DESIGN.md) | 30 min | Master game design vision |
 
 ### 📚 Quick Links
 
@@ -205,7 +203,7 @@ Both paths are valid! Use the vault to learn or overcome bad luck.
 - [`docs/MVP_ROADMAP.md`](docs/MVP_ROADMAP.md) - High-level roadmap
 
 **Game Design:**
-- [`docs/BROGUE_CONSOLIDATED_DESIGN.md`](docs/BROGUE_CONSOLIDATED_DESIGN.md) - Master design
+- [`docs/VEINBORN_CONSOLIDATED_DESIGN.md`](docs/VEINBORN_CONSOLIDATED_DESIGN.md) - Master design
 - [`docs/MECHANICS_REFERENCE.md`](docs/MECHANICS_REFERENCE.md) - Detailed mechanics
 
 **Development:**
@@ -227,7 +225,7 @@ Both paths are valid! Use the vault to learn or overcome bad luck.
 ## Project Structure
 
 ```
-brogue/
+veinborn/
 ├── run_textual.py          # ⭐ Main entry point
 ├── run.py                  # Legacy entry point
 │
@@ -307,19 +305,19 @@ python3 scripts/run_safe.py
 
 ```bash
 # Project dashboard
-tia project show brogue
+tia project show veinborn
 
 # Task management
-tia task list --project brogue
-tia task add "description" --project brogue
+tia task list --project veinborn
+tia task add "description" --project veinborn
 
 # Search
-tia search all "brogue"
-tia beth explore "brogue"
+tia search all "veinborn"
+tia beth explore "veinborn"
 
 # Sessions
 tia session recent
-tia session search "brogue"
+tia session search "veinborn"
 ```
 
 ---
@@ -406,11 +404,9 @@ tia session search "brogue"
 
 ## The Name
 
-**Why "Brogue"?**
+**Why "Veinborn"?**
 
-1. **Sounds like "Rogue"** (the genre)
-2. **Community = Bros** (multiplayer culture)
-3. **Quest = Save your Bro** (simple motivation)
+Born from the veins of the earth - a name that captures the essence of mining, ore hunting, and the underground depths where legendary equipment is forged. The game's identity is rooted in discovering perfect ore veins and being reborn stronger with each run.
 
 ---
 
@@ -505,7 +501,7 @@ The design was consolidated on 2025-10-22. Everything in Archive/ represents rej
 - Essence mastery (too complex)
 - 12-property materials (over-engineered)
 
-**Read instead:** [`docs/BROGUE_CONSOLIDATED_DESIGN.md`](docs/BROGUE_CONSOLIDATED_DESIGN.md)
+**Read instead:** [`docs/VEINBORN_CONSOLIDATED_DESIGN.md`](docs/VEINBORN_CONSOLIDATED_DESIGN.md)
 
 ### Q: Why Python instead of Rust/C++?
 
@@ -538,6 +534,6 @@ The design was consolidated on 2025-10-22. Everything in Archive/ represents rej
 
 ---
 
-**🎮 Brogue: Where bros hunt perfect ore spawns together.**
+**🎮 Veinborn: Where bros hunt perfect ore spawns together.**
 
 *Git gud, find legendary ore, craft epic gear, dive deeper.*

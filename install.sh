@@ -1,13 +1,13 @@
 #!/usr/bin/env bash
-# Brogue Installation Script
-# Optionally install 'brogue' command system-wide
+# Veinborn Installation Script
+# Optionally install 'veinborn' command system-wide
 
 set -e
 
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
 echo "================================================"
-echo "Brogue Installation"
+echo "Veinborn Installation"
 echo "================================================"
 echo ""
 
@@ -39,24 +39,24 @@ echo "   ✓ Dependencies installed"
 echo ""
 
 # Create symlink
-echo "2. Creating 'brogue' command..."
-ln -sf "$SCRIPT_DIR/brogue" "$INSTALL_DIR/brogue"
-echo "   ✓ Installed to: $INSTALL_DIR/brogue"
+echo "2. Creating 'veinborn' command..."
+ln -sf "$SCRIPT_DIR/veinborn" "$INSTALL_DIR/veinborn"
+echo "   ✓ Installed to: $INSTALL_DIR/veinborn"
 echo ""
 
 # Verify installation
-if command -v brogue &> /dev/null; then
+if command -v veinborn &> /dev/null; then
     echo "================================================"
     echo "✓ Installation successful!"
     echo "================================================"
     echo ""
     echo "You can now run the game with:"
-    echo "  brogue"
+    echo "  veinborn"
     echo ""
     echo "Options:"
-    echo "  brogue --debug    Run with debug logging"
-    echo "  brogue --safe     Run with terminal reset"
-    echo "  brogue --help     Show help"
+    echo "  veinborn --debug    Run with debug logging"
+    echo "  veinborn --safe     Run with terminal reset"
+    echo "  veinborn --help     Show help"
     echo ""
 else
     echo "================================================"
@@ -64,7 +64,7 @@ else
     echo "================================================"
     echo ""
     echo "Run the game with:"
-    echo "  $INSTALL_DIR/brogue"
+    echo "  $INSTALL_DIR/veinborn"
     echo ""
     echo "Or add to PATH:"
     echo "  export PATH=\"$INSTALL_DIR:\$PATH\""

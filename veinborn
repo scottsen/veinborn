@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Brogue Game Launcher
+# Veinborn Game Launcher
 # Simple wrapper to run the game without typing "python3 run_textual.py"
 
 set -e
@@ -25,9 +25,9 @@ if [ $# -gt 0 ]; then
             MODE="safe"
             ;;
         --help|-h)
-            echo "Brogue Game Launcher"
+            echo "Veinborn Game Launcher"
             echo ""
-            echo "Usage: ./brogue [OPTIONS]"
+            echo "Usage: ./veinborn [OPTIONS]"
             echo ""
             echo "Options:"
             echo "  (no args)        Run the game normally"
@@ -54,7 +54,7 @@ fi
 # Check if Python is available
 if ! command -v python3 &> /dev/null; then
     echo -e "${RED}Error: python3 not found${NC}"
-    echo "Please install Python 3.10+ to run Brogue"
+    echo "Please install Python 3.10+ to run Veinborn"
     exit 1
 fi
 
@@ -68,15 +68,15 @@ fi
 # Run the game based on mode
 case "$MODE" in
     debug)
-        echo -e "${GREEN}Starting Brogue in debug mode...${NC}"
+        echo -e "${GREEN}Starting Veinborn in debug mode...${NC}"
         python3 scripts/run_debug.py
         ;;
     safe)
-        echo -e "${GREEN}Starting Brogue in safe mode...${NC}"
+        echo -e "${GREEN}Starting Veinborn in safe mode...${NC}"
         python3 scripts/run_safe.py
         ;;
     *)
-        echo -e "${GREEN}Starting Brogue...${NC}"
+        echo -e "${GREEN}Starting Veinborn...${NC}"
         python3 run_textual.py
         ;;
 esac

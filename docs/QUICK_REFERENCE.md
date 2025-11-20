@@ -1,4 +1,4 @@
-# Brogue Quick Reference
+# Veinborn Quick Reference
 
 **Last Updated:** 2025-11-11
 **For:** Players & Developers
@@ -41,12 +41,12 @@
 ### Running the Game
 ```bash
 # Easy launcher (recommended)
-./brogue
+./veinborn
 
 # With options
-./brogue --debug    # Debug logging
-./brogue --safe     # Safe mode (terminal reset)
-./brogue --help     # Show help
+./veinborn --debug    # Debug logging
+./veinborn --safe     # Safe mode (terminal reset)
+./veinborn --help     # Show help
 
 # Old way (still works)
 python3 run_textual.py

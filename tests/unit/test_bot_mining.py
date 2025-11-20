@@ -16,7 +16,7 @@ pytestmark = pytest.mark.unit
 test_path = Path(__file__).parent.parent
 sys.path.insert(0, str(test_path / "fuzz"))
 
-from brogue_bot import BrogueBot
+from veinborn_bot import VeinbornBot
 from core.game import Game
 from core.entities import OreVein
 

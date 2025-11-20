@@ -1,6 +1,6 @@
-# Brogue Launcher
+# Veinborn Launcher
 
-**NEW:** You can now run Brogue with a simple `./brogue` command!
+**NEW:** You can now run Veinborn with a simple `./veinborn` command!
 
 ---
 
@@ -8,25 +8,25 @@
 
 ```bash
 # Run the game
-./brogue
+./veinborn
 
 # With options
-./brogue --debug    # Debug logging
-./brogue --safe     # Terminal reset on crash
-./brogue --help     # Show help
+./veinborn --debug    # Debug logging
+./veinborn --safe     # Terminal reset on crash
+./veinborn --help     # Show help
 ```
 
 ---
 
 ## Installation (Optional)
 
-Install the `brogue` command system-wide:
+Install the `veinborn` command system-wide:
 
 ```bash
 ./install.sh
 ```
 
-This creates a symlink in `~/.local/bin/` so you can run `brogue` from anywhere.
+This creates a symlink in `~/.local/bin/` so you can run `veinborn` from anywhere.
 
 **Note:** Make sure `~/.local/bin` is in your PATH. If not, add to `~/.bashrc` or `~/.zshrc`:
 
@@ -38,7 +38,7 @@ export PATH="$HOME/.local/bin:$PATH"
 
 ## What It Does
 
-The `brogue` script is a simple wrapper that:
+The `veinborn` script is a simple wrapper that:
 
 1. ✅ Checks for Python 3
 2. ✅ Auto-installs dependencies if missing
@@ -51,10 +51,10 @@ The `brogue` script is a simple wrapper that:
 ## Options
 
 ```
-./brogue              Normal mode
-./brogue --debug      Debug mode (full logging to logs/)
-./brogue --safe       Safe mode (resets terminal on crash)
-./brogue --help       Show help message
+./veinborn              Normal mode
+./veinborn --debug      Debug mode (full logging to logs/)
+./veinborn --safe       Safe mode (resets terminal on crash)
+./veinborn --help       Show help message
 ```
 
 ---
@@ -81,13 +81,13 @@ You can still use the old commands directly if you prefer.
 
 **Terminal is broken after crash**
 - Type `reset` and press Enter
-- Or use `./brogue --safe` next time
+- Or use `./veinborn --safe` next time
 
 ---
 
 ## Files
 
-- `brogue` - Main launcher script
+- `veinborn` - Main launcher script
 - `install.sh` - Optional system-wide installer
 - `run_textual.py` - Original launcher (still works)
 - `scripts/run_debug.py` - Debug mode

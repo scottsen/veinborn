@@ -17,12 +17,12 @@ sys.path.insert(0, str(src_path))
 sys.path.insert(0, str(tests_fuzz_path))
 
 # Import after path setup
-from brogue_bot import BrogueBot
+from veinborn_bot import VeinbornBot
 
 
 def profile_bot_game():
     """Run a single bot game with profiling."""
-    bot = BrogueBot(verbose=False, mode='strategic')
+    bot = VeinbornBot(verbose=False, mode='strategic')
     bot.play_one_game(max_turns=500)  # Shorter game for faster profiling
     return bot.stats
 

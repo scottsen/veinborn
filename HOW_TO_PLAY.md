@@ -1,4 +1,4 @@
-# How to Play Brogue
+# How to Play Veinborn
 
 **A 5-minute guide to your first game**
 
@@ -8,7 +8,7 @@
 
 ```bash
 # Run the game
-./brogue
+./veinborn
 ```
 
 You'll see a dungeon with:
@@ -392,7 +392,7 @@ Look for **◆** symbols in walls (not floors). They blend in!
 
 ---
 
-## What Makes Brogue Different?
+## What Makes Veinborn Different?
 
 ### The Mining Hook (SWG-Style)
 Every ore vein has **random properties**. Finding a 95 purity ore is like finding a legendary drop in Diablo!
@@ -448,7 +448,7 @@ Legacy Vault lets you save great ore, but only 1 piece per run. You still earn v
 ## Ready to Play?
 
 ```bash
-./brogue
+./veinborn
 ```
 
 **Good luck, delver!** May your ore spawns be legendary. 🎮⚒️

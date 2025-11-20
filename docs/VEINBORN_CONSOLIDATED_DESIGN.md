@@ -1,4 +1,4 @@
-# Brogue: Consolidated Game Design
+# Veinborn: Consolidated Game Design
 **Session:** garnet-pigment-1022
 **Date:** 2025-10-22
 **Status:** Master Design Document
@@ -7,7 +7,7 @@
 
 ## Core Vision
 
-**Brogue is NetHack + SWG Mining + Multiplayer Co-op**
+**Veinborn is NetHack + SWG Mining + Multiplayer Co-op**
 
 A mechanical roguelike where you and your bros dive into procedural dungeons, hunt for perfect ore spawns, craft legendary gear, and fight your way deeper to rescue your lost bro.
 
@@ -22,10 +22,8 @@ A mechanical roguelike where you and your bros dive into procedural dungeons, hu
 
 ## The Name & Quest
 
-### Why "Brogue"?
-1. Sounds like "Rogue" (the genre)
-2. Community is "bros" (multiplayer culture)
-3. Quest is to save your bro (simple motivation)
+### Why "Veinborn"?
+Born from the veins of the earth - a name that captures the essence of mining, ore hunting, and the underground depths where legendary equipment is forged. The game's identity is rooted in discovering perfect ore veins and being reborn stronger with each run.
 
 ### The Quest
 - Your brother went into the dungeon and didn't come back

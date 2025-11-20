@@ -1,10 +1,10 @@
-# Brogue Documentation Index
+# Veinborn Documentation Index
 
-**Welcome to the Brogue documentation!** This page will help you find what you need.
+**Welcome to the Veinborn documentation!** This page will help you find what you need.
 
 ---
 
-## 🎯 Start Here (New to Brogue?)
+## 🎯 Start Here (New to Veinborn?)
 
 ### For Players
 | Document | Time | Purpose |
@@ -45,7 +45,7 @@
 
 | Document | Purpose | When to Read |
 |----------|---------|--------------|
-| **[BROGUE_CONSOLIDATED_DESIGN.md](BROGUE_CONSOLIDATED_DESIGN.md)** | Master game design document | Understanding the vision |
+| **[VEINBORN_CONSOLIDATED_DESIGN.md](VEINBORN_CONSOLIDATED_DESIGN.md)** | Master game design document | Understanding the vision |
 | **[MECHANICS_REFERENCE.md](MECHANICS_REFERENCE.md)** | Detailed mechanics reference | Implementing features |
 | **[systems/](systems/)** | System-specific designs | Working on specific systems |
 
@@ -91,7 +91,7 @@
 | **Archive/** | Old/conflicting designs, historical summaries | `../.archived/Archive/` |
 | **future-multiplayer/** | Phase 2 multiplayer designs (16+ docs) | `../.archived/future-multiplayer/` |
 
-**For current design:** Read [BROGUE_CONSOLIDATED_DESIGN.md](BROGUE_CONSOLIDATED_DESIGN.md) instead!
+**For current design:** Read [VEINBORN_CONSOLIDATED_DESIGN.md](VEINBORN_CONSOLIDATED_DESIGN.md) instead!
 
 ---
 

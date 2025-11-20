@@ -1,5 +1,5 @@
 """
-Legacy Vault System - Meta-progression for Brogue.
+Legacy Vault System - Meta-progression for Veinborn.
 
 Saves rare ore (80+ purity) when you die, allowing you to start future runs
 with a head-start. This creates two victory paths:
@@ -21,7 +21,7 @@ from pathlib import Path
 
 
 # Constants
-LEGACY_VAULT_PATH = Path.home() / ".brogue" / "legacy_vault.json"
+LEGACY_VAULT_PATH = Path.home() / ".veinborn" / "legacy_vault.json"
 PURITY_THRESHOLD = 80
 MAX_VAULT_SIZE = 50  # Increased from 10 to 50 per requirements
 
