@@ -186,7 +186,7 @@ class Game:
 
 ### 6. Bot Updated to Use New APIs ✅
 
-**File**: `tests/fuzz/brogue_bot.py`
+**File**: `tests/fuzz/veinborn_bot.py`
 
 ```python
 # BEFORE (cheating)
@@ -240,7 +240,7 @@ The remaining issues are **pathfinding/AI logic bugs**, not architectural proble
 2. `ARCHITECTURAL_ANALYSIS.md` - NEW: Design documentation
 
 ### Bot (1 file)
-1. `tests/fuzz/brogue_bot.py` - Use new perception APIs
+1. `tests/fuzz/veinborn_bot.py` - Use new perception APIs
 
 ### Documentation (1 file)
 1. `ARCHITECTURAL_FIXES_SUMMARY.md` - This file

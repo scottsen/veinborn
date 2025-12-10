@@ -1,6 +1,6 @@
 # Multiplayer Chat Feature
 
-This document describes the chat functionality for Brogue multiplayer games.
+This document describes the chat functionality for Veinborn multiplayer games.
 
 ## Overview
 

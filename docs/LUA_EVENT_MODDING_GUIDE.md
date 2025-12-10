@@ -14,7 +14,7 @@
 
 ## Introduction
 
-The Brogue Lua Event System allows you to create custom game modifications by responding to game events. This enables:
+The Veinborn Lua Event System allows you to create custom game modifications by responding to game events. This enables:
 
 - **Achievements:** Track player milestones
 - **Quests:** Create objectives and rewards
@@ -34,18 +34,18 @@ Let's create a simple event handler that tracks player kills.
 -- @subscribe: entity_died
 function on_entity_died(event)
     if event.data.killer_id == "player_1" then
-        brogue.add_message("You killed " .. event.data.entity_name .. "!")
+        veinborn.add_message("You killed " .. event.data.entity_name .. "!")
     end
 end
 ```
 
-**Step 2:** Start Brogue - the handler loads automatically
+**Step 2:** Start Veinborn - the handler loads automatically
 
 **Step 3:** Kill a monster - see your message!
 
 ### How It Works
 
-1. The `@subscribe` annotation tells Brogue to load this handler
+1. The `@subscribe` annotation tells Veinborn to load this handler
 2. The game calls `on_entity_died()` whenever an entity dies
 3. Your code checks if the player was the killer
 4. If so, displays a message
@@ -76,7 +76,7 @@ event = {
 -- Handler functions receive one argument: the event
 function on_<event_type>(event)
     -- Your code here
-    -- Can call brogue.* API methods
+    -- Can call veinborn.* API methods
     -- Can access module-level state
     -- Must complete within 3 seconds
 end
@@ -207,7 +207,7 @@ function on_entity_died(event)
 
     if kills == 100 and not achievements.centurion.unlocked then
         achievements.centurion.unlocked = true
-        brogue.add_message("Achievement Unlocked: Centurion (100 kills)!")
+        veinborn.add_message("Achievement Unlocked: Centurion (100 kills)!")
     end
 end
 ```
@@ -233,7 +233,7 @@ function on_entity_died(event)
     local entity_name = string.lower(event.data.entity_name or "")
     if string.find(entity_name, "goblin") then
         quest.progress = quest.progress + 1
-        brogue.add_message(string.format(
+        veinborn.add_message(string.format(
             "Quest: %s [%d/%d]",
             quest.name,
             quest.progress,
@@ -241,7 +241,7 @@ function on_entity_died(event)
         ))
 
         if quest.progress >= quest.target then
-            brogue.add_message("Quest Complete: " .. quest.name)
+            veinborn.add_message("Quest Complete: " .. quest.name)
             quest.active = false
         end
     end
@@ -274,10 +274,10 @@ function on_turn_ended(event)
     local death_ratio = stats.player_deaths / math.max(1, stats.monster_kills)
 
     if death_ratio > 0.5 then
-        brogue.add_message("[Difficulty: Easier mode activated]")
+        veinborn.add_message("[Difficulty: Easier mode activated]")
         -- Could modify monster stats here
     elseif death_ratio < 0.1 and event.turn > 300 then
-        brogue.add_message("[Difficulty: Harder mode activated]")
+        veinborn.add_message("[Difficulty: Harder mode activated]")
     end
 end
 ```
@@ -305,7 +305,7 @@ function on_turn_ended(event)
     -- Report every 100 turns
     if event.turn % 100 == 0 then
         local net = damage_stats.total_damage - damage_stats.total_healing
-        brogue.add_message(string.format(
+        veinborn.add_message(string.format(
             "Combat stats: %d damage, %d healing, %d net",
             damage_stats.total_damage,
             damage_stats.total_healing,
@@ -344,14 +344,14 @@ Always use `pcall` for risky operations:
 function on_entity_died(event)
     local success, err = pcall(function()
         -- Risky operation
-        local entity = brogue.get_entity(event.data.entity_id)
+        local entity = veinborn.get_entity(event.data.entity_id)
         if not entity then
             error("Entity not found!")
         end
     end)
 
     if not success then
-        brogue.add_message("Error: " .. tostring(err))
+        veinborn.add_message("Error: " .. tostring(err))
     end
 end
 ```
@@ -406,7 +406,7 @@ For dynamic subscriptions (less common):
 ```lua
 -- Subscribe programmatically
 function init()
-    brogue.event.subscribe("entity_died", "scripts/events/my_handler.lua", "on_entity_died")
+    veinborn.event.subscribe("entity_died", "scripts/events/my_handler.lua", "on_entity_died")
 end
 ```
 
@@ -417,7 +417,7 @@ end
 **1. Emit test events:**
 ```lua
 -- Manually trigger event for testing
-brogue.event.emit("entity_died", {
+veinborn.event.emit("entity_died", {
     entity_id = "test_goblin",
     entity_name = "Test Goblin",
     killer_id = "player_1",
@@ -429,7 +429,7 @@ brogue.event.emit("entity_died", {
 ```lua
 function on_entity_died(event)
     -- Debug output
-    brogue.add_message("DEBUG: Entity died - " .. event.data.entity_name)
+    veinborn.add_message("DEBUG: Entity died - " .. event.data.entity_name)
 
     -- Your handler logic
     kills = kills + 1
@@ -439,9 +439,9 @@ end
 **3. Check event types:**
 ```lua
 -- List all available event types
-local types = brogue.event.get_types()
+local types = veinborn.event.get_types()
 for i = 1, #types do
-    brogue.add_message("Event type: " .. types[i])
+    veinborn.add_message("Event type: " .. types[i])
 end
 ```
 
@@ -460,7 +460,7 @@ end
 **Solution:**
 ```lua
 -- Check subscription
-brogue.event.subscribe("entity_died", "scripts/events/my_handler.lua", "on_entity_died")
+veinborn.event.subscribe("entity_died", "scripts/events/my_handler.lua", "on_entity_died")
 
 -- Check function name matches
 function on_entity_died(event)  -- Must match handler_name parameter

@@ -1,7 +1,7 @@
 """
-Brogue Lua Scripting Integration
+Veinborn Lua Scripting Integration
 
-This module provides Lua scripting support for Brogue, enabling modding
+This module provides Lua scripting support for Veinborn, enabling modding
 and custom content creation through safe Lua execution.
 """
 

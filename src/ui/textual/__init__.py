@@ -1,4 +1,4 @@
-"""Textual-based UI for Brogue."""
-from .app import BrogueApp, run_game
+"""Textual-based UI for Veinborn."""
+from .app import VeinbornApp, run_game
 
-__all__ = ['BrogueApp', 'run_game']
+__all__ = ['VeinbornApp', 'run_game']

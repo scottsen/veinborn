@@ -8,7 +8,7 @@
 
 ## Executive Summary
 
-Reorganized and improved Brogue documentation to:
+Reorganized and improved Veinborn documentation to:
 - ✅ Reduce duplication and confusion
 - ✅ Increase accuracy (all docs now reflect actual state)
 - ✅ Improve navigation with clear hierarchy
@@ -78,7 +78,7 @@ Moved 7 documents to Archive/:
 docs/
 ├── BETH_INTEGRATION_PLAN.md              [ARCHIVED]
 ├── BOT_REFACTORING_DESIGN.md             [ARCHIVED]
-├── BROGUE_CONSOLIDATED_DESIGN.md
+├── VEINBORN_CONSOLIDATED_DESIGN.md
 ├── CLEANUP_SUMMARY_2025-10-23.md         [ARCHIVED]
 ├── CONTENT_CREATION.md
 ├── DATA_FILES_GUIDE.md
@@ -102,7 +102,7 @@ docs/
 ```
 docs/
 ├── INDEX.md                              [NEW! Master navigation]
-├── BROGUE_CONSOLIDATED_DESIGN.md         [Kept - game design]
+├── VEINBORN_CONSOLIDATED_DESIGN.md         [Kept - game design]
 ├── CONTENT_CREATION.md                   [Kept - content guide]
 ├── DATA_FILES_GUIDE.md                   [Kept - data guide]
 ├── MECHANICS_REFERENCE.md                [Kept - mechanics]
@@ -139,7 +139,7 @@ docs/
 │   └── MVP_ROADMAP.md                   [High-level roadmap]
 │
 ├── 🎮 Game Design Docs
-│   ├── BROGUE_CONSOLIDATED_DESIGN.md    [Master game design]
+│   ├── VEINBORN_CONSOLIDATED_DESIGN.md    [Master game design]
 │   └── MECHANICS_REFERENCE.md           [Detailed mechanics]
 │
 ├── 🛠️ Development Docs
@@ -204,7 +204,7 @@ docs/
 ### For New Developers:
 1. Start at README.md
 2. Click link to INDEX.md
-3. Follow "New to Brogue?" path
+3. Follow "New to Veinborn?" path
 4. Read START_HERE.md (15 min)
 5. Pick a task from MVP_CURRENT_FOCUS.md
 

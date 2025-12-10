@@ -234,7 +234,7 @@ def generate_dungeon():
 👉 `docs/MVP_ROADMAP.md` - What to build next
 
 ### If you have 30 minutes:
-👉 `docs/BROGUE_CONSOLIDATED_DESIGN.md` - Master game design (vision, systems, mechanics)
+👉 `docs/VEINBORN_CONSOLIDATED_DESIGN.md` - Master game design (vision, systems, mechanics)
 
 ### If you have 1 hour:
 👉 `docs/architecture/00_ARCHITECTURE_OVERVIEW.md` - MVP technical architecture (how it works)
@@ -256,7 +256,7 @@ def generate_dungeon():
 ## Project Structure
 
 ```
-projects/brogue/
+projects/veinborn/
 ├── src/
 │   ├── core/
 │   │   ├── game.py         # ⭐ Game loop, state management
@@ -276,7 +276,7 @@ projects/brogue/
 │   ├── entities/           # ⭐ Entity definitions (monsters, ores)
 │   └── highscores.json     # ⭐ High score persistence
 │
-├── ~/.brogue/
+├── ~/.veinborn/
 │   ├── saves/              # ⭐ Save games
 │   └── legacy_vault.json   # ⭐ Meta-progression vault
 │
@@ -284,7 +284,7 @@ projects/brogue/
 │   ├── START_HERE.md       # 👈 You are here
 │   ├── MVP_ROADMAP.md      # What to build next
 │   ├── MVP_CURRENT_FOCUS.md # Implementation hub
-│   ├── BROGUE_CONSOLIDATED_DESIGN.md  # Master design
+│   ├── VEINBORN_CONSOLIDATED_DESIGN.md  # Master design
 │   │
 │   ├── architecture/       # MVP technical architecture
 │   │   ├── README.md       # Navigation guide
@@ -429,7 +429,7 @@ Every run is different:
 
 ### 4. Mining/Crafting (Phase 1 - COMPLETE)
 
-**The hook that makes Brogue unique:**
+**The hook that makes Veinborn unique:**
 
 **Mining:**
 - Ore veins in walls (`◆` tiles)
@@ -469,7 +469,7 @@ Example:
 
 ### Adding a New Feature
 
-1. **Read the design:** `docs/BROGUE_CONSOLIDATED_DESIGN.md`
+1. **Read the design:** `docs/VEINBORN_CONSOLIDATED_DESIGN.md`
 2. **Check the roadmap:** `docs/MVP_ROADMAP.md`
 3. **Understand existing code:** Read `src/core/game.py`, `entities.py`, `world.py`
 4. **Implement:** Follow existing patterns
@@ -538,7 +538,7 @@ Example:
 
 **Consolidated design (Oct 22):** Merged 3 visions into current design
 - Archive = dead ends
-- Read `BROGUE_CONSOLIDATED_DESIGN.md` instead
+- Read `VEINBORN_CONSOLIDATED_DESIGN.md` instead
 
 ### Q: When does multiplayer happen?
 
@@ -572,7 +572,7 @@ Example:
 |----------|---------|--------------|
 | **START_HERE.md** | Onboarding | Right now! |
 | **MVP_ROADMAP.md** | What to build | Before implementing |
-| **BROGUE_CONSOLIDATED_DESIGN.md** | Game vision | Understanding "why" |
+| **VEINBORN_CONSOLIDATED_DESIGN.md** | Game vision | Understanding "why" |
 | **architecture/** | Technical specs | Phase 2 (future) |
 | **future-multiplayer/** | MP design | Phase 2 (future) |
 | **Archive/** | ❌ Don't read | Never |
@@ -624,13 +624,13 @@ Example:
 
 ```bash
 # Easy launcher (recommended)
-./brogue              # Normal mode
-./brogue --debug      # Debug mode (full logging)
-./brogue --safe       # Safe mode (terminal reset on crash)
-./brogue --help       # Show help
+./veinborn              # Normal mode
+./veinborn --debug      # Debug mode (full logging)
+./veinborn --safe       # Safe mode (terminal reset on crash)
+./veinborn --help       # Show help
 
 # Install system-wide (optional)
-./install.sh          # Installs 'brogue' command to ~/.local/bin
+./install.sh          # Installs 'veinborn' command to ~/.local/bin
 
 # Old way (still works)
 python3 run_textual.py
@@ -642,13 +642,13 @@ python3 -m pytest tests/
 python3 -m pytest tests/test_widgets.py
 ```
 
-**Terminal stuck?** Run `reset` or use `./brogue --safe` next time.
+**Terminal stuck?** Run `reset` or use `./veinborn --safe` next time.
 
 ---
 
 ## Welcome Aboard!
 
-You're now ready to build Brogue. Start with the MVP roadmap and pick a task.
+You're now ready to build Veinborn. Start with the MVP roadmap and pick a task.
 
 **Remember:**
 - Keep it simple (no over-engineering)

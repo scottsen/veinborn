@@ -23,14 +23,14 @@ class GameContextAPI:
     """
     Lua-safe wrapper for GameContext.
 
-    Provides the 'brogue' global table in Lua with game state access methods.
+    Provides the 'veinborn' global table in Lua with game state access methods.
     Handles Python <-> Lua type conversions and entity serialization.
 
     Example Lua usage:
-        local player = brogue.get_player()
-        local entities = brogue.get_entities_in_range(x, y, 5)
-        brogue.add_message("Hello from Lua!")
-        brogue.modify_stat(player.id, "hp", -10)
+        local player = veinborn.get_player()
+        local entities = veinborn.get_entities_in_range(x, y, 5)
+        veinborn.add_message("Hello from Lua!")
+        veinborn.modify_stat(player.id, "hp", -10)
     """
 
     def __init__(
@@ -58,36 +58,36 @@ class GameContextAPI:
 
     def _register_api(self) -> None:
         """
-        Register brogue.* methods in Lua globals.
+        Register veinborn.* methods in Lua globals.
 
-        Creates a 'brogue' table with all API methods.
+        Creates a 'veinborn' table with all API methods.
         """
-        # Create brogue table
-        brogue_table = self.lua.table()
+        # Create veinborn table
+        veinborn_table = self.lua.table()
 
         # Register entity query methods
-        brogue_table["get_player"] = self._get_player
-        brogue_table["get_entity"] = self._get_entity
-        brogue_table["get_entity_at"] = self._get_entity_at
-        brogue_table["get_entities_in_range"] = self._get_entities_in_range
-        brogue_table["get_entities_by_type"] = self._get_entities_by_type
+        veinborn_table["get_player"] = self._get_player
+        veinborn_table["get_entity"] = self._get_entity
+        veinborn_table["get_entity_at"] = self._get_entity_at
+        veinborn_table["get_entities_in_range"] = self._get_entities_in_range
+        veinborn_table["get_entities_by_type"] = self._get_entities_by_type
 
         # Register map query methods
-        brogue_table["is_walkable"] = self._is_walkable
-        brogue_table["in_bounds"] = self._in_bounds
+        veinborn_table["is_walkable"] = self._is_walkable
+        veinborn_table["in_bounds"] = self._in_bounds
 
         # Register game state methods
-        brogue_table["add_message"] = self._add_message
-        brogue_table["get_turn_count"] = self._get_turn_count
-        brogue_table["get_floor"] = self._get_floor
+        veinborn_table["add_message"] = self._add_message
+        veinborn_table["get_turn_count"] = self._get_turn_count
+        veinborn_table["get_floor"] = self._get_floor
 
         # Register entity manipulation methods
-        brogue_table["modify_stat"] = self._modify_stat
-        brogue_table["deal_damage"] = self._deal_damage
-        brogue_table["heal"] = self._heal
-        brogue_table["is_alive"] = self._is_alive
+        veinborn_table["modify_stat"] = self._modify_stat
+        veinborn_table["deal_damage"] = self._deal_damage
+        veinborn_table["heal"] = self._heal
+        veinborn_table["is_alive"] = self._is_alive
 
-        # Register AI-specific methods in brogue.ai table
+        # Register AI-specific methods in veinborn.ai table
         ai_table = self.lua.table()
         ai_table["get_target"] = self._ai_get_target
         ai_table["is_adjacent"] = self._ai_is_adjacent
@@ -98,21 +98,21 @@ class GameContextAPI:
         ai_table["flee_from"] = self._ai_flee_from
         ai_table["wander"] = self._ai_wander
         ai_table["idle"] = self._ai_idle
-        brogue_table["ai"] = ai_table
+        veinborn_table["ai"] = ai_table
 
-        # Register event methods in brogue.event table (Phase 3)
+        # Register event methods in veinborn.event table (Phase 3)
         event_table = self.lua.table()
         event_table["subscribe"] = self._event_subscribe
         event_table["unsubscribe"] = self._event_unsubscribe
         event_table["get_types"] = self._event_get_types
         event_table["emit"] = self._event_emit
-        brogue_table["event"] = event_table
+        veinborn_table["event"] = event_table
 
-        # Set brogue table as global
-        self.lua.globals()["brogue"] = brogue_table
+        # Set veinborn table as global
+        self.lua.globals()["veinborn"] = veinborn_table
         logger.debug(
-            "Registered brogue API with %d methods (%d AI, %d event methods)",
-            len(brogue_table), len(ai_table), len(event_table)
+            "Registered veinborn API with %d methods (%d AI, %d event methods)",
+            len(veinborn_table), len(ai_table), len(event_table)
         )
 
     # Entity serialization
@@ -619,7 +619,7 @@ class GameContextAPI:
         """
         Subscribe Lua script to event type.
 
-        Called from Lua as: brogue.event.subscribe("entity_died", "scripts/events/achievements.lua")
+        Called from Lua as: veinborn.event.subscribe("entity_died", "scripts/events/achievements.lua")
 
         Args:
             event_type: Event type name (e.g., "entity_died")
@@ -676,7 +676,7 @@ class GameContextAPI:
         """
         Unsubscribe Lua script from event type.
 
-        Called from Lua as: brogue.event.unsubscribe("entity_died", "scripts/events/achievements.lua")
+        Called from Lua as: veinborn.event.unsubscribe("entity_died", "scripts/events/achievements.lua")
 
         Args:
             event_type: Event type name
@@ -719,7 +719,7 @@ class GameContextAPI:
         """
         Get list of all available event types.
 
-        Called from Lua as: local types = brogue.event.get_types()
+        Called from Lua as: local types = veinborn.event.get_types()
 
         Returns:
             Lua table (1-indexed) of event type strings
@@ -745,7 +745,7 @@ class GameContextAPI:
         """
         Manually emit an event (for testing/debugging).
 
-        Called from Lua as: brogue.event.emit("entity_died", {entity_id = "goblin_1"})
+        Called from Lua as: veinborn.event.emit("entity_died", {entity_id = "goblin_1"})
 
         Args:
             event_type: Event type name

@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
-Debug runner for Brogue with comprehensive logging.
-Logs to brogue_debug.log in current directory.
+Debug runner for Veinborn with comprehensive logging.
+Logs to veinborn_debug.log in current directory.
 """
 import sys
 import os
@@ -10,7 +10,7 @@ from pathlib import Path
 from datetime import datetime
 
 # Setup logging FIRST
-log_file = Path(__file__).parent / "brogue_debug.log"
+log_file = Path(__file__).parent / "veinborn_debug.log"
 logging.basicConfig(
     level=logging.DEBUG,
     format='%(asctime)s [%(levelname)s] %(name)s: %(message)s',
@@ -19,10 +19,10 @@ logging.basicConfig(
         logging.StreamHandler(sys.stderr)  # Also print to stderr
     ]
 )
-logger = logging.getLogger('brogue')
+logger = logging.getLogger('veinborn')
 
 logger.info("="*60)
-logger.info("BROGUE DEBUG SESSION STARTING")
+logger.info("VEINBORN DEBUG SESSION STARTING")
 logger.info(f"Time: {datetime.now()}")
 logger.info(f"Python: {sys.version}")
 logger.info(f"CWD: {os.getcwd()}")
@@ -44,7 +44,7 @@ try:
     logger.info("✓ core.game imported")
 
     logger.info("Importing ui.textual.app...")
-    from ui.textual.app import BrogueApp
+    from ui.textual.app import VeinbornApp
     logger.info("✓ ui.textual.app imported")
 
     logger.info("Checking terminal...")
@@ -64,9 +64,9 @@ try:
     except Exception as e:
         logger.error(f"Could not get terminal size: {e}")
 
-    logger.info("Creating BrogueApp instance...")
-    app = BrogueApp()
-    logger.info("✓ BrogueApp created")
+    logger.info("Creating VeinbornApp instance...")
+    app = VeinbornApp()
+    logger.info("✓ VeinbornApp created")
 
     logger.info(f"App config: mouse={app.ENABLE_MOUSE}, title={app.TITLE}")
 
@@ -98,6 +98,6 @@ finally:
         logger.error(f"Cleanup error: {e}")
 
     logger.info("="*60)
-    logger.info("BROGUE DEBUG SESSION ENDED")
+    logger.info("VEINBORN DEBUG SESSION ENDED")
     logger.info("="*60)
     print(f"\n\nDebug log saved to: {log_file}", file=sys.stderr)

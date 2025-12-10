@@ -1,4 +1,4 @@
-# Brogue Content System: Data-Driven Design & Scripting
+# Veinborn Content System: Data-Driven Design & Scripting
 
 **Document Type:** Content Architecture
 **Audience:** Content Designers, Gameplay Programmers
@@ -9,7 +9,7 @@
 
 ## Overview
 
-Brogue's content system enables designers to create game content (monsters, abilities, quests) without programming. This document covers:
+Veinborn's content system enables designers to create game content (monsters, abilities, quests) without programming. This document covers:
 
 1. **YAML-based content** (Phase 1 - Now)
 2. **Expression language** for simple logic
@@ -160,7 +160,7 @@ result:
 ### Pydantic Schemas (Validation)
 
 ```python
-# brogue/content/schemas.py
+# veinborn/content/schemas.py
 from pydantic import BaseModel, Field
 from typing import List, Dict, Any
 
@@ -193,7 +193,7 @@ class MonsterDefinition(BaseModel):
 ### Content Loader
 
 ```python
-# brogue/content/loader.py
+# veinborn/content/loader.py
 import yaml
 from pathlib import Path
 from pydantic import ValidationError
@@ -249,7 +249,7 @@ For simple conditionals without full scripting:
 # requirements.txt
 simpleeval>=0.9.13
 
-# brogue/content/expressions.py
+# veinborn/content/expressions.py
 from simpleeval import simple_eval
 
 def eval_condition(expr: str, context: dict) -> bool:
@@ -317,7 +317,7 @@ When YAML isn't expressive enough, add scripting.
 # requirements.txt
 lupa>=2.0
 
-# brogue/scripting/lua_engine.py
+# veinborn/scripting/lua_engine.py
 from lupa import LuaRuntime
 
 class LuaScriptEngine:
@@ -387,7 +387,7 @@ end
 **Python API for Lua:**
 
 ```python
-# brogue/scripting/api.py
+# veinborn/scripting/api.py
 class LuaEntityAPI:
     """Safe API exposed to Lua scripts"""
 
@@ -419,7 +419,7 @@ lua.call_function("dragon_ai", lua.globals().dragon, players)
 **For player-created content (houses, custom modes):**
 
 ```python
-# brogue/scripting/python_sandbox.py
+# veinborn/scripting/python_sandbox.py
 import ast
 
 class RestrictedPython:
@@ -458,7 +458,7 @@ class RestrictedPython:
 **Player House Script:**
 
 ```python
-# ~/.brogue/houses/alice/entrance.py
+# ~/.veinborn/houses/alice/entrance.py
 def on_player_enter(player):
     """Called when player enters room"""
     if player.name == "alice":
@@ -521,7 +521,7 @@ while True: pass  # Infinite loop
 ## 6. Hot-Reload (Development)
 
 ```python
-# brogue/dev/hot_reload.py
+# veinborn/dev/hot_reload.py
 from watchdog.observers import Observer
 from watchdog.events import FileSystemEventHandler
 
@@ -632,13 +632,13 @@ def on_lever():
 - [Lua Programming](https://www.lua.org/manual/5.4/)
 - [Lupa (Python-Lua)](https://github.com/scoder/lupa)
 - [simpleeval](https://github.com/danthedeckie/simpleeval)
-- `BROGUE_YAML_CONTENT_SYSTEM.md` - Full YAML examples
+- `VEINBORN_YAML_CONTENT_SYSTEM.md` - Full YAML examples
 
 ---
 
 **Next Steps:**
-1. Create content schemas (`brogue/content/schemas.py`)
-2. Implement ContentLoader (`brogue/content/loader.py`)
+1. Create content schemas (`veinborn/content/schemas.py`)
+2. Implement ContentLoader (`veinborn/content/loader.py`)
 3. Add hot-reload for development
 4. Create example content (monsters, abilities)
 5. Test with real game systems

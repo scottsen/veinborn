@@ -8,7 +8,7 @@
 
 ## Summary
 
-The Brogue test suite is in excellent health with **858 passing tests** and **2 correctly skipped tests**. There are **zero failing tests**.
+The Veinborn test suite is in excellent health with **858 passing tests** and **2 correctly skipped tests**. There are **zero failing tests**.
 
 ---
 

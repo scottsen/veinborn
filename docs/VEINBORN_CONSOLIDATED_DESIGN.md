@@ -53,7 +53,7 @@ Born from the veins of the earth - a name that captures the essence of mining, o
 ✓ "One more run" factor → Quick restart
 ```
 
-### Brogue's Core Loop
+### Veinborn's Core Loop
 ```
 1. Generate dungeon
 2. Explore, find ore/loot
@@ -680,7 +680,7 @@ client/
 
 ## Conclusion
 
-**Brogue is:**
+**Veinborn is:**
 - NetHack + SWG Mining + Multiplayer Co-op
 - Mechanical roguelike with quest hook (save your bro)
 - "Bros" playing together, hunting perfect ore spawns

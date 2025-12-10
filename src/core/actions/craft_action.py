@@ -1,7 +1,7 @@
 """
 CraftAction - interact with forge to craft equipment from ore.
 
-This is THE core action of Brogue's unique hook:
+This is THE core action of Veinborn's unique hook:
 - Player mines ore (MineAction)
 - Player brings ore to forge
 - Player crafts equipment (CraftAction) ← YOU ARE HERE

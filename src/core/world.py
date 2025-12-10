@@ -1,5 +1,5 @@
 """
-Map and world generation for Brogue.
+Map and world generation for Veinborn.
 """
 from dataclasses import dataclass
 from typing import List, Tuple, Optional

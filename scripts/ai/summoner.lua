@@ -27,22 +27,22 @@ local SUMMON_COOLDOWN = 10 -- Summon every 10 turns
 -- @param config: Behavior configuration from YAML
 -- @return: Action descriptor
 function update(monster, config)
-    local player = brogue.get_player()
+    local player = veinborn.get_player()
 
     if not player or not player.is_alive then
         return {action = "wander"}
     end
 
-    local distance = brogue.ai.distance_to(monster.id, player.id)
+    local distance = veinborn.ai.distance_to(monster.id, player.id)
 
     -- Track turns since last summon
     local last_summon_turn = monster.stats.last_summon_turn or 0
-    local current_turn = brogue.get_turn_count()
+    local current_turn = veinborn.get_turn_count()
     local turns_since_summon = current_turn - last_summon_turn
 
     -- Flee if player too close
     if distance < FLEE_DISTANCE then
-        brogue.add_message(monster.name .. " retreats to safety!")
+        veinborn.add_message(monster.name .. " retreats to safety!")
         return {
             action = "flee_from",
             target_id = player.id
@@ -52,10 +52,10 @@ function update(monster, config)
     -- Summon if conditions met
     if distance <= SUMMON_DISTANCE and turns_since_summon >= SUMMON_COOLDOWN then
         -- Update summon timestamp
-        brogue.modify_stat(monster.id, "last_summon_turn", current_turn)
+        veinborn.modify_stat(monster.id, "last_summon_turn", current_turn)
 
         -- Visual feedback
-        brogue.add_message(monster.name .. " chants an incantation!")
+        veinborn.add_message(monster.name .. " chants an incantation!")
 
         -- Future: Actually spawn monsters nearby
         -- For now: Just message and cooldown

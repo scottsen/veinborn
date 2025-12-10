@@ -1,5 +1,5 @@
 ---
-project: brogue
+project: veinborn
 document_type: documentation-index
 analysis_date: 2025-11-06
 status: production-ready
@@ -7,7 +7,7 @@ beth_topics: [architecture, documentation-index, getting-started, lua-integratio
 keywords: [roguelike, architecture-docs, comprehensive-analysis, quick-reference, navigation]
 ---
 
-# BROGUE ARCHITECTURAL ANALYSIS - DOCUMENTATION INDEX
+# VEINBORN ARCHITECTURAL ANALYSIS - DOCUMENTATION INDEX
 
 **Analysis Date:** November 6, 2025
 **Codebase:** ~3,550 lines of core Python
@@ -17,7 +17,7 @@ keywords: [roguelike, architecture-docs, comprehensive-analysis, quick-reference
 
 ## START HERE
 
-New to Brogue's architecture? Start with this guide:
+New to Veinborn's architecture? Start with this guide:
 
 1. **Read this README first** (5 min)
 2. **Read ANALYSIS_QUICK_REFERENCE.md** (15 min) for summary
@@ -248,7 +248,7 @@ See: ANALYSIS_QUICK_REFERENCE.md → "Recommended Improvements"
 
 ### These Analysis Documents
 ```
-/home/scottsen/src/projects/brogue/docs/architecture/
+/home/scottsen/src/projects/veinborn/docs/architecture/
 ├── README_ANALYSIS.md                    # This file
 ├── ANALYSIS_QUICK_REFERENCE.md           # Quick reference (read this first!)
 └── COMPREHENSIVE_ANALYSIS.md             # Full analysis (detailed)
@@ -256,7 +256,7 @@ See: ANALYSIS_QUICK_REFERENCE.md → "Recommended Improvements"
 
 ### Source Code (What the Analysis Covers)
 ```
-/home/scottsen/src/projects/brogue/
+/home/scottsen/src/projects/veinborn/
 ├── src/core/
 │   ├── game.py                          # Game controller
 │   ├── base/                            # Core abstractions

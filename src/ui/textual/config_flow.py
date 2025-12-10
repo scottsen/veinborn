@@ -1,4 +1,4 @@
-"""Game configuration flow for Brogue."""
+"""Game configuration flow for Veinborn."""
 import sys
 from typing import Optional, Tuple
 

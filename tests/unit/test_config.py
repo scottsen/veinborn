@@ -303,7 +303,7 @@ class TestConfigIntegration:
         """Test XDG config directory support."""
 
         with tempfile.TemporaryDirectory() as tmpdir:
-            xdg_path = Path(tmpdir) / ".config" / "brogue" / "config"
+            xdg_path = Path(tmpdir) / ".config" / "veinborn" / "config"
 
             config = ConfigManager()
             config.set('player.name', 'XdgUser')

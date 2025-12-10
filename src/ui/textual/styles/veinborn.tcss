@@ -1,11 +1,11 @@
-/* Brogue Textual CSS */
+/* Veinborn Textual CSS */
 
 /* Global theme */
 Screen {
     background: $surface;
 }
 
-/* Override default colors for Brogue aesthetic */
+/* Override default colors for Veinborn aesthetic */
 $primary: #2dd4bf;
 $secondary: #f97316;
 $accent: #fbbf24;

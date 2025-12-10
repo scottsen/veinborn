@@ -60,7 +60,7 @@ def game_context(mock_game_state):
 def api(game_context, lua_runtime, event_bus, registry):
     """Create GameContextAPI with full event support."""
     # Pass event_bus and registry during init so _register_api() can use them
-    # This ensures brogue table is available in Lua environment
+    # This ensures veinborn table is available in Lua environment
     api = GameContextAPI(game_context, lua_runtime.lua, event_bus, registry)
     return api
 

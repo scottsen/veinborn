@@ -1,4 +1,4 @@
-# Brogue System Interactions
+# Veinborn System Interactions
 
 **Last Updated:** 2025-11-05
 **For:** Developers understanding how systems connect
@@ -7,7 +7,7 @@
 
 ## Overview
 
-Brogue has **11 interconnected systems** working together. This document maps how they interact, what data flows between them, and where to look when debugging.
+Veinborn has **11 interconnected systems** working together. This document maps how they interact, what data flows between them, and where to look when debugging.
 
 ---
 
@@ -283,7 +283,7 @@ SaveSystem.save_game()
     │   ├─> Map → JSON (tiles, entities)
     │   ├─> Inventory → JSON array
     │   └─> RNG state → Seed value
-    ├─> Write to ~/.brogue/saves/save_001.json
+    ├─> Write to ~/.veinborn/saves/save_001.json
     └─> Add message "Game saved!"
     │
     ▼
@@ -513,7 +513,7 @@ print(f"Result: {calculated_attack}")
 python3 scripts/run_debug.py
 
 # Check logs
-tail -f logs/brogue.log | grep "spawn"
+tail -f logs/veinborn.log | grep "spawn"
 ```
 
 ### "Save file doesn't restore correctly"

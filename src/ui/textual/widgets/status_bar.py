@@ -23,7 +23,7 @@ class StatusBar(Widget):
     def render(self) -> Text:
         """Render the status bar."""
         if not self.game_state:
-            return Text("Brogue - Loading...", style="bold")
+            return Text("Veinborn - Loading...", style="bold")
 
         player = self.game_state.player
         parts = [

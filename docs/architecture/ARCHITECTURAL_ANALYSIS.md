@@ -1,4 +1,4 @@
-# Brogue Bot Architecture Analysis
+# Veinborn Bot Architecture Analysis
 
 **Date**: 2025-10-26
 **Session**: eternal-hammer-1026
@@ -482,7 +482,7 @@ class PathfindingGoal:
 - `src/core/actions/move_action.py` - Check `blocks_movement()` not `is_alive`
 - `src/core/perception.py` - NEW: Visibility system
 - `src/core/game.py` - Add perception API methods
-- `tests/fuzz/brogue_bot.py` - Use new APIs
+- `tests/fuzz/veinborn_bot.py` - Use new APIs
 
 ---
 

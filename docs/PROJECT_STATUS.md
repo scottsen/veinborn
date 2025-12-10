@@ -1,4 +1,4 @@
-# Brogue Project Status Report
+# Veinborn Project Status Report
 
 **Last Updated:** 2025-11-14
 **Status:** ✅ MVP Complete + Multiplayer Phase 2 Complete 🎉
@@ -7,7 +7,7 @@
 
 ## Executive Summary
 
-**The Brogue MVP is feature-complete AND multiplayer Phase 2 is working!** All core single-player systems are implemented and tested, plus 2+ player co-op is functional. The project has:
+**The Veinborn MVP is feature-complete AND multiplayer Phase 2 is working!** All core single-player systems are implemented and tested, plus 2+ player co-op is functional. The project has:
 
 **Single-Player (Complete):**
 - ✅ **858/860 passing tests** (99.8% pass rate)
@@ -83,7 +83,7 @@
   - ✅ Corrupted save detection
 - **Files:** `src/core/save_load.py`
 - **Tests:** `tests/unit/test_save_load.py` (26 tests)
-- **Save Location:** `~/.brogue/saves/`
+- **Save Location:** `~/.veinborn/saves/`
 
 #### 5. Character Class System (100% Complete)
 - **Status:** Fully implemented and tested (13 tests passing)
@@ -238,7 +238,7 @@
 - **Implemented:** Full Legacy Vault meta-progression system
 - **What Works:**
   - ✅ Rare ore (purity 80+) saved on death
-  - ✅ Vault storage system (`~/.brogue/legacy_vault.json`)
+  - ✅ Vault storage system (`~/.veinborn/legacy_vault.json`)
   - ✅ Withdrawal functionality (API ready)
   - ✅ Pure vs Legacy run tracking
   - ✅ Victory tracking (Pure/Legacy victories separate)
@@ -349,7 +349,7 @@ Last verified: 2025-11-14
 2. **[MVP_ROADMAP.md](MVP_ROADMAP.md)** - High-level roadmap (simplified)
 3. **[MVP_CURRENT_FOCUS.md](MVP_CURRENT_FOCUS.md)** - Current priorities
 4. **[START_HERE.md](START_HERE.md)** - Developer onboarding
-5. **[BROGUE_CONSOLIDATED_DESIGN.md](BROGUE_CONSOLIDATED_DESIGN.md)** - Game design vision
+5. **[VEINBORN_CONSOLIDATED_DESIGN.md](VEINBORN_CONSOLIDATED_DESIGN.md)** - Game design vision
 
 ### Documentation Accuracy
 
@@ -357,7 +357,7 @@ All main documentation is now accurate and up-to-date:
 - ✅ **PROJECT_STATUS.md** (this file) - 100% accurate comprehensive status
 - ✅ **MVP_ROADMAP.md** - Simplified high-level overview
 - ✅ **MVP_CURRENT_FOCUS.md** - Current priorities
-- ✅ **BROGUE_CONSOLIDATED_DESIGN.md** - Game design vision
+- ✅ **VEINBORN_CONSOLIDATED_DESIGN.md** - Game design vision
 - ✅ **architecture/** - Technical architecture docs
 
 ---
@@ -469,7 +469,7 @@ python3 -m pytest tests/ -v
 
 ## Conclusion
 
-**The Brogue MVP is feature-complete AND multiplayer Phase 2 is working!** All documented Phase 1 systems are implemented, tested, and PLAYABLE. Multiplayer co-op is functional with 2+ players. The project needs:
+**The Veinborn MVP is feature-complete AND multiplayer Phase 2 is working!** All documented Phase 1 systems are implemented, tested, and PLAYABLE. Multiplayer co-op is functional with 2+ players. The project needs:
 
 1. ✅ **Immediate:** Dual-track testing (single-player balance + multiplayer co-op sessions)
 2. ⚠️ **Short-term:** Tutorial system, special rooms, multiplayer polish

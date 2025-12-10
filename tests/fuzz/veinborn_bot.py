@@ -600,7 +600,7 @@ class VeinbornBot:
             max_turns_per_game: Safety limit to prevent infinite loops (default: 100000)
         """
         print(f"\n{'='*60}")
-        print(f"Brogue Automated Testing Bot")
+        print(f"Veinborn Automated Testing Bot")
         print(f"{'='*60}")
         print(f"Player Name: {self.player_name}")
         print(f"Mode: {self.mode.upper()}")
@@ -780,14 +780,14 @@ def main(bot_class=None, default_class=None):
     Main entry point.
 
     Args:
-        bot_class: Custom bot class to use (default: BrogueBot)
+        bot_class: Custom bot class to use (default: VeinbornBot)
         default_class: Default character class for the bot (optional)
     """
     import argparse
     import logging
 
     parser = argparse.ArgumentParser(
-        description='Brogue automated testing bot',
+        description='Veinborn automated testing bot',
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Play Modes:
@@ -801,11 +801,11 @@ Logging Levels:
   --debug     DEBUG   - show everything (trace level)
 
 Examples:
-  python tests/fuzz/brogue_bot.py                    # 100 strategic games (fast)
-  python tests/fuzz/brogue_bot.py --mode random      # Random chaos
-  python tests/fuzz/brogue_bot.py --games 1000       # 1000 games (production)
-  python tests/fuzz/brogue_bot.py --games 10 -v      # 10 games with action logs
-  python tests/fuzz/brogue_bot.py --games 1 --debug  # 1 game with full trace
+  python tests/fuzz/veinborn_bot.py                    # 100 strategic games (fast)
+  python tests/fuzz/veinborn_bot.py --mode random      # Random chaos
+  python tests/fuzz/veinborn_bot.py --games 1000       # 1000 games (production)
+  python tests/fuzz/veinborn_bot.py --games 10 -v      # 10 games with action logs
+  python tests/fuzz/veinborn_bot.py --games 1 --debug  # 1 game with full trace
         """
     )
     parser.add_argument(
@@ -873,13 +873,13 @@ Examples:
     logger.info(f"Bot test logging initialized - mode: {args.mode}, games: {args.games}")
     logger.info(f"Log file: {log_dir / 'bot_tests.log'}")
 
-    # Use custom bot class if provided, otherwise default BrogueBot
+    # Use custom bot class if provided, otherwise default VeinbornBot
     if bot_class is None:
-        bot_class = BrogueBot
+        bot_class = VeinbornBot
 
     # Create bot instance
     # For specialized bots that don't use mode parameter
-    if bot_class == BrogueBot:
+    if bot_class == VeinbornBot:
         bot = bot_class(verbose=args.verbose, mode=args.mode, player_name=args.name or 'Bot')
     else:
         # Specialized bots (Warrior, Rogue, Mage, Healer) handle their own defaults

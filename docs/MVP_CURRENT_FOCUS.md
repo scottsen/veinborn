@@ -1,4 +1,4 @@
-# Brogue MVP: Current Focus & Next Steps
+# Veinborn MVP: Current Focus & Next Steps
 
 **Status:** ✅ **MVP FEATURE-COMPLETE** - Now in Polish & Content Phase
 **Phase:** MVP Polish + Lua Advanced Features + **Multiplayer Phase 2 COMPLETE** 🎉
@@ -132,7 +132,7 @@ src/server/
 
 **How to Playtest:**
 ```bash
-cd /home/user/brogue
+cd /home/user/veinborn
 python3 run_textual.py
 ```
 
@@ -355,7 +355,7 @@ timeout implementation, which is not worth the complexity for edge-case timeout 
 
 ### 1. Verify the Game Works
 ```bash
-cd /home/user/brogue
+cd /home/user/veinborn
 
 # Install dependencies (if not already done)
 pip install -r requirements.txt
@@ -409,7 +409,7 @@ python3 -m pytest tests/ -v
 ### For Current Work:
 1. **PROJECT_STATUS.md** - Comprehensive status report (NEW)
 2. **MVP_ROADMAP.md** - Original roadmap (needs update)
-3. **BROGUE_CONSOLIDATED_DESIGN.md** - Game design vision (accurate)
+3. **VEINBORN_CONSOLIDATED_DESIGN.md** - Game design vision (accurate)
 4. **architecture/00_ARCHITECTURE_OVERVIEW.md** - System architecture (accurate)
 
 ### For Future Work:
@@ -494,7 +494,7 @@ Very little! Main gaps:
 
 ### Where to Look:
 - **Current Status:** `docs/PROJECT_STATUS.md`
-- **Game Design:** `docs/BROGUE_CONSOLIDATED_DESIGN.md`
+- **Game Design:** `docs/VEINBORN_CONSOLIDATED_DESIGN.md`
 - **Architecture:** `docs/architecture/00_ARCHITECTURE_OVERVIEW.md`
 - **Testing:** `tests/README.md`
 

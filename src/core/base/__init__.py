@@ -1,5 +1,5 @@
 """
-Base classes for Brogue game architecture.
+Base classes for Veinborn game architecture.
 
 This module provides foundational classes that enable:
 - Clean entity system with uniform API

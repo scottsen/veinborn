@@ -1,4 +1,4 @@
-# Brogue MVP Testing Guide
+# Veinborn MVP Testing Guide
 
 **Document Type:** Testing Guide (MVP Phase)
 **Audience:** Developers implementing MVP
@@ -9,7 +9,7 @@
 
 ## Overview
 
-This guide explains how to test the Brogue MVP (single-player Python game).
+This guide explains how to test the Veinborn MVP (single-player Python game).
 
 **For Phase 2 (async, integration, load testing):** See `/docs/future-multiplayer/DEVELOPMENT_GUIDELINES.md`
 

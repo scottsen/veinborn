@@ -1,6 +1,6 @@
-# Brogue Multiplayer Server
+# Veinborn Multiplayer Server
 
-WebSocket-based multiplayer server for Brogue, enabling real-time cooperative gameplay.
+WebSocket-based multiplayer server for Veinborn, enabling real-time cooperative gameplay.
 
 ## Quick Start
 
@@ -11,7 +11,7 @@ WebSocket-based multiplayer server for Brogue, enabling real-time cooperative ga
 python src/server/run_server.py
 
 # Or with custom host/port
-BROGUE_HOST=0.0.0.0 BROGUE_PORT=8765 python src/server/run_server.py
+VEINBORN_HOST=0.0.0.0 VEINBORN_PORT=8765 python src/server/run_server.py
 ```
 
 The server will start and listen for WebSocket connections.
@@ -78,10 +78,10 @@ Client → WebSocket → Server → GameSession → GameState
 Configure via environment variables:
 
 ```bash
-BROGUE_HOST=0.0.0.0          # Server bind address
-BROGUE_PORT=8765             # Server port
-BROGUE_MAX_CONNECTIONS=100   # Max concurrent connections
-BROGUE_LOG_LEVEL=INFO        # Logging level
+VEINBORN_HOST=0.0.0.0          # Server bind address
+VEINBORN_PORT=8765             # Server port
+VEINBORN_MAX_CONNECTIONS=100   # Max concurrent connections
+VEINBORN_LOG_LEVEL=INFO        # Logging level
 ```
 
 Or edit `src/server/config.py` for defaults.
@@ -300,7 +300,7 @@ Or edit `src/server/config.py` for defaults.
 
 1. Add enum to `MessageType` in `messages.py`
 2. Add constructor method to `Message` class
-3. Add handler method to `BrogueServer` class
+3. Add handler method to `VeinbornServer` class
 4. Update `handle_message()` routing
 
 ### Adding New Game Features

@@ -1,6 +1,6 @@
 # Crafting Recipe Definitions
 #
-# The core of Brogue's unique hook: turn mined ore into equipment
+# The core of Veinborn's unique hook: turn mined ore into equipment
 #
 # Design Goals:
 # - Ore properties → equipment stats (SWG-style quality matters!)

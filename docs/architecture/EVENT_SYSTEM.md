@@ -580,7 +580,7 @@ Phase 3 adds Lua script event subscription, enabling community-created achieveme
 - LuaEventHandler bridge (Python ↔ Lua)
 - EventBus Lua subscription support
 - LuaEventRegistry (auto-loading from `scripts/events/`)
-- GameContextAPI event methods (`brogue.event.*`)
+- GameContextAPI event methods (`veinborn.event.*`)
 - Example handlers (achievements, quests, loot)
 - Comprehensive documentation
 
@@ -609,7 +609,7 @@ Phase 3 adds Lua script event subscription, enabling community-created achieveme
 - Tracks handler subscriptions
 
 **4. GameContextAPI Extension** (`src/core/scripting/game_context_api.py`)
-- Added `brogue.event.*` table with methods:
+- Added `veinborn.event.*` table with methods:
   - `subscribe(event_type, script_path, handler_function?)`
   - `unsubscribe(event_type, script_path)`
   - `get_types()` - Returns all event type names
@@ -726,7 +726,7 @@ for lua_handler in lua_subscribers:
 -- @subscribe: entity_died
 function on_entity_died(event)
     if event.data.killer_id == "player_1" then
-        brogue.add_message("Kill count: " .. kills)
+        veinborn.add_message("Kill count: " .. kills)
     end
 end
 ```
@@ -747,7 +747,7 @@ end
 
 ```lua
 -- Dynamic subscription (less common)
-brogue.event.subscribe("entity_died", "scripts/events/my_handler.lua", "on_entity_died")
+veinborn.event.subscribe("entity_died", "scripts/events/my_handler.lua", "on_entity_died")
 ```
 
 ## Performance

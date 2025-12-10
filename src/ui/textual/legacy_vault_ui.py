@@ -1,4 +1,4 @@
-"""Legacy Vault withdrawal UI for Brogue."""
+"""Legacy Vault withdrawal UI for Veinborn."""
 import sys
 from typing import Optional, Tuple
 

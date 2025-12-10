@@ -90,7 +90,7 @@ grep -r "TODO" src/
 find src/ -name "*.py" | xargs wc -l
 
 # View game logs
-tail -f logs/brogue.log
+tail -f logs/veinborn.log
 ```
 
 ---
@@ -303,7 +303,7 @@ stats.print_stats(20)  # Top 20 functions
 - `docs/architecture/` - Technical architecture
 
 **Design:**
-- `docs/BROGUE_CONSOLIDATED_DESIGN.md` - Game design vision
+- `docs/VEINBORN_CONSOLIDATED_DESIGN.md` - Game design vision
 - `docs/systems/` - System-specific designs
 
 **Future:**
@@ -324,7 +324,7 @@ stty sane
 ### Import Errors
 ```bash
 # Make sure you're in project root
-cd /home/user/brogue
+cd /home/user/veinborn
 
 # Verify Python path
 python3 -c "import sys; print(sys.path)"
@@ -333,7 +333,7 @@ python3 -c "import sys; print(sys.path)"
 ### Tests Fail with "GameContext not found"
 ```bash
 # Run from project root, not tests/ directory
-cd /home/user/brogue
+cd /home/user/veinborn
 pytest tests/
 ```
 
@@ -346,7 +346,7 @@ python3 -c "import yaml; yaml.safe_load(open('data/entities/monsters.yaml'))"
 ### Game Won't Start
 ```bash
 # Check logs
-cat logs/brogue.log
+cat logs/veinborn.log
 
 # Run with debug
 python3 scripts/run_debug.py
@@ -447,7 +447,7 @@ git push
 
 | Question | Check |
 |----------|-------|
-| "How does X work?" | `docs/BROGUE_CONSOLIDATED_DESIGN.md` |
+| "How does X work?" | `docs/VEINBORN_CONSOLIDATED_DESIGN.md` |
 | "Where is X implemented?" | `docs/PROJECT_STATUS.md` |
 | "How do I test X?" | `tests/README.md` |
 | "What's the architecture?" | `docs/architecture/00_ARCHITECTURE_OVERVIEW.md` |

@@ -44,9 +44,9 @@ class ConfigManager:
         Path.home() / ".config" / "veinborn" / "config",    # XDG style (preferred)
         Path("/etc/veinbornrc"),                            # System-wide (preferred)
         # Legacy paths (deprecated, will be removed in v0.5.0)
-        Path.home() / ".broguerc",                          # Legacy Unix style
-        Path.home() / ".config" / "brogue" / "config",      # Legacy XDG style
-        Path("/etc/broguerc"),                              # Legacy system-wide
+        Path.home() / ".veinbornrc",                          # Legacy Unix style
+        Path.home() / ".config" / "veinborn" / "config",      # Legacy XDG style
+        Path("/etc/veinbornrc"),                              # Legacy system-wide
     ]
 
     def __init__(self):
@@ -78,9 +78,9 @@ class ConfigManager:
 
         # Legacy config paths (for deprecation warnings)
         legacy_paths = {
-            Path.home() / ".broguerc",
-            Path.home() / ".config" / "brogue" / "config",
-            Path("/etc/broguerc"),
+            Path.home() / ".veinbornrc",
+            Path.home() / ".config" / "veinborn" / "config",
+            Path("/etc/veinbornrc"),
         }
 
         for path in self.CONFIG_PATHS:
@@ -92,7 +92,7 @@ class ConfigManager:
 
                     # Warn if using legacy config file
                     if path in legacy_paths:
-                        new_path = str(path).replace("brogue", "veinborn")
+                        new_path = str(path).replace("veinborn", "veinborn")
                         warnings.warn(
                             f"Config file {path} is deprecated. "
                             f"Please rename it to {new_path}. "
@@ -223,7 +223,7 @@ class ConfigManager:
         """
         if path is None:
             # Use existing config file or first writable path
-            if self.config_file and self.config_file != Path("/etc/broguerc"):
+            if self.config_file and self.config_file != Path("/etc/veinbornrc"):
                 path = self.config_file
             else:
                 # Try first two paths (skip /etc - read-only)

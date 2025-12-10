@@ -28,7 +28,7 @@ from core.entities import OreVein
 @pytest.mark.unit
 def test_bot_continues_active_mining():
     """Bug #2: Bot continues mining when mining_action is in progress."""
-    bot = BrogueBot(verbose=False, mode='strategic')
+    bot = VeinbornBot(verbose=False, mode='strategic')
     game = Game()
     game.start_new_game(player_name='TestBot')
 
@@ -51,7 +51,7 @@ def test_bot_continues_active_mining():
 @pytest.mark.unit
 def test_bot_continues_mining_until_complete():
     """Bot continues mining for all remaining turns."""
-    bot = BrogueBot(verbose=False, mode='strategic')
+    bot = VeinbornBot(verbose=False, mode='strategic')
     game = Game()
     game.start_new_game(player_name='TestBot')
 
@@ -83,7 +83,7 @@ def test_bot_continues_mining_until_complete():
 @pytest.mark.unit
 def test_bot_no_mining_when_not_in_progress():
     """Bot doesn't mine when no mining_action state exists."""
-    bot = BrogueBot(verbose=False, mode='strategic')
+    bot = VeinbornBot(verbose=False, mode='strategic')
     game = Game()
     game.start_new_game(player_name='TestBot')
 
@@ -98,7 +98,7 @@ def test_bot_no_mining_when_not_in_progress():
 @pytest.mark.unit
 def test_bot_prioritizes_mining_over_combat():
     """Mining in progress takes priority over combat."""
-    bot = BrogueBot(verbose=False, mode='strategic')
+    bot = VeinbornBot(verbose=False, mode='strategic')
     game = Game()
     game.start_new_game(player_name='TestBot')
 
@@ -134,7 +134,7 @@ def test_bot_prioritizes_mining_over_combat():
 @pytest.mark.unit
 def test_bot_prioritizes_mining_over_fleeing():
     """Mining in progress takes priority over fleeing to stairs."""
-    bot = BrogueBot(verbose=False, mode='strategic')
+    bot = VeinbornBot(verbose=False, mode='strategic')
     game = Game()
     game.start_new_game(player_name='TestBot')
 
@@ -160,7 +160,7 @@ def test_bot_prioritizes_mining_over_fleeing():
 def test_bot_stops_mining_when_complete():
     """Bot stops trying to mine when turns_remaining is 0."""
 
-    bot = BrogueBot(verbose=False, mode='strategic')
+    bot = VeinbornBot(verbose=False, mode='strategic')
     game = Game()
     game.start_new_game(player_name='TestBot')
 

@@ -1,7 +1,7 @@
 # Game Naming Analysis & Recommendations
 
 **Date:** 2025-11-17
-**Issue:** Name collision with existing "Brogue" roguelike
+**Issue:** Name collision with existing "Veinborn" roguelike
 **Goal:** Find a name that better reflects our game's unique identity
 
 ---
@@ -38,12 +38,12 @@
 
 ---
 
-## The Problem: Brogue Already Exists
+## The Problem: Veinborn Already Exists
 
-### About the Original Brogue (2009)
+### About the Original Veinborn (2009)
 
 **Creator:** Brian Walker
-**Status:** Active (maintained as "Brogue: Community Edition")
+**Status:** Active (maintained as "Veinborn: Community Edition")
 **Famous For:**
 - Direct descendant of Rogue (the 1980 game)
 - Elegant, minimalist design philosophy
@@ -52,13 +52,13 @@
 - Open source, widely played
 
 **The Origin Story:**
-Brian Walker was porting Rogue to Mac OS when his laptop was stolen. He started over from scratch, creating "Brian's Rogue" → Brogue. It's a total rewrite with no code from original Rogue.
+Brian Walker was porting Rogue to Mac OS when his laptop was stolen. He started over from scratch, creating "Brian's Rogue" → Veinborn. It's a total rewrite with no code from original Rogue.
 
 **Why This Matters:**
 - Established brand in roguelike community (15+ years)
 - Active player base and development
 - Strong SEO presence, Wikipedia page, active wiki
-- Using "Brogue" will cause confusion for both communities
+- Using "Veinborn" will cause confusion for both communities
 - PyPI package name collision inevitable
 
 ---
@@ -307,7 +307,7 @@ A good name should:
 
 ---
 
-### Tier 4: Play on "Brogue" Etymology
+### Tier 4: Play on "Veinborn" Etymology
 
 If you want to keep the "bro" vibe:
 
@@ -399,14 +399,14 @@ If you want to keep the "bro" vibe:
 3. **Update pyproject.toml**
    ```toml
    [project]
-   name = "veinborn"  # Change from "brogue"
+   name = "veinborn"  # Change from "veinborn"
    ```
 
 4. **Update all documentation**
    - README.md
    - All docs/ files
    - CHANGELOG.md
-   - Any mentions of "Brogue" → "Veinborn"
+   - Any mentions of "Veinborn" → "Veinborn"
 
 5. **Update entry points**
    ```toml
@@ -417,7 +417,7 @@ If you want to keep the "bro" vibe:
    ```
 
 6. **GitHub repo** (optional)
-   - Can stay "brogue" locally (URLs don't change)
+   - Can stay "veinborn" locally (URLs don't change)
    - Or rename to "veinborn" for consistency
 
 ### Timeline Recommendation
@@ -586,18 +586,18 @@ pip search <name>  # Or check https://pypi.org/project/<name>/
    - `pyproject.toml` (name field)
    - `README.md` (all references)
    - Documentation
-   - Git repo name (optional, can stay "brogue" locally)
+   - Git repo name (optional, can stay "veinborn" locally)
    - Reserve PyPI name ASAP
 
 ---
 
 ## References
 
-- Original Brogue: https://sites.google.com/site/broguegame/
-- Brogue CE: https://github.com/tmewett/BrogueCE
+- Original Veinborn: https://sites.google.com/site/veinborngame/
+- Veinborn CE: https://github.com/tmewett/VeinbornCE
 - SWG Mining: https://swg.fandom.com/wiki/Mining
-- Your design docs: `docs/BROGUE_CONSOLIDATED_DESIGN.md`, `docs/design/MULTIPLAYER_DESIGN_2025.md`
+- Your design docs: `docs/VEINBORN_CONSOLIDATED_DESIGN.md`, `docs/design/MULTIPLAYER_DESIGN_2025.md`
 
 ---
 
-**TL;DR:** You need to rename. "Brogue" is taken by a famous 2009 roguelike. I recommend **Veinborne** (unique, emphasizes ore vein system, epic feel) or **Delvers** (simple, multiplayer, covers mining + dungeon diving).
+**TL;DR:** You need to rename. "Veinborn" is taken by a famous 2009 roguelike. I recommend **Veinborne** (unique, emphasizes ore vein system, epic feel) or **Delvers** (simple, multiplayer, covers mining + dungeon diving).

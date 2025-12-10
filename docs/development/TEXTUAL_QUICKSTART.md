@@ -1,11 +1,11 @@
-# Brogue Textual UI - Quick Start
+# Veinborn Textual UI - Quick Start
 
 **Status:** ✅ Implementation Complete
 **Created:** 2025-10-14
 
 ## What We Built
 
-A fully functional Textual-based UI for Brogue with:
+A fully functional Textual-based UI for Veinborn with:
 - ✅ Map rendering widget with viewport centering
 - ✅ Status bar (HP, turn count, position)
 - ✅ Sidebar (player stats, monster list, controls)
@@ -21,7 +21,7 @@ A fully functional Textual-based UI for Brogue with:
 ### From a Regular Terminal:
 
 ```bash
-cd /home/scott/src/tia/projects/brogue
+cd /home/scott/src/tia/projects/veinborn
 python3 run_textual.py
 ```
 
@@ -35,7 +35,7 @@ python3 run_textual.py
 
 ```
 src/ui/textual/
-├── app.py              # Main BrogueApp (game loop, key bindings)
+├── app.py              # Main VeinbornApp (game loop, key bindings)
 ├── __init__.py         # Module exports
 ├── widgets/
 │   ├── __init__.py
@@ -44,7 +44,7 @@ src/ui/textual/
 │   ├── sidebar.py      # Right sidebar with stats
 │   └── message_log.py  # Bottom message log
 └── styles/
-    └── brogue.tcss     # CSS styling (currently disabled)
+    └── veinborn.tcss     # CSS styling (currently disabled)
 ```
 
 ## Features

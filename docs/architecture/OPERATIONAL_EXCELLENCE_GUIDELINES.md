@@ -1,4 +1,4 @@
-# Brogue Operational Excellence Guidelines
+# Veinborn Operational Excellence Guidelines
 
 **Document Type:** Coding Standards & Best Practices
 **Audience:** All Developers
@@ -9,7 +9,7 @@
 
 ## Overview
 
-This document defines operational excellence standards for Brogue, covering practices that ensure:
+This document defines operational excellence standards for Veinborn, covering practices that ensure:
 - **Maintainability**: Code that's easy to read, understand, and modify
 - **Reliability**: Systems that fail gracefully and recover automatically
 - **Observability**: Deep visibility into system behavior
@@ -90,7 +90,7 @@ Detects:
 - Missing dependencies
 - Security risks in imports
 
-#### Current Brogue Code Quality
+#### Current Veinborn Code Quality
 
 **Complexity scan results** (as of 2025-10-25):
 
@@ -613,13 +613,13 @@ with log_performance(logger, "dungeon_generation", width=80, height=24):
 
 ```python
 # src/core/exceptions.py
-class BrogueError(Exception):
-    """Base exception for all Brogue errors."""
+class VeinbornError(Exception):
+    """Base exception for all Veinborn errors."""
     pass
 
 
 # Game logic errors (recoverable)
-class GameError(BrogueError):
+class GameError(VeinbornError):
     """Error in game logic."""
     pass
 
@@ -633,7 +633,7 @@ class InvalidStateError(GameError):
 
 
 # Data errors
-class DataError(BrogueError):
+class DataError(VeinbornError):
     """Error loading/validating data."""
     pass
 
@@ -643,7 +643,7 @@ class ContentValidationError(DataError):
 
 
 # System errors (usually not recoverable)
-class SystemError(BrogueError):
+class SystemError(VeinbornError):
     """System-level error."""
     pass
 
@@ -705,7 +705,7 @@ def bad_error_handling(self, monster_id: str):
 ### Custom Exception Data
 
 ```python
-class BrogueError(Exception):
+class VeinbornError(Exception):
     """Base exception with structured data."""
 
     def __init__(self, message: str, **context):
@@ -908,7 +908,7 @@ class GameConfig:
 
     # Logging
     log_level: str = "INFO"
-    log_file: str = "brogue.log"
+    log_file: str = "veinborn.log"
 
     # Performance
     target_fps: int = 60
@@ -940,9 +940,9 @@ class GameConfig:
     def from_env(cls) -> 'GameConfig':
         """Load configuration from environment variables."""
         return cls(
-            environment=os.getenv('BROGUE_ENV', 'development'),
-            log_level=os.getenv('BROGUE_LOG_LEVEL', 'INFO'),
-            hot_reload_enabled=os.getenv('BROGUE_HOT_RELOAD', 'true') == 'true',
+            environment=os.getenv('VEINBORN_ENV', 'development'),
+            log_level=os.getenv('VEINBORN_LOG_LEVEL', 'INFO'),
+            hot_reload_enabled=os.getenv('VEINBORN_HOT_RELOAD', 'true') == 'true',
         )
 
 
@@ -964,12 +964,12 @@ target_fps: 60
 
 ```python
 # Load config based on environment
-config_file = Path(f"config.{os.getenv('BROGUE_ENV', 'development')}.yaml")
+config_file = Path(f"config.{os.getenv('VEINBORN_ENV', 'development')}.yaml")
 config = GameConfig.load(config_file)
 
 # Override with environment variables
-if os.getenv('BROGUE_LOG_LEVEL'):
-    config.log_level = os.getenv('BROGUE_LOG_LEVEL')
+if os.getenv('VEINBORN_LOG_LEVEL'):
+    config.log_level = os.getenv('VEINBORN_LOG_LEVEL')
 
 # Use config
 logger.setLevel(config.log_level)

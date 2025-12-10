@@ -1,6 +1,6 @@
 -- scripts/events/achievements.lua
 --[[
-Achievement System for Brogue
+Achievement System for Veinborn
 
 This event handler tracks player achievements across multiple event types.
 Achievements are tracked in-session (state is lost on game restart).
@@ -61,7 +61,7 @@ local function unlock_achievement(achievement_id)
     local ach = achievements[achievement_id]
     if ach and not ach.unlocked then
         ach.unlocked = true
-        brogue.add_message(string.format(
+        veinborn.add_message(string.format(
             "Achievement Unlocked: %s - %s",
             ach.name,
             ach.desc
@@ -89,7 +89,7 @@ function on_entity_died(event)
 
     -- Show milestone messages
     if stats.player_kills % 50 == 0 then
-        brogue.add_message(string.format("Total kills: %d", stats.player_kills))
+        veinborn.add_message(string.format("Total kills: %d", stats.player_kills))
     end
 end
 
@@ -110,7 +110,7 @@ function on_floor_changed(event)
 
         -- Show milestone messages
         if stats.deepest_floor % 5 == 0 then
-            brogue.add_message(string.format("Deepest floor: %d", stats.deepest_floor))
+            veinborn.add_message(string.format("Deepest floor: %d", stats.deepest_floor))
         end
     end
 end
@@ -128,7 +128,7 @@ function on_item_crafted(event)
 
     -- Show milestone messages
     if stats.items_crafted % 25 == 0 then
-        brogue.add_message(string.format("Items crafted: %d", stats.items_crafted))
+        veinborn.add_message(string.format("Items crafted: %d", stats.items_crafted))
     end
 end
 
@@ -145,7 +145,7 @@ function on_turn_ended(event)
 
     -- Show progress every 500 turns
     if stats.turns_survived % 500 == 0 and stats.turns_survived > 0 then
-        brogue.add_message(string.format("Turns survived: %d", stats.turns_survived))
+        veinborn.add_message(string.format("Turns survived: %d", stats.turns_survived))
     end
 end
 

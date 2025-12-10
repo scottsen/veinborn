@@ -1,4 +1,4 @@
-# Brogue Mechanics Reference
+# Veinborn Mechanics Reference
 
 **Last Updated:** 2025-11-05
 **For:** Balance tuning, playtesting, and understanding exact game mechanics
@@ -638,7 +638,7 @@ Answer: Yes, significant upgrade!
 
 ### Overview
 
-The Legacy Vault is Brogue's meta-progression system that preserves high-quality ore (purity 80+) across runs, allowing players to withdraw 1 ore at the start of a new run.
+The Legacy Vault is Veinborn's meta-progression system that preserves high-quality ore (purity 80+) across runs, allowing players to withdraw 1 ore at the start of a new run.
 
 **Design Philosophy:**
 - Pure Victory: No vault ore used (higher prestige, challenge)
@@ -650,7 +650,7 @@ The Legacy Vault is Brogue's meta-progression system that preserves high-quality
 **On Death:**
 - All ore with purity ≥ 80 is saved to Legacy Vault
 - Max capacity: 50 ores
-- Stored in `~/.brogue/legacy_vault.json`
+- Stored in `~/.veinborn/legacy_vault.json`
 - FIFO removal when vault is full (oldest ore removed)
 
 **On Run Start:**

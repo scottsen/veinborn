@@ -2,11 +2,11 @@
 
 **Status:** Architectural Decision
 **Date:** 2025-10-14
-**Decision:** Textual is the standard UI framework for Brogue
+**Decision:** Textual is the standard UI framework for Veinborn
 
 ## Executive Summary
 
-**Textual** is the chosen UI framework for Brogue, replacing the initial Blessed implementation. This decision prioritizes cross-platform compatibility, modern development experience, and scalability for complex UI features.
+**Textual** is the chosen UI framework for Veinborn, replacing the initial Blessed implementation. This decision prioritizes cross-platform compatibility, modern development experience, and scalability for complex UI features.
 
 ## Why Textual?
 
@@ -28,7 +28,7 @@
 - **Active development**: Regular updates (2024+)
 - **Built-in debugging**: DevTools for UI inspection
 
-### Feature Alignment with Brogue
+### Feature Alignment with Veinborn
 - **Complex UI needs**: Memory system UI, weapon evolution displays, crafting interfaces
 - **Modal dialogs**: Inventory, character sheets, help screens
 - **Animations**: Smooth transitions for combat and effects
@@ -116,7 +116,7 @@ textual-dev>=1.0.0  # Development tools
 - Unicode support (UTF-8)
 - Minimum 80x24 characters (same as current)
 
-## Benefits for Brogue Specifically
+## Benefits for Veinborn Specifically
 
 ### Immediate Wins
 1. **Windows Players**: No longer need Windows Terminal or WSL
@@ -161,7 +161,7 @@ This decision was made to ensure:
 1. **Maximum player reach** across all platforms
 2. **Sustainable development** with modern tooling
 3. **Scalable UI** for complex game features
-4. **Professional quality** that matches Brogue's vision
+4. **Professional quality** that matches Veinborn's vision
 
 The extra complexity of async/await is offset by:
 - Better abstraction of terminal differences
@@ -179,4 +179,4 @@ The extra complexity of async/await is offset by:
 
 ---
 
-**This is the way for Brogue UI development going forward.**
+**This is the way for Veinborn UI development going forward.**

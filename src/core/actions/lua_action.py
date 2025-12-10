@@ -28,12 +28,12 @@ class LuaAction(Action):
 
     Example Lua script:
         function validate(actor_id, params)
-            local player = brogue.get_player()
+            local player = veinborn.get_player()
             return player.hp > 0
         end
 
         function execute(actor_id, params)
-            brogue.add_message("Lua action executed!")
+            veinborn.add_message("Lua action executed!")
             return {
                 success = true,
                 took_turn = true,

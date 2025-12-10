@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """
-Brogue Multiplayer Client with Chat
+Veinborn Multiplayer Client with Chat
 
-Launch a multiplayer Brogue client that connects to a game server
+Launch a multiplayer Veinborn client that connects to a game server
 and supports chat functionality.
 """
 import sys
@@ -14,7 +14,7 @@ from pathlib import Path
 src_path = Path(__file__).parent / "src"
 sys.path.insert(0, str(src_path))
 
-from ui.textual.app import BrogueApp
+from ui.textual.app import VeinbornApp
 from ui.multiplayer_client import MultiplayerClient
 from ui.textual.game_init import setup_logging
 
@@ -22,7 +22,7 @@ from ui.textual.game_init import setup_logging
 def parse_arguments():
     """Parse command-line arguments."""
     parser = argparse.ArgumentParser(
-        description="Brogue Multiplayer Client with Chat",
+        description="Veinborn Multiplayer Client with Chat",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
@@ -137,7 +137,7 @@ async def connect_to_server(args):
 
 
 def main():
-    """Main entry point for multiplayer Brogue."""
+    """Main entry point for multiplayer Veinborn."""
     args = parse_arguments()
 
     # Setup logging
@@ -146,7 +146,7 @@ def main():
 
     # Display welcome banner
     print("╔" + "=" * 66 + "╗")
-    print("║" + " " * 15 + "BROGUE MULTIPLAYER (with Chat)" + " " * 20 + "║")
+    print("║" + " " * 15 + "VEINBORN MULTIPLAYER (with Chat)" + " " * 20 + "║")
     print("╚" + "=" * 66 + "╝")
     print()
 
@@ -162,7 +162,7 @@ def main():
         print("Press 'Q' to quit\n")
 
         # Create and run the app with multiplayer client
-        app = BrogueApp(
+        app = VeinbornApp(
             player_name=args.name,
             character_class=None,  # Will be set by server
             multiplayer_client=client

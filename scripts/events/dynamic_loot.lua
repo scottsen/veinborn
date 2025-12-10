@@ -1,6 +1,6 @@
 -- scripts/events/dynamic_loot.lua
 --[[
-Dynamic Loot System for Brogue
+Dynamic Loot System for Veinborn
 
 This event handler modifies loot drops based on various factors:
 - Floor depth (deeper floors = better loot)
@@ -94,14 +94,14 @@ function on_entity_died(event)
     if loot_state.kill_streak >= loot_config.kill_streak_bonus_threshold then
         loot_state.total_bonus_drops = loot_state.total_bonus_drops + 1
 
-        brogue.add_message(string.format(
+        veinborn.add_message(string.format(
             "Kill Streak x%d! Bonus loot!",
             loot_state.kill_streak
         ))
 
         -- Reset streak after bonus (or continue for mega-streaks)
         if loot_state.kill_streak >= 10 then
-            brogue.add_message("MEGA STREAK! Epic loot drop!")
+            veinborn.add_message("MEGA STREAK! Epic loot drop!")
         end
     end
 
@@ -111,7 +111,7 @@ function on_entity_died(event)
             loot_state.total_rare_drops = loot_state.total_rare_drops + 1
 
             local tier = get_floor_bonus(loot_state.current_floor)
-            brogue.add_message(string.format(
+            veinborn.add_message(string.format(
                 "You found a %s item from %s!",
                 tier,
                 entity_name
@@ -122,7 +122,7 @@ function on_entity_died(event)
     -- Floor-specific loot messages
     if loot_state.current_floor >= 20 then
         if loot_state.kill_streak % 5 == 0 then
-            brogue.add_message("The loot quality improves in the depths...")
+            veinborn.add_message("The loot quality improves in the depths...")
         end
     end
 end
@@ -139,7 +139,7 @@ function on_floor_changed(event)
     -- Display loot tier message
     local tier = get_floor_bonus(to_floor)
     if to_floor >= loot_config.rare_drop_floor_threshold then
-        brogue.add_message(string.format(
+        veinborn.add_message(string.format(
             "Floor %d: %s loot tier unlocked",
             to_floor,
             tier
@@ -154,14 +154,14 @@ function on_turn_ended(event)
     -- Check if streak expired
     if loot_state.kill_streak > 0 and not is_streak_active(current_turn) then
         if loot_state.kill_streak >= loot_config.kill_streak_bonus_threshold then
-            brogue.add_message("Kill streak ended.")
+            veinborn.add_message("Kill streak ended.")
         end
         loot_state.kill_streak = 0
     end
 
     -- Show loot stats every 100 turns
     if current_turn % 100 == 0 and current_turn > 0 then
-        brogue.add_message(string.format(
+        veinborn.add_message(string.format(
             "Loot stats: %d rare drops, %d bonus drops",
             loot_state.total_rare_drops,
             loot_state.total_bonus_drops

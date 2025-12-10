@@ -1,1 +1,1 @@
-# Brogue Core Module
+# Veinborn Core Module

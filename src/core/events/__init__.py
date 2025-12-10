@@ -1,4 +1,4 @@
-"""Event system for Brogue."""
+"""Event system for Veinborn."""
 
 from .events import (
     GameEventType,

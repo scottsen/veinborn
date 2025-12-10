@@ -1,4 +1,4 @@
-"""Custom Textual widgets for Brogue."""
+"""Custom Textual widgets for Veinborn."""
 from .map_widget import MapWidget
 from .status_bar import StatusBar
 from .sidebar import Sidebar

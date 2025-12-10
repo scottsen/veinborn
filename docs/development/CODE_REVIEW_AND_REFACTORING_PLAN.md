@@ -1,4 +1,4 @@
-# Brogue Code Review & Refactoring Plan
+# Veinborn Code Review & Refactoring Plan
 
 **Date**: 2025-10-25
 **Session**: spark-storm-1025
@@ -9,7 +9,7 @@
 
 ## Executive Summary
 
-The Brogue codebase demonstrates **solid architectural foundations** with clean separation of concerns, proper use of design patterns, and good type safety. However, there are significant opportunities to improve **modularity**, **maintainability**, and **extensibility** through targeted refactoring.
+The Veinborn codebase demonstrates **solid architectural foundations** with clean separation of concerns, proper use of design patterns, and good type safety. However, there are significant opportunities to improve **modularity**, **maintainability**, and **extensibility** through targeted refactoring.
 
 **Overall Assessment**: 7/10
 - Strengths: Clean architecture, Action pattern, Entity system, type hints
@@ -413,19 +413,19 @@ if not context.is_walkable(new_x, new_y):
 # src/core/exceptions.py
 """Game-specific exceptions"""
 
-class BrogueException(Exception):
+class VeinbornException(Exception):
     """Base exception for all game errors"""
     pass
 
-class InventoryFullError(BrogueException):
+class InventoryFullError(VeinbornException):
     """Raised when inventory is full"""
     pass
 
-class InvalidActionError(BrogueException):
+class InvalidActionError(VeinbornException):
     """Raised when action cannot be executed"""
     pass
 
-class EntityNotFoundError(BrogueException):
+class EntityNotFoundError(VeinbornException):
     """Raised when entity lookup fails"""
     pass
 ```
@@ -720,7 +720,7 @@ def test_floor_2_difficulty():
 
 ## Conclusion
 
-The Brogue codebase has **strong foundations** but suffers from common early-stage issues:
+The Veinborn codebase has **strong foundations** but suffers from common early-stage issues:
 - Configuration hell (hardcoded values)
 - God class anti-pattern (Game doing too much)
 - Factory sprawl (content in code)

@@ -1,4 +1,4 @@
-# Brogue Data Files Guide
+# Veinborn Data Files Guide
 
 **Last Updated:** 2025-11-05
 **For:** Content creators, designers, and modders
@@ -7,7 +7,7 @@
 
 ## Overview
 
-Brogue uses **YAML files** for all game content, making it easy to add monsters, recipes, and balance the game **without touching code**.
+Veinborn uses **YAML files** for all game content, making it easy to add monsters, recipes, and balance the game **without touching code**.
 
 This guide explains every data file, its schema, and how to modify it safely.
 

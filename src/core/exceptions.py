@@ -1,7 +1,7 @@
 """
-Brogue exception hierarchy.
+Veinborn exception hierarchy.
 
-This module defines all custom exceptions used throughout the Brogue codebase,
+This module defines all custom exceptions used throughout the Veinborn codebase,
 following a structured hierarchy for better error handling and logging.
 
 See Also:
@@ -11,10 +11,10 @@ See Also:
 from typing import Any, Dict
 
 
-class BrogueError(Exception):
-    """Base exception for all Brogue errors with structured data support.
+class VeinbornError(Exception):
+    """Base exception for all Veinborn errors with structured data support.
 
-    All Brogue exceptions inherit from this base class and support
+    All Veinborn exceptions inherit from this base class and support
     structured context data for better logging and debugging.
 
     Args:
@@ -63,7 +63,7 @@ class BrogueError(Exception):
 # =============================================================================
 
 
-class GameError(BrogueError):
+class GameError(VeinbornError):
     """Error in game logic (usually recoverable).
 
     These errors represent invalid game states or actions that can typically
@@ -110,7 +110,7 @@ class InvalidStateError(GameError):
 # =============================================================================
 
 
-class DataError(BrogueError):
+class DataError(VeinbornError):
     """Error loading or validating data.
 
     These errors occur during data loading, parsing, or validation
@@ -140,17 +140,17 @@ class ContentValidationError(DataError):
 # =============================================================================
 
 
-class BrogueSystemError(BrogueError):
+class VeinbornSystemError(VeinbornError):
     """System-level error (usually not recoverable).
 
-    Note: Named BrogueSystemError to avoid conflict with Python's built-in
+    Note: Named VeinbornSystemError to avoid conflict with Python's built-in
     SystemError. These errors represent system-level failures (I/O errors,
     network failures, resource exhaustion).
     """
     pass
 
 
-class SaveLoadError(BrogueSystemError):
+class SaveLoadError(VeinbornSystemError):
     """Failed to save or load game state.
 
     Raised when save/load operations fail due to I/O errors, permissions,
@@ -166,7 +166,7 @@ class SaveLoadError(BrogueSystemError):
     pass
 
 
-class NetworkError(BrogueSystemError):
+class NetworkError(VeinbornSystemError):
     """Network communication failed.
 
     Raised when network operations fail (e.g., multiplayer communication,
@@ -175,7 +175,7 @@ class NetworkError(BrogueSystemError):
     Example:
         >>> raise NetworkError(
         ...     "Failed to sync leaderboard",
-        ...     endpoint="https://api.brogue.com/leaderboard",
+        ...     endpoint="https://api.veinborn.com/leaderboard",
         ...     status_code=503
         ... )
     """
@@ -187,13 +187,13 @@ class NetworkError(BrogueSystemError):
 # =============================================================================
 
 __all__ = [
-    'BrogueError',
+    'VeinbornError',
     'GameError',
     'InvalidActionError',
     'InvalidStateError',
     'DataError',
     'ContentValidationError',
-    'BrogueSystemError',
+    'VeinbornSystemError',
     'SaveLoadError',
     'NetworkError',
 ]

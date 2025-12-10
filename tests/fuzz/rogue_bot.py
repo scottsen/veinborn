@@ -37,11 +37,11 @@ sys.path.insert(0, str(tests_path))
 
 from core.game import Game
 from core.character_class import CharacterClass
-from veinborn_bot import BrogueBot, BotStats, main
+from veinborn_bot import VeinbornBot, BotStats, main
 from fuzz.services.tactical_decision_service import CombatConfig, MiningConfig
 
 
-class RogueBot(BrogueBot):
+class RogueBot(VeinbornBot):
     """Tactical Rogue-class bot - Shadowstep the Swift."""
 
     def __init__(self, verbose: bool = False):

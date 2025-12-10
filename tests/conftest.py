@@ -1,4 +1,4 @@
-"""Shared test fixtures for Brogue testing.
+"""Shared test fixtures for Veinborn testing.
 
 This module provides reusable test fixtures that make writing tests easy.
 All fixtures follow the patterns from docs/architecture/MVP_TESTING_GUIDE.md

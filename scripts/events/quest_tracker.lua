@@ -1,6 +1,6 @@
 -- scripts/events/quest_tracker.lua
 --[[
-Quest Tracking System for Brogue
+Quest Tracking System for Veinborn
 
 This event handler demonstrates how to track quest progress using
 multiple event types and maintain quest state.
@@ -65,18 +65,18 @@ local function complete_quest(quest_id)
     quest.active = false
 
     -- Display completion message
-    brogue.add_message("====================")
-    brogue.add_message(string.format("Quest Complete: %s", quest.name))
-    brogue.add_message(quest.reward_message)
+    veinborn.add_message("====================")
+    veinborn.add_message(string.format("Quest Complete: %s", quest.name))
+    veinborn.add_message(quest.reward_message)
 
     -- Award gold reward
     if quest.reward_gold > 0 then
-        brogue.add_message(string.format("Reward: +%d gold", quest.reward_gold))
-        -- Note: Would need brogue.modify_stat("player_1", "gold", quest.reward_gold)
+        veinborn.add_message(string.format("Reward: +%d gold", quest.reward_gold))
+        -- Note: Would need veinborn.modify_stat("player_1", "gold", quest.reward_gold)
         -- if gold stat exists
     end
 
-    brogue.add_message("====================")
+    veinborn.add_message("====================")
 
     return true
 end
@@ -93,7 +93,7 @@ local function update_quest_progress(quest_id, entity_name, target_name)
         quest.progress = quest.progress + 1
 
         -- Display progress update
-        brogue.add_message(string.format(
+        veinborn.add_message(string.format(
             "Quest: %s [%d/%d]",
             quest.name,
             quest.progress,
@@ -130,8 +130,8 @@ function on_game_started(event)
     -- Activate starting quest
     quests.goblin_slayer.active = true
 
-    brogue.add_message("New Quest: " .. quests.goblin_slayer.name)
-    brogue.add_message(quests.goblin_slayer.description)
+    veinborn.add_message("New Quest: " .. quests.goblin_slayer.name)
+    veinborn.add_message(quests.goblin_slayer.description)
 end
 
 -- Helper function to get quest status (for debugging)
@@ -160,8 +160,8 @@ function activate_quest(quest_id)
     end
 
     quest.active = true
-    brogue.add_message("New Quest: " .. quest.name)
-    brogue.add_message(quest.description)
+    veinborn.add_message("New Quest: " .. quest.name)
+    veinborn.add_message(quest.description)
 
     return true
 end

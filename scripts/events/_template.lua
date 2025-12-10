@@ -2,7 +2,7 @@
 --[[
 Lua Event Handler Template
 
-This template shows how to create event handlers for Brogue.
+This template shows how to create event handlers for Veinborn.
 
 Event handlers react to game events like entity deaths, item crafting,
 floor changes, etc. They enable achievements, quests, dynamic systems,
@@ -43,14 +43,14 @@ function on_entity_died(event)
 
     if event.data.killer_id == "player_1" then
         state.kills = state.kills + 1
-        brogue.add_message("Kills: " .. state.kills)
+        veinborn.add_message("Kills: " .. state.kills)
     end
 end
 
 -- Handler for item_crafted events
 function on_item_crafted(event)
     state.items_crafted = state.items_crafted + 1
-    brogue.add_message("Items crafted: " .. state.items_crafted)
+    veinborn.add_message("Items crafted: " .. state.items_crafted)
 end
 
 -- Error handling example
@@ -58,12 +58,12 @@ function on_error_prone_event(event)
     -- Wrap risky code in pcall
     local success, err = pcall(function()
         -- Your code here
-        local entity = brogue.get_entity(event.data.entity_id)
+        local entity = veinborn.get_entity(event.data.entity_id)
         -- ...
     end)
 
     if not success then
-        brogue.add_message("Error in event handler: " .. err)
+        veinborn.add_message("Error in event handler: " .. err)
     end
 end
 
@@ -86,7 +86,7 @@ function on_turn_ended(event)
     -- Report stats every 100 turns
     if event.turn % 100 == 0 then
         local net = damage_stats.total_damage - damage_stats.total_healing
-        brogue.add_message(string.format(
+        veinborn.add_message(string.format(
             "Stats: %d damage, %d healing, %d net",
             damage_stats.total_damage,
             damage_stats.total_healing,

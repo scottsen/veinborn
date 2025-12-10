@@ -840,8 +840,8 @@ class ItemSystem:
 - **Not important** → Skip Lua entirely
 
 ### 5. Are you building a platform or a game?
-- **Platform** (Brogue is foundation for many games) → Lua essential
-- **Game** (Brogue is one specific game) → Lua optional
+- **Platform** (Veinborn is foundation for many games) → Lua essential
+- **Game** (Veinborn is one specific game) → Lua optional
 
 ---
 

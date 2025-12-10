@@ -1,4 +1,4 @@
-# Brogue Content Creation Guide
+# Veinborn Content Creation Guide
 
 **Last Updated:** 2025-11-05
 **For:** Designers and content creators adding monsters, recipes, and content

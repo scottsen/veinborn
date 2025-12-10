@@ -41,10 +41,10 @@ This test suite provides comprehensive coverage for the Phase 3 Lua Event System
    - Handler retrieval
 
 4. **tests/unit/test_game_context_api_events.py** (10 tests)
-   - brogue.event.subscribe()
-   - brogue.event.unsubscribe()
-   - brogue.event.get_types()
-   - brogue.event.emit()
+   - veinborn.event.subscribe()
+   - veinborn.event.unsubscribe()
+   - veinborn.event.get_types()
+   - veinborn.event.emit()
    - Invalid event type handling
    - API integration workflow
 

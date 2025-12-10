@@ -10,7 +10,7 @@ from pathlib import Path
 src_path = Path(__file__).parent / "src"
 sys.path.insert(0, str(src_path))
 
-print("Testing Brogue components...")
+print("Testing Veinborn components...")
 print("="*60)
 
 try:

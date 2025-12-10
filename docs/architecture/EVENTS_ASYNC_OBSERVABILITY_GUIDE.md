@@ -198,7 +198,7 @@ class Game:
 from textual.app import App
 from textual.reactive import reactive
 
-class BrogueApp(App):
+class VeinbornApp(App):
     """Textual app - async required."""
 
     # Reactive state (updates UI automatically)
@@ -267,7 +267,7 @@ class CombatSystem:
 
 
 # UI layer - ASYNCHRONOUS
-class BrogueApp(App):
+class VeinbornApp(App):
     async def action_attack(self, target_id: str) -> None:
         """UI action handler - async."""
         # Call sync game logic
@@ -304,7 +304,7 @@ class GamePersistence:
 
 
 # Usage in app
-class BrogueApp(App):
+class VeinbornApp(App):
     async def action_save(self) -> None:
         """Save game action."""
         await self.persistence.save_game(self.game, Path("save.json"))
@@ -315,7 +315,7 @@ class BrogueApp(App):
 
 ```python
 # ❌ BAD - Blocks UI for 2 seconds!
-class BrogueApp(App):
+class VeinbornApp(App):
     async def action_generate_dungeon(self) -> None:
         """Generate new dungeon."""
         # This blocks the event loop!
@@ -327,7 +327,7 @@ class BrogueApp(App):
 import asyncio
 from concurrent.futures import ThreadPoolExecutor
 
-class BrogueApp(App):
+class VeinbornApp(App):
     def __init__(self):
         super().__init__()
         self.executor = ThreadPoolExecutor(max_workers=1)
@@ -356,7 +356,7 @@ class BrogueApp(App):
 ```python
 from textual.reactive import reactive
 
-class BrogueApp(App):
+class VeinbornApp(App):
     # Reactive properties trigger re-render when changed
     player_hp: reactive[int] = reactive(10)
     player_max_hp: reactive[int] = reactive(10)
@@ -416,7 +416,7 @@ import logging
 from dataclasses import dataclass, asdict
 from typing import Dict, Any
 
-logger = logging.getLogger('brogue.telemetry')
+logger = logging.getLogger('veinborn.telemetry')
 
 
 @dataclass
@@ -720,7 +720,7 @@ def analyze_player_deaths(log_file: Path):
 
 
 # Run analysis
-analyze_player_deaths(Path("brogue.log"))
+analyze_player_deaths(Path("veinborn.log"))
 ```
 
 ---

@@ -381,7 +381,7 @@ class Forge(Entity):
     Forge for crafting equipment from ore.
 
     Represents the crafting station where players turn mined ore into gear.
-    Core part of Brogue's unique hook: mining → crafting → equipment.
+    Core part of Veinborn's unique hook: mining → crafting → equipment.
 
     Forge Types:
     - basic_forge: Can craft copper items (floors 1-3)

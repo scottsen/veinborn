@@ -2,10 +2,10 @@
 Unit tests for GameContextAPI event methods.
 
 Tests cover:
-- brogue.event.subscribe() from Lua
-- brogue.event.unsubscribe()
-- brogue.event.get_types()
-- brogue.event.emit() for testing
+- veinborn.event.subscribe() from Lua
+- veinborn.event.unsubscribe()
+- veinborn.event.get_types()
+- veinborn.event.emit() for testing
 - Invalid event type handling
 """
 
@@ -72,7 +72,7 @@ def temp_script_dir(tmp_path):
 
 
 class TestEventSubscribe:
-    """Test brogue.event.subscribe() functionality."""
+    """Test veinborn.event.subscribe() functionality."""
 
     def test_subscribe_from_lua(self, api, lua_runtime, temp_script_dir):
         """Test subscribing to event from Lua."""
@@ -85,7 +85,7 @@ end
 
         # Call subscribe from Lua
         result = lua_runtime.execute_script(f"""
-            return brogue.event.subscribe("entity_died", "{script_file}")
+            return veinborn.event.subscribe("entity_died", "{script_file}")
         """)
 
         assert result is True
@@ -101,7 +101,7 @@ end
 
         # Call subscribe with explicit handler name
         result = lua_runtime.execute_script(f"""
-            return brogue.event.subscribe("entity_died", "{script_file}", "custom_handler_name")
+            return veinborn.event.subscribe("entity_died", "{script_file}", "custom_handler_name")
         """)
 
         assert result is True
@@ -117,7 +117,7 @@ end
 
         # Call subscribe with invalid event type
         result = lua_runtime.execute_script(f"""
-            return brogue.event.subscribe("invalid_event_type", "{script_file}")
+            return veinborn.event.subscribe("invalid_event_type", "{script_file}")
         """)
 
         assert result is False
@@ -128,14 +128,14 @@ end
         # Don't set event_bus or registry
 
         result = lua_runtime.execute_script("""
-            return brogue.event.subscribe("entity_died", "test.lua")
+            return veinborn.event.subscribe("entity_died", "test.lua")
         """)
 
         assert result is False
 
 
 class TestEventUnsubscribe:
-    """Test brogue.event.unsubscribe() functionality."""
+    """Test veinborn.event.unsubscribe() functionality."""
 
     def test_unsubscribe_from_lua(self, api, lua_runtime, temp_script_dir):
         """Test unsubscribing from event from Lua."""
@@ -148,12 +148,12 @@ end
 
         # Subscribe first
         lua_runtime.execute_script(f"""
-            brogue.event.subscribe("entity_died", "{script_file}")
+            veinborn.event.subscribe("entity_died", "{script_file}")
         """)
 
         # Unsubscribe
         result = lua_runtime.execute_script(f"""
-            return brogue.event.unsubscribe("entity_died", "{script_file}")
+            return veinborn.event.unsubscribe("entity_died", "{script_file}")
         """)
 
         assert result is True
@@ -161,7 +161,7 @@ end
     def test_unsubscribe_invalid_event_type(self, api, lua_runtime):
         """Test unsubscribing from invalid event type."""
         result = lua_runtime.execute_script("""
-            return brogue.event.unsubscribe("invalid_event_type", "test.lua")
+            return veinborn.event.unsubscribe("invalid_event_type", "test.lua")
         """)
 
         assert result is False
@@ -169,19 +169,19 @@ end
     def test_unsubscribe_nonexistent_handler(self, api, lua_runtime):
         """Test unsubscribing handler that isn't subscribed."""
         result = lua_runtime.execute_script("""
-            return brogue.event.unsubscribe("entity_died", "nonexistent.lua")
+            return veinborn.event.unsubscribe("entity_died", "nonexistent.lua")
         """)
 
         assert result is False
 
 
 class TestEventGetTypes:
-    """Test brogue.event.get_types() functionality."""
+    """Test veinborn.event.get_types() functionality."""
 
     def test_get_types_from_lua(self, api, lua_runtime):
         """Test getting event types from Lua."""
         result = lua_runtime.execute_script("""
-            local types = brogue.event.get_types()
+            local types = veinborn.event.get_types()
             return #types > 0
         """)
 
@@ -190,7 +190,7 @@ class TestEventGetTypes:
     def test_get_types_contains_known_types(self, api, lua_runtime):
         """Test that get_types() includes known event types."""
         result = lua_runtime.execute_script("""
-            local types = brogue.event.get_types()
+            local types = veinborn.event.get_types()
             local found = false
 
             for i = 1, #types do
@@ -212,7 +212,7 @@ class TestEventGetTypes:
 
         # Get count from Lua
         result = lua_runtime.execute_script("""
-            local types = brogue.event.get_types()
+            local types = veinborn.event.get_types()
             return #types
         """)
 
@@ -220,7 +220,7 @@ class TestEventGetTypes:
 
 
 class TestEventEmit:
-    """Test brogue.event.emit() functionality."""
+    """Test veinborn.event.emit() functionality."""
 
     def test_emit_from_lua(self, api, lua_runtime, temp_script_dir):
         """Test manually emitting event from Lua."""
@@ -235,12 +235,12 @@ end
 
         # Subscribe handler
         lua_runtime.execute_script(f"""
-            brogue.event.subscribe("entity_died", "{script_file}")
+            veinborn.event.subscribe("entity_died", "{script_file}")
         """)
 
         # Emit event
         result = lua_runtime.execute_script("""
-            return brogue.event.emit("entity_died", {entity_id = "test_goblin"})
+            return veinborn.event.emit("entity_died", {entity_id = "test_goblin"})
         """)
 
         assert result is True
@@ -253,7 +253,7 @@ end
     def test_emit_invalid_event_type(self, api, lua_runtime):
         """Test emitting invalid event type."""
         result = lua_runtime.execute_script("""
-            return brogue.event.emit("invalid_event_type", {})
+            return veinborn.event.emit("invalid_event_type", {})
         """)
 
         assert result is False
@@ -271,12 +271,12 @@ end
 
         # Subscribe handler
         lua_runtime.execute_script(f"""
-            brogue.event.subscribe("item_crafted", "{script_file}")
+            veinborn.event.subscribe("item_crafted", "{script_file}")
         """)
 
         # Emit event with complex data
         lua_runtime.execute_script("""
-            brogue.event.emit("item_crafted", {
+            veinborn.event.emit("item_crafted", {
                 item_id = "sword_1",
                 stats = {
                     attack = 10,
@@ -297,7 +297,7 @@ end
         # Don't set event_bus
 
         result = lua_runtime.execute_script("""
-            return brogue.event.emit("entity_died", {entity_id = "test"})
+            return veinborn.event.emit("entity_died", {entity_id = "test"})
         """)
 
         assert result is False
@@ -321,13 +321,13 @@ end
 
         # Subscribe
         subscribe_result = lua_runtime.execute_script(f"""
-            return brogue.event.subscribe("entity_died", "{script_file}")
+            return veinborn.event.subscribe("entity_died", "{script_file}")
         """)
         assert subscribe_result is True
 
         # Emit event - handler should be called
         lua_runtime.execute_script("""
-            brogue.event.emit("entity_died", {entity_id = "test"})
+            veinborn.event.emit("entity_died", {entity_id = "test"})
         """)
 
         call_count_1 = lua_runtime.get_global("call_count")
@@ -335,13 +335,13 @@ end
 
         # Unsubscribe
         unsubscribe_result = lua_runtime.execute_script(f"""
-            return brogue.event.unsubscribe("entity_died", "{script_file}")
+            return veinborn.event.unsubscribe("entity_died", "{script_file}")
         """)
         assert unsubscribe_result is True
 
         # Emit again - handler should NOT be called
         lua_runtime.execute_script("""
-            brogue.event.emit("entity_died", {entity_id = "test2"})
+            veinborn.event.emit("entity_died", {entity_id = "test2"})
         """)
 
         call_count_2 = lua_runtime.get_global("call_count")

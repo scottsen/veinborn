@@ -27,13 +27,13 @@ local FLEE_THRESHOLD = 0.3
 -- @param config: Behavior configuration from YAML
 -- @return: Action descriptor
 function update(monster, config)
-    local player = brogue.get_player()
+    local player = veinborn.get_player()
 
     if not player or not player.is_alive then
         return {action = "wander"}
     end
 
-    local distance = brogue.ai.distance_to(monster.id, player.id)
+    local distance = veinborn.ai.distance_to(monster.id, player.id)
     local hp_ratio = monster.hp / monster.max_hp
 
     -- Flee if low HP
@@ -56,7 +56,7 @@ function update(monster, config)
     if distance >= IDEAL_RANGE_MIN and distance <= IDEAL_RANGE_MAX then
         -- Future: Create projectile action
         -- For now: message + stay in position
-        brogue.add_message(monster.name .. " takes aim from afar!")
+        veinborn.add_message(monster.name .. " takes aim from afar!")
         return {action = "idle"}
     end
 

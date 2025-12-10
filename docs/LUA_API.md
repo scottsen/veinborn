@@ -1,16 +1,16 @@
-# Brogue Lua API Reference
+# Veinborn Lua API Reference
 
-This document describes the Lua API available for scripting custom actions in Brogue.
+This document describes the Lua API available for scripting custom actions in Veinborn.
 
 ## Overview
 
-Brogue exposes game functionality through the global `brogue` table in Lua. All game state access and modification goes through this API.
+Veinborn exposes game functionality through the global `veinborn` table in Lua. All game state access and modification goes through this API.
 
 ## API Methods
 
 ### Entity Queries
 
-#### `brogue.get_player()`
+#### `veinborn.get_player()`
 Returns the player entity as a Lua table.
 
 **Returns:** Entity table with fields:
@@ -25,12 +25,12 @@ Returns the player entity as a Lua table.
 
 **Example:**
 ```lua
-local player = brogue.get_player()
+local player = veinborn.get_player()
 print("Player at", player.x, player.y)
 print("HP:", player.hp, "/", player.max_hp)
 ```
 
-#### `brogue.get_entity(entity_id)`
+#### `veinborn.get_entity(entity_id)`
 Get entity by ID.
 
 **Parameters:**
@@ -38,7 +38,7 @@ Get entity by ID.
 
 **Returns:** Entity table or `nil` if not found
 
-#### `brogue.get_entity_at(x, y)`
+#### `veinborn.get_entity_at(x, y)`
 Get entity at position.
 
 **Parameters:**
@@ -46,7 +46,7 @@ Get entity at position.
 
 **Returns:** Entity table or `nil`
 
-#### `brogue.get_entities_in_range(x, y, radius)`
+#### `veinborn.get_entities_in_range(x, y, radius)`
 Get all entities within radius of position.
 
 **Parameters:**
@@ -57,14 +57,14 @@ Get all entities within radius of position.
 
 **Example:**
 ```lua
-local targets = brogue.get_entities_in_range(10, 10, 5)
+local targets = veinborn.get_entities_in_range(10, 10, 5)
 for i = 1, #targets do
     local entity = targets[i]
     print("Found:", entity.name)
 end
 ```
 
-#### `brogue.get_entities_by_type(type_name)`
+#### `veinborn.get_entities_by_type(type_name)`
 Get all entities of a specific type.
 
 **Parameters:**
@@ -74,37 +74,37 @@ Get all entities of a specific type.
 
 ### Map Queries
 
-#### `brogue.is_walkable(x, y)`
+#### `veinborn.is_walkable(x, y)`
 Check if position is walkable.
 
 **Returns:** `true` if walkable, `false` otherwise
 
-#### `brogue.in_bounds(x, y)`
+#### `veinborn.in_bounds(x, y)`
 Check if position is within map bounds.
 
 **Returns:** `true` if in bounds, `false` otherwise
 
 ### Game State
 
-#### `brogue.add_message(message)`
+#### `veinborn.add_message(message)`
 Add message to game log.
 
 **Parameters:**
 - `message` (string): Message text
 
-#### `brogue.get_turn_count()`
+#### `veinborn.get_turn_count()`
 Get current turn number.
 
 **Returns:** (number) Turn count
 
-#### `brogue.get_floor()`
+#### `veinborn.get_floor()`
 Get current floor number.
 
 **Returns:** (number) Floor number
 
 ### Entity Manipulation
 
-#### `brogue.modify_stat(entity_id, stat_name, delta)`
+#### `veinborn.modify_stat(entity_id, stat_name, delta)`
 Modify an entity's stat by a delta.
 
 **Parameters:**
@@ -117,23 +117,23 @@ Modify an entity's stat by a delta.
 **Example:**
 ```lua
 -- Deduct 10 mana
-brogue.modify_stat("player_1", "mana", -10)
+veinborn.modify_stat("player_1", "mana", -10)
 
 -- Deal 15 damage
-brogue.modify_stat("monster_1", "hp", -15)
+veinborn.modify_stat("monster_1", "hp", -15)
 ```
 
-#### `brogue.deal_damage(entity_id, amount)`
+#### `veinborn.deal_damage(entity_id, amount)`
 Deal damage to entity (respects defense).
 
 **Returns:** (number) Actual damage dealt
 
-#### `brogue.heal(entity_id, amount)`
+#### `veinborn.heal(entity_id, amount)`
 Heal entity.
 
 **Returns:** (number) Actual amount healed
 
-#### `brogue.is_alive(entity_id)`
+#### `veinborn.is_alive(entity_id)`
 Check if entity is alive.
 
 **Returns:** `true` if alive, `false` otherwise
@@ -159,7 +159,7 @@ end
 
 ### AI Helper Methods
 
-#### `brogue.ai.get_target(monster_id)`
+#### `veinborn.ai.get_target(monster_id)`
 Get monster's current target (usually player).
 
 **Parameters:**
@@ -167,7 +167,7 @@ Get monster's current target (usually player).
 
 **Returns:** Target entity table or `nil`
 
-#### `brogue.ai.is_adjacent(monster_id, target_id)`
+#### `veinborn.ai.is_adjacent(monster_id, target_id)`
 Check if monster is adjacent to target.
 
 **Parameters:**
@@ -176,7 +176,7 @@ Check if monster is adjacent to target.
 
 **Returns:** `true` if adjacent (within 1 tile), `false` otherwise
 
-#### `brogue.ai.distance_to(monster_id, target_id)`
+#### `veinborn.ai.distance_to(monster_id, target_id)`
 Calculate Manhattan distance between entities.
 
 **Parameters:**
@@ -187,13 +187,13 @@ Calculate Manhattan distance between entities.
 
 **Example:**
 ```lua
-local distance = brogue.ai.distance_to(monster.id, player.id)
+local distance = veinborn.ai.distance_to(monster.id, player.id)
 if distance <= 5 then
     -- Player is within 5 tiles
 end
 ```
 
-#### `brogue.ai.get_config(ai_type)`
+#### `veinborn.ai.get_config(ai_type)`
 Get behavior configuration from YAML.
 
 **Parameters:**
@@ -279,9 +279,9 @@ Check if action can be executed.
 **Example:**
 ```lua
 function validate(actor_id, params)
-    local player = brogue.get_player()
+    local player = veinborn.get_player()
     if player.stats.mana < 10 then
-        brogue.add_message("Not enough mana!")
+        veinborn.add_message("Not enough mana!")
         return false
     end
     return true
@@ -300,7 +300,7 @@ Execute the action.
 **Example:**
 ```lua
 function execute(actor_id, params)
-    brogue.add_message("Action executed!")
+    veinborn.add_message("Action executed!")
     return {
         success = true,
         took_turn = true,
@@ -357,7 +357,7 @@ The Event System allows Lua scripts to subscribe to and respond to game events, 
 
 ## Event Subscription
 
-### brogue.event.subscribe(event_type, script_path, [handler_function])
+### veinborn.event.subscribe(event_type, script_path, [handler_function])
 
 Subscribe a Lua script to a game event.
 
@@ -371,13 +371,13 @@ Subscribe a Lua script to a game event.
 **Example:**
 ```lua
 -- Subscribe achievements.lua to entity_died events
-brogue.event.subscribe("entity_died", "scripts/events/achievements.lua")
+veinborn.event.subscribe("entity_died", "scripts/events/achievements.lua")
 
 -- Explicitly specify handler function name
-brogue.event.subscribe("entity_died", "scripts/events/achievements.lua", "on_entity_died")
+veinborn.event.subscribe("entity_died", "scripts/events/achievements.lua", "on_entity_died")
 ```
 
-### brogue.event.unsubscribe(event_type, script_path)
+### veinborn.event.unsubscribe(event_type, script_path)
 
 Unsubscribe a script from an event type.
 
@@ -389,10 +389,10 @@ Unsubscribe a script from an event type.
 
 **Example:**
 ```lua
-brogue.event.unsubscribe("entity_died", "scripts/events/achievements.lua")
+veinborn.event.unsubscribe("entity_died", "scripts/events/achievements.lua")
 ```
 
-### brogue.event.get_types()
+### veinborn.event.get_types()
 
 Get list of all available event types.
 
@@ -400,13 +400,13 @@ Get list of all available event types.
 
 **Example:**
 ```lua
-local types = brogue.event.get_types()
+local types = veinborn.event.get_types()
 for i = 1, #types do
     print("Event type:", types[i])
 end
 ```
 
-### brogue.event.emit(event_type, data)
+### veinborn.event.emit(event_type, data)
 
 Manually emit an event (for testing/debugging).
 
@@ -418,7 +418,7 @@ Manually emit an event (for testing/debugging).
 
 **Example:**
 ```lua
-brogue.event.emit("entity_died", {
+veinborn.event.emit("entity_died", {
     entity_id = "goblin_1",
     entity_name = "Goblin",
     killer_id = "player_1",
@@ -518,7 +518,7 @@ local kills = 0
 function on_entity_died(event)
     if event.data.killer_id == "player_1" then
         kills = kills + 1
-        brogue.add_message("Total kills: " .. kills)
+        veinborn.add_message("Total kills: " .. kills)
     end
 end
 ```
@@ -540,7 +540,7 @@ function on_entity_died(event)
 
         if kills == 100 and not achievements.centurion.unlocked then
             achievements.centurion.unlocked = true
-            brogue.add_message("Achievement Unlocked: Centurion (100 kills)")
+            veinborn.add_message("Achievement Unlocked: Centurion (100 kills)")
         end
     end
 end
@@ -565,7 +565,7 @@ function on_entity_died(event)
     local entity_name = event.data.entity_name or ""
     if string.find(string.lower(entity_name), "goblin") then
         quest.progress = quest.progress + 1
-        brogue.add_message(string.format(
+        veinborn.add_message(string.format(
             "Quest: %s [%d/%d]",
             quest.name,
             quest.progress,
@@ -573,7 +573,7 @@ function on_entity_died(event)
         ))
 
         if quest.progress >= quest.target then
-            brogue.add_message("Quest Complete!")
+            veinborn.add_message("Quest Complete!")
             quest.active = false
         end
     end
@@ -599,7 +599,7 @@ function on_entity_died(event)
         -- Risky code here
     end)
     if not success then
-        brogue.add_message("Error: " .. err)
+        veinborn.add_message("Error: " .. err)
     end
 end
 ```
@@ -627,7 +627,7 @@ end
 - Handler timeout: 3 seconds per handler
 - State does NOT persist across game sessions (future enhancement)
 - Cannot modify event data
-- Cannot create new events from handlers (use `brogue.event.emit()` for testing)
+- Cannot create new events from handlers (use `veinborn.event.emit()` for testing)
 
 ## Testing Lua Handlers
 

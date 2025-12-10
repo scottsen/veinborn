@@ -1,5 +1,5 @@
 ---
-project: brogue
+project: veinborn
 document_type: architecture-analysis
 analysis_date: 2025-11-06
 phase: mvp-phase1
@@ -8,10 +8,10 @@ beth_topics: [architecture, code-quality, design-patterns, lua-integration, even
 keywords: [roguelike, game-architecture, python, yaml-config, factory-pattern, clean-architecture, scripting-ready]
 ---
 
-# BROGUE ROGUELIKE GAME - COMPREHENSIVE ARCHITECTURAL ANALYSIS
+# VEINBORN ROGUELIKE GAME - COMPREHENSIVE ARCHITECTURAL ANALYSIS
 
 **Analysis Date:** 2025-11-06
-**Project:** Brogue (NetHack + SWG Mining + Multiplayer Co-op)
+**Project:** Veinborn (NetHack + SWG Mining + Multiplayer Co-op)
 **Codebase Size:** ~3,550 lines of core Python
 **Phase:** MVP (Phase 1 - 95% complete)
 **Status:** Single-player, production-ready foundation
@@ -20,7 +20,7 @@ keywords: [roguelike, game-architecture, python, yaml-config, factory-pattern, c
 
 ## EXECUTIVE SUMMARY
 
-Brogue has a **well-architected, maintainable codebase** with clear separation of concerns and strong foundations for scripting integration. The system uses:
+Veinborn has a **well-architected, maintainable codebase** with clear separation of concerns and strong foundations for scripting integration. The system uses:
 
 - **Clean architecture pattern** (GameState → GameContext → Systems)
 - **Action/outcome pattern** for all gameplay mechanics
@@ -992,7 +992,7 @@ HP_REGEN_AMOUNT = 1
 1. **Custom Actions** - Register new action types
    ```lua
    -- custom_spell.lua
-   local action = brogue.actions.CustomSpell()
+   local action = veinborn.actions.CustomSpell()
    action:validate(context)  -- returns boolean
    action:execute(context)   -- returns ActionOutcome
    ```
@@ -1012,7 +1012,7 @@ HP_REGEN_AMOUNT = 1
 3. **Item/Recipe Creation** - Extend crafting
    ```lua
    -- legendary_recipe.lua
-   brogue.recipes.register('legendary_sword', {
+   veinborn.recipes.register('legendary_sword', {
        requirements = { ore_type = 'adamantite', count = 3 },
        stat_formulas = {
            attack_bonus = 'hardness * 0.5 + purity * 0.3'
@@ -1024,7 +1024,7 @@ HP_REGEN_AMOUNT = 1
    ```lua
    -- dungeon_generator.lua
    function generate_floor(floor_number)
-       local map = brogue.Map.new(80, 24)
+       local map = veinborn.Map.new(80, 24)
        -- Custom generation logic
        return map
    end
@@ -1033,22 +1033,22 @@ HP_REGEN_AMOUNT = 1
 **Tier 2 - Medium Integration (requires minor refactoring):**
 1. **Event Handlers** - Respond to game events
    ```lua
-   brogue.events:on('entity_died', function(event)
+   veinborn.events:on('entity_died', function(event)
        -- Handle entity death
    end)
    ```
 
 2. **Game Over Hooks** - Custom end-of-game logic
    ```lua
-   brogue.game:on_game_over(function(game_state)
+   veinborn.game:on_game_over(function(game_state)
        -- Custom scoring
    end)
    ```
 
 3. **Custom Systems** - Register new game systems
    ```lua
-   local weather_system = brogue.System.new()
-   brogue.context:register_system('weather', weather_system)
+   local weather_system = veinborn.System.new()
+   veinborn.context:register_system('weather', weather_system)
    ```
 
 **Tier 3 - Complex Integration (requires architecture changes):**
@@ -1176,8 +1176,8 @@ config = ConfigLoader.load()
 # Create mlua context
 lua = mlua.Lua::new()
 
-# Register brogue API
-register_brogue_api(lua)
+# Register veinborn API
+register_veinborn_api(lua)
 
 # Load script
 lua.load_from_file('scripts/custom_action.lua')?
@@ -1203,19 +1203,19 @@ class LuaAction(Action):
 
 **3. Lua API Surface**
 ```lua
--- brogue module (global)
-brogue.context:get_player()
-brogue.context:get_entity(id)
-brogue.context:add_message(msg)
+-- veinborn module (global)
+veinborn.context:get_player()
+veinborn.context:get_entity(id)
+veinborn.context:add_message(msg)
 
-brogue.entity.EntityType.PLAYER
-brogue.entity.EntityType.MONSTER
+veinborn.entity.EntityType.PLAYER
+veinborn.entity.EntityType.MONSTER
 
-brogue.Action -- base class
-brogue.GameContext -- API surface
+veinborn.Action -- base class
+veinborn.GameContext -- API surface
 
-brogue.actions.MoveAction
-brogue.actions.AttackAction
+veinborn.actions.MoveAction
+veinborn.actions.AttackAction
 -- etc.
 ```
 
@@ -1393,7 +1393,7 @@ def reload_lua_scripts():
 
 ## 17. CONCLUSION
 
-**Brogue's architecture is well-designed and production-ready for MVP.** It has:
+**Veinborn's architecture is well-designed and production-ready for MVP.** It has:
 
 - Clean separation of concerns (State → API → Logic)
 - Extensible action system ready for Lua

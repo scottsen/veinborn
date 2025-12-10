@@ -1,7 +1,7 @@
-# Using TIA AST for Brogue Development
+# Using TIA AST for Veinborn Development
 
-**Purpose**: Practical guide for using TIA AST tools during Brogue development
-**Audience**: Developers working on the Brogue codebase
+**Purpose**: Practical guide for using TIA AST tools during Veinborn development
+**Audience**: Developers working on the Veinborn codebase
 **Philosophy**: Use AST tools to **help**, not **gate** - these are developer aids, not blockers
 
 ---
@@ -10,7 +10,7 @@
 
 ```bash
 # Always run from project root
-cd /home/scottsen/src/tia/projects/brogue
+cd /home/scottsen/src/tia/projects/veinborn
 
 # Quick health check (takes ~5 seconds)
 tia ast audit src/
@@ -247,7 +247,7 @@ tia ast tree src/core/game.py --lines
 | 15-20 | 🟡 Fair | Consider refactoring |
 | 21+ | 🔴 Poor | Definitely refactor |
 
-**Example from Brogue:**
+**Example from Veinborn:**
 - `entity_spawner.py`: Complexity 7 🟢
 - `turn_processor.py`: Complexity 7 🟢
 - `floor_manager.py`: Complexity 6 🟢
@@ -281,7 +281,7 @@ tia ast search 'spawn' src/
 
 ---
 
-## Real Brogue Examples
+## Real Veinborn Examples
 
 ### Example 1: Analyzing the Refactoring
 
@@ -346,12 +346,12 @@ tia ast tree src/core/turn_processor.py --lines --complexity
 
 ```bash
 # ✅ Do this:
-cd /home/scottsen/src/tia/projects/brogue
+cd /home/scottsen/src/tia/projects/veinborn
 tia ast metrics src/core/game.py
 
 # ❌ Not this:
 cd /some/other/directory
-tia ast metrics /home/scottsen/src/tia/projects/brogue/src/core/game.py
+tia ast metrics /home/scottsen/src/tia/projects/veinborn/src/core/game.py
 # (Might not produce output)
 ```
 
@@ -466,7 +466,7 @@ A: No! These are **helpful tools**, not requirements. Run them when:
 
 A: Investigate them! But if it's a false positive (like using `eval()` in a controlled test), that's okay. Use judgment.
 
-**Q: What's a "good" complexity score for Brogue?**
+**Q: What's a "good" complexity score for Veinborn?**
 
 A: Based on our codebase:
 - Game orchestrator: ~15-20 (acceptable)
@@ -612,5 +612,5 @@ tia ast workflows
 ---
 
 **Last Updated:** 2025-10-25
-**Brogue Version:** Post-Phase 2 Refactoring
+**Veinborn Version:** Post-Phase 2 Refactoring
 **TIA AST Version:** 1.3

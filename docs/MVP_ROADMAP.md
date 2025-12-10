@@ -1,4 +1,4 @@
-# Brogue MVP Roadmap
+# Veinborn MVP Roadmap
 
 **Last Updated:** 2025-11-14
 **Status:** ✅ MVP 100% COMPLETE + Multiplayer Phase 2 Complete! 🎉
@@ -192,7 +192,7 @@ src/
 - **[MVP_CURRENT_FOCUS.md](MVP_CURRENT_FOCUS.md)** - Current priorities
 
 ### Game Design
-- **[BROGUE_CONSOLIDATED_DESIGN.md](BROGUE_CONSOLIDATED_DESIGN.md)** - Master game design
+- **[VEINBORN_CONSOLIDATED_DESIGN.md](VEINBORN_CONSOLIDATED_DESIGN.md)** - Master game design
 - **[MECHANICS_REFERENCE.md](MECHANICS_REFERENCE.md)** - Detailed mechanics
 
 ### Development
@@ -275,6 +275,6 @@ This section preserved for reference. See PROJECT_STATUS.md for current state.
 
 ---
 
-**🎮 Let's make Brogue awesome!**
+**🎮 Let's make Veinborn awesome!**
 
 For questions, check [INDEX.md](INDEX.md) for the complete documentation map.

@@ -1,5 +1,5 @@
 """
-A* Pathfinding for Brogue.
+A* Pathfinding for Veinborn.
 
 Provides efficient pathfinding for:
 - Player bot AI

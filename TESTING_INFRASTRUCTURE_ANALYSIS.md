@@ -1,14 +1,14 @@
-# Brogue Testing Infrastructure Analysis
+# Veinborn Testing Infrastructure Analysis
 
 **Analysis Date:** 2025-11-14  
 **Branch:** claude/improve-testing-013Wzu6zwETZZwoCBgeXTHEb  
-**Repository:** https://github.com/scottsen/brogue
+**Repository:** https://github.com/scottsen/veinborn
 
 ---
 
 ## Executive Summary
 
-The Brogue project has a **solid foundation for testing** with:
+The Veinborn project has a **solid foundation for testing** with:
 - ✅ **Framework:** pytest (Python) - well-established, industry-standard
 - ✅ **Test Coverage:** 888 test functions across 45 test files
 - ✅ **Test Quality:** 858/860 passing (99.8% pass rate)
@@ -35,18 +35,18 @@ The Brogue project has a **solid foundation for testing** with:
 
 ### Configuration Files
 
-#### `/home/user/brogue/pytest.ini`
+#### `/home/user/veinborn/pytest.ini`
 - Test discovery: `tests/` directory, `test_*.py` files
 - Markers: unit, integration, fuzz, ui, slow, smoke
 - Python minimum: 3.10
 - Output: Verbose, short traceback, strict markers
 
-#### `/home/user/brogue/pyproject.toml` (Tool Configuration)
+#### `/home/user/veinborn/pyproject.toml` (Tool Configuration)
 - Test paths, coverage options, markers configured
 - Auto-generates HTML coverage reports
 - Includes term-missing coverage display
 
-#### `/home/user/brogue/.coveragerc`
+#### `/home/user/veinborn/.coveragerc`
 - **Source:** `src/` directory
 - **Omit:** Tests, venv, pycache
 - **Branch Coverage:** Enabled
@@ -119,7 +119,7 @@ tests/                                    (21,793 lines of test code)
 │
 ├── fuzz/                                (6 bot behavior files)
 │   ├── README.md                       # Fuzz testing guide
-│   ├── brogue_bot.py                   # Base AI bot
+│   ├── veinborn_bot.py                   # Base AI bot
 │   ├── healer_bot.py                   # Healer AI class
 │   ├── mage_bot.py                     # Mage AI class
 │   ├── rogue_bot.py                    # Rogue AI class
@@ -173,7 +173,7 @@ tests/                                    (21,793 lines of test code)
 
 ## 4. Testing Fixtures (conftest.py)
 
-The project has excellent reusable fixtures in `/home/user/brogue/tests/conftest.py` (434 lines).
+The project has excellent reusable fixtures in `/home/user/veinborn/tests/conftest.py` (434 lines).
 
 ### Key Fixtures
 - **Entity Fixtures:** fresh_player, damaged_player, weak_goblin, strong_orc, copper_ore, iron_ore, mithril_ore
@@ -195,7 +195,7 @@ pytest -m "not slow"    # Exclude slow tests
 ## 5. Multiplayer Features Testing Status
 
 ### Feature 1: Personal Loot System ✅ TESTED
-- **File:** `/home/user/brogue/tests/unit/actions/test_personal_loot.py` (419 lines)
+- **File:** `/home/user/veinborn/tests/unit/actions/test_personal_loot.py` (419 lines)
 - **Tests:** ~10+ tests covering:
   - Single-player backward compatibility
   - Multiplayer inventory drops
@@ -206,22 +206,22 @@ pytest -m "not slow"    # Exclude slow tests
 
 ### Feature 2: Reconnection Handling ⚠️ NO DEDICATED TESTS
 - **Implementation Files:**
-  - `/home/user/brogue/src/server/game_session.py`
-  - `/home/user/brogue/src/server/websocket_server.py`
-  - `/home/user/brogue/src/server/multiplayer_game_state.py`
+  - `/home/user/veinborn/src/server/game_session.py`
+  - `/home/user/veinborn/src/server/websocket_server.py`
+  - `/home/user/veinborn/src/server/multiplayer_game_state.py`
 - **Features:** Implemented but **NO automated tests**
 - **Gap Risk:** HIGH - Critical multiplayer feature without tests
 
 ### Feature 3: Chat System ❌ NO TESTS AT ALL
 - **Implementation Files:**
-  - `/home/user/brogue/src/ui/textual/widgets/chat_input.py`
-  - `/home/user/brogue/src/ui/multiplayer_client.py`
-  - `/home/user/brogue/src/server/websocket_server.py`
+  - `/home/user/veinborn/src/ui/textual/widgets/chat_input.py`
+  - `/home/user/veinborn/src/ui/multiplayer_client.py`
+  - `/home/user/veinborn/src/server/websocket_server.py`
 - **Features:** Implemented but **ZERO automated tests**
 - **Gap Risk:** CRITICAL - Core multiplayer feature without tests
 
 ### Feature 4: Class Selection (Phase 3 #1) ✅ PARTIAL
-- **Implementation:** `/home/user/brogue/src/server/game_session.py`
+- **Implementation:** `/home/user/veinborn/src/server/game_session.py`
 - **Tests:** MINIMAL - Only tested via manual test_client.py
 
 ---
@@ -411,9 +411,9 @@ pytest -s
 ## 12. Documentation
 
 ### Testing Guides
-- **Main Guide:** `/home/user/brogue/tests/README.md`
-- **Test Status:** `/home/user/brogue/TEST_STATUS_REPORT.md`
-- **Test Summary:** `/home/user/brogue/TEST_SUMMARY.md`
+- **Main Guide:** `/home/user/veinborn/tests/README.md`
+- **Test Status:** `/home/user/veinborn/TEST_STATUS_REPORT.md`
+- **Test Summary:** `/home/user/veinborn/TEST_SUMMARY.md`
 
 ### Architecture Docs
 - `docs/architecture/MVP_TESTING_GUIDE.md` - Testing patterns
@@ -445,7 +445,7 @@ pytest -s
 
 ## Conclusion
 
-The Brogue project has an **excellent foundation for testing** with:
+The Veinborn project has an **excellent foundation for testing** with:
 - ✅ Well-established pytest infrastructure
 - ✅ 888 passing tests (99.8% pass rate)
 - ✅ Good coverage for single-player systems

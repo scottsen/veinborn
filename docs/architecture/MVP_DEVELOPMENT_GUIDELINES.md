@@ -1,4 +1,4 @@
-# Brogue MVP Development Guidelines
+# Veinborn MVP Development Guidelines
 
 **Document Type:** Development Standards (MVP Phase)
 **Audience:** Developers implementing MVP
@@ -9,7 +9,7 @@
 
 ## Overview
 
-This document defines development standards for the Brogue MVP (single-player Python game).
+This document defines development standards for the Veinborn MVP (single-player Python game).
 
 **For Phase 2 (multiplayer) guidelines:** See `/docs/future-multiplayer/DEVELOPMENT_GUIDELINES.md`
 
@@ -49,7 +49,7 @@ pytest-cov>=4.1.0
 ## Project Structure
 
 ```
-projects/brogue/
+projects/veinborn/
 ├── src/
 │   └── core/
 │       ├── game.py           # Game loop, state management
@@ -297,7 +297,7 @@ logging.basicConfig(
     level=logging.INFO,  # DEBUG for development, INFO for normal
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
     handlers=[
-        logging.FileHandler('brogue.log'),
+        logging.FileHandler('veinborn.log'),
         logging.StreamHandler()  # Also print to console
     ]
 )
@@ -556,7 +556,7 @@ def test_ore_quality_increases_with_floor():
 - [Textual Documentation](https://textual.textualize.io/)
 - [PEP 8 Style Guide](https://peps.python.org/pep-0008/)
 
-### Brogue Docs
+### Veinborn Docs
 - `docs/START_HERE.md` - Project overview
 - `docs/MVP_ROADMAP.md` - What to build next
 - `docs/MVP_CURRENT_FOCUS.md` - Current implementation focus

@@ -128,7 +128,7 @@ class EntitySpawner:
         """
         Spawn forges for a given floor.
 
-        Forges are crafting stations - core to Brogue's unique hook.
+        Forges are crafting stations - core to Veinborn's unique hook.
         Always spawn 1 forge per floor (consistent access to crafting).
 
         Args:

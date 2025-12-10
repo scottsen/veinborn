@@ -1,4 +1,4 @@
-"""Map display widget for Brogue."""
+"""Map display widget for Veinborn."""
 from textual.widget import Widget
 from textual.strip import Strip
 from textual.geometry import Size

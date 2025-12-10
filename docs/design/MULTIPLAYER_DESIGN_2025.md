@@ -1,4 +1,4 @@
-# Brogue Multiplayer Design (2025)
+# Veinborn Multiplayer Design (2025)
 
 **Date:** 2025-11-11
 **Status:** Active Design
@@ -9,7 +9,7 @@
 
 ## 📋 Executive Summary
 
-This document presents a comprehensive multiplayer design for Brogue, building on the solid single-player foundation and previous design work. The design emphasizes:
+This document presents a comprehensive multiplayer design for Veinborn, building on the solid single-player foundation and previous design work. The design emphasizes:
 
 - **Multiple game modes**: Co-op, competitive, and hybrid modes
 - **Flexible player counts**: 2-8 players with dynamic scaling
@@ -618,7 +618,7 @@ def resolve_movement_conflict(player_a, player_b, target_tile):
 ### Multiplayer HUD
 
 ```
-┌─────────────────────── BROGUE DUNGEON ────────────────────┐
+┌─────────────────────── VEINBORN DUNGEON ────────────────────┐
 │                                                            │
 │   @ (Red)      @ (Blue)         OOO (Monsters)            │
 │                                                            │
@@ -1556,7 +1556,7 @@ Community:
 
 ## 🎉 Conclusion
 
-This design provides a comprehensive roadmap for bringing multiplayer to Brogue. Key strengths:
+This design provides a comprehensive roadmap for bringing multiplayer to Veinborn. Key strengths:
 
 1. **Builds on existing work** - Action serialization, events, and entity IDs already exist
 2. **Phased approach** - Start small (2 players), scale up
@@ -1564,7 +1564,7 @@ This design provides a comprehensive roadmap for bringing multiplayer to Brogue.
 4. **Modern tech** - WebSocket, server authority, horizontal scaling
 5. **Clear roadmap** - 12 weeks to alpha-quality multiplayer
 
-The vision is clear: **Four colored @ symbols, coordinating in real-time, hunting perfect ore, defeating bosses, and building shared stories in the depths of Brogue's dungeon.**
+The vision is clear: **Four colored @ symbols, coordinating in real-time, hunting perfect ore, defeating bosses, and building shared stories in the depths of Veinborn's dungeon.**
 
 Let's build it. 🎮⚔️
 
@@ -1572,10 +1572,10 @@ Let's build it. 🎮⚔️
 
 ## 📚 References
 
-- Previous design: `.archived/future-multiplayer/BROGUE_MULTIPLAYER_DESIGN.md`
-- Turn system: `.archived/future-multiplayer/BROGUE_TURN_SYSTEM.md`
-- NATS infra: `.archived/future-multiplayer/BROGUE_NATS_INFRASTRUCTURE.md`
-- Current codebase: `/home/user/brogue/src/core/`
+- Previous design: `.archived/future-multiplayer/VEINBORN_MULTIPLAYER_DESIGN.md`
+- Turn system: `.archived/future-multiplayer/VEINBORN_TURN_SYSTEM.md`
+- NATS infra: `.archived/future-multiplayer/VEINBORN_NATS_INFRASTRUCTURE.md`
+- Current codebase: `/home/user/veinborn/src/core/`
 
 ---
 

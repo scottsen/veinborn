@@ -1,4 +1,4 @@
-# Brogue MVP Dependencies
+# Veinborn MVP Dependencies
 # See: docs/architecture/MVP_DEVELOPMENT_GUIDELINES.md
 
 # ===== Core Infrastructure =====

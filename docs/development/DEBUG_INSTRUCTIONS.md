@@ -1,4 +1,4 @@
-# Debug Instructions for Brogue Display Issue
+# Debug Instructions for Veinborn Display Issue
 
 ## Problem
 App clears screen, shows nothing, can't quit.
@@ -10,7 +10,7 @@ App clears screen, shows nothing, can't quit.
 In a **separate terminal window** (NOT a split):
 
 ```bash
-cd /home/scottsen/src/tia/projects/brogue
+cd /home/scottsen/src/tia/projects/veinborn
 python3 run_debug.py
 ```
 
@@ -18,7 +18,7 @@ python3 run_debug.py
 
 The debug version logs everything to both:
 - **stderr** (your screen)
-- **brogue_debug.log** (file)
+- **veinborn_debug.log** (file)
 
 You should see logging output on screen showing exactly what the app is doing.
 
@@ -32,7 +32,7 @@ Try these keys:
 ### Step 4: Check the Log
 
 ```bash
-cat brogue_debug.log
+cat veinborn_debug.log
 ```
 
 ## What the Log Shows
@@ -67,10 +67,10 @@ Possible rendering issue with your terminal emulator
 After running:
 ```bash
 # Show the full log
-cat brogue_debug.log
+cat veinborn_debug.log
 
 # Or just the key parts
-grep -E "(ERROR|FATAL|starting|complete|called)" brogue_debug.log
+grep -E "(ERROR|FATAL|starting|complete|called)" veinborn_debug.log
 ```
 
 Copy and paste the output so I can see where it's failing.

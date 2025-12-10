@@ -1,4 +1,4 @@
-# Brogue: Reality Check - Docs vs Actual State
+# Veinborn: Reality Check - Docs vs Actual State
 
 **Date:** 2025-11-11
 **Purpose:** Align documentation with actual codebase state
@@ -302,7 +302,7 @@ Found in root directory:
 
 ## Conclusion
 
-**The Brogue MVP is in excellent technical shape but lacks validation and polish.**
+**The Veinborn MVP is in excellent technical shape but lacks validation and polish.**
 
 **Key Insight:** Documentation severely undersells what's been built. You have:
 - 111% of monster content goal

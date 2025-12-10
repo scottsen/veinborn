@@ -30,7 +30,7 @@ Configuration example (in ai_behaviors.yaml):
 -- @return: Action descriptor table
 function update(monster, config)
     -- Get player (primary target)
-    local player = brogue.get_player()
+    local player = veinborn.get_player()
 
     -- Check if player exists and is alive
     if not player or not player.is_alive then
@@ -38,13 +38,13 @@ function update(monster, config)
     end
 
     -- Example: Calculate distance to player
-    local distance = brogue.ai.distance_to(monster.id, player.id)
+    local distance = veinborn.ai.distance_to(monster.id, player.id)
 
     -- Example: Check if adjacent
-    local is_adjacent = brogue.ai.is_adjacent(monster.id, player.id)
+    local is_adjacent = veinborn.ai.is_adjacent(monster.id, player.id)
 
     -- TODO: Implement your AI logic here
-    -- Use the brogue.ai.* helper methods to make decisions
+    -- Use the veinborn.ai.* helper methods to make decisions
 
     -- Example decision tree:
     if is_adjacent then

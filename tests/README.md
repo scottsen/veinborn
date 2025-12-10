@@ -1,4 +1,4 @@
-# Brogue Testing Framework
+# Veinborn Testing Framework
 
 **Status:** ✅ Infrastructure Complete | 🚧 Tests In Progress
 **Coverage:** 35% baseline → Target 70%+

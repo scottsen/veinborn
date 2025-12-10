@@ -188,7 +188,7 @@ class TestLuaActionValidation:
         """Test validation accessing game context."""
         script = """
         function validate(actor_id, params)
-            local player = brogue.get_player()
+            local player = veinborn.get_player()
             return player.hp > 50
         end
         function execute(actor_id, params)
@@ -252,7 +252,7 @@ class TestLuaActionExecution:
             return true
         end
         function execute(actor_id, params)
-            brogue.add_message("Test action executed!")
+            veinborn.add_message("Test action executed!")
             return {
                 success = true,
                 took_turn = true,
@@ -513,7 +513,7 @@ class TestActionFactoryIntegration:
                 end
 
                 function execute(actor_id, params)
-                    brogue.add_message("Spell cast!")
+                    veinborn.add_message("Spell cast!")
                     return {success = true, took_turn = true}
                 end
             """)
@@ -539,13 +539,13 @@ class TestActionFactoryIntegration:
             script_path = Path(tmpdir) / "heal.lua"
             script_path.write_text("""
                 function validate(actor_id, params)
-                    local player = brogue.get_player()
+                    local player = veinborn.get_player()
                     return player.hp < player.max_hp
                 end
 
                 function execute(actor_id, params)
-                    brogue.heal(actor_id, 20)
-                    brogue.add_message("You feel better!")
+                    veinborn.heal(actor_id, 20)
+                    veinborn.add_message("You feel better!")
                     return {success = true, took_turn = true}
                 end
             """)
@@ -573,9 +573,9 @@ class TestComplexScenarios:
         local MANA_COST = 15
 
         function validate(actor_id, params)
-            local player = brogue.get_player()
+            local player = veinborn.get_player()
             if player.stats.mana < MANA_COST then
-                brogue.add_message("Not enough mana!")
+                veinborn.add_message("Not enough mana!")
                 return false
             end
             return true
@@ -583,8 +583,8 @@ class TestComplexScenarios:
 
         function execute(actor_id, params)
             -- Deduct mana
-            brogue.modify_stat(actor_id, "mana", -MANA_COST)
-            brogue.add_message("Magic missile cast!")
+            veinborn.modify_stat(actor_id, "mana", -MANA_COST)
+            veinborn.add_message("Magic missile cast!")
 
             return {
                 success = true,
@@ -646,14 +646,14 @@ class TestComplexScenarios:
         end
 
         function execute(actor_id, params)
-            local targets = brogue.get_entities_in_range(params.target_x, params.target_y, AOE_RADIUS)
+            local targets = veinborn.get_entities_in_range(params.target_x, params.target_y, AOE_RADIUS)
             local hit_count = 0
 
             for i = 1, #targets do
                 local target = targets[i]
                 if target.entity_type == "MONSTER" then
-                    brogue.modify_stat(target.id, "hp", -DAMAGE)
-                    brogue.add_message("Hit " .. target.name .. " for " .. DAMAGE .. " damage!")
+                    veinborn.modify_stat(target.id, "hp", -DAMAGE)
+                    veinborn.add_message("Hit " .. target.name .. " for " .. DAMAGE .. " damage!")
                     hit_count = hit_count + 1
                 end
             end

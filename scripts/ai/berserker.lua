@@ -29,7 +29,7 @@ Usage:
 -- @return: Action descriptor {action = "...", target_id = "..." (optional)}
 function update(monster, config)
     -- Get player (primary target)
-    local player = brogue.get_player()
+    local player = veinborn.get_player()
 
     if not player or not player.is_alive then
         -- No target - wander
@@ -47,16 +47,16 @@ function update(monster, config)
 
         -- Visual feedback for enraged state (first time only)
         if not monster.stats.was_enraged then
-            brogue.add_message(monster.name .. " enters a BERSERK RAGE!")
-            brogue.modify_stat(monster.id, "was_enraged", true)
+            veinborn.add_message(monster.name .. " enters a BERSERK RAGE!")
+            veinborn.modify_stat(monster.id, "was_enraged", true)
         end
     end
 
     -- Calculate distance to player
-    local distance = brogue.ai.distance_to(monster.id, player.id)
+    local distance = veinborn.ai.distance_to(monster.id, player.id)
 
     -- Attack if adjacent
-    if brogue.ai.is_adjacent(monster.id, player.id) then
+    if veinborn.ai.is_adjacent(monster.id, player.id) then
         return {
             action = "attack",
             target_id = player.id

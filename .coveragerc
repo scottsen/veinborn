@@ -43,7 +43,7 @@ exclude_lines =
 
 [html]
 directory = htmlcov
-title = Brogue Test Coverage Report
+title = Veinborn Test Coverage Report
 
 [xml]
 output = coverage.xml

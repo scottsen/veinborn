@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Demonstration of Brogue's seeding system.
+Demonstration of Veinborn's seeding system.
 
 This script demonstrates reproducible gameplay through seeds.
 Run it to see how the same seed produces identical games!
@@ -178,7 +178,7 @@ def main():
     """Run all demonstrations."""
     print()
     print("╔" + "=" * 68 + "╗")
-    print("║" + " " * 15 + "BROGUE SEEDING SYSTEM DEMO" + " " * 27 + "║")
+    print("║" + " " * 15 + "VEINBORN SEEDING SYSTEM DEMO" + " " * 27 + "║")
     print("║" + " " * 20 + "Phase 4: Reproducibility" + " " * 24 + "║")
     print("╚" + "=" * 68 + "╝")
     print()

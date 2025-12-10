@@ -1,4 +1,4 @@
-# Brogue MVP Architecture Overview
+# Veinborn MVP Architecture Overview
 
 **Document Type:** Architecture Overview
 **Audience:** Developers implementing the MVP
@@ -26,7 +26,7 @@
 
 ## Executive Summary
 
-**Brogue MVP** is a single-player terminal roguelike with mining and crafting systems.
+**Veinborn MVP** is a single-player terminal roguelike with mining and crafting systems.
 
 **Architecture Principles:**
 - **Simple Python Game Loop** - Direct function calls, no message bus
@@ -86,7 +86,7 @@ class Game:
 ## Project Structure
 
 ```
-projects/brogue/
+projects/veinborn/
 ├── src/
 │   ├── core/              # Game logic
 │   │   ├── game.py        # Game loop, state management
@@ -456,7 +456,7 @@ def spawn_monster(monster_id: str, x: int, y: int) -> Monster:
 
 ### Adding a New Feature
 
-1. **Read the design:** `docs/BROGUE_CONSOLIDATED_DESIGN.md`
+1. **Read the design:** `docs/VEINBORN_CONSOLIDATED_DESIGN.md`
 2. **Check the roadmap:** `docs/MVP_ROADMAP.md`
 3. **Understand existing code:** Read relevant files in `src/core/`
 4. **Write tests first** (TDD): Create test file in `tests/`
@@ -587,7 +587,7 @@ See `LUA_INTEGRATION_STRATEGY.md` for future planning, but don't implement yet.
 
 - [START_HERE.md](../START_HERE.md) - Start here if new to project
 - [MVP_ROADMAP.md](../MVP_ROADMAP.md) - Implementation tasks
-- [BROGUE_CONSOLIDATED_DESIGN.md](../BROGUE_CONSOLIDATED_DESIGN.md) - Game design
+- [VEINBORN_CONSOLIDATED_DESIGN.md](../VEINBORN_CONSOLIDATED_DESIGN.md) - Game design
 - [future-multiplayer/](../future-multiplayer/) - Phase 2 architecture
 - [BASE_CLASS_ARCHITECTURE.md](./BASE_CLASS_ARCHITECTURE.md) - Optional: Clean base classes
 - [CONTENT_SYSTEM.md](./CONTENT_SYSTEM.md) - YAML content system

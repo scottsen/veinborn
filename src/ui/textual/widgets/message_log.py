@@ -70,7 +70,7 @@ class MessageLog(Static):
 
         # If no messages at all, show welcome
         if not all_messages:
-            return Text("Welcome to Brogue!", style="italic")
+            return Text("Welcome to Veinborn!", style="italic")
 
         # Display the last 4 messages (mixed game/chat/system)
         displayed_messages = all_messages[-4:]

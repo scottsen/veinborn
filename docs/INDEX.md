@@ -117,7 +117,7 @@
 4. Test and play!
 
 ### "How does X work?"
-1. Check [BROGUE_CONSOLIDATED_DESIGN.md](BROGUE_CONSOLIDATED_DESIGN.md) - design
+1. Check [VEINBORN_CONSOLIDATED_DESIGN.md](VEINBORN_CONSOLIDATED_DESIGN.md) - design
 2. Check [PROJECT_STATUS.md](PROJECT_STATUS.md) - implementation status
 3. Check [architecture/](architecture/) - technical details
 4. Read the code in `src/core/`
@@ -138,7 +138,7 @@
 | Question | Check |
 |----------|-------|
 | "How do I run the game?" | [README.md](../README.md) or [QUICK_REFERENCE.md](QUICK_REFERENCE.md) |
-| "What's the vision?" | [BROGUE_CONSOLIDATED_DESIGN.md](BROGUE_CONSOLIDATED_DESIGN.md) |
+| "What's the vision?" | [VEINBORN_CONSOLIDATED_DESIGN.md](VEINBORN_CONSOLIDATED_DESIGN.md) |
 | "What's done?" | [PROJECT_STATUS.md](PROJECT_STATUS.md) |
 | "What's next?" | [MVP_CURRENT_FOCUS.md](MVP_CURRENT_FOCUS.md) |
 | "How does X work?" | [architecture/](architecture/) or read `src/core/` |
@@ -153,7 +153,7 @@
 - [README.md](../README.md) - Start here!
 - [START_HERE.md](START_HERE.md) - Developer guide
 - [PROJECT_STATUS.md](PROJECT_STATUS.md) - Truth about current state
-- [BROGUE_CONSOLIDATED_DESIGN.md](BROGUE_CONSOLIDATED_DESIGN.md) - Game vision
+- [VEINBORN_CONSOLIDATED_DESIGN.md](VEINBORN_CONSOLIDATED_DESIGN.md) - Game vision
 
 ### Working on MVP
 - [MVP_CURRENT_FOCUS.md](MVP_CURRENT_FOCUS.md) - What to build now
@@ -167,6 +167,6 @@
 ---
 
 **Last Updated:** 2025-11-05
-**Maintained By:** Brogue development team
+**Maintained By:** Veinborn development team
 
 **Found an issue with the docs?** Please update this index!

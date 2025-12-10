@@ -1,14 +1,14 @@
 ============================= test session starts ==============================
 platform linux -- Python 3.10.12, pytest-8.4.2, pluggy-1.6.0 -- /usr/bin/python3
 cachedir: .pytest_cache
-rootdir: /home/scottsen/src/tia/projects/brogue
+rootdir: /home/scottsen/src/tia/projects/veinborn
 configfile: pytest.ini
 plugins: anyio-4.11.0, cov-7.0.0
 collecting ... collected 334 items / 2 errors
 
 ==================================== ERRORS ====================================
 ____________ ERROR collecting tests/unit/systems/test_ai_system.py _____________
-ImportError while importing test module '/home/scottsen/src/tia/projects/brogue/tests/unit/systems/test_ai_system.py'.
+ImportError while importing test module '/home/scottsen/src/tia/projects/veinborn/tests/unit/systems/test_ai_system.py'.
 Hint: make sure your test modules/packages have valid Python names.
 Traceback:
 ../../../../.local/lib/python3.10/site-packages/_pytest/python.py:498: in importtestmodule
@@ -29,9 +29,9 @@ Traceback:
     exec(co, module.__dict__)
 tests/unit/systems/test_ai_system.py:15: in <module>
     from src.core.entities import Player, Monster, AIState
-E   ImportError: cannot import name 'AIState' from 'src.core.entities' (/home/scottsen/src/tia/projects/brogue/src/core/entities.py)
+E   ImportError: cannot import name 'AIState' from 'src.core.entities' (/home/scottsen/src/tia/projects/veinborn/src/core/entities.py)
 ____________ ERROR collecting tests/unit/test_pathfinding_utils.py _____________
-ImportError while importing test module '/home/scottsen/src/tia/projects/brogue/tests/unit/test_pathfinding_utils.py'.
+ImportError while importing test module '/home/scottsen/src/tia/projects/veinborn/tests/unit/test_pathfinding_utils.py'.
 Hint: make sure your test modules/packages have valid Python names.
 Traceback:
 ../../../../.local/lib/python3.10/site-packages/_pytest/python.py:498: in importtestmodule
@@ -52,7 +52,7 @@ Traceback:
     exec(co, module.__dict__)
 tests/unit/test_pathfinding_utils.py:10: in <module>
     from core.pathfinding import (
-E   ImportError: cannot import name 'get_adjacent_positions' from 'core.pathfinding' (/home/scottsen/src/tia/projects/brogue/src/core/pathfinding.py)
+E   ImportError: cannot import name 'get_adjacent_positions' from 'core.pathfinding' (/home/scottsen/src/tia/projects/veinborn/src/core/pathfinding.py)
 =========================== short test summary info ============================
 ERROR tests/unit/systems/test_ai_system.py
 ERROR tests/unit/test_pathfinding_utils.py

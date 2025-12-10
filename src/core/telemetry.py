@@ -23,7 +23,7 @@ import time
 
 from .events import GameEvent, GameEventType
 
-logger = logging.getLogger('brogue.telemetry')
+logger = logging.getLogger('veinborn.telemetry')
 
 
 @dataclass

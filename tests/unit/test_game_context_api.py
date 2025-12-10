@@ -50,9 +50,9 @@ def api(game_context, lua_runtime):
 class TestAPIRegistration:
     """Test API registration in Lua."""
 
-    def test_brogue_global_exists(self, api, lua_runtime):
-        """Test that 'brogue' global is registered."""
-        result = lua_runtime.execute_script("return brogue ~= nil")
+    def test_veinborn_global_exists(self, api, lua_runtime):
+        """Test that 'veinborn' global is registered."""
+        result = lua_runtime.execute_script("return veinborn ~= nil")
         assert result is True
 
     def test_api_methods_registered(self, api, lua_runtime):
@@ -70,7 +70,7 @@ class TestAPIRegistration:
         for method in methods:
             # Check that method exists and is callable
             result = lua_runtime.execute_script(
-                f"return brogue.{method} ~= nil"
+                f"return veinborn.{method} ~= nil"
             )
             assert result is True, f"Method {method} not registered"
 
@@ -144,7 +144,7 @@ class TestGetPlayer:
 
         # Call from Lua
         result = lua_runtime.execute_script("""
-            local player = brogue.get_player()
+            local player = veinborn.get_player()
             return player.name, player.hp
         """)
 
@@ -165,7 +165,7 @@ class TestGetPlayer:
         api = GameContextAPI(game_context, lua_runtime.lua)
 
         result = lua_runtime.execute_script("""
-            local p = brogue.get_player()
+            local p = veinborn.get_player()
             return p.x + p.y + p.attack + p.defense
         """)
 
@@ -187,7 +187,7 @@ class TestGetEntity:
         api = GameContextAPI(game_context, lua_runtime.lua)
 
         result = lua_runtime.execute_script("""
-            local entity = brogue.get_entity("monster_123")
+            local entity = veinborn.get_entity("monster_123")
             return entity.name
         """)
 
@@ -198,7 +198,7 @@ class TestGetEntity:
         api = GameContextAPI(game_context, lua_runtime.lua)
 
         result = lua_runtime.execute_script("""
-            local entity = brogue.get_entity("nonexistent")
+            local entity = veinborn.get_entity("nonexistent")
             return entity == nil
         """)
 
@@ -221,7 +221,7 @@ class TestGetEntityAt:
         api = GameContextAPI(game_context, lua_runtime.lua)
 
         result = lua_runtime.execute_script("""
-            local entity = brogue.get_entity_at(15, 20)
+            local entity = veinborn.get_entity_at(15, 20)
             if entity then
                 return entity.name
             else
@@ -236,7 +236,7 @@ class TestGetEntityAt:
         api = GameContextAPI(game_context, lua_runtime.lua)
 
         result = lua_runtime.execute_script("""
-            local entity = brogue.get_entity_at(100, 100)
+            local entity = veinborn.get_entity_at(100, 100)
             return entity == nil
         """)
 
@@ -262,7 +262,7 @@ class TestGetEntitiesInRange:
 
         # Get entities within radius 5 of (5, 5)
         result = lua_runtime.execute_script("""
-            local entities = brogue.get_entities_in_range(5, 5, 5)
+            local entities = veinborn.get_entities_in_range(5, 5, 5)
             local count = 0
             for i = 1, #entities do
                 count = count + 1
@@ -286,7 +286,7 @@ class TestGetEntitiesInRange:
         api = GameContextAPI(game_context, lua_runtime.lua)
 
         result = lua_runtime.execute_script("""
-            local entities = brogue.get_entities_in_range(10, 10, 3)
+            local entities = veinborn.get_entities_in_range(10, 10, 3)
             local total_hp = 0
             for i = 1, #entities do
                 total_hp = total_hp + entities[i].hp
@@ -309,8 +309,8 @@ class TestMapQueries:
         api = GameContextAPI(game_context, lua_runtime.lua)
 
         result = lua_runtime.execute_script("""
-            local walkable = brogue.is_walkable(10, 10)
-            local not_walkable = brogue.is_walkable(100, 10)
+            local walkable = veinborn.is_walkable(10, 10)
+            local not_walkable = veinborn.is_walkable(100, 10)
             return walkable and not not_walkable
         """)
 
@@ -324,7 +324,7 @@ class TestMapQueries:
         api = GameContextAPI(game_context, lua_runtime.lua)
 
         result = lua_runtime.execute_script("""
-            return brogue.in_bounds(50, 20) and not brogue.in_bounds(100, 20)
+            return veinborn.in_bounds(50, 20) and not veinborn.in_bounds(100, 20)
         """)
 
         assert result is True
@@ -338,7 +338,7 @@ class TestMessageLog:
         api = GameContextAPI(game_context, lua_runtime.lua)
 
         lua_runtime.execute_script("""
-            brogue.add_message("Test message from Lua")
+            veinborn.add_message("Test message from Lua")
         """)
 
         assert "Test message from Lua" in mock_game_state.messages
@@ -348,9 +348,9 @@ class TestMessageLog:
         api = GameContextAPI(game_context, lua_runtime.lua)
 
         lua_runtime.execute_script("""
-            brogue.add_message("Message 1")
-            brogue.add_message("Message 2")
-            brogue.add_message("Message 3")
+            veinborn.add_message("Message 1")
+            veinborn.add_message("Message 2")
+            veinborn.add_message("Message 3")
         """)
 
         assert len(mock_game_state.messages) == 3
@@ -367,7 +367,7 @@ class TestGameState:
         mock_game_state.turn_count = 42
         api = GameContextAPI(game_context, lua_runtime.lua)
 
-        result = lua_runtime.execute_script("return brogue.get_turn_count()")
+        result = lua_runtime.execute_script("return veinborn.get_turn_count()")
         assert result == 42
 
     def test_get_floor(self, game_context, lua_runtime, mock_game_state):
@@ -375,7 +375,7 @@ class TestGameState:
         mock_game_state.current_floor = 5
         api = GameContextAPI(game_context, lua_runtime.lua)
 
-        result = lua_runtime.execute_script("return brogue.get_floor()")
+        result = lua_runtime.execute_script("return veinborn.get_floor()")
         assert result == 5
 
 
@@ -394,8 +394,8 @@ class TestModifyStat:
         api = GameContextAPI(game_context, lua_runtime.lua)
 
         result = lua_runtime.execute_script("""
-            brogue.modify_stat("test_1", "hp", -20)
-            local entity = brogue.get_entity("test_1")
+            veinborn.modify_stat("test_1", "hp", -20)
+            local entity = veinborn.get_entity("test_1")
             return entity.hp
         """)
 
@@ -412,7 +412,7 @@ class TestModifyStat:
 
         api = GameContextAPI(game_context, lua_runtime.lua)
 
-        lua_runtime.execute_script('brogue.modify_stat("test_1", "hp", -100)')
+        lua_runtime.execute_script('veinborn.modify_stat("test_1", "hp", -100)')
 
         assert entity.hp == 0
         assert entity.is_alive is False
@@ -428,7 +428,7 @@ class TestModifyStat:
 
         api = GameContextAPI(game_context, lua_runtime.lua)
 
-        lua_runtime.execute_script('brogue.modify_stat("test_1", "hp", 100)')
+        lua_runtime.execute_script('veinborn.modify_stat("test_1", "hp", 100)')
 
         assert entity.hp == 100  # Clamped at max_hp
 
@@ -442,7 +442,7 @@ class TestModifyStat:
 
         api = GameContextAPI(game_context, lua_runtime.lua)
 
-        lua_runtime.execute_script('brogue.modify_stat("mage_1", "mana", -10)')
+        lua_runtime.execute_script('veinborn.modify_stat("mage_1", "mana", -10)')
 
         assert entity.stats["mana"] == 40
 
@@ -465,7 +465,7 @@ class TestDealDamage:
         api = GameContextAPI(game_context, lua_runtime.lua)
 
         result = lua_runtime.execute_script("""
-            return brogue.deal_damage("monster_1", 25)
+            return veinborn.deal_damage("monster_1", 25)
         """)
 
         entity.take_damage.assert_called_once_with(25)
@@ -487,7 +487,7 @@ class TestHeal:
         api = GameContextAPI(game_context, lua_runtime.lua)
 
         result = lua_runtime.execute_script("""
-            return brogue.heal("player_1", 30)
+            return veinborn.heal("player_1", 30)
         """)
 
         assert entity.hp == 80
@@ -505,7 +505,7 @@ class TestHeal:
         api = GameContextAPI(game_context, lua_runtime.lua)
 
         result = lua_runtime.execute_script("""
-            return brogue.heal("player_1", 50)
+            return veinborn.heal("player_1", 50)
         """)
 
         assert entity.hp == 100
@@ -563,20 +563,20 @@ class TestComplexScenarios:
             local DAMAGE = 15
 
             -- Get player
-            local player = brogue.get_player()
+            local player = veinborn.get_player()
 
             -- Deduct mana
-            brogue.modify_stat(player.id, "mana", -MANA_COST)
+            veinborn.modify_stat(player.id, "mana", -MANA_COST)
 
             -- Get targets in AOE
-            local targets = brogue.get_entities_in_range(TARGET_X, TARGET_Y, AOE_RADIUS)
+            local targets = veinborn.get_entities_in_range(TARGET_X, TARGET_Y, AOE_RADIUS)
 
             -- Damage each target
             for i = 1, #targets do
                 local target = targets[i]
                 if target.entity_type == "MONSTER" then
-                    brogue.modify_stat(target.id, "hp", -DAMAGE)
-                    brogue.add_message("Fireball hits " .. target.name .. "!")
+                    veinborn.modify_stat(target.id, "hp", -DAMAGE)
+                    veinborn.add_message("Fireball hits " .. target.name .. "!")
                 end
             end
         """)
@@ -592,8 +592,8 @@ class TestAIHelperMethods:
     """Test AI-specific helper methods."""
 
     def test_ai_table_exists(self, api, lua_runtime):
-        """Test that brogue.ai table is registered."""
-        result = lua_runtime.execute_script("return brogue.ai ~= nil")
+        """Test that veinborn.ai table is registered."""
+        result = lua_runtime.execute_script("return veinborn.ai ~= nil")
         assert result is True
 
     def test_ai_get_target(self, game_context, lua_runtime, mock_game_state):
@@ -610,7 +610,7 @@ class TestAIHelperMethods:
         api = GameContextAPI(game_context, lua_runtime.lua)
 
         result = lua_runtime.execute_script("""
-            local target = brogue.ai.get_target("monster_1")
+            local target = veinborn.ai.get_target("monster_1")
             return target.name
         """)
 
@@ -626,7 +626,7 @@ class TestAIHelperMethods:
         api = GameContextAPI(game_context, lua_runtime.lua)
 
         result = lua_runtime.execute_script("""
-            return brogue.ai.is_adjacent("monster_1", "player_1")
+            return veinborn.ai.is_adjacent("monster_1", "player_1")
         """)
 
         assert result is True
@@ -641,7 +641,7 @@ class TestAIHelperMethods:
         api = GameContextAPI(game_context, lua_runtime.lua)
 
         result = lua_runtime.execute_script("""
-            return brogue.ai.is_adjacent("monster_1", "player_1")
+            return veinborn.ai.is_adjacent("monster_1", "player_1")
         """)
 
         assert result is False
@@ -656,7 +656,7 @@ class TestAIHelperMethods:
         api = GameContextAPI(game_context, lua_runtime.lua)
 
         result = lua_runtime.execute_script("""
-            return brogue.ai.distance_to("monster_1", "player_1")
+            return veinborn.ai.distance_to("monster_1", "player_1")
         """)
 
         # Manhattan distance: |10-5| + |8-5| = 5 + 3 = 8
@@ -667,7 +667,7 @@ class TestAIHelperMethods:
         api = GameContextAPI(game_context, lua_runtime.lua)
 
         result = lua_runtime.execute_script("""
-            local action = brogue.ai.attack("monster_1", "player_1")
+            local action = veinborn.ai.attack("monster_1", "player_1")
             return action.action, action.target_id
         """)
 
@@ -678,7 +678,7 @@ class TestAIHelperMethods:
         api = GameContextAPI(game_context, lua_runtime.lua)
 
         result = lua_runtime.execute_script("""
-            local action = brogue.ai.move_towards("monster_1", "player_1")
+            local action = veinborn.ai.move_towards("monster_1", "player_1")
             return action.action, action.target_id
         """)
 
@@ -689,7 +689,7 @@ class TestAIHelperMethods:
         api = GameContextAPI(game_context, lua_runtime.lua)
 
         result = lua_runtime.execute_script("""
-            local action = brogue.ai.flee_from("monster_1", "player_1")
+            local action = veinborn.ai.flee_from("monster_1", "player_1")
             return action.action, action.target_id
         """)
 
@@ -700,7 +700,7 @@ class TestAIHelperMethods:
         api = GameContextAPI(game_context, lua_runtime.lua)
 
         result = lua_runtime.execute_script("""
-            local action = brogue.ai.wander("monster_1")
+            local action = veinborn.ai.wander("monster_1")
             return action.action
         """)
 
@@ -711,7 +711,7 @@ class TestAIHelperMethods:
         api = GameContextAPI(game_context, lua_runtime.lua)
 
         result = lua_runtime.execute_script("""
-            local action = brogue.ai.idle("monster_1")
+            local action = veinborn.ai.idle("monster_1")
             return action.action
         """)
 

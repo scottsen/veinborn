@@ -1,7 +1,7 @@
 """
 Crafting system - turn mined ore into equipment.
 
-This is Brogue's core unique hook: SWG-style ore properties → equipment stats
+This is Veinborn's core unique hook: SWG-style ore properties → equipment stats
 
 Architecture:
 - RecipeManager: Loads recipes.yaml, manages all recipes

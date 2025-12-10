@@ -1,4 +1,4 @@
-# Brogue Automated Testing Bot (Fuzzer)
+# Veinborn Automated Testing Bot (Fuzzer)
 
 **Purpose:** Automatically play the game with random actions to find bugs, crashes, and state violations.
 
@@ -8,16 +8,16 @@
 
 ```bash
 # Test run (5 games, verbose)
-python3 tests/fuzz/brogue_bot.py --games 5 -v
+python3 tests/fuzz/veinborn_bot.py --games 5 -v
 
 # Standard run (100 games)
-python3 tests/fuzz/brogue_bot.py
+python3 tests/fuzz/veinborn_bot.py
 
 # Stress test (1000 games overnight)
-python3 tests/fuzz/brogue_bot.py --games 1000 --max-turns 5000
+python3 tests/fuzz/veinborn_bot.py --games 1000 --max-turns 5000
 
 # Quick smoke test (10 games, 50 turns each)
-python3 tests/fuzz/brogue_bot.py --games 10 --max-turns 50
+python3 tests/fuzz/veinborn_bot.py --games 10 --max-turns 50
 ```
 
 ---
@@ -61,7 +61,7 @@ Tracks:
 
 ```
 ============================================================
-Brogue Automated Testing Bot
+Veinborn Automated Testing Bot
 ============================================================
 Games to play: 100
 Max turns per game: 1000
@@ -103,7 +103,7 @@ Games/Second: 9.80
 ## Command-Line Options
 
 ```bash
-python3 tests/fuzz/brogue_bot.py [options]
+python3 tests/fuzz/veinborn_bot.py [options]
 
 Options:
   --games N         Number of games to play (default: 100)
@@ -119,25 +119,25 @@ Options:
 ### 1. Pre-Commit Smoke Test
 ```bash
 # Quick validation before committing
-python3 tests/fuzz/brogue_bot.py --games 10 --max-turns 100
+python3 tests/fuzz/veinborn_bot.py --games 10 --max-turns 100
 ```
 
 ### 2. Feature Testing
 ```bash
 # After adding new feature, run 100 games
-python3 tests/fuzz/brogue_bot.py --games 100
+python3 tests/fuzz/veinborn_bot.py --games 100
 ```
 
 ### 3. Overnight Stress Test
 ```bash
 # Let it run overnight
-nohup python3 tests/fuzz/brogue_bot.py --games 10000 > fuzz_results.txt 2>&1 &
+nohup python3 tests/fuzz/veinborn_bot.py --games 10000 > fuzz_results.txt 2>&1 &
 ```
 
 ### 4. Performance Benchmarking
 ```bash
 # See how fast the game engine is
-python3 tests/fuzz/brogue_bot.py --games 100 --max-turns 500
+python3 tests/fuzz/veinborn_bot.py --games 100 --max-turns 500
 # Typical: 100-200 games/second
 ```
 
@@ -180,7 +180,7 @@ jobs:
       - name: Install dependencies
         run: pip install -r requirements.txt
       - name: Run fuzz tests
-        run: python3 tests/fuzz/brogue_bot.py --games 100
+        run: python3 tests/fuzz/veinborn_bot.py --games 100
 ```
 
 ---

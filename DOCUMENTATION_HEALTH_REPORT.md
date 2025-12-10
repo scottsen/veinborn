@@ -242,7 +242,7 @@ All 13 core systems implemented and tested:
 
 ## Conclusion
 
-The Brogue documentation is now **aligned with reality**. The most critical inaccuracies (test counts, system completion status) have been corrected. New contributors will receive accurate information about what's complete, what's in progress, and what's planned.
+The Veinborn documentation is now **aligned with reality**. The most critical inaccuracies (test counts, system completion status) have been corrected. New contributors will receive accurate information about what's complete, what's in progress, and what's planned.
 
 **Documentation Health Score:** 90% → 98% ✅
 

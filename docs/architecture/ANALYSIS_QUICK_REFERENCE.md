@@ -1,5 +1,5 @@
 ---
-project: brogue
+project: veinborn
 document_type: quick-reference
 analysis_date: 2025-11-06
 status: production-ready
@@ -7,7 +7,7 @@ beth_topics: [architecture, quick-reference, extensibility-checklist, lua-roadma
 keywords: [roguelike, architecture-scorecard, extensibility, lua-integration, critical-paths]
 ---
 
-# BROGUE ARCHITECTURE - QUICK REFERENCE
+# VEINBORN ARCHITECTURE - QUICK REFERENCE
 
 **Status:** Production-ready for MVP | Scripting-ready | Well-architected
 
@@ -198,14 +198,14 @@ Data (YAML)
 **To Add Custom Actions:**
 1. User creates `scripts/my_action.lua`
 2. Script implements `validate()` and `execute()`
-3. Registers with `brogue.actions.register('my_action', script)`
+3. Registers with `veinborn.actions.register('my_action', script)`
 4. Game loads script on boot
 5. Player uses action via `factory.create('my_action')`
 
 **To Add Custom AI:**
 1. User creates `scripts/my_ai.lua`
 2. Script implements `update(monster, context)`
-3. Registers with `brogue.ai.register('my_behavior', script)`
+3. Registers with `veinborn.ai.register('my_behavior', script)`
 4. Monster uses in YAML: `ai_type: my_behavior`
 5. AISystem calls registered behavior function
 

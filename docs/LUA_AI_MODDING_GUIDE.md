@@ -1,6 +1,6 @@
 # Lua AI Behavior Modding Guide
 
-**Complete guide to creating custom AI behaviors for Brogue**
+**Complete guide to creating custom AI behaviors for Veinborn**
 
 ## Table of Contents
 
@@ -30,13 +30,13 @@ Each behavior is a Lua script with an `update(monster, config)` function that re
 ### Prerequisites
 
 - Basic Lua knowledge
-- Familiarity with Brogue game mechanics
+- Familiarity with Veinborn game mechanics
 - Understanding of entity positions and ranges
 
 ### Directory Structure
 
 ```
-brogue/
+veinborn/
 ├── scripts/
 │   └── ai/
 │       ├── _template.lua         # Template for new behaviors
@@ -98,12 +98,12 @@ See [LUA_API.md](LUA_API.md#ai-behavior-api) for complete API reference.
 
 **Common methods:**
 ```lua
-brogue.get_player()                          -- Get player entity
-brogue.ai.distance_to(monster_id, target_id) -- Calculate distance
-brogue.ai.is_adjacent(monster_id, target_id) -- Check adjacency
-brogue.add_message(text)                     -- Add game message
-brogue.modify_stat(entity_id, stat, delta)   -- Modify stat
-brogue.get_turn_count()                      -- Get current turn
+veinborn.get_player()                          -- Get player entity
+veinborn.ai.distance_to(monster_id, target_id) -- Calculate distance
+veinborn.ai.is_adjacent(monster_id, target_id) -- Check adjacency
+veinborn.add_message(text)                     -- Add game message
+veinborn.modify_stat(entity_id, stat, delta)   -- Modify stat
+veinborn.get_turn_count()                      -- Get current turn
 ```
 
 ---
@@ -117,7 +117,7 @@ Create a new file `scripts/ai/my_behavior.lua`:
 ```lua
 -- Simple aggressive behavior
 function update(monster, config)
-    local player = brogue.get_player()
+    local player = veinborn.get_player()
 
     -- Check if player exists
     if not player or not player.is_alive then
@@ -125,12 +125,12 @@ function update(monster, config)
     end
 
     -- Check if adjacent
-    if brogue.ai.is_adjacent(monster.id, player.id) then
+    if veinborn.ai.is_adjacent(monster.id, player.id) then
         return {action = "attack", target_id = player.id}
     end
 
     -- Chase player
-    local distance = brogue.ai.distance_to(monster.id, player.id)
+    local distance = veinborn.ai.distance_to(monster.id, player.id)
     if distance <= config.chase_range then
         return {action = "move_towards", target_id = player.id}
     end
@@ -192,21 +192,21 @@ function update(monster, config)
 
     if state == "patrol" then
         -- Patrol behavior
-        local player = brogue.get_player()
-        local distance = brogue.ai.distance_to(monster.id, player.id)
+        local player = veinborn.get_player()
+        local distance = veinborn.ai.distance_to(monster.id, player.id)
 
         if distance <= config.alert_range then
-            brogue.modify_stat(monster.id, "ai_state", "alert")
-            brogue.add_message(monster.name .. " is alerted!")
+            veinborn.modify_stat(monster.id, "ai_state", "alert")
+            veinborn.add_message(monster.name .. " is alerted!")
         end
 
         return {action = "wander"}
 
     elseif state == "alert" then
         -- Combat behavior
-        local player = brogue.get_player()
+        local player = veinborn.get_player()
 
-        if brogue.ai.is_adjacent(monster.id, player.id) then
+        if veinborn.ai.is_adjacent(monster.id, player.id) then
             return {action = "attack", target_id = player.id}
         else
             return {action = "move_towards", target_id = player.id}
@@ -214,11 +214,11 @@ function update(monster, config)
 
     elseif state == "fleeing" then
         -- Flee behavior
-        local player = brogue.get_player()
+        local player = veinborn.get_player()
         local hp_ratio = monster.hp / monster.max_hp
 
         if hp_ratio > 0.5 then
-            brogue.modify_stat(monster.id, "ai_state", "alert")
+            veinborn.modify_stat(monster.id, "ai_state", "alert")
         end
 
         return {action = "flee_from", target_id = player.id}
@@ -232,14 +232,14 @@ Different behavior at different ranges:
 
 ```lua
 function update(monster, config)
-    local player = brogue.get_player()
+    local player = veinborn.get_player()
     if not player then return {action = "wander"} end
 
-    local distance = brogue.ai.distance_to(monster.id, player.id)
+    local distance = veinborn.ai.distance_to(monster.id, player.id)
 
     -- Melee range (0-2)
     if distance <= 2 then
-        if brogue.ai.is_adjacent(monster.id, player.id) then
+        if veinborn.ai.is_adjacent(monster.id, player.id) then
             return {action = "attack", target_id = player.id}
         else
             return {action = "move_towards", target_id = player.id}
@@ -262,20 +262,20 @@ React to damage and health changes:
 
 ```lua
 function update(monster, config)
-    local player = brogue.get_player()
+    local player = veinborn.get_player()
     if not player then return {action = "wander"} end
 
     local hp_ratio = monster.hp / monster.max_hp
-    local distance = brogue.ai.distance_to(monster.id, player.id)
+    local distance = veinborn.ai.distance_to(monster.id, player.id)
 
     -- Critical HP - flee
     if hp_ratio < 0.2 then
-        brogue.add_message(monster.name .. " looks desperate!")
+        veinborn.add_message(monster.name .. " looks desperate!")
         return {action = "flee_from", target_id = player.id}
 
     -- Low HP - defensive
     elseif hp_ratio < 0.5 then
-        if brogue.ai.is_adjacent(monster.id, player.id) then
+        if veinborn.ai.is_adjacent(monster.id, player.id) then
             return {action = "attack", target_id = player.id}
         else
             return {action = "flee_from", target_id = player.id}
@@ -283,7 +283,7 @@ function update(monster, config)
 
     -- Healthy - aggressive
     else
-        if brogue.ai.is_adjacent(monster.id, player.id) then
+        if veinborn.ai.is_adjacent(monster.id, player.id) then
             return {action = "attack", target_id = player.id}
         elseif distance <= 10 then
             return {action = "move_towards", target_id = player.id}
@@ -300,27 +300,27 @@ Track abilities with turn counters:
 
 ```lua
 function update(monster, config)
-    local player = brogue.get_player()
+    local player = veinborn.get_player()
     if not player then return {action = "wander"} end
 
-    local current_turn = brogue.get_turn_count()
+    local current_turn = veinborn.get_turn_count()
     local last_ability = monster.stats.last_ability_turn or 0
     local cooldown = config.ability_cooldown or 5
 
     -- Check if ability is off cooldown
     if (current_turn - last_ability) >= cooldown then
-        local distance = brogue.ai.distance_to(monster.id, player.id)
+        local distance = veinborn.ai.distance_to(monster.id, player.id)
 
         if distance <= config.ability_range then
             -- Use ability
-            brogue.modify_stat(monster.id, "last_ability_turn", current_turn)
-            brogue.add_message(monster.name .. " uses special ability!")
+            veinborn.modify_stat(monster.id, "last_ability_turn", current_turn)
+            veinborn.add_message(monster.name .. " uses special ability!")
             return {action = "idle"}  -- Ability turn
         end
     end
 
     -- Normal behavior when ability on cooldown
-    if brogue.ai.is_adjacent(monster.id, player.id) then
+    if veinborn.ai.is_adjacent(monster.id, player.id) then
         return {action = "attack", target_id = player.id}
     else
         return {action = "move_towards", target_id = player.id}
@@ -340,9 +340,9 @@ Store data in monster stats that persists across turns:
 function update(monster, config)
     -- Initialize on first update
     if not monster.stats.initialized then
-        brogue.modify_stat(monster.id, "patrol_x", monster.x)
-        brogue.modify_stat(monster.id, "patrol_y", monster.y)
-        brogue.modify_stat(monster.id, "initialized", true)
+        veinborn.modify_stat(monster.id, "patrol_x", monster.x)
+        veinborn.modify_stat(monster.id, "patrol_y", monster.y)
+        veinborn.modify_stat(monster.id, "initialized", true)
     end
 
     -- Access later
@@ -359,11 +359,11 @@ Query nearby allies for pack tactics:
 
 ```lua
 function update(monster, config)
-    local player = brogue.get_player()
+    local player = veinborn.get_player()
     if not player then return {action = "wander"} end
 
     -- Count nearby allies
-    local allies = brogue.get_entities_in_range(monster.x, monster.y, 5)
+    local allies = veinborn.get_entities_in_range(monster.x, monster.y, 5)
     local ally_count = 0
 
     for i = 1, #allies do
@@ -375,7 +375,7 @@ function update(monster, config)
     -- Use pack tactics if allies nearby
     if ally_count >= 2 then
         -- Aggressive with backup
-        if brogue.ai.is_adjacent(monster.id, player.id) then
+        if veinborn.ai.is_adjacent(monster.id, player.id) then
             return {action = "attack", target_id = player.id}
         else
             return {action = "move_towards", target_id = player.id}
@@ -398,19 +398,19 @@ Provide feedback based on AI state:
 
 ```lua
 function update(monster, config)
-    local player = brogue.get_player()
+    local player = veinborn.get_player()
     local hp_ratio = monster.hp / monster.max_hp
 
     -- First-time enrage message
     if hp_ratio < 0.3 and not monster.stats.enraged then
-        brogue.modify_stat(monster.id, "enraged", true)
-        brogue.add_message(monster.name .. " becomes enraged!")
+        veinborn.modify_stat(monster.id, "enraged", true)
+        veinborn.add_message(monster.name .. " becomes enraged!")
     end
 
     -- Victory taunt when player hurt
     if player.hp < player.max_hp * 0.3 and not monster.stats.taunted then
-        brogue.modify_stat(monster.id, "taunted", true)
-        brogue.add_message(monster.name .. " senses victory!")
+        veinborn.modify_stat(monster.id, "taunted", true)
+        veinborn.add_message(monster.name .. " senses victory!")
     end
 
     -- AI logic...
@@ -472,12 +472,12 @@ Add debug messages to your Lua code:
 
 ```lua
 function update(monster, config)
-    brogue.add_message("DEBUG: Monster at " .. monster.x .. "," .. monster.y)
+    veinborn.add_message("DEBUG: Monster at " .. monster.x .. "," .. monster.y)
 
-    local player = brogue.get_player()
-    local distance = brogue.ai.distance_to(monster.id, player.id)
+    local player = veinborn.get_player()
+    local distance = veinborn.ai.distance_to(monster.id, player.id)
 
-    brogue.add_message("DEBUG: Distance to player: " .. distance)
+    veinborn.add_message("DEBUG: Distance to player: " .. distance)
 
     -- AI logic...
 end
@@ -499,7 +499,7 @@ monster.x = 20
 
 ```lua
 -- GOOD
-brogue.modify_stat(monster.id, "hp", -10)
+veinborn.modify_stat(monster.id, "hp", -10)
 -- Movement handled by action descriptors
 ```
 
@@ -521,19 +521,19 @@ return {action = "attack", target_id = player.id}
 
 ```lua
 -- BAD - player might be nil
-local player = brogue.get_player()
-local distance = brogue.ai.distance_to(monster.id, player.id)  -- Crash!
+local player = veinborn.get_player()
+local distance = veinborn.ai.distance_to(monster.id, player.id)  -- Crash!
 ```
 
 ### ✅ Always Check Nil
 
 ```lua
 -- GOOD
-local player = brogue.get_player()
+local player = veinborn.get_player()
 if not player or not player.is_alive then
     return {action = "wander"}
 end
-local distance = brogue.ai.distance_to(monster.id, player.id)
+local distance = veinborn.ai.distance_to(monster.id, player.id)
 ```
 
 ### ❌ Don't Forget Return Statement
@@ -541,7 +541,7 @@ local distance = brogue.ai.distance_to(monster.id, player.id)
 ```lua
 -- BAD - no return
 function update(monster, config)
-    local player = brogue.get_player()
+    local player = veinborn.get_player()
     -- logic but no return!
 end
 ```
@@ -611,7 +611,7 @@ Begin with a simple behavior:
 
 2. **Test incrementally:** Test each feature as you add it
 
-3. **Use messages for debugging:** `brogue.add_message()` is your friend
+3. **Use messages for debugging:** `veinborn.add_message()` is your friend
 
 4. **Keep it simple:** Complex AI can be hard to debug
 

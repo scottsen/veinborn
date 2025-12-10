@@ -1,4 +1,4 @@
-# Brogue Randomness, Replayability & Seeding Analysis
+# Veinborn Randomness, Replayability & Seeding Analysis
 
 **Date**: 2025-10-25
 **Session**: lightning-sage-1025
@@ -134,7 +134,7 @@ Friend: "Sad face"
 **Scenario:**
 ```
 Tournament: "Everyone play seed 12345"
-Brogue: "I don't have seeds"
+Veinborn: "I don't have seeds"
 Tournament: "...nevermind then"
 ```
 
@@ -159,7 +159,7 @@ def test_floor_5_is_hard():
 **Scenario:**
 ```
 Speedrunner: "I want to practice seed 'good_start' 100 times"
-Brogue: "Every run is different"
+Veinborn: "Every run is different"
 Speedrunner: "How do I optimize routing?"
 ```
 

@@ -202,7 +202,7 @@ class Game:
             self.context.add_entity(forge)
 
         # Initial message
-        self.state.add_message("Welcome to Brogue! Mine ore and craft weapons.")
+        self.state.add_message("Welcome to Veinborn! Mine ore and craft weapons.")
         self.state.add_message("Use arrow keys or HJKL to move. Bump into monsters to attack.")
         if forges:
             self.state.add_message(f"Find the {forges[0].name} to craft equipment!")

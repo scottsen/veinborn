@@ -248,7 +248,7 @@ veinborn/
 ├── docs/
 │   ├── START_HERE.md       # 👈 Start here!
 │   ├── MVP_ROADMAP.md      # What to build
-│   ├── BROGUE_CONSOLIDATED_DESIGN.md  # Master design
+│   ├── VEINBORN_CONSOLIDATED_DESIGN.md  # Master design
 │   ├── development/        # Testing, debugging, dev guides
 │   ├── architecture/       # Architecture & technical design
 │   ├── systems/            # System-specific docs

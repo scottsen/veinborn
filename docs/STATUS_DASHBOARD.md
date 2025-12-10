@@ -1,4 +1,4 @@
-# Brogue Status Dashboard 🎯
+# Veinborn Status Dashboard 🎯
 
 **Last Updated:** 2025-11-14
 **Quick View:** One-page status overview
@@ -129,9 +129,9 @@ Documentation:     Updated        ███████████████�
 
 ### Single-Player
 ```bash
-./brogue              # Normal mode
-./brogue --debug      # Debug logging
-./brogue --safe       # Terminal reset on crash
+./veinborn              # Normal mode
+./veinborn --debug      # Debug logging
+./veinborn --safe       # Terminal reset on crash
 ```
 
 ### Multiplayer (NEW!)
@@ -201,7 +201,7 @@ python3 src/server/test_client.py
 **Want to help? Start here:**
 
 1. **Read this dashboard** (you're doing it!)
-2. **Play the game** - `./brogue`
+2. **Play the game** - `./veinborn`
 3. **Pick a priority** from "Top 3 Priorities" above
 4. **Read the relevant doc** from "Key Documentation"
 5. **Start coding!**
@@ -218,7 +218,7 @@ python3 src/server/test_client.py
 
 - **Comprehensive status:** [PROJECT_STATUS.md](PROJECT_STATUS.md)
 - **Current work:** [MVP_CURRENT_FOCUS.md](MVP_CURRENT_FOCUS.md)
-- **Game design:** [BROGUE_CONSOLIDATED_DESIGN.md](BROGUE_CONSOLIDATED_DESIGN.md)
+- **Game design:** [VEINBORN_CONSOLIDATED_DESIGN.md](VEINBORN_CONSOLIDATED_DESIGN.md)
 - **Architecture:** [architecture/00_ARCHITECTURE_OVERVIEW.md](architecture/00_ARCHITECTURE_OVERVIEW.md)
 - **Full doc map:** [INDEX.md](INDEX.md)
 

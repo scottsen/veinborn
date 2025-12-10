@@ -12,7 +12,7 @@ except ImportError:
 
 from server.messages import Message
 
-logger = logging.getLogger('brogue.multiplayer_client')
+logger = logging.getLogger('veinborn.multiplayer_client')
 
 
 @dataclass
@@ -35,7 +35,7 @@ class MultiplayerState:
 
 
 class MultiplayerClient:
-    """Client for connecting to Brogue multiplayer server."""
+    """Client for connecting to Veinborn multiplayer server."""
 
     def __init__(self, host: str = "localhost", port: int = 8765):
         """Initialize the multiplayer client.

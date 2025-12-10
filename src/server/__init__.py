@@ -1,6 +1,6 @@
-"""Brogue Multiplayer Server
+"""Veinborn Multiplayer Server
 
-WebSocket-based multiplayer server for Brogue.
+WebSocket-based multiplayer server for Veinborn.
 Handles authentication, game sessions, and state synchronization.
 """
 

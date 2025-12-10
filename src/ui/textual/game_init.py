@@ -1,11 +1,11 @@
-"""Game initialization utilities for Brogue."""
+"""Game initialization utilities for Veinborn."""
 import logging
 from pathlib import Path
 
 
 def setup_logging(log_dir: Path = None):
     """
-    Configure logging for Brogue MVP.
+    Configure logging for Veinborn MVP.
 
     Args:
         log_dir: Directory for log files. If None, uses ./logs relative to cwd
@@ -21,11 +21,11 @@ def setup_logging(log_dir: Path = None):
         level=logging.INFO,  # INFO for normal, DEBUG for development
         format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
         handlers=[
-            logging.FileHandler(log_dir / 'brogue.log'),
+            logging.FileHandler(log_dir / 'veinborn.log'),
             logging.StreamHandler()  # Also print to console
         ]
     )
 
     logger = logging.getLogger(__name__)
-    logger.info("Brogue logging initialized")
-    logger.info(f"Log file: {log_dir / 'brogue.log'}")
+    logger.info("Veinborn logging initialized")
+    logger.info(f"Log file: {log_dir / 'veinborn.log'}")

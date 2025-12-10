@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Safe runner for Brogue with terminal cleanup on errors.
+Safe runner for Veinborn with terminal cleanup on errors.
 Use this if you're having terminal compatibility issues.
 """
 import sys
@@ -16,7 +16,7 @@ def main():
     try:
         from ui.textual.app import run_game
 
-        print("Starting Brogue with Textual UI...")
+        print("Starting Veinborn with Textual UI...")
         print("Controls: Arrow keys or HJKL to move, YUBN for diagonal")
         print("Press R to restart, Q to quit")
         print()

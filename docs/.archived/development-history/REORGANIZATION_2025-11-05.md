@@ -116,7 +116,7 @@ docs/               # Current MVP documentation only (36 files)
 - Modern PEP 621 project metadata
 - Consolidated dependencies from requirements.txt
 - Development dependencies in `[project.optional-dependencies]`
-- Entry point: `brogue` command
+- Entry point: `veinborn` command
 - pytest configuration (moved from pytest.ini)
 - Coverage configuration
 - Proper package metadata (version, authors, classifiers)
@@ -236,7 +236,7 @@ from ui.style_registry import ORE_STYLES
 **After:**
 ```python
 # Display system replaced by Textual (see src/ui/textual/app.py)
-from ui.textual.app import BrogueApp, run_game
+from ui.textual.app import VeinbornApp, run_game
 
 # Styles now in map_widget
 from ui.textual.widgets.map_widget import ORE_STYLES, TERRAIN_STYLES

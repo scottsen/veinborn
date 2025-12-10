@@ -1,4 +1,4 @@
-# Brogue Architecture Decision Records
+# Veinborn Architecture Decision Records
 
 **Last Updated**: 2025-10-23
 **Purpose**: Track major architectural decisions, their rationale, and current status
@@ -187,7 +187,7 @@
 - JetStream for persistence
 - No Zookeeper dependency (vs Kafka)
 
-**Docs**: `docs/future-multiplayer/BROGUE_NATS_INFRASTRUCTURE.md`, `docs/future-multiplayer/MESSAGING_ARCHITECTURE.md`
+**Docs**: `docs/future-multiplayer/VEINBORN_NATS_INFRASTRUCTURE.md`, `docs/future-multiplayer/MESSAGING_ARCHITECTURE.md`
 **Impact**: Scalable, reliable messaging layer
 
 ---
@@ -202,7 +202,7 @@
 - Replay support (server logs all actions)
 - Easier testing (deterministic state)
 
-**Docs**: `docs/future-multiplayer/BROGUE_SERVER_ARCHITECTURE.md`, `docs/future-multiplayer/BROGUE_MICROSERVICE_ARCHITECTURE.md`
+**Docs**: `docs/future-multiplayer/VEINBORN_SERVER_ARCHITECTURE.md`, `docs/future-multiplayer/VEINBORN_MICROSERVICE_ARCHITECTURE.md`
 **Impact**: Secure, flexible architecture
 
 ---
@@ -217,7 +217,7 @@
 - asyncpg performance (3x psycopg2)
 - Better tooling/monitoring
 
-**Docs**: `docs/future-multiplayer/BROGUE_MICROSERVICE_ARCHITECTURE.md`
+**Docs**: `docs/future-multiplayer/VEINBORN_MICROSERVICE_ARCHITECTURE.md`
 **Impact**: Reliable, performant persistence
 
 ---
@@ -232,7 +232,7 @@
 - Settings from env vars (12-factor)
 - Better error messages
 
-**Docs**: `docs/future-multiplayer/MESSAGING_ARCHITECTURE.md`, `docs/future-multiplayer/BROGUE_MESSAGE_TAXONOMY.md`
+**Docs**: `docs/future-multiplayer/MESSAGING_ARCHITECTURE.md`, `docs/future-multiplayer/VEINBORN_MESSAGE_TAXONOMY.md`
 **Impact**: Type-safe messaging, better debugging
 
 ---
@@ -247,7 +247,7 @@
 - No griefing (invite-only)
 - Personal loot (no competition)
 
-**Docs**: `docs/future-multiplayer/BROGUE_MUD_AND_INSTANCES.md`
+**Docs**: `docs/future-multiplayer/VEINBORN_MUD_AND_INSTANCES.md`
 **Impact**: Faster development, better player experience
 
 ---
@@ -262,7 +262,7 @@
 - Competitive gameplay (race to kill)
 - Specialist gameplay (rogue scouts 4 moves)
 
-**Docs**: `docs/future-multiplayer/BROGUE_TURN_SYSTEM.md`
+**Docs**: `docs/future-multiplayer/VEINBORN_TURN_SYSTEM.md`
 **Impact**: Unique, compelling multiplayer mechanics
 
 ---
@@ -277,7 +277,7 @@
 - Good Python support (websockets library)
 - Industry standard
 
-**Docs**: `docs/future-multiplayer/BROGUE_MICROSERVICE_ARCHITECTURE.md`
+**Docs**: `docs/future-multiplayer/VEINBORN_MICROSERVICE_ARCHITECTURE.md`
 **Impact**: Web client support, real-time gameplay
 
 ---
@@ -299,7 +299,7 @@
 **Status**: ❌ Rejected
 **Decision**: Use 5 properties, not 12
 **Rationale**: Simpler, easier to balance, still interesting
-**Docs**: `docs/BROGUE_CONSOLIDATED_DESIGN.md`
+**Docs**: `docs/VEINBORN_CONSOLIDATED_DESIGN.md`
 **Why Rejected**: Over-engineered, hard to balance, diminishing returns
 
 ---
@@ -309,7 +309,7 @@
 **Status**: ❌ Rejected
 **Decision**: Use Diablo instances, not shared MMO world
 **Rationale**: Development cost, loot competition, griefing concerns
-**Docs**: `docs/future-multiplayer/BROGUE_MUD_AND_INSTANCES.md`
+**Docs**: `docs/future-multiplayer/VEINBORN_MUD_AND_INSTANCES.md`
 **Why Rejected**: Too expensive, too complex, worse player experience
 
 ---

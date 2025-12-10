@@ -65,7 +65,7 @@ signal.signal(signal.SIGINT, _signal_handler)
 signal.signal(signal.SIGTERM, _signal_handler)
 
 
-class BrogueApp(App):
+class VeinbornApp(App):
     """Textual-based Veinborn game application."""
 
     # CSS_PATH = "styles/veinborn.tcss"  # Disabled for now, using widget DEFAULT_CSS
@@ -109,11 +109,11 @@ class BrogueApp(App):
         Binding("q", "quit", "Quit", show=True),
     ]
 
-    TITLE = "Brogue: Walking in Big Brother's Footsteps"
+    TITLE = "Veinborn: Walking in Big Brother's Footsteps"
 
     def __init__(self, player_name=None, character_class=None, seed=None, withdrawn_ore=None, is_legacy_run=False, multiplayer_client=None):
         """
-        Initialize Brogue app.
+        Initialize Veinborn app.
 
         Args:
             player_name: Player name (for high scores)
@@ -123,7 +123,7 @@ class BrogueApp(App):
             is_legacy_run: Whether this is a legacy run (used vault ore)
             multiplayer_client: Optional MultiplayerClient for multiplayer games
         """
-        logger.info("BrogueApp.__init__() starting")
+        logger.info("VeinbornApp.__init__() starting")
         super().__init__()
         logger.info("  Creating Game instance...")
         self.game = Game()
@@ -145,7 +145,7 @@ class BrogueApp(App):
         self.sidebar = None
         self.message_log = None
         self.chat_input = None
-        logger.info("BrogueApp.__init__() complete")
+        logger.info("VeinbornApp.__init__() complete")
 
     def compose(self) -> ComposeResult:
         """Compose the application layout."""
@@ -354,7 +354,7 @@ class BrogueApp(App):
 
 def run_game(player_name=None, character_class=None, seed=None, withdrawn_ore=None, is_legacy_run=False):
     """
-    Run the Brogue game.
+    Run the Veinborn game.
 
     Args:
         player_name: Player name (for high scores)
@@ -364,7 +364,7 @@ def run_game(player_name=None, character_class=None, seed=None, withdrawn_ore=No
         is_legacy_run: Whether this is a legacy run (used vault ore)
     """
     logger.info(f"run_game() called (player={player_name}, class={character_class}, seed={seed}, legacy={is_legacy_run})")
-    app = BrogueApp(player_name=player_name, character_class=character_class, seed=seed,
+    app = VeinbornApp(player_name=player_name, character_class=character_class, seed=seed,
                     withdrawn_ore=withdrawn_ore, is_legacy_run=is_legacy_run)
     logger.info("Calling app.run()...")
 
@@ -377,7 +377,7 @@ def run_game(player_name=None, character_class=None, seed=None, withdrawn_ore=No
 
 
 def main():
-    """Entry point for pip-installed brogue command."""
+    """Entry point for pip-installed veinborn command."""
     run_game()
 
 

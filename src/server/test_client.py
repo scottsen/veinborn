@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Simple test client for the Brogue multiplayer server.
+"""Simple test client for the Veinborn multiplayer server.
 
 This is a basic command-line client to test server connectivity and functionality.
 """
@@ -374,7 +374,7 @@ async def async_main():
     """Async main entry point."""
     import argparse
 
-    parser = argparse.ArgumentParser(description="Brogue multiplayer test client")
+    parser = argparse.ArgumentParser(description="Veinborn multiplayer test client")
     parser.add_argument(
         "--host", default="localhost", help="Server host (default: localhost)"
     )
@@ -408,7 +408,7 @@ async def async_main():
 
 
 def main():
-    """Entry point for pip-installed brogue-test-client command."""
+    """Entry point for pip-installed veinborn-test-client command."""
     try:
         exit_code = asyncio.run(async_main())
         sys.exit(exit_code)

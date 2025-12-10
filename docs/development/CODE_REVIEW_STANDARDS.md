@@ -1,4 +1,4 @@
-# Brogue Code Review Standards
+# Veinborn Code Review Standards
 
 **Document Type:** Code Review Reference
 **Audience:** Code reviewers, developers
@@ -32,7 +32,7 @@ Use this during code reviews to ensure consistency with project standards.
 - [ ] **Complex logic** documented inline
 
 ### ✅ Error Handling
-- [ ] **Uses exception hierarchy** (BrogueError subclasses)
+- [ ] **Uses exception hierarchy** (VeinbornError subclasses)
 - [ ] **No bare except** clauses
 - [ ] **Specific exceptions** (InvalidActionError, not generic Exception)
 - [ ] **Proper error messages** with context
@@ -70,33 +70,33 @@ tia ast scanner audit src
 tia ast scanner info dangerous
 ```
 
-### 🎮 Brogue-Specific Scanners
+### 🎮 Veinborn-Specific Scanners
 
-Brogue has **5 custom scanners** designed specifically for this project's needs:
+Veinborn has **5 custom scanners** designed specifically for this project's needs:
 
 ```bash
 # Check CODE_REVIEW_STANDARDS.md compliance
-tia ast scan --scanner brogue-standards src/
+tia ast scan --scanner veinborn-standards src/
 
 # Validate Action pattern compliance
-tia ast scan --scanner brogue-action-validator src/
+tia ast scan --scanner veinborn-action-validator src/
 
 # Find duplicate actor lookup patterns
-tia ast scan --scanner brogue-actor-lookup src/
+tia ast scan --scanner veinborn-actor-lookup src/
 
 # Detect hardcoded game balance values
-tia ast scan --scanner brogue-magic-numbers src/
+tia ast scan --scanner veinborn-magic-numbers src/
 
 # Verify Phase 3 factory migration
-tia ast scan --scanner brogue-deprecated-factory src/
+tia ast scan --scanner veinborn-deprecated-factory src/
 ```
 
 **What They Check:**
-- ✅ **brogue-standards**: Function length, complexity, type hints, docstrings, exception hierarchy
-- ✅ **brogue-action-validator**: Action class patterns, proper validation methods, ActionOutcome returns
-- ✅ **brogue-actor-lookup**: Duplicate `game_state.entities.get()` patterns (should use helpers)
-- ✅ **brogue-magic-numbers**: Hardcoded values that should be in YAML configs
-- ✅ **brogue-deprecated-factory**: Old factory patterns that should use new architecture
+- ✅ **veinborn-standards**: Function length, complexity, type hints, docstrings, exception hierarchy
+- ✅ **veinborn-action-validator**: Action class patterns, proper validation methods, ActionOutcome returns
+- ✅ **veinborn-actor-lookup**: Duplicate `game_state.entities.get()` patterns (should use helpers)
+- ✅ **veinborn-magic-numbers**: Hardcoded values that should be in YAML configs
+- ✅ **veinborn-deprecated-factory**: Old factory patterns that should use new architecture
 
 **💡 Creating Custom Scanners is Easy!**
 These 5 scanners were created in ~2 hours total. Each scanner:
@@ -112,8 +112,8 @@ Want to enforce YOUR project patterns? See [TIA's Custom Scanner Guide](https://
 - **Complexity**: `tia ast scanner run complexity src --complex-only`
 - **Functions**: `tia ast functions src --complex-only`
 - **Dependencies**: `tia ast dependencies src --circular-only`
-- **Brogue Standards**: `tia ast scan --scanner brogue-standards src/`
-- **Brogue Actions**: `tia ast scan --scanner brogue-action-validator src/core/actions`
+- **Veinborn Standards**: `tia ast scan --scanner veinborn-standards src/`
+- **Veinborn Actions**: `tia ast scan --scanner veinborn-action-validator src/core/actions`
 
 See [Tools](#tools) section below for complete command reference.
 
@@ -419,7 +419,7 @@ def calculate_damage(attacker, defender):
 Use the project exception hierarchy defined in `src/core/exceptions.py`:
 
 ```python
-BrogueError (base)
+VeinbornError (base)
 ├── GameError (recoverable game logic)
 │   ├── InvalidActionError
 │   └── InvalidStateError
@@ -861,10 +861,10 @@ tia ast scanner run metrics src/core/game.py
 # Get detailed info about a scanner
 tia ast scanner info dangerous
 
-# Brogue-specific scanners
-tia ast scan --scanner brogue-standards src/                    # CODE_REVIEW_STANDARDS.md compliance
-tia ast scan --scanner brogue-action-validator src/core/actions # Action pattern validation
-tia ast scan --scanner brogue-magic-numbers src/                # Hardcoded values detection
+# Veinborn-specific scanners
+tia ast scan --scanner veinborn-standards src/                    # CODE_REVIEW_STANDARDS.md compliance
+tia ast scan --scanner veinborn-action-validator src/core/actions # Action pattern validation
+tia ast scan --scanner veinborn-magic-numbers src/                # Hardcoded values detection
 ```
 
 ### Manual Checks

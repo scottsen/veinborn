@@ -1,4 +1,4 @@
-# Brogue Architecture Documentation
+# Veinborn Architecture Documentation
 
 **Last Updated:** 2025-10-24
 **Current Phase:** MVP (Single-Player)
@@ -7,7 +7,7 @@
 
 ## ⚠️ IMPORTANT: MVP Architecture (Not Phase 2)
 
-**This directory contains architecture docs for Brogue MVP (single-player).**
+**This directory contains architecture docs for Veinborn MVP (single-player).**
 
 **What's here:**
 - ✅ MVP architecture (simple Python game loop)
@@ -193,8 +193,8 @@ These docs were moved because they're for Phase 2 (multiplayer):
 | Need | Document | When |
 |------|----------|------|
 | Multiplayer architecture | `/docs/future-multiplayer/` | After MVP complete |
-| NATS setup | `/docs/future-multiplayer/BROGUE_NATS_INFRASTRUCTURE.md` | Phase 2 only |
-| Microservices | `/docs/future-multiplayer/BROGUE_MICROSERVICE_ARCHITECTURE.md` | Phase 2 only |
+| NATS setup | `/docs/future-multiplayer/VEINBORN_NATS_INFRASTRUCTURE.md` | Phase 2 only |
+| Microservices | `/docs/future-multiplayer/VEINBORN_MICROSERVICE_ARCHITECTURE.md` | Phase 2 only |
 
 ---
 

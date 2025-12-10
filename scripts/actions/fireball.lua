@@ -26,11 +26,11 @@ local BASE_DAMAGE = 15
 
 -- Validate if fireball can be cast
 function validate(actor_id, params)
-    local player = brogue.get_player()
+    local player = veinborn.get_player()
 
     -- Check if target coordinates provided
     if not params.x or not params.y then
-        brogue.add_message("Fireball requires target coordinates!")
+        veinborn.add_message("Fireball requires target coordinates!")
         return false
     end
 
@@ -40,7 +40,7 @@ function validate(actor_id, params)
     -- Check if player has enough mana
     local current_mana = player.stats.mana or 0
     if current_mana < MANA_COST then
-        brogue.add_message("Not enough mana for Fireball! (Need " .. MANA_COST .. ", have " .. current_mana .. ")")
+        veinborn.add_message("Not enough mana for Fireball! (Need " .. MANA_COST .. ", have " .. current_mana .. ")")
         return false
     end
 
@@ -50,13 +50,13 @@ function validate(actor_id, params)
     local dist = math.sqrt(dx * dx + dy * dy)
 
     if dist > RANGE then
-        brogue.add_message("Target too far away! (Range: " .. RANGE .. ")")
+        veinborn.add_message("Target too far away! (Range: " .. RANGE .. ")")
         return false
     end
 
     -- Check if target is in bounds
-    if not brogue.in_bounds(target_x, target_y) then
-        brogue.add_message("Target out of bounds!")
+    if not veinborn.in_bounds(target_x, target_y) then
+        veinborn.add_message("Target out of bounds!")
         return false
     end
 
@@ -65,18 +65,18 @@ end
 
 -- Execute fireball spell
 function execute(actor_id, params)
-    local player = brogue.get_player()
+    local player = veinborn.get_player()
     local target_x = params.x
     local target_y = params.y
 
     -- Deduct mana cost
-    brogue.modify_stat(actor_id, "mana", -MANA_COST)
+    veinborn.modify_stat(actor_id, "mana", -MANA_COST)
 
     -- Visual effect message
-    brogue.add_message("A blazing fireball erupts at (" .. target_x .. ", " .. target_y .. ")!")
+    veinborn.add_message("A blazing fireball erupts at (" .. target_x .. ", " .. target_y .. ")!")
 
     -- Get all entities in AOE
-    local targets = brogue.get_entities_in_range(target_x, target_y, AOE_RADIUS)
+    local targets = veinborn.get_entities_in_range(target_x, target_y, AOE_RADIUS)
 
     local events = {}
     local hit_count = 0
@@ -92,7 +92,7 @@ function execute(actor_id, params)
             local damage = BASE_DAMAGE
 
             -- Deal damage
-            brogue.modify_stat(target.id, "hp", -damage)
+            veinborn.modify_stat(target.id, "hp", -damage)
 
             -- Create damage event
             table.insert(events, {
@@ -104,14 +104,14 @@ function execute(actor_id, params)
             })
 
             -- Combat message
-            brogue.add_message("  " .. target.name .. " takes " .. damage .. " fire damage!")
+            veinborn.add_message("  " .. target.name .. " takes " .. damage .. " fire damage!")
 
             hit_count = hit_count + 1
             total_damage = total_damage + damage
 
             -- Check if target died
-            if not brogue.is_alive(target.id) then
-                brogue.add_message("  " .. target.name .. " is incinerated!")
+            if not veinborn.is_alive(target.id) then
+                veinborn.add_message("  " .. target.name .. " is incinerated!")
                 table.insert(events, {
                     type = "death",
                     source = "fireball",
@@ -124,9 +124,9 @@ function execute(actor_id, params)
 
     -- Summary message
     if hit_count > 0 then
-        brogue.add_message("Fireball hit " .. hit_count .. " enemies for " .. total_damage .. " total damage!")
+        veinborn.add_message("Fireball hit " .. hit_count .. " enemies for " .. total_damage .. " total damage!")
     else
-        brogue.add_message("The fireball explodes harmlessly.")
+        veinborn.add_message("The fireball explodes harmlessly.")
     end
 
     -- Create spell cast event
@@ -144,7 +144,7 @@ function execute(actor_id, params)
     return {
         success = true,
         took_turn = true,
-        messages = {},  -- Messages already added via brogue.add_message()
+        messages = {},  -- Messages already added via veinborn.add_message()
         events = events
     }
 end

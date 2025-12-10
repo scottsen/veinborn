@@ -51,7 +51,7 @@ class VeinbornServer:
                 "Install with: pip install websockets"
             )
 
-        logger.info(f"Starting Brogue multiplayer server on {self.host}:{self.port}")
+        logger.info(f"Starting Veinborn multiplayer server on {self.host}:{self.port}")
 
         self.is_running = True
         self.server = await websockets.serve(
@@ -644,7 +644,7 @@ async def main():
         format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
     )
 
-    server = BrogueServer()
+    server = VeinbornServer()
     await server.start()
 
     try:
@@ -661,14 +661,14 @@ async def main():
 import warnings
 
 
-class BrogueServer(VeinbornServer):
+class VeinbornServer(VeinbornServer):
     """Deprecated: Use VeinbornServer instead.
 
     This alias is provided for backward compatibility and will be removed in v0.5.0.
     """
     def __init__(self, *args, **kwargs):
         warnings.warn(
-            "BrogueServer is deprecated, use VeinbornServer instead. "
+            "VeinbornServer is deprecated, use VeinbornServer instead. "
             "This alias will be removed in v0.5.0.",
             DeprecationWarning,
             stacklevel=2

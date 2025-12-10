@@ -1,8 +1,8 @@
-# Brogue Base Class Architecture
+# Veinborn Base Class Architecture
 
 **Session**: bamizogi-1023
 **Date**: 2025-10-23
-**Purpose**: Define foundational base classes for Brogue that support MVP, Lua scripting, and multiplayer
+**Purpose**: Define foundational base classes for Veinborn that support MVP, Lua scripting, and multiplayer
 
 ---
 

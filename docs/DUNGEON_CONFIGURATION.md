@@ -1,10 +1,10 @@
 # Dungeon Generation Configuration Guide
 
-This guide explains how to customize dungeon layouts in Brogue using the `data/balance/dungeon_generation.yaml` configuration file.
+This guide explains how to customize dungeon layouts in Veinborn using the `data/balance/dungeon_generation.yaml` configuration file.
 
 ## Overview
 
-Brogue uses a Binary Space Partitioning (BSP) algorithm to generate dungeons. The configuration file allows you to control:
+Veinborn uses a Binary Space Partitioning (BSP) algorithm to generate dungeons. The configuration file allows you to control:
 
 - **BSP Algorithm**: How the dungeon space is divided into regions
 - **Room Parameters**: Size and placement of rooms
@@ -220,4 +220,4 @@ Potential additions to the system:
 **Version**: 1.0.0
 **Last Updated**: 2025-11-06
 **Related PR**: Dungeon Generation Configuration
-**Author**: Brogue Development Team
+**Author**: Veinborn Development Team
