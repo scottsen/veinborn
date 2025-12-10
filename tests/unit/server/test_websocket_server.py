@@ -14,7 +14,7 @@ import pytest
 import asyncio
 import json
 from unittest.mock import AsyncMock, Mock, patch, MagicMock
-from server.websocket_server import BrogueServer
+from server.websocket_server import VeinbornServer
 from server.messages import Message, MessageType
 from server.auth import AuthManager, Session
 from server.game_session import GameSessionManager, GameSession
@@ -29,7 +29,7 @@ pytestmark = pytest.mark.unit
 
 def test_server_initialization_default():
     """Test server initializes with default settings."""
-    server = BrogueServer()
+    server = VeinbornServer()
 
     assert server.host is not None
     assert server.port is not None
@@ -42,7 +42,7 @@ def test_server_initialization_default():
 
 def test_server_initialization_custom():
     """Test server initializes with custom host and port."""
-    server = BrogueServer(host="0.0.0.0", port=9999)
+    server = VeinbornServer(host="0.0.0.0", port=9999)
 
     assert server.host == "0.0.0.0"
     assert server.port == 9999
@@ -55,7 +55,7 @@ def test_server_initialization_custom():
 @pytest.mark.asyncio
 async def test_authenticate_connection_success():
     """Test successful connection authentication."""
-    server = BrogueServer()
+    server = VeinbornServer()
     ws = AsyncMock()
 
     # Mock receiving auth message
@@ -71,7 +71,7 @@ async def test_authenticate_connection_success():
 @pytest.mark.asyncio
 async def test_authenticate_connection_timeout():
     """Test authentication timeout."""
-    server = BrogueServer()
+    server = VeinbornServer()
     ws = AsyncMock()
 
     # Mock timeout
@@ -89,7 +89,7 @@ async def test_authenticate_connection_timeout():
 @pytest.mark.asyncio
 async def test_authenticate_connection_wrong_message_type():
     """Test authentication fails with wrong message type."""
-    server = BrogueServer()
+    server = VeinbornServer()
     ws = AsyncMock()
 
     # Send non-auth message
@@ -104,7 +104,7 @@ async def test_authenticate_connection_wrong_message_type():
 @pytest.mark.asyncio
 async def test_authenticate_connection_invalid_player_name():
     """Test authentication fails with invalid player name."""
-    server = BrogueServer()
+    server = VeinbornServer()
     ws = AsyncMock()
 
     # Send auth with empty player name
@@ -119,7 +119,7 @@ async def test_authenticate_connection_invalid_player_name():
 @pytest.mark.asyncio
 async def test_authenticate_connection_missing_player_name():
     """Test authentication fails with missing player name."""
-    server = BrogueServer()
+    server = VeinbornServer()
     ws = AsyncMock()
 
     # Send auth without player_name field
@@ -134,7 +134,7 @@ async def test_authenticate_connection_missing_player_name():
 @pytest.mark.asyncio
 async def test_authenticate_connection_invalid_json():
     """Test authentication fails with invalid JSON."""
-    server = BrogueServer()
+    server = VeinbornServer()
     ws = AsyncMock()
 
     # Send invalid JSON
@@ -148,7 +148,7 @@ async def test_authenticate_connection_invalid_json():
 @pytest.mark.asyncio
 async def test_authenticate_connection_sends_success_response():
     """Test authentication sends success response."""
-    server = BrogueServer()
+    server = VeinbornServer()
     ws = AsyncMock()
 
     auth_msg = Message.auth("TestPlayer")
@@ -180,7 +180,7 @@ async def test_authenticate_connection_sends_success_response():
 @pytest.mark.asyncio
 async def test_handle_message_updates_activity():
     """Test handle_message updates session activity."""
-    server = BrogueServer()
+    server = VeinbornServer()
 
     # Create session
     token, session = server.auth_manager.create_session("TestPlayer")
@@ -209,7 +209,7 @@ async def test_handle_message_updates_activity():
 @pytest.mark.asyncio
 async def test_handle_message_invalid_session():
     """Test handle_message with invalid session."""
-    server = BrogueServer()
+    server = VeinbornServer()
 
     errors = []
 
@@ -228,7 +228,7 @@ async def test_handle_message_invalid_session():
 @pytest.mark.asyncio
 async def test_handle_message_routes_create_game():
     """Test message routing for create game."""
-    server = BrogueServer()
+    server = VeinbornServer()
     token, session = server.auth_manager.create_session("TestPlayer")
 
     called = []
@@ -247,7 +247,7 @@ async def test_handle_message_routes_create_game():
 @pytest.mark.asyncio
 async def test_handle_message_routes_join_game():
     """Test message routing for join game."""
-    server = BrogueServer()
+    server = VeinbornServer()
     token, session = server.auth_manager.create_session("TestPlayer")
 
     called = []
@@ -266,7 +266,7 @@ async def test_handle_message_routes_join_game():
 @pytest.mark.asyncio
 async def test_handle_message_routes_action():
     """Test message routing for action."""
-    server = BrogueServer()
+    server = VeinbornServer()
     token, session = server.auth_manager.create_session("TestPlayer")
 
     called = []
@@ -285,7 +285,7 @@ async def test_handle_message_routes_action():
 @pytest.mark.asyncio
 async def test_handle_message_unknown_type():
     """Test handling unknown message type."""
-    server = BrogueServer()
+    server = VeinbornServer()
     token, session = server.auth_manager.create_session("TestPlayer")
 
     errors = []
@@ -309,7 +309,7 @@ async def test_handle_message_unknown_type():
 @pytest.mark.asyncio
 async def test_send_message_to_websocket():
     """Test sending message to WebSocket."""
-    server = BrogueServer()
+    server = VeinbornServer()
     ws = AsyncMock()
 
     msg = Message.system("Test message")
@@ -323,7 +323,7 @@ async def test_send_message_to_websocket():
 @pytest.mark.asyncio
 async def test_send_message_to_session():
     """Test sending message to specific session."""
-    server = BrogueServer()
+    server = VeinbornServer()
 
     # Create session and connection
     token, session = server.auth_manager.create_session("TestPlayer")
@@ -339,7 +339,7 @@ async def test_send_message_to_session():
 @pytest.mark.asyncio
 async def test_send_message_to_session_no_connection():
     """Test sending message to session without connection."""
-    server = BrogueServer()
+    server = VeinbornServer()
 
     msg = Message.system("Test")
 
@@ -350,7 +350,7 @@ async def test_send_message_to_session_no_connection():
 @pytest.mark.asyncio
 async def test_send_error_message():
     """Test sending error message."""
-    server = BrogueServer()
+    server = VeinbornServer()
 
     token, session = server.auth_manager.create_session("TestPlayer")
     ws = AsyncMock()
@@ -373,7 +373,7 @@ async def test_send_error_message():
 @pytest.mark.asyncio
 async def test_broadcast_to_game():
     """Test broadcasting message to all players in a game."""
-    server = BrogueServer()
+    server = VeinbornServer()
 
     # Create sessions
     token1, session1 = server.auth_manager.create_session("Player1")
@@ -407,7 +407,7 @@ async def test_broadcast_to_game():
 @pytest.mark.asyncio
 async def test_broadcast_to_nonexistent_game():
     """Test broadcasting to nonexistent game."""
-    server = BrogueServer()
+    server = VeinbornServer()
 
     msg = Message.system("Test")
 
@@ -418,7 +418,7 @@ async def test_broadcast_to_nonexistent_game():
 @pytest.mark.asyncio
 async def test_broadcast_game_state_full():
     """Test broadcasting full game state."""
-    server = BrogueServer()
+    server = VeinbornServer()
 
     # Create game and session
     token, session = server.auth_manager.create_session("Player1")
@@ -443,7 +443,7 @@ async def test_broadcast_game_state_full():
 @pytest.mark.asyncio
 async def test_broadcast_game_state_delta():
     """Test broadcasting delta game state."""
-    server = BrogueServer()
+    server = VeinbornServer()
 
     # Create game
     token, session = server.auth_manager.create_session("Player1")
@@ -471,7 +471,7 @@ async def test_broadcast_game_state_delta():
 @pytest.mark.asyncio
 async def test_disconnect_client_closes_websocket():
     """Test disconnect closes WebSocket connection."""
-    server = BrogueServer()
+    server = VeinbornServer()
 
     token, session = server.auth_manager.create_session("TestPlayer")
     ws = AsyncMock()
@@ -487,7 +487,7 @@ async def test_disconnect_client_closes_websocket():
 @pytest.mark.asyncio
 async def test_disconnect_client_removes_from_tracking():
     """Test disconnect removes client from connection tracking."""
-    server = BrogueServer()
+    server = VeinbornServer()
 
     token, session = server.auth_manager.create_session("TestPlayer")
     ws = AsyncMock()
@@ -504,7 +504,7 @@ async def test_disconnect_client_removes_from_tracking():
 @pytest.mark.asyncio
 async def test_disconnect_nonexistent_client():
     """Test disconnecting nonexistent client."""
-    server = BrogueServer()
+    server = VeinbornServer()
 
     # Should not raise error
     await server.disconnect_client("nonexistent", "Test", preserve_session=False)
@@ -517,7 +517,7 @@ async def test_disconnect_nonexistent_client():
 @pytest.mark.asyncio
 async def test_handle_create_game():
     """Test creating a game."""
-    server = BrogueServer()
+    server = VeinbornServer()
 
     token, session = server.auth_manager.create_session("Player1")
 
@@ -549,7 +549,7 @@ async def test_handle_create_game():
 @pytest.mark.asyncio
 async def test_handle_join_game():
     """Test joining an existing game."""
-    server = BrogueServer()
+    server = VeinbornServer()
 
     # Create game
     game = await server.game_manager.create_game("Test Game", max_players=4)
@@ -583,7 +583,7 @@ async def test_handle_join_game():
 @pytest.mark.asyncio
 async def test_handle_join_game_missing_game_id():
     """Test joining game without providing game_id."""
-    server = BrogueServer()
+    server = VeinbornServer()
 
     token, session = server.auth_manager.create_session("Player1")
 
@@ -604,7 +604,7 @@ async def test_handle_join_game_missing_game_id():
 @pytest.mark.asyncio
 async def test_handle_join_nonexistent_game():
     """Test joining a game that doesn't exist."""
-    server = BrogueServer()
+    server = VeinbornServer()
 
     token, session = server.auth_manager.create_session("Player1")
 
@@ -624,7 +624,7 @@ async def test_handle_join_nonexistent_game():
 @pytest.mark.asyncio
 async def test_handle_leave_game():
     """Test leaving a game."""
-    server = BrogueServer()
+    server = VeinbornServer()
 
     # Create game and add player
     token, session = server.auth_manager.create_session("Player1")
@@ -657,7 +657,7 @@ async def test_handle_leave_game():
 @pytest.mark.asyncio
 async def test_handle_leave_game_not_in_game():
     """Test leaving when not in a game."""
-    server = BrogueServer()
+    server = VeinbornServer()
 
     token, session = server.auth_manager.create_session("Player1")
     session.game_id = None
@@ -683,7 +683,7 @@ async def test_handle_leave_game_not_in_game():
 @pytest.mark.asyncio
 async def test_handle_ready():
     """Test setting player ready status."""
-    server = BrogueServer()
+    server = VeinbornServer()
 
     # Create game with player
     token, session = server.auth_manager.create_session("Player1")
@@ -707,7 +707,7 @@ async def test_handle_ready():
 @pytest.mark.asyncio
 async def test_handle_ready_not_in_game():
     """Test ready status when not in game."""
-    server = BrogueServer()
+    server = VeinbornServer()
 
     token, session = server.auth_manager.create_session("Player1")
     session.game_id = None
@@ -733,7 +733,7 @@ async def test_handle_ready_not_in_game():
 async def test_server_start_requires_websockets():
     """Test server start fails without websockets library."""
     with patch('server.websocket_server.websockets', None):
-        server = BrogueServer()
+        server = VeinbornServer()
 
         with pytest.raises(RuntimeError, match="websockets library not installed"):
             await server.start()
@@ -742,7 +742,7 @@ async def test_server_start_requires_websockets():
 @pytest.mark.asyncio
 async def test_server_stop_closes_connections():
     """Test server stop closes all connections."""
-    server = BrogueServer()
+    server = VeinbornServer()
     server.is_running = True
 
     # Add mock connections

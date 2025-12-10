@@ -43,7 +43,7 @@ class TestConfigManager:
     def test_create_default_config(self):
         """Should create default config file."""
         with tempfile.TemporaryDirectory() as tmpdir:
-            config_path = Path(tmpdir) / "test.broguerc"
+            config_path = Path(tmpdir) / "test.veinbornrc"
             config = ConfigManager()
             config.create_default_config(config_path)
 
@@ -112,7 +112,7 @@ class TestConfigManager:
     def test_save_config(self):
         """Should save config to file."""
         with tempfile.TemporaryDirectory() as tmpdir:
-            config_path = Path(tmpdir) / "test.broguerc"
+            config_path = Path(tmpdir) / "test.veinbornrc"
             config = ConfigManager()
             config.set('player.name', 'Bob')
             config.save(config_path)
@@ -128,7 +128,7 @@ class TestConfigManager:
     def test_env_var_override(self):
         """ENV VARs should override config file values."""
         with tempfile.TemporaryDirectory() as tmpdir:
-            config_path = Path(tmpdir) / "test.broguerc"
+            config_path = Path(tmpdir) / "test.veinbornrc"
 
             # Create config with player.name = "Alice"
             config = ConfigManager()
@@ -138,7 +138,7 @@ class TestConfigManager:
             ConfigManager.reset()
 
             # Set ENV VAR
-            with patch.dict(os.environ, {'BROGUE_PLAYER_NAME': 'Bob'}):
+            with patch.dict(os.environ, {'VEINBORN_PLAYER_NAME': 'Bob'}):
                 with patch.object(ConfigManager, 'CONFIG_PATHS', [config_path]):
                     config2 = ConfigManager()
                     # ENV VAR should override file value
@@ -148,10 +148,10 @@ class TestConfigManager:
         """ENV VAR keys should be properly formatted."""
         config = ConfigManager()
 
-        with patch.dict(os.environ, {'BROGUE_GAME_DEFAULT_SEED': '12345'}):
+        with patch.dict(os.environ, {'VEINBORN_GAME_DEFAULT_SEED': '12345'}):
             assert config.get('game.default_seed') == '12345'
 
-        with patch.dict(os.environ, {'BROGUE_DISPLAY_SHOW_DAMAGE_NUMBERS': 'true'}):
+        with patch.dict(os.environ, {'VEINBORN_DISPLAY_SHOW_DAMAGE_NUMBERS': 'true'}):
             assert config.get_bool('display.show_damage_numbers') is True
 
     def test_multiple_config_paths(self):
@@ -187,9 +187,9 @@ class TestGetPlayerName:
 
     def test_env_var_priority(self):
         """ENV VAR should have highest priority."""
-        with patch.dict(os.environ, {'BROGUE_PLAYER_NAME': 'EnvName'}):
+        with patch.dict(os.environ, {'VEINBORN_PLAYER_NAME': 'EnvName'}):
             with tempfile.TemporaryDirectory() as tmpdir:
-                config_path = Path(tmpdir) / "test.broguerc"
+                config_path = Path(tmpdir) / "test.veinbornrc"
                 config = ConfigManager()
                 config.set('player.name', 'ConfigName')
                 config.save(config_path)
@@ -204,7 +204,7 @@ class TestGetPlayerName:
     def test_config_priority(self):
         """Config file should be second priority."""
         with tempfile.TemporaryDirectory() as tmpdir:
-            config_path = Path(tmpdir) / "test.broguerc"
+            config_path = Path(tmpdir) / "test.veinbornrc"
             config = ConfigManager()
             config.set('player.name', 'ConfigName')
             config.save(config_path)
@@ -279,7 +279,7 @@ class TestConfigIntegration:
     def test_real_world_usage(self):
         """Test realistic usage scenario."""
         with tempfile.TemporaryDirectory() as tmpdir:
-            config_path = Path(tmpdir) / ".broguerc"
+            config_path = Path(tmpdir) / ".veinbornrc"
 
             # Create default config
             config = ConfigManager()

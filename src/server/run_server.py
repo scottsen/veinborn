@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Script to run the Brogue multiplayer server."""
+"""Script to run the Veinborn multiplayer server."""
 
 import asyncio
 import logging
@@ -9,7 +9,7 @@ from pathlib import Path
 # Add src to path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from server.websocket_server import BrogueServer
+from server.websocket_server import VeinbornServer
 from server.config import config
 
 
@@ -20,7 +20,7 @@ def setup_logging():
         format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
         handlers=[
             logging.StreamHandler(),
-            logging.FileHandler("brogue_server.log"),
+            logging.FileHandler("veinborn_server.log"),
         ],
     )
 
@@ -31,7 +31,7 @@ async def async_main():
     logger = logging.getLogger(__name__)
 
     logger.info("=" * 60)
-    logger.info("Brogue Multiplayer Server")
+    logger.info("Veinborn Multiplayer Server")
     logger.info("=" * 60)
     logger.info(f"Host: {config.host}")
     logger.info(f"Port: {config.port}")
@@ -39,7 +39,7 @@ async def async_main():
     logger.info(f"Actions per round: {config.actions_per_round}")
     logger.info("=" * 60)
 
-    server = BrogueServer(config.host, config.port)
+    server = VeinbornServer(config.host, config.port)
 
     try:
         await server.start()
@@ -59,7 +59,7 @@ async def async_main():
 
 
 def main():
-    """Entry point for pip-installed brogue-server command."""
+    """Entry point for pip-installed veinborn-server command."""
     try:
         exit_code = asyncio.run(async_main())
         sys.exit(exit_code)

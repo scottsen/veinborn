@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """
-Brogue: Walking in Big Brother's Footsteps (Textual Version)
+Veinborn: Memory-Driven Roguelike (Textual Version)
 
-Run the Textual-based version of Brogue.
+Run the Textual-based version of Veinborn.
 """
 import sys
 import argparse
@@ -21,7 +21,7 @@ from core.config.user_config import ConfigManager
 def parse_arguments():
     """Parse command-line arguments."""
     parser = argparse.ArgumentParser(
-        description="Brogue - A roguelike adventure game",
+        description="Veinborn - A memory-driven roguelike adventure game",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
@@ -33,11 +33,11 @@ Examples:
   python run_textual.py --create-config              # Create default config file
 
 Environment Variables:
-  BROGUE_PLAYER_NAME    Override player name
-  BROGUE_PLAYER_DEFAULT_CLASS    Override default class
+  VEINBORN_PLAYER_NAME    Override player name (BROGUE_PLAYER_NAME deprecated)
+  VEINBORN_PLAYER_DEFAULT_CLASS    Override default class (BROGUE_PLAYER_DEFAULT_CLASS deprecated)
 
 Config File:
-  ~/.broguerc           User configuration (INI format)
+  ~/.veinbornrc         User configuration (INI format, ~/.broguerc deprecated)
         """
     )
 
@@ -61,14 +61,14 @@ Config File:
     parser.add_argument(
         '--create-config',
         action='store_true',
-        help='Create default config file at ~/.broguerc and exit'
+        help='Create default config file at ~/.veinbornrc and exit'
     )
 
     return parser.parse_args()
 
 
 def main():
-    """Main entry point for Brogue."""
+    """Main entry point for Veinborn."""
     # Parse arguments
     args = parse_arguments()
 
@@ -84,7 +84,7 @@ def main():
 
     # Display welcome banner
     print("╔" + "=" * 66 + "╗")
-    print("║" + " " * 20 + "WELCOME TO BROGUE" + " " * 29 + "║")
+    print("║" + " " * 18 + "WELCOME TO VEINBORN" + " " * 28 + "║")
     print("╚" + "=" * 66 + "╝")
     print()
     print("Controls: Arrow keys or HJKL to move, YUBN for diagonal")

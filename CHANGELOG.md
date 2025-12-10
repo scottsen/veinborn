@@ -7,15 +7,47 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### Phase 3: Polish & Enhancement (In Progress)
+### Future Enhancements
 
-#### Added
-- Personal loot system for multiplayer - each player gets independent loot rolls (#33)
-- Multiplayer chat system for party communication (#34)
-- Improved test coverage for edge cases (#35)
+## [0.4.0] - 2025-12-10
+
+### Complete Infrastructure Transition: Brogue → Veinborn
+
+**BREAKING CHANGES** (with backward compatibility):
+This release completes the full transition from "Brogue" to "Veinborn" branding. All changes include backward compatibility with deprecation warnings. Deprecated features will be removed in v0.5.0.
 
 #### Changed
-- Enhanced testing infrastructure with better edge case coverage
+- **GitHub Repository**: Renamed from `scottsen/brogue` to `scottsen/veinborn` (automatic redirect in place)
+- **Local Directory**: Project directory renamed from `brogue/` to `veinborn/`
+- **Server Class**: `BrogueServer` → `VeinbornServer` (deprecated alias provided)
+- **Environment Variables**: `BROGUE_*` → `VEINBORN_*` (old names supported with warnings)
+- **Config Files**: `~/.broguerc` → `~/.veinbornrc` (old file loaded with warning)
+- **Documentation**: Updated all docs to reflect Veinborn branding
+- **Test Files**: All tests updated to use new naming conventions
+
+#### Added
+- **MIGRATION.md**: Comprehensive migration guide for users and developers
+- Backward compatibility layer for all renamed components
+- Deprecation warnings for legacy names (scheduled removal in v0.5.0)
+- TIA project registry updated with complete transition notes
+
+#### Infrastructure
+- Git remote URL updated to new repository name
+- All documentation titles updated (MULTIPLAYER_PROGRESS.md, GAPS_AND_NEXT_STEPS.md)
+- Test suite updated to use `VeinbornServer` and `VEINBORN_*` variables
+- Config system enhanced with legacy path support
+
+#### Technical Details
+- Server class provides `BrogueServer` as deprecated alias inheriting from `VeinbornServer`
+- Environment variable fallback with `_get_env_with_fallback()` helper
+- Config file loader checks new paths first, falls back to legacy with warnings
+- All changes maintain 100% backward compatibility for existing users
+
+**Migration**: See MIGRATION.md for complete guide. TL;DR:
+- GitHub: Automatic redirect (no action needed)
+- CLI: `pip install veinborn` (replaces `brogue`)
+- Config: `mv ~/.broguerc ~/.veinbornrc` (optional, auto-loaded with warning)
+- Code: Update imports to `VeinbornServer` (old name works with warning)
 
 ## [0.3.0] - 2025-11-14
 

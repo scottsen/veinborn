@@ -1,4 +1,4 @@
-"""WebSocket server for Brogue multiplayer."""
+"""WebSocket server for Veinborn multiplayer."""
 
 import asyncio
 import json
@@ -24,8 +24,8 @@ from server.action_handler import action_registry
 logger = logging.getLogger(__name__)
 
 
-class BrogueServer:
-    """Main WebSocket server for Brogue multiplayer."""
+class VeinbornServer:
+    """Main WebSocket server for Veinborn multiplayer."""
 
     def __init__(self, host: str = None, port: int = None):
         self.host = host or config.host
@@ -654,6 +654,26 @@ async def main():
         logger.info("Received interrupt signal")
     finally:
         await server.stop()
+
+
+# Backward compatibility alias (deprecated)
+# TODO: Remove in v0.5.0
+import warnings
+
+
+class BrogueServer(VeinbornServer):
+    """Deprecated: Use VeinbornServer instead.
+
+    This alias is provided for backward compatibility and will be removed in v0.5.0.
+    """
+    def __init__(self, *args, **kwargs):
+        warnings.warn(
+            "BrogueServer is deprecated, use VeinbornServer instead. "
+            "This alias will be removed in v0.5.0.",
+            DeprecationWarning,
+            stacklevel=2
+        )
+        super().__init__(*args, **kwargs)
 
 
 if __name__ == "__main__":

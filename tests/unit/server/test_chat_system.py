@@ -11,7 +11,7 @@ Tests the chat functionality added in Phase 3:
 import pytest
 from unittest.mock import Mock, AsyncMock, patch
 from server.messages import Message, MessageType
-from server.websocket_server import BrogueServer
+from server.websocket_server import VeinbornServer
 from server.auth import AuthManager, Session
 
 
@@ -49,7 +49,7 @@ def mock_websocket():
 @pytest.fixture
 async def server_with_players(auth_manager):
     """Create a server with authenticated players."""
-    server = BrogueServer()
+    server = VeinbornServer()
     server.auth_manager = auth_manager
 
     # Get sessions
@@ -386,7 +386,7 @@ async def test_chat_isolation_between_games(server_with_players, auth_manager):
 @pytest.mark.asyncio
 async def test_chat_message_ordering():
     """Test that chat messages maintain order."""
-    server = BrogueServer()
+    server = VeinbornServer()
     auth_manager = AuthManager()
     server.auth_manager = auth_manager
 
@@ -429,7 +429,7 @@ async def test_chat_message_ordering():
 @pytest.mark.asyncio
 async def test_chat_with_disconnected_player_connection():
     """Test chat when player's websocket is disconnected."""
-    server = BrogueServer()
+    server = VeinbornServer()
     auth_manager = AuthManager()
     server.auth_manager = auth_manager
 
@@ -470,7 +470,7 @@ async def test_chat_with_disconnected_player_connection():
 @pytest.mark.asyncio
 async def test_chat_unicode_support():
     """Test chat supports unicode characters."""
-    server = BrogueServer()
+    server = VeinbornServer()
     auth_manager = AuthManager()
     server.auth_manager = auth_manager
 
@@ -506,7 +506,7 @@ async def test_chat_unicode_support():
 @pytest.mark.asyncio
 async def test_handle_chat_invalid_session():
     """Test chat handling with invalid session."""
-    server = BrogueServer()
+    server = VeinbornServer()
 
     # Create a session that doesn't exist in auth manager
     fake_session = Session("fake-session", "fake-player", "FakePlayer")

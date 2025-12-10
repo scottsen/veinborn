@@ -1,4 +1,4 @@
-# Brogue Multiplayer Implementation Progress
+# Veinborn Multiplayer Implementation Progress
 
 **Status**: Phase 2 COMPLETE ✅🎉
 **Date**: 2025-11-14
@@ -209,7 +209,7 @@ All existing single-player actions work in multiplayer:
 ### 1. Start the Server
 
 ```bash
-cd /home/user/brogue
+cd /home/user/veinborn
 python src/server/run_server.py
 ```
 

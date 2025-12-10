@@ -13,7 +13,7 @@ import pytest
 import time
 from unittest.mock import AsyncMock, Mock, patch
 from server.game_session import GameSession, PlayerInfo, ConnectionStatus
-from server.websocket_server import BrogueServer
+from server.websocket_server import VeinbornServer
 from server.auth import AuthManager
 from server.messages import Message, MessageType
 
@@ -368,7 +368,7 @@ async def test_cleanup_only_affects_disconnected():
 @pytest.mark.asyncio
 async def test_server_handle_reconnect_success():
     """Test server handling successful reconnection."""
-    server = BrogueServer()
+    server = VeinbornServer()
     auth_manager = AuthManager()
     server.auth_manager = auth_manager
 
@@ -419,7 +419,7 @@ async def test_server_handle_reconnect_success():
 @pytest.mark.asyncio
 async def test_server_handle_reconnect_not_in_game():
     """Test server reconnection when player not in a game."""
-    server = BrogueServer()
+    server = VeinbornServer()
     auth_manager = AuthManager()
     server.auth_manager = auth_manager
 
@@ -443,7 +443,7 @@ async def test_server_handle_reconnect_not_in_game():
 @pytest.mark.asyncio
 async def test_server_handle_reconnect_game_not_found():
     """Test server reconnection when game doesn't exist."""
-    server = BrogueServer()
+    server = VeinbornServer()
     auth_manager = AuthManager()
     server.auth_manager = auth_manager
 
@@ -467,7 +467,7 @@ async def test_server_handle_reconnect_game_not_found():
 @pytest.mark.asyncio
 async def test_server_disconnect_client_preserves_session():
     """Test server disconnect preserves session for reconnection."""
-    server = BrogueServer()
+    server = VeinbornServer()
     auth_manager = AuthManager()
     server.auth_manager = auth_manager
 
@@ -513,7 +513,7 @@ async def test_server_disconnect_client_preserves_session():
 @pytest.mark.asyncio
 async def test_server_disconnect_client_no_preservation():
     """Test server disconnect without session preservation."""
-    server = BrogueServer()
+    server = VeinbornServer()
     auth_manager = AuthManager()
     server.auth_manager = auth_manager
 
@@ -545,7 +545,7 @@ async def test_server_disconnect_client_no_preservation():
 @pytest.mark.asyncio
 async def test_server_cleanup_task_removes_expired_players():
     """Test server cleanup task removes players with expired timeouts."""
-    server = BrogueServer()
+    server = VeinbornServer()
     auth_manager = AuthManager()
     server.auth_manager = auth_manager
 
@@ -590,7 +590,7 @@ async def test_server_cleanup_task_removes_expired_players():
 @pytest.mark.asyncio
 async def test_reconnect_sends_full_state():
     """Test reconnection triggers full state synchronization."""
-    server = BrogueServer()
+    server = VeinbornServer()
     auth_manager = AuthManager()
     server.auth_manager = auth_manager
 

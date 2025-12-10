@@ -11,7 +11,7 @@ Tests complete multiplayer scenarios:
 import pytest
 import asyncio
 from unittest.mock import AsyncMock, Mock
-from server.websocket_server import BrogueServer
+from server.websocket_server import VeinbornServer
 from server.messages import Message, MessageType
 from server.game_session import GameSession
 
@@ -26,7 +26,7 @@ pytestmark = pytest.mark.integration
 @pytest.fixture
 def server():
     """Create a server instance."""
-    return BrogueServer()
+    return VeinbornServer()
 
 
 @pytest.fixture

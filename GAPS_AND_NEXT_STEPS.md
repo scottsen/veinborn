@@ -1,4 +1,4 @@
-# Brogue: Gap Analysis & Strategic Next Steps
+# Veinborn: Gap Analysis & Strategic Next Steps
 
 **Date:** 2025-11-14
 **Purpose:** Identify what's missing and recommend concrete next actions

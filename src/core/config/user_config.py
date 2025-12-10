@@ -40,9 +40,13 @@ class ConfigManager:
     _instance: Optional['ConfigManager'] = None
 
     CONFIG_PATHS = [
-        Path.home() / ".veinbornrc",                        # Classic Unix style
-        Path.home() / ".config" / "veinborn" / "config",    # XDG style
-        Path("/etc/veinbornrc"),                            # System-wide (read-only)
+        Path.home() / ".veinbornrc",                        # Classic Unix style (preferred)
+        Path.home() / ".config" / "veinborn" / "config",    # XDG style (preferred)
+        Path("/etc/veinbornrc"),                            # System-wide (preferred)
+        # Legacy paths (deprecated, will be removed in v0.5.0)
+        Path.home() / ".broguerc",                          # Legacy Unix style
+        Path.home() / ".config" / "brogue" / "config",      # Legacy XDG style
+        Path("/etc/broguerc"),                              # Legacy system-wide
     ]
 
     def __init__(self):
@@ -70,12 +74,33 @@ class ConfigManager:
 
     def load(self) -> None:
         """Load config from first available file."""
+        import warnings
+
+        # Legacy config paths (for deprecation warnings)
+        legacy_paths = {
+            Path.home() / ".broguerc",
+            Path.home() / ".config" / "brogue" / "config",
+            Path("/etc/broguerc"),
+        }
+
         for path in self.CONFIG_PATHS:
             if path.exists():
                 try:
                     self.config.read(path)
                     self.config_file = path
                     logger.info(f"Loaded config from {path}")
+
+                    # Warn if using legacy config file
+                    if path in legacy_paths:
+                        new_path = str(path).replace("brogue", "veinborn")
+                        warnings.warn(
+                            f"Config file {path} is deprecated. "
+                            f"Please rename it to {new_path}. "
+                            f"Support for legacy config files will be removed in v0.5.0.",
+                            DeprecationWarning,
+                            stacklevel=2
+                        )
+
                     return
                 except Exception as e:
                     logger.warning(f"Failed to load {path}: {e}")
