@@ -1,6 +1,6 @@
 # Veinborn Architecture Documentation
 
-**Last Updated:** 2025-10-24
+**Last Updated:** 2026-01-13 (consolidated docs from archive)
 **Current Phase:** MVP (Single-Player)
 
 ---
@@ -49,22 +49,14 @@
    - Manual playtesting checklist
    - **Read before writing tests**
 
-### 4. [OPERATIONAL_EXCELLENCE_GUIDELINES.md](OPERATIONAL_EXCELLENCE_GUIDELINES.md) ⭐ ESSENTIAL (30 min)
-   - Small methods & single responsibility
-   - Comprehensive logging architecture
-   - Error handling patterns
-   - Performance guidelines
-   - Configuration management
-   - **Read for operational best practices**
-
-### 5. [EVENTS_ASYNC_OBSERVABILITY_GUIDE.md](EVENTS_ASYNC_OBSERVABILITY_GUIDE.md) ⭐ ESSENTIAL (25 min)
+### 4. [EVENTS_ASYNC_OBSERVABILITY_GUIDE.md](EVENTS_ASYNC_OBSERVABILITY_GUIDE.md) ⭐ ESSENTIAL (25 min)
    - Event-driven patterns for MVP (without over-engineering)
    - Async/await with Textual (critical integration patterns)
    - Game state observability & telemetry
    - What to instrument NOW vs later
    - **Read BEFORE starting to code!**
 
-### 6. [CONTENT_SYSTEM.md](CONTENT_SYSTEM.md) (10 min)
+### 5. [CONTENT_SYSTEM.md](CONTENT_SYSTEM.md) (10 min)
    - YAML-based content loading
    - Monster/recipe definitions
    - Data-driven design
@@ -74,7 +66,7 @@
 
 ## 📋 Optional but Useful
 
-### 7. [BASE_CLASS_ARCHITECTURE.md](BASE_CLASS_ARCHITECTURE.md) (45 min)
+### 6. [BASE_CLASS_ARCHITECTURE.md](BASE_CLASS_ARCHITECTURE.md) (45 min)
    - ✅ **NOW HAS PHASE MARKERS** - Clear MVP vs Phase 2/3 sections
    - Clean base class design (Entity, Action, System)
    - Reduces code duplication
@@ -84,13 +76,35 @@
    - **Time to implement MVP parts:** 2-3 hours
    - **Verdict:** Recommended but not required for MVP
 
-### 8. [LUA_INTEGRATION_STRATEGY.md](LUA_INTEGRATION_STRATEGY.md) (30 min)
+### 7. [ARCHITECTURAL_ASSESSMENT.md](ARCHITECTURAL_ASSESSMENT.md) (20 min)
+   - **NEW**: Consolidated architectural analysis
+   - Coupling analysis (tight vs loose coupling patterns)
+   - Data-driven vs hardcoded design decisions
+   - Extensibility points for scripting integration
+   - Architectural strengths and weaknesses
+   - **Useful for understanding architectural decisions**
+
+### 8. [RANDOMNESS_ANALYSIS.md](RANDOMNESS_ANALYSIS.md) (15 min)
+   - **NEW**: RNG and seeding analysis
+   - ⚠️ No seeding system currently implemented
+   - Analysis of where `random` is used in the codebase
+   - Impact analysis (can't reproduce bugs, replay runs, etc.)
+   - Implementation recommendations for future seeding system
+   - **Useful for understanding RNG design decisions**
+
+### 9. [LUA_INTEGRATION_STRATEGY.md](LUA_INTEGRATION_STRATEGY.md) (30 min)
    - **Future planning only** (Phase 3)
    - Decisions to make during MVP (YAML content, clean interfaces)
    - Zero cost now, saves time later
    - **Don't implement Lua yet**, just be aware
 
-### 9. [DECISIONS.md](DECISIONS.md) (10 min)
+### 10. [USING_TIA_AST.md](USING_TIA_AST.md) (30 min)
+   - **Practical guide** for using TIA AST tools during development
+   - Code quality checking (complexity, security, dependencies)
+   - Workflow examples (pre-commit checks, refactoring guidance)
+   - **Use for automated code quality**
+
+### 11. [DECISIONS.md](DECISIONS.md) (10 min)
    - Architecture Decision Records (ADR)
    - **Mix of MVP and Phase 2 decisions**
    - Read with caution - some are for Phase 2
@@ -155,14 +169,18 @@ These docs were moved because they're for Phase 2 (multiplayer):
 | Document | Phase | Status | Use for MVP? |
 |----------|-------|--------|--------------|
 | 00_ARCHITECTURE_OVERVIEW.md | MVP | ✅ Active | YES - Read first |
-| MVP_DEVELOPMENT_GUIDELINES.md | MVP | ✅ Active | YES - Essential |
+| MVP_DEVELOPMENT_GUIDELINES.md | MVP | ✅ Active | YES - Essential (incl. advanced practices) |
 | MVP_TESTING_GUIDE.md | MVP | ✅ Active | YES - Essential |
-| OPERATIONAL_EXCELLENCE_GUIDELINES.md | MVP | ✅ Active | YES - Essential |
 | EVENTS_ASYNC_OBSERVABILITY_GUIDE.md | MVP | ✅ Active | YES - Essential (before coding!) |
 | BASE_CLASS_ARCHITECTURE.md | MVP+Future | ⚠️ Optional | Optional - has phase markers |
 | CONTENT_SYSTEM.md | MVP | ✅ Active | YES - YAML content |
+| ARCHITECTURAL_ASSESSMENT.md | All | ⚠️ Optional | Reference - architectural analysis |
+| RANDOMNESS_ANALYSIS.md | All | ⚠️ Optional | Reference - RNG design |
 | LUA_INTEGRATION_STRATEGY.md | Phase 3 | 📋 Planning | Awareness only |
+| USING_TIA_AST.md | MVP | ✅ Active | YES - Code quality tools |
 | DECISIONS.md | Mixed | ⚠️ Caution | Mix of phases |
+| ~~OPERATIONAL_EXCELLENCE_GUIDELINES.md~~ | MVP | ➡️ Consolidated | Merged into MVP_DEVELOPMENT_GUIDELINES.md |
+| ~~COMPREHENSIVE_ANALYSIS.md~~ | Archive | ➡️ Extracted | Unique sections in ARCHITECTURAL_ASSESSMENT.md |
 | ~~DEVELOPMENT_GUIDELINES.md~~ | Phase 2 | ➡️ Moved | In /future-multiplayer/ |
 | ~~LOGGING_OBSERVABILITY.md~~ | Phase 2 | ➡️ Moved | In /future-multiplayer/ |
 
@@ -183,11 +201,13 @@ These docs were moved because they're for Phase 2 (multiplayer):
 | Architecture overview | `00_ARCHITECTURE_OVERVIEW.md` | 20 min |
 | What to build next | `/docs/MVP_ROADMAP.md` | 10 min |
 | How to start coding | `/docs/MVP_CURRENT_FOCUS.md` | 15 min |
-| Code style | `MVP_DEVELOPMENT_GUIDELINES.md` | 15 min |
+| Code style & advanced practices | `MVP_DEVELOPMENT_GUIDELINES.md` | 20 min |
 | Testing approach | `MVP_TESTING_GUIDE.md` | 20 min |
-| Operational excellence | `OPERATIONAL_EXCELLENCE_GUIDELINES.md` | 30 min |
 | **Events/Async/Observability** | `EVENTS_ASYNC_OBSERVABILITY_GUIDE.md` | 25 min |
 | YAML content | `CONTENT_SYSTEM.md` | 10 min |
+| Code quality tools | `USING_TIA_AST.md` | 15 min |
+| Architectural analysis | `ARCHITECTURAL_ASSESSMENT.md` | 20 min |
+| RNG design | `RANDOMNESS_ANALYSIS.md` | 15 min |
 
 ### For Phase 2 (Future):
 | Need | Document | When |
@@ -251,16 +271,18 @@ logger.info("Player mined ore: %s", ore.ore_type)
 
 **Essential (must read):**
 1. `00_ARCHITECTURE_OVERVIEW.md` - How MVP works
-2. `MVP_DEVELOPMENT_GUIDELINES.md` - Code style and standards
+2. `MVP_DEVELOPMENT_GUIDELINES.md` - Code style, standards, and advanced practices
 3. `MVP_TESTING_GUIDE.md` - Testing approach
-4. `OPERATIONAL_EXCELLENCE_GUIDELINES.md` - Best practices for maintainability
-5. **`EVENTS_ASYNC_OBSERVABILITY_GUIDE.md` - Events, async/await, telemetry (READ BEFORE CODING!)**
-6. `/docs/MVP_ROADMAP.md` - What to build
-7. `/docs/MVP_CURRENT_FOCUS.md` - Implementation hub
+4. **`EVENTS_ASYNC_OBSERVABILITY_GUIDE.md` - Events, async/await, telemetry (READ BEFORE CODING!)**
+5. `/docs/MVP_ROADMAP.md` - What to build
+6. `/docs/MVP_CURRENT_FOCUS.md` - Implementation hub
 
 **Optional (read if interested):**
 - `BASE_CLASS_ARCHITECTURE.md` - Clean patterns (MVP sections only)
 - `CONTENT_SYSTEM.md` - YAML content
+- `USING_TIA_AST.md` - Code quality automation
+- `ARCHITECTURAL_ASSESSMENT.md` - Architectural analysis and design decisions
+- `RANDOMNESS_ANALYSIS.md` - RNG design (no seeding system currently)
 
 **Skip for now:**
 - Everything in `/docs/future-multiplayer/` (Phase 2)
@@ -307,16 +329,23 @@ logger.info("Player mined ore: %s", ore.ore_type)
 
 ---
 
-**Last reviewed:** 2025-10-24
+**Last reviewed:** 2026-01-13
 
-**Changes in this update:**
-- ✅ **NEW**: Created `EVENTS_ASYNC_OBSERVABILITY_GUIDE.md` (event patterns, async/await with Textual, game telemetry)
-- ✅ **NEW**: Created `OPERATIONAL_EXCELLENCE_GUIDELINES.md` (small methods, logging, error handling, performance)
+**Changes in this update (2026-01-13 consolidation):**
+- ✅ **RESTORED**: `RANDOMNESS_ANALYSIS.md` from archive (RNG and seeding analysis - critical missing doc)
+- ✅ **NEW**: Created `ARCHITECTURAL_ASSESSMENT.md` (extracted unique sections from archived COMPREHENSIVE_ANALYSIS.md)
+- ✅ **CONSOLIDATED**: Merged `OPERATIONAL_EXCELLENCE_GUIDELINES.md` → `MVP_DEVELOPMENT_GUIDELINES.md` (added "Advanced Development Practices" section)
+- ✅ Updated architecture README to reflect consolidation (15→17 files)
+- ✅ Removed references to archived `OPERATIONAL_EXCELLENCE_GUIDELINES.md`
+- ✅ Updated all cross-references and file paths
+
+**Previous changes (2025-10-24):**
+- ✅ Created `EVENTS_ASYNC_OBSERVABILITY_GUIDE.md` (event patterns, async/await with Textual, game telemetry)
+- ✅ Created `OPERATIONAL_EXCELLENCE_GUIDELINES.md` (small methods, logging, error handling, performance)
 - ✅ Moved `DEVELOPMENT_GUIDELINES.md` → `/future-multiplayer/` (Phase 2 infrastructure)
 - ✅ Moved `LOGGING_OBSERVABILITY.md` → `/future-multiplayer/` (Phase 2 observability)
 - ✅ Created `MVP_DEVELOPMENT_GUIDELINES.md` (simple Python, pytest)
 - ✅ Created `MVP_TESTING_GUIDE.md` (unit tests, TDD, manual testing)
 - ✅ Added phase markers to `BASE_CLASS_ARCHITECTURE.md` (clear MVP vs Phase 2/3 sections)
-- ✅ Updated all cross-references and file paths
 
 **Next review:** When starting Phase 2 (after MVP complete)

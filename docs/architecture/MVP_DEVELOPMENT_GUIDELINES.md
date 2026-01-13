@@ -3,7 +3,7 @@
 **Document Type:** Development Standards (MVP Phase)
 **Audience:** Developers implementing MVP
 **Status:** Active
-**Last Updated:** 2025-10-24
+**Last Updated:** 2026-01-13 (added advanced practices from operational excellence guidelines)
 
 ---
 
@@ -585,7 +585,224 @@ pytest && python3 run_textual.py
 
 ---
 
+## Advanced Development Practices (Optional)
+
+The following sections contain more advanced development practices extracted from operational excellence guidelines. **These are optional for MVP** but provide valuable patterns for writing maintainable code.
+
+### Method & Function Design Standards
+
+**Target sizes:**
+- **10-20 lines** per method (target)
+- **40 lines maximum** (if exceeded, refactor)
+- **≤5 cyclomatic complexity** (max 5 decision points)
+
+**Key patterns:**
+
+**1. Small, Focused Methods**
+```python
+# ✅ Good - small, focused methods
+def process_turn(self):
+    """Process a complete game turn."""
+    action = self._get_player_action()
+    outcome = action.execute(self.context)
+
+    if outcome.took_turn:
+        self._process_monster_turns()
+        self._update_ui(outcome)
+
+def _get_player_action(self) -> Action:
+    """Convert player input to action."""
+    key = self.input_handler.get_key()
+    return self.input_handler.key_to_action(key, self.player.entity_id)
+
+def _process_monster_turns(self):
+    """Run AI for all monsters."""
+    self.ai_system.update()
+
+def _update_ui(self, outcome: ActionOutcome):
+    """Update UI with action outcome."""
+    for message in outcome.messages:
+        self.message_log.add(message)
+    self.ui.refresh()
+```
+
+**2. Early Returns (Reduce Nesting)**
+```python
+# ✅ Good - early returns, flat structure
+def process_mining(self, player: Entity, ore_vein: Entity) -> ActionOutcome:
+    """Process mining action with validation."""
+    # Validate preconditions
+    if not player.is_alive:
+        return ActionOutcome.failure("Player is dead")
+
+    if ore_vein is None:
+        return ActionOutcome.failure("No ore vein")
+
+    if not player.is_adjacent(ore_vein):
+        return ActionOutcome.failure("Too far away")
+
+    if ore_vein.is_mined:
+        return ActionOutcome.failure("Already mined")
+
+    # Happy path - actual mining logic
+    return self._mine_ore(player, ore_vein)
+```
+
+**3. Function Composition**
+```python
+# ✅ Build complex operations from small, composable functions
+def calculate_final_damage(attacker: Entity, defender: Entity) -> int:
+    """Calculate final damage after all modifiers."""
+    base_damage = _calculate_base_damage(attacker, defender)
+    critical_damage = _apply_critical_multiplier(base_damage, attacker)
+    final_damage = _apply_damage_reduction(critical_damage, defender)
+    return max(1, final_damage)  # Always at least 1 damage
+```
+
+### Advanced Logging Patterns
+
+**Structured Logging:**
+```python
+# ✅ Good - structured logs with context
+logger.info("action_executed", extra={
+    "action_type": "mine",
+    "player_id": player.entity_id,
+    "ore_type": ore.ore_type,
+    "duration_turns": 4
+})
+```
+
+**Error Logging with Context:**
+```python
+# ✅ Good - detailed error context
+try:
+    result = craft_item(recipe, ore)
+except CraftingError as e:
+    logger.error("crafting_failed", extra={
+        "recipe_id": recipe.id,
+        "ore_id": ore.entity_id,
+        "player_level": player.level,
+        "error": str(e)
+    }, exc_info=True)
+    raise
+```
+
+**Performance Logging:**
+```python
+import time
+
+start = time.perf_counter()
+map_data = generate_dungeon(width, height)
+duration_ms = (time.perf_counter() - start) * 1000
+
+logger.info("dungeon_generated", extra={
+    "width": width,
+    "height": height,
+    "room_count": len(map_data.rooms),
+    "generation_time_ms": duration_ms
+})
+```
+
+### Error Handling Standards
+
+**1. Specific Exception Types**
+```python
+# ✅ Good - specific exceptions
+class MiningError(Exception):
+    """Base exception for mining operations."""
+    pass
+
+class OreDepletedError(MiningError):
+    """Ore vein has been fully mined."""
+    pass
+
+class InvalidMiningLocationError(MiningError):
+    """Player is not adjacent to ore vein."""
+    pass
+
+# Usage
+def mine_ore(player, ore_vein):
+    if ore_vein.is_mined:
+        raise OreDepletedError(f"Ore vein {ore_vein.entity_id} already mined")
+
+    if not player.is_adjacent(ore_vein):
+        raise InvalidMiningLocationError("Player not adjacent to ore vein")
+```
+
+**2. Graceful Degradation**
+```python
+# ✅ Good - fallback behavior
+def load_high_scores() -> List[HighScore]:
+    """Load high scores with fallback."""
+    try:
+        return _load_from_file("high_scores.json")
+    except FileNotFoundError:
+        logger.warning("high_scores_not_found", extra={"using_defaults": True})
+        return []  # Empty list, game continues
+    except JSONDecodeError as e:
+        logger.error("high_scores_corrupted", extra={"error": str(e)})
+        return []  # Don't crash, use empty list
+```
+
+**3. Context Managers for Cleanup**
+```python
+# ✅ Good - guaranteed cleanup
+from contextlib import contextmanager
+
+@contextmanager
+def mining_operation(player: Entity):
+    """Context manager for mining with cleanup."""
+    player.is_mining = True
+    try:
+        yield
+    finally:
+        player.is_mining = False  # Always cleanup
+
+# Usage
+with mining_operation(player):
+    result = process_mining(player, ore_vein)
+```
+
+**4. Don't Swallow Exceptions**
+```python
+# ❌ Bad - exception silently ignored
+try:
+    save_game(state)
+except Exception:
+    pass  # User never knows save failed!
+
+# ✅ Good - log and handle appropriately
+try:
+    save_game(state)
+except IOError as e:
+    logger.error("save_failed", extra={"error": str(e)}, exc_info=True)
+    show_error_message(f"Failed to save game: {e}")
+    # Game continues, but user is informed
+```
+
+### Using TIA AST for Code Quality
+
+For automated code quality checking, see `USING_TIA_AST.md` for comprehensive guide.
+
+**Quick checks:**
+```bash
+# Check complexity before committing
+tia ast metrics src/core/my_new_file.py
+
+# Find complex functions
+tia ast functions src/core/ --complex-only
+
+# Security scan
+tia ast dangerous src/core/my_new_file.py
+```
+
+---
+
 **For Phase 2 (multiplayer) development:** See `/docs/future-multiplayer/DEVELOPMENT_GUIDELINES.md`
+
+**For operational excellence:** See archived `OPERATIONAL_EXCELLENCE_GUIDELINES.md` (consolidated above)
+
+**For code quality tools:** See `USING_TIA_AST.md`
 
 **Questions?** Check the docs or ask in the project chat.
 
