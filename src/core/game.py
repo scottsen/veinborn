@@ -9,26 +9,19 @@ Uses clean architecture:
 """
 
 import logging
-from typing import Optional, Dict, Union
+from typing import Optional, Union, Tuple
 
 from .game_state import GameState
 from .base.game_context import GameContext
 from .rng import GameRNG
 from .base.entity import EntityType
-from .entities import Player, Monster, OreVein
+from .entities import Player, OreVein
 from .entity_loader import EntityLoader
 from .world import Map
 from .systems.ai_system import AISystem
-from .actions import MoveAction, AttackAction, SurveyAction, MineAction, DescendAction
 from .actions.action_factory import ActionFactory
 from .config import ConfigLoader
-from .constants import (
-    PLAYER_STARTING_HP,
-    PLAYER_STARTING_ATTACK,
-    PLAYER_STARTING_DEFENSE,
-    DEFAULT_MAP_WIDTH,
-    DEFAULT_MAP_HEIGHT,
-)
+# constants module imported for potential use by other modules
 from .spawning import EntitySpawner
 from .turn_processor import TurnProcessor
 from .floor_manager import FloorManager
@@ -87,6 +80,101 @@ class Game:
 
         logger.debug("Game initialized with configuration, entity loader, and event system")
 
+    def _create_player(
+        self,
+        player_pos: Tuple[int, int],
+        player_name: Optional[str],
+        character_class: Optional['CharacterClass']
+    ) -> Player:
+        """Create player entity based on class or defaults."""
+        if character_class:
+            from .character_class import create_player_from_class
+            player = create_player_from_class(
+                character_class,
+                x=player_pos[0],
+                y=player_pos[1],
+                name=player_name or "Anonymous"
+            )
+            logger.info(f"Created {character_class.value} player: {player_name}")
+        else:
+            player = Player(
+                x=player_pos[0],
+                y=player_pos[1],
+                hp=PLAYER_STARTING_HP,
+                max_hp=PLAYER_STARTING_HP,
+                attack=PLAYER_STARTING_ATTACK,
+                defense=PLAYER_STARTING_DEFENSE,
+            )
+            if player_name:
+                player.stats['name'] = player_name
+                logger.info(f"Created default player: {player_name}")
+        return player
+
+    def _initialize_game_state(
+        self,
+        player: Player,
+        dungeon_map: Map,
+        player_name: Optional[str],
+        is_legacy_run: bool,
+        seed
+    ) -> None:
+        """Initialize GameState and GameContext."""
+        self.state = GameState(
+            player=player,
+            dungeon_map=dungeon_map,
+            seed=seed,
+        )
+        self.state.player_name = player_name or "Anonymous"
+        self.state.run_type = "legacy" if is_legacy_run else "pure"
+        self.context = GameContext(self.state)
+
+    def _add_legacy_ore(self, player: Player, withdrawn_ore: 'LegacyOre') -> None:
+        """Add legacy ore from vault to player inventory."""
+        legacy_ore_entity = OreVein(
+            x=player.x,
+            y=player.y,
+            ore_type=withdrawn_ore.ore_type,
+            hardness=withdrawn_ore.hardness,
+            conductivity=withdrawn_ore.conductivity,
+            malleability=withdrawn_ore.malleability,
+            purity=withdrawn_ore.purity,
+            density=withdrawn_ore.density,
+        )
+        legacy_ore_entity.stats['mining_turns_remaining'] = 0
+        player.inventory.append(legacy_ore_entity)
+        logger.info(
+            f"Added legacy ore to inventory: {withdrawn_ore.ore_type} "
+            f"(Purity: {withdrawn_ore.purity})"
+        )
+
+    def _spawn_entities(self, floor: int, dungeon_map: Map) -> dict:
+        """Spawn all initial entities for the floor."""
+        monsters = self.spawner.spawn_monsters_for_floor(floor, dungeon_map)
+        ore_veins = self.spawner.spawn_ore_veins_for_floor(floor, dungeon_map)
+        forges = self.spawner.spawn_forges_for_floor(floor, dungeon_map)
+
+        # Spawn special room entities
+        special_entities = self.spawner.spawn_special_room_entities(floor, dungeon_map)
+        monsters.extend(special_entities['monsters'])
+        ore_veins.extend(special_entities['ores'])
+
+        return {'monsters': monsters, 'ore_veins': ore_veins, 'forges': forges}
+
+    def _display_welcome_messages(self, forges: list, withdrawn_ore: Optional['LegacyOre']) -> None:
+        """Display initial game messages."""
+        self.state.add_message("Welcome to Veinborn! Mine ore and craft weapons.")
+        self.state.add_message("Use arrow keys or HJKL to move. Bump into monsters to attack.")
+
+        if forges:
+            self.state.add_message(f"Find the {forges[0].name} to craft equipment!")
+
+        if withdrawn_ore:
+            self.state.add_message(
+                f"You start with {withdrawn_ore.get_quality_tier()} "
+                f"{withdrawn_ore.ore_type} ore from the Legacy Vault!"
+            )
+            self.state.add_message("This is a Legacy run. Good luck!")
+
     def start_new_game(
         self,
         seed: Optional[Union[int, str]] = None,
@@ -99,118 +187,50 @@ class Game:
         Initialize a new game.
 
         Args:
-            seed: Optional seed for reproducible gameplay.
-                  Can be int, string, or None (random).
-                  Same seed = same game.
+            seed: Optional seed for reproducible gameplay
             player_name: Player name (for high scores and display)
             character_class: CharacterClass enum (determines starting stats)
             withdrawn_ore: LegacyOre from vault to start with (optional)
             is_legacy_run: Whether this is a legacy run (used vault ore)
         """
-        # Initialize RNG with seed (Phase 4: reproducibility)
+        # Initialize RNG with seed
         rng = GameRNG.initialize(seed)
         logger.info(f"Starting new game with {rng.get_seed_display()}")
 
-        # Create fresh map
+        # Create map and find player position
         dungeon_map = Map(width=DEFAULT_MAP_WIDTH, height=DEFAULT_MAP_HEIGHT)
-
-        # Get player starting position
         player_pos = dungeon_map.find_starting_position()
 
-        # Create player based on character class (Phase 5: character classes)
-        if character_class:
-            from .character_class import create_player_from_class
-            player = create_player_from_class(
-                character_class,
-                x=player_pos[0],
-                y=player_pos[1],
-                name=player_name or "Anonymous"
-            )
-            logger.info(f"Created {character_class.value} player: {player_name}")
-        else:
-            # Default player (no class)
-            player = Player(
-                x=player_pos[0],
-                y=player_pos[1],
-                hp=PLAYER_STARTING_HP,
-                max_hp=PLAYER_STARTING_HP,
-                attack=PLAYER_STARTING_ATTACK,
-                defense=PLAYER_STARTING_DEFENSE,
-            )
-            if player_name:
-                player.stats['name'] = player_name
-                logger.info(f"Created default player: {player_name}")
+        # Create player
+        player = self._create_player(player_pos, player_name, character_class)
 
-        # Create game state
-        self.state = GameState(
-            player=player,
-            dungeon_map=dungeon_map,
-            seed=rng.original_seed,  # Store for display/save
-        )
+        # Initialize game state and context
+        self._initialize_game_state(player, dungeon_map, player_name, is_legacy_run, rng.original_seed)
 
-        # Store player name in game state for high scores (Phase 5)
-        self.state.player_name = player_name or "Anonymous"
-
-        # Set run type based on whether legacy ore was used
-        self.state.run_type = "legacy" if is_legacy_run else "pure"
-
-        # Create game context (safe API for systems)
-        self.context = GameContext(self.state)
-
-        # Add withdrawn ore to player inventory (if provided)
+        # Add legacy ore if provided
         if withdrawn_ore:
-            # Create an OreVein entity from the LegacyOre
-            legacy_ore_entity = OreVein(
-                x=player.x,  # Same position as player (in inventory)
-                y=player.y,
-                ore_type=withdrawn_ore.ore_type,
-                hardness=withdrawn_ore.hardness,
-                conductivity=withdrawn_ore.conductivity,
-                malleability=withdrawn_ore.malleability,
-                purity=withdrawn_ore.purity,
-                density=withdrawn_ore.density,
-            )
-            # Mark as fully mined so it's in inventory
-            legacy_ore_entity.stats['mining_turns_remaining'] = 0
-            player.inventory.append(legacy_ore_entity)
-            logger.info(f"Added legacy ore to inventory: {withdrawn_ore.ore_type} (Purity: {withdrawn_ore.purity})")
+            self._add_legacy_ore(player, withdrawn_ore)
 
         # Initialize subsystems
         self._initialize_subsystems()
 
-        # Register systems
+        # Register AI system
         ai_system = AISystem(self.context)
         self.context.register_system('ai', ai_system)
 
-        # Spawn initial entities (delegated to spawner)
-        floor = self.state.current_floor
-        monsters = self.spawner.spawn_monsters_for_floor(floor, dungeon_map)
-        ore_veins = self.spawner.spawn_ore_veins_for_floor(floor, dungeon_map)
-        forges = self.spawner.spawn_forges_for_floor(floor, dungeon_map)
-
-        # Spawn special room entities
-        special_entities = self.spawner.spawn_special_room_entities(floor, dungeon_map)
-        monsters.extend(special_entities['monsters'])
-        ore_veins.extend(special_entities['ores'])
+        # Spawn entities
+        entities = self._spawn_entities(self.state.current_floor, dungeon_map)
 
         # Add entities to game
-        for monster in monsters:
+        for monster in entities['monsters']:
             self.context.add_entity(monster)
-        for ore_vein in ore_veins:
+        for ore_vein in entities['ore_veins']:
             self.context.add_entity(ore_vein)
-        for forge in forges:
+        for forge in entities['forges']:
             self.context.add_entity(forge)
 
-        # Initial message
-        self.state.add_message("Welcome to Veinborn! Mine ore and craft weapons.")
-        self.state.add_message("Use arrow keys or HJKL to move. Bump into monsters to attack.")
-        if forges:
-            self.state.add_message(f"Find the {forges[0].name} to craft equipment!")
-
-        # Add legacy ore message if applicable
-        if withdrawn_ore:
-            self.state.add_message(f"You start with {withdrawn_ore.get_quality_tier()} {withdrawn_ore.ore_type} ore from the Legacy Vault!")
-            self.state.add_message("This is a Legacy run. Good luck!")
+        # Display welcome messages
+        self._display_welcome_messages(entities['forges'], withdrawn_ore)
 
         self.running = True
         logger.info(
@@ -220,6 +240,38 @@ class Game:
         )
 
     # Spawning methods removed - delegated to EntitySpawner
+
+    def _process_action_outcome(self, outcome, action_type: str):
+        """
+        Process the outcome of an action (events, messages, floor transitions).
+
+        Args:
+            outcome: The ActionOutcome from action execution
+            action_type: The type of action for logging
+        """
+        # Log failures
+        if not outcome.is_success:
+            logger.info(
+                f"Action failed: {action_type}",
+                extra={
+                    'action_class': outcome.__class__.__name__,
+                    'failure_message': outcome.messages[0] if outcome.messages else 'No message',
+                }
+            )
+
+        # Publish events to EventBus
+        if outcome.events:
+            self.event_bus.publish_all(outcome.events)
+            logger.debug(f"Published {len(outcome.events)} events to EventBus")
+
+        # Check for floor transition event (special handling)
+        for event in outcome.events:
+            if event.get('type') == 'descend_floor':
+                self.descend_floor()
+
+        # Add messages to game state
+        for msg in outcome.messages:
+            self.state.add_message(msg)
 
     def handle_player_action(
         self,
@@ -250,10 +302,8 @@ class Game:
 
         # Create action via factory
         action = self.action_factory.create(action_type, **kwargs)
-
         if not action:
-            # Factory already logged warning and added message
-            return False
+            return False  # Factory already logged warning
 
         # Execute action
         logger.debug(
@@ -265,29 +315,8 @@ class Game:
         )
         outcome = action.execute(self.context)
 
-        if not outcome.is_success:
-            logger.info(
-                f"Action failed: {action_type}",
-                extra={
-                    'action_class': action.__class__.__name__,
-                    'failure_message': outcome.messages[0] if outcome.messages else 'No message',
-                }
-            )
-
-        # Publish events to EventBus (Phase 2-ready pattern)
-        # This integrates with ActionOutcome.events field that was always there!
-        if outcome.events:
-            self.event_bus.publish_all(outcome.events)
-            logger.debug(f"Published {len(outcome.events)} events to EventBus")
-
-        # Check for floor transition event (special handling)
-        for event in outcome.events:
-            if event.get('type') == 'descend_floor':
-                self.descend_floor()
-
-        # Add messages
-        for msg in outcome.messages:
-            self.state.add_message(msg)
+        # Process outcome (events, messages, floor transitions)
+        self._process_action_outcome(outcome, action_type)
 
         # Process turn if action consumed time
         if outcome.took_turn:

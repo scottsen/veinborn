@@ -216,6 +216,33 @@ class Map:
             if node.right:
                 self.create_rooms(node.right)
 
+    def _create_l_corridor(self, node: 'BSPNode', start_pos: Tuple[int, int],
+                          end_pos: Tuple[int, int], horizontal_first: bool):
+        """
+        Create L-shaped corridor between two points.
+
+        Args:
+            node: BSP node to add corridors to
+            start_pos: Starting (x, y) position
+            end_pos: Ending (x, y) position
+            horizontal_first: If True, go horizontal then vertical
+        """
+        start_x, start_y = start_pos
+        end_x, end_y = end_pos
+
+        if horizontal_first:
+            # Horizontal then vertical
+            for x in range(min(start_x, end_x), max(start_x, end_x) + 1):
+                node.corridors.append((x, start_y))
+            for y in range(min(start_y, end_y), max(start_y, end_y) + 1):
+                node.corridors.append((end_x, y))
+        else:
+            # Vertical then horizontal
+            for y in range(min(start_y, end_y), max(start_y, end_y) + 1):
+                node.corridors.append((start_x, y))
+            for x in range(min(start_x, end_x), max(start_x, end_x) + 1):
+                node.corridors.append((x, end_y))
+
     def connect_rooms(self, node: 'BSPNode'):
         """
         Create corridors between rooms.
@@ -223,39 +250,33 @@ class Map:
         Uses configuration for:
         - Corridor direction probability (L-shaped: horizontal-first vs vertical-first)
         """
-        if node.left and node.right:
-            left_room = self.get_room(node.left)
-            right_room = self.get_room(node.right)
+        # Guard clause: no children means nothing to connect
+        if not (node.left and node.right):
+            return
 
-            if left_room and right_room:
-                # Load configuration (with fallbacks)
-                try:
-                    dungeon_config = ConfigLoader.get_config()
-                    direction_prob = dungeon_config.get_corridor_direction_probability()
-                except Exception:
-                    # Fallback to hardcoded default if config fails
-                    direction_prob = 0.5
+        left_room = self.get_room(node.left)
+        right_room = self.get_room(node.right)
 
-                # Create L-shaped corridor
-                rng = GameRNG.get_instance()
-                start_x, start_y = left_room.center
-                end_x, end_y = right_room.center
-
-                if rng.random() < direction_prob:
-                    # Horizontal then vertical
-                    for x in range(min(start_x, end_x), max(start_x, end_x) + 1):
-                        node.corridors.append((x, start_y))
-                    for y in range(min(start_y, end_y), max(start_y, end_y) + 1):
-                        node.corridors.append((end_x, y))
-                else:
-                    # Vertical then horizontal
-                    for y in range(min(start_y, end_y), max(start_y, end_y) + 1):
-                        node.corridors.append((start_x, y))
-                    for x in range(min(start_x, end_x), max(start_x, end_x) + 1):
-                        node.corridors.append((x, end_y))
-
+        # Guard clause: need both rooms to connect
+        if not (left_room and right_room):
             self.connect_rooms(node.left)
             self.connect_rooms(node.right)
+            return
+
+        # Load configuration (with fallbacks)
+        try:
+            dungeon_config = ConfigLoader.get_config()
+            direction_prob = dungeon_config.get_corridor_direction_probability()
+        except Exception:
+            direction_prob = 0.5  # Fallback to hardcoded default
+
+        # Create L-shaped corridor
+        rng = GameRNG.get_instance()
+        horizontal_first = rng.random() < direction_prob
+        self._create_l_corridor(node, left_room.center, right_room.center, horizontal_first)
+
+        self.connect_rooms(node.left)
+        self.connect_rooms(node.right)
 
     def get_room(self, node: 'BSPNode') -> Optional[Room]:
         """Get a room from a node or its children."""
@@ -266,19 +287,22 @@ class Map:
             right_room = self.get_room(node.right) if node.right else None
             return left_room or right_room
 
+    def _set_floor_tile(self, x: int, y: int):
+        """Set a tile to floor if within map bounds."""
+        if 0 <= x < self.width and 0 <= y < self.height:
+            self.tiles[x][y] = Tile(TileType.FLOOR)
+
     def apply_to_map(self, node: 'BSPNode'):
         """Apply rooms and corridors to the tile map."""
         # Apply room
         if node.room:
             for y in range(node.room.y, node.room.y + node.room.height):
                 for x in range(node.room.x, node.room.x + node.room.width):
-                    if 0 <= x < self.width and 0 <= y < self.height:
-                        self.tiles[x][y] = Tile(TileType.FLOOR)
+                    self._set_floor_tile(x, y)
 
         # Apply corridors
         for x, y in node.corridors:
-            if 0 <= x < self.width and 0 <= y < self.height:
-                self.tiles[x][y] = Tile(TileType.FLOOR)
+            self._set_floor_tile(x, y)
 
         # Recursively apply children
         if node.left:
@@ -314,6 +338,22 @@ class Map:
             return self.rooms[0].center
         return (1, 1)
 
+    def _find_first_walkable_in_room(self, room) -> Optional[Tuple[int, int]]:
+        """
+        Find the first walkable position in a room.
+
+        Args:
+            room: The room to search
+
+        Returns:
+            (x, y) tuple if found, None otherwise
+        """
+        for x in range(room.x, room.x + room.width):
+            for y in range(room.y, room.y + room.height):
+                if self.is_walkable(x, y):
+                    return (x, y)
+        return None
+
     def find_player_spawn_positions(self, count: int) -> List[Tuple[int, int]]:
         """
         Find spawn positions for multiple players in different rooms.
@@ -330,7 +370,7 @@ class Map:
         positions = []
 
         # Use the first N rooms for player spawns
-        for i, room in enumerate(self.rooms[:count]):
+        for room in self.rooms[:count]:
             if len(positions) >= count:
                 break
 
@@ -340,15 +380,9 @@ class Map:
                 positions.append((cx, cy))
             else:
                 # Center isn't walkable, find any walkable tile in room
-                found = False
-                for x in range(room.x, room.x + room.width):
-                    for y in range(room.y, room.y + room.height):
-                        if self.is_walkable(x, y):
-                            positions.append((x, y))
-                            found = True
-                            break
-                    if found:
-                        break
+                pos = self._find_first_walkable_in_room(room)
+                if pos:
+                    positions.append(pos)
 
         # Fallback if we don't have enough rooms
         if len(positions) < count:
@@ -374,16 +408,41 @@ class Map:
                 positions.append((cx, cy))
             else:
                 # Center isn't walkable, find any walkable tile in room
-                for x in range(room.x, room.x + room.width):
-                    for y in range(room.y, room.y + room.height):
-                        if self.is_walkable(x, y):
-                            positions.append((x, y))
-                            break
-                    else:
-                        continue
-                    break
+                pos = self._find_first_walkable_in_room(room)
+                if pos:
+                    positions.append(pos)
 
         return positions
+
+    def _is_adjacent_to_wall(self, x: int, y: int) -> bool:
+        """Check if position is adjacent to at least one wall."""
+        for dx in [-1, 0, 1]:
+            for dy in [-1, 0, 1]:
+                if dx == 0 and dy == 0:
+                    continue
+                if self.is_wall(x + dx, y + dy):
+                    return True
+        return False
+
+    def _is_valid_ore_position(self, x: int, y: int) -> bool:
+        """Check if position is valid for ore vein spawning."""
+        # Must be in bounds
+        if not self.in_bounds(x, y):
+            return False
+
+        # Must be walkable floor
+        if not self.is_walkable(x, y):
+            return False
+
+        # Must be adjacent to at least one wall
+        return self._is_adjacent_to_wall(x, y)
+
+    def _get_ore_spawn_probability(self) -> float:
+        """Get ore spawn probability from config."""
+        if self.config:
+            ore_pos_config = self.config.get_ore_positioning_config()
+            return ore_pos_config['wall_adjacency_probability']
+        return 0.1  # Default
 
     def find_ore_vein_positions(self, count: int) -> List[Tuple[int, int]]:
         """
@@ -393,41 +452,20 @@ class Map:
         This gives them a "embedded in rock" feel.
         """
         positions = []
+        spawn_prob = self._get_ore_spawn_probability()
+        rng = GameRNG.get_instance()
 
         for room in self.rooms:
-            # Check room perimeter for wall-adjacent floor tiles
+            # Check room area for valid ore positions
             for x in range(room.x, room.x + room.width):
                 for y in range(room.y, room.y + room.height):
-                    if not self.in_bounds(x, y):
-                        continue
-
-                    # Must be floor
-                    if not self.is_walkable(x, y):
-                        continue
-
-                    # Must be adjacent to at least one wall
-                    adjacent_to_wall = False
-                    for dx in [-1, 0, 1]:
-                        for dy in [-1, 0, 1]:
-                            if dx == 0 and dy == 0:
-                                continue
-                            if self.is_wall(x + dx, y + dy):
-                                adjacent_to_wall = True
-                                break
-                        if adjacent_to_wall:
-                            break
-
-                    # Get spawn probability from config (default 0.1 if no config)
-                    spawn_prob = 0.1  # Default
-                    if self.config:
-                        ore_pos_config = self.config.get_ore_positioning_config()
-                        spawn_prob = ore_pos_config['wall_adjacency_probability']
-
-                    if adjacent_to_wall and GameRNG.get_instance().random() < spawn_prob:
-                        positions.append((x, y))
-
+                    # Early exit if we have enough positions
                     if len(positions) >= count:
                         return positions
+
+                    # Check if position is valid and roll for spawn
+                    if self._is_valid_ore_position(x, y) and rng.random() < spawn_prob:
+                        positions.append((x, y))
 
         return positions
 

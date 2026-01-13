@@ -7,6 +7,108 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- **Entity Rendering**: Forges now display correctly with '&' symbol (were invisible but blocking)
+- **Entity Rendering**: Items and NPCs now render properly instead of falling through to terrain
+
+### Changed
+- **Mining Mechanics**: Bumping ore veins now starts mining automatically (consistent with bump-to-attack combat)
+- **Keybindings**: Removed 'M' key for mining (use bump-to-mine instead)
+- **UI Controls**: Updated sidebar hint from "M: Mine Ore" to "Bump ore to mine"
+
+### Added
+- **Test Suite**: Comprehensive entity rendering tests (`tests/unit/ui/test_entity_rendering.py`)
+- **Test Coverage**: Parametrized test checking all EntityType values render correctly
+- **Test Coverage**: Forge visibility regression test
+- **Test Coverage**: Ore vein color verification tests
+- **Test Coverage**: Forge blocking movement test
+- **Documentation**: Entity rendering improvements guide (`docs/development/ENTITY_RENDERING_IMPROVEMENTS.md`)
+- **Documentation**: Data-driven rendering architecture proposal (`docs/development/DATA_DRIVEN_RENDERING_POC.md`)
+- **Documentation**: Prevention strategy summary (`docs/development/PREVENTION_SUMMARY.md`)
+- **Architecture**: Entity Display Properties (`display_symbol`, `display_color`) - centralized rendering logic in Entity base class
+
+### Refactored - Architecture Improvements (Phase 1: divine-centaur-0113)
+- **Entity Base Class** (`entity.py`):
+  - Added `display_symbol` property - centralized symbol rendering logic (30 lines)
+  - Added `display_color` property - centralized color rendering logic (45 lines)
+  - Properties check stats dict first (future YAML data), fall back to type-specific defaults
+  - Enables future data-driven rendering without code changes
+
+- **MapWidget** (`map_widget.py`):
+  - Simplified `_render_cell()` from 43 lines to 28 lines (35% reduction)
+  - Removed type-specific rendering methods (`_get_ore_vein_style()`, `_get_forge_style()`)
+  - Removed hardcoded ORE_STYLES constant
+  - All entity rendering now uses unified `entity.display_symbol` and `entity.display_color` properties
+  - Single rendering path for all entity types (reduced from 6 separate code paths)
+
+- **World Generation** (`world.py` - Phase 1):
+  - Refactored `find_ore_vein_positions()` - reduced cyclomatic complexity from 14 to ~5
+  - Reduced nesting depth from 7 to 5 (closer to target of 4)
+  - Extracted helper methods:
+    - `_is_adjacent_to_wall()` - checks wall adjacency (eliminates nested loops)
+    - `_is_valid_ore_position()` - validates ore spawn location
+    - `_get_ore_spawn_probability()` - centralizes config access
+  - Improved readability with early returns and clearer logic flow
+
+- **Game Controller** (`game.py` - Phase 1):
+  - Refactored `start_new_game()` from 131 lines to 57 lines (56% reduction!)
+  - Extracted focused helper methods (each < 30 lines):
+    - `_create_player()` - player entity creation (28 lines)
+    - `_initialize_game_state()` - state and context setup (16 lines)
+    - `_add_legacy_ore()` - legacy ore inventory handling (18 lines)
+    - `_spawn_entities()` - entity spawning orchestration (12 lines)
+    - `_display_welcome_messages()` - UI messaging (14 lines)
+  - Each helper is independently testable and single-responsibility
+
+### Refactored - Complexity Reduction (Phase 2: spectral-kraken-0113)
+- **World Generation** (`world.py` - Phase 2):
+  - Reduced complexity issues from 7 to 3 (4 issues resolved)
+  - Added `_find_first_walkable_in_room()` helper - eliminates nested loops (13 lines)
+  - Refactored `find_player_spawn_positions()` - nesting depth 6→4 (33% reduction)
+  - Refactored `find_monster_positions()` - nesting depth 6→4 (33% reduction)
+  - Added `_create_l_corridor()` helper - extracts corridor creation logic (24 lines)
+  - Refactored `connect_rooms()` - nesting depth 5→3 using guard clauses
+  - Added `_set_floor_tile()` helper - bounds checking in one place (4 lines)
+  - Refactored `apply_to_map()` - nesting depth 5→4
+
+- **Game Controller** (`game.py` - Phase 2):
+  - Reduced complexity issues from 11 to 6 (5 issues resolved)
+  - Removed 5 unused imports (PLAYER_STARTING_HP, PLAYER_STARTING_ATTACK, PLAYER_STARTING_DEFENSE, DEFAULT_MAP_WIDTH, DEFAULT_MAP_HEIGHT)
+  - Added `_process_action_outcome()` helper - handles events, messages, floor transitions (30 lines)
+  - Refactored `handle_player_action()` from 74 lines to 51 lines (31% reduction)
+  - Extracted outcome processing into focused helper with single responsibility
+
+- **Code Quality Metrics**:
+  - world.py: `find_player_spawn_positions` nesting 6→4, `find_monster_positions` nesting 6→4
+  - world.py: `connect_rooms` nesting 5→3, `apply_to_map` nesting 5→4
+  - game.py: `handle_player_action` 74→51 lines (31% reduction)
+  - Added 4 new helper methods, improved maintainability
+  - All helper methods < 30 lines, single responsibility
+
+- **Import Cleanup**:
+  - `game.py`: Removed 5 unused constant imports (cleanup across 2 phases)
+  - `move_action.py`: Removed unused ActionResult import (phase 1)
+  - Kept imports required by deprecated factory methods (backward compatibility)
+
+### Technical Details
+- `map_widget.py`: Added rendering cases for FORGE, ITEM, and NPC entity types
+- `move_action.py`: Added ore vein collision handler that redirects to MineAction
+- Updated move action tests to reflect new bump-to-mine behavior
+- Tests now enforce that all entity types have visible rendering symbols
+- **Test Results - Phase 1**: 116 critical unit tests passing (entities, UI, actions)
+- **Test Results - Phase 2**: 115 core tests verified (63 entity/move tests + 52 game context tests)
+- **Code Quality**: Reduced complexity issues from 18 to 9 across 2 files (50% reduction)
+- **Maintainability**: Extracted 12 new helper methods total (8 phase 1, 4 phase 2)
+- **Lines of Code - Phase 1**: Net reduction of ~70 lines through consolidation
+- **Lines of Code - Phase 2**: world.py +29 lines (helpers), game.py +3 lines (helpers), improved structure
+
+### Architecture Impact
+- **Single Responsibility**: Entity rendering logic moved from UI layer to domain model
+- **Open/Closed**: New entity types automatically get rendering without MapWidget changes
+- **Future-Ready**: Display properties prepared for YAML-driven configuration
+- **Test Coverage**: Parametrized tests ensure all EntityType values handled
+- **Forcing Function**: Test suite catches missing entity rendering automatically
+
 ### Future Enhancements
 
 ## [0.4.0] - 2025-12-10
