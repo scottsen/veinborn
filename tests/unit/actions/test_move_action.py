@@ -226,9 +226,11 @@ def test_bump_attack_only_for_attackable_entities(mining_context):
 
     outcome = action.execute(mining_context)
 
-    # Should fail - ore vein blocks movement but isn't attackable
-    assert not outcome.is_success
-    assert "in the way" in outcome.messages[0]
+    # NEW BEHAVIOR (2026-01-13): Bumping ore veins now starts mining!
+    # Before: blocked movement with "in the way" message
+    # After: redirects to MineAction (bump-to-mine feature)
+    assert outcome.is_success
+    assert "Mining..." in outcome.messages[0]
 
 
 # ============================================================================
@@ -237,10 +239,15 @@ def test_bump_attack_only_for_attackable_entities(mining_context):
 
 @pytest.mark.unit
 def test_movement_blocked_by_blocking_entity(mining_context, copper_ore):
-    """Movement is blocked by entities that have blocks_movement=True."""
+    """
+    Ore veins redirect to mining (bump-to-mine).
+
+    Note: Ore veins used to block movement, but as of 2026-01-13,
+    bumping ore veins starts mining (consistent with bump-to-attack for monsters).
+    """
     player = mining_context.get_player()
 
-    # OreVein blocks movement
+    # OreVein at target location
     copper_ore.x = player.x + 1
     copper_ore.y = player.y
 
@@ -252,6 +259,36 @@ def test_movement_blocked_by_blocking_entity(mining_context, copper_ore):
 
     outcome = action.execute(mining_context)
 
+    # Should redirect to mining (bump-to-mine)
+    assert outcome.is_success
+    assert "Mining..." in outcome.messages[0]
+
+
+@pytest.mark.unit
+def test_forge_blocks_movement(mining_context):
+    """
+    Forges should block movement (no special interaction like ore veins).
+
+    Verifies that truly blocking entities still block properly after
+    adding bump-to-mine for ore veins.
+    """
+    from core.entities import Forge
+
+    player = mining_context.get_player()
+
+    # Create forge at target location
+    forge = Forge(forge_type="basic_forge", x=player.x + 1, y=player.y)
+    mining_context.game_state.entities[forge.entity_id] = forge
+
+    action = MoveAction(
+        actor_id=player.entity_id,
+        dx=1,
+        dy=0
+    )
+
+    outcome = action.execute(mining_context)
+
+    # Forge should block movement
     assert not outcome.is_success
     assert "in the way" in outcome.messages[0]
 

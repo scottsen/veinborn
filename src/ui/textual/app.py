@@ -92,7 +92,6 @@ class VeinbornApp(App):
         Binding("n", "move(1,1)", "Move Down-Right", show=False),
         # Mining actions
         Binding("s", "survey", "Survey Ore", show=True),
-        Binding("m", "mine", "Mine Ore", show=True),
         # Wait/Pass turn
         Binding(".", "wait", "Wait/Pass Turn", show=True),
         Binding("space", "wait", "Wait/Pass Turn", show=False),
@@ -203,17 +202,6 @@ class VeinbornApp(App):
 
         # Call synchronous game logic
         self.game.handle_player_action('survey')
-
-        # Update all widgets
-        self.refresh_ui()
-
-    async def action_mine(self) -> None:
-        """Mine adjacent ore vein (async Textual handler)."""
-        if self.game.state.game_over:
-            return
-
-        # Call synchronous game logic
-        self.game.handle_player_action('mine')
 
         # Update all widgets
         self.refresh_ui()

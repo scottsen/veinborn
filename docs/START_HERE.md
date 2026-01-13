@@ -19,7 +19,7 @@
 - ✅ Floor progression (23 tests passing)
 - ✅ Legacy Vault system (47 tests passing)
 - ✅ Lua Event System (Phase 3 complete!)
-- **858/860 tests passing (99.8%)!** (2 skipped due to C-level execution limitations)
+- **1063 tests passing (100%)!** (test suite expanded 24% since MVP)
 
 **What we're building NOW:**
 - 🔨 Playtesting and balance tuning
@@ -146,14 +146,14 @@ def generate_dungeon():
 
 ### 📋 Implementation Status
 
-**Current State:** MVP is feature-complete! 858/860 tests passing (99.8%). Game is fully playable.
+**Current State:** MVP is feature-complete! 1063 tests passing (100%). Game is fully playable.
 
 **What exists (ALL WORKING):**
 - ✅ Complete documentation (you're reading it!)
 - ✅ Game design finalized
 - ✅ Architecture implemented
 - ✅ Core game code (COMPLETE - 114+ Python files)
-- ✅ Comprehensive test suite (858/860 passing tests, 99.8%)
+- ✅ Comprehensive test suite (1063 passing tests, 100%)
 - ✅ Lua Event System (Phase 3 complete!)
 - ✅ Multiplayer (Phase 2 complete - 2+ player co-op working!)
 
@@ -294,9 +294,7 @@ projects/veinborn/
 │   │
 │   └── systems/            # System-specific documentation
 │
-├── .archived/              # ❌ Archived documentation (not current focus)
-│   ├── Archive/            # Historical designs and summaries
-│   └── future-multiplayer/ # Phase 2 multiplayer designs
+# Archived docs moved to ~/Archive/veinborn/docs-archive-2026-01-13/ (not in repo)
 │
 ├── scripts/
 │   ├── run_debug.py        # Run with debug logging

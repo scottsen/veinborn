@@ -7,8 +7,8 @@ All inherit from Entity base class for:
 - Easy serialization (save/load, multiplayer)
 """
 
-from dataclasses import dataclass, field
-from typing import List, Optional, Dict, Any
+from dataclasses import dataclass
+from typing import List, Optional
 from enum import Enum
 
 from .base.entity import Entity, EntityType

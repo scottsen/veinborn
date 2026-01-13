@@ -55,7 +55,7 @@ class Sidebar(Static):
         text.append("Arrow/HJKL: Move\n")
         text.append("YUBN: Diagonal\n")
         text.append("S: Survey Ore\n")
-        text.append("M: Mine Ore\n")
+        text.append("Bump ore to mine\n")
         text.append("Q: Quit\n")
         text.append("R: Restart\n")
 

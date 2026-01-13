@@ -44,7 +44,9 @@ veinborn
 ./veinborn --help     # Show help
 ```
 
-**New to Veinborn?** 👉 **[Read HOW_TO_PLAY.md](HOW_TO_PLAY.md)** - 5-minute guide to your first game
+**New to Veinborn?** 👉 **[QUICKSTART.md](QUICKSTART.md)** - Get playing in 5 minutes ⚡
+
+**Full guide:** [HOW_TO_PLAY.md](HOW_TO_PLAY.md) - Complete gameplay guide
 
 **Quick Controls:**
 - `Arrows/HJKL`: Move
@@ -69,13 +71,20 @@ When you die, all ore with **purity 80+** is saved to your Legacy Vault (`~/.vei
 
 Both paths are valid! Use the vault to learn or overcome bad luck.
 
-### New to Veinborn?
+### Documentation
 
-👉 **Read this first:** [`docs/START_HERE.md`](docs/START_HERE.md) (15-minute guide)
+**Choose your path:**
+- 🎮 **Player?** → [QUICKSTART.md](QUICKSTART.md) - Start playing now
+- 🎨 **Content creator?** → [docs/CONTENT_CREATION.md](docs/CONTENT_CREATION.md) - Add monsters/items
+- 🔧 **Modder?** → [docs/LUA_API.md](docs/LUA_API.md) - Lua modding API
+- 👨‍💻 **Developer?** → [docs/START_HERE.md](docs/START_HERE.md) - Contributing guide
 
-### Want to Contribute?
+**Full documentation hub:** [docs/README.md](docs/README.md)
 
-👉 **Check the roadmap:** [`docs/MVP_ROADMAP.md`](docs/MVP_ROADMAP.md) (pick a task!)
+**Quick lookup:**
+- [docs/PROJECT_STATUS.md](docs/PROJECT_STATUS.md) - What's implemented (858/860 tests ✅)
+- [docs/MVP_ROADMAP.md](docs/MVP_ROADMAP.md) - What's next
+- [docs/INDEX.md](docs/INDEX.md) - Complete documentation index
 
 ---
 

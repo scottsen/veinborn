@@ -1572,9 +1572,9 @@ Let's build it. 🎮⚔️
 
 ## 📚 References
 
-- Previous design: `.archived/future-multiplayer/VEINBORN_MULTIPLAYER_DESIGN.md`
-- Turn system: `.archived/future-multiplayer/VEINBORN_TURN_SYSTEM.md`
-- NATS infra: `.archived/future-multiplayer/VEINBORN_NATS_INFRASTRUCTURE.md`
+- Previous design: `~/Archive/veinborn/docs-archive-2026-01-13/future-multiplayer/VEINBORN_MULTIPLAYER_DESIGN.md`
+- Turn system: `~/Archive/veinborn/docs-archive-2026-01-13/future-multiplayer/VEINBORN_TURN_SYSTEM.md`
+- NATS infra: `~/Archive/veinborn/docs-archive-2026-01-13/future-multiplayer/VEINBORN_NATS_INFRASTRUCTURE.md`
 - Current codebase: `/home/user/veinborn/src/core/`
 
 ---

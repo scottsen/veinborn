@@ -9,14 +9,6 @@ from core.world import TileType
 from core.base.entity import EntityType
 
 
-# Ore vein display styles
-ORE_STYLES = {
-    'copper': Style(color="yellow", bold=True),
-    'iron': Style(color="bright_white", bold=True),
-    'mithril': Style(color="bright_cyan", bold=True),
-    'adamantite': Style(color="bright_magenta", bold=True),
-}
-
 # Terrain display styles
 TERRAIN_STYLES = {
     'wall': Style(color="white"),
@@ -93,19 +85,21 @@ class MapWidget(Widget):
         if world_x >= game_map.width:
             return Segment(" ")
 
-        # Player position
+        # Player position (priority rendering)
         if world_x == player.x and world_y == player.y:
-            return Segment("@", Style(color="bright_yellow", bold=True))
+            symbol = player.display_symbol
+            color = player.display_color
+            return Segment(symbol, Style(color=color, bold=True))
 
-        # Check for entities at this position
-        entity = self._get_entity_at(world_x, world_y, EntityType.MONSTER)
-        if entity:
-            char = entity.name[0].lower()
-            return Segment(char, Style(color="bright_red", bold=True))
-
-        entity = self._get_entity_at(world_x, world_y, EntityType.ORE_VEIN)
-        if entity:
-            return Segment('*', self._get_ore_vein_style(entity))
+        # Check for entities at this position (render in priority order)
+        # Priority: MONSTER > ORE_VEIN > FORGE > ITEM > NPC
+        for entity_type in [EntityType.MONSTER, EntityType.ORE_VEIN, EntityType.FORGE,
+                           EntityType.ITEM, EntityType.NPC]:
+            entity = self._get_entity_at(world_x, world_y, entity_type)
+            if entity:
+                symbol = entity.display_symbol
+                color = entity.display_color
+                return Segment(symbol, Style(color=color, bold=True))
 
         # Render terrain
         if 0 <= world_x < game_map.width and 0 <= world_y < game_map.height:
@@ -118,20 +112,10 @@ class MapWidget(Widget):
 
     def _get_entity_at(self, x, y, entity_type):
         """Find entity of given type at position."""
-        # Use new GameContext method (would need context passed, but we have direct access)
         for entity in self.game_state.entities.values():
             if entity.entity_type == entity_type and entity.x == x and entity.y == y:
                 return entity
         return None
-
-    def _get_ore_vein_style(self, ore_vein):
-        """Get display style for ore vein based on type."""
-        # Fuzzy match: check if any ore type is in the vein name
-        vein_name_lower = ore_vein.name.lower()
-        for ore_type, style in ORE_STYLES.items():
-            if ore_type in vein_name_lower:
-                return style
-        return Style(color="white", bold=True)
 
     def _get_terrain_style(self, tile_type):
         """Get display style for terrain tile."""

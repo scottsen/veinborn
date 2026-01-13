@@ -142,6 +142,83 @@ class Entity:
         """Set a stat value."""
         self.stats[stat_name] = value
 
+    @property
+    def display_symbol(self) -> str:
+        """
+        Get display symbol for rendering.
+
+        Checks stats dict first (for YAML-loaded entities),
+        falls back to type-specific defaults.
+
+        Returns:
+            Single character symbol for map display
+        """
+        # Check stats dict first (future: loaded from YAML)
+        if 'display_symbol' in self.stats:
+            return self.stats['display_symbol']
+
+        # Fall back to type-specific defaults
+        if self.entity_type == EntityType.PLAYER:
+            return '@'
+        elif self.entity_type == EntityType.MONSTER:
+            return self.name[0].lower() if self.name else 'm'
+        elif self.entity_type == EntityType.ITEM:
+            return ')'
+        elif self.entity_type == EntityType.ORE_VEIN:
+            return '*'
+        elif self.entity_type == EntityType.FORGE:
+            return '&'
+        elif self.entity_type == EntityType.NPC:
+            return self.name[0].lower() if self.name else 'n'
+        else:
+            return '?'
+
+    @property
+    def display_color(self) -> str:
+        """
+        Get display color for rendering.
+
+        Checks stats dict first (for YAML-loaded entities),
+        falls back to type-specific defaults.
+
+        Returns:
+            Color name string (e.g., 'bright_red', 'yellow')
+        """
+        # Check stats dict first (future: loaded from YAML)
+        if 'display_color' in self.stats:
+            return self.stats['display_color']
+
+        # Fall back to type-specific defaults
+        if self.entity_type == EntityType.PLAYER:
+            return 'bright_yellow'
+        elif self.entity_type == EntityType.MONSTER:
+            return 'bright_red'
+        elif self.entity_type == EntityType.ITEM:
+            return 'bright_cyan'
+        elif self.entity_type == EntityType.ORE_VEIN:
+            # Special case: check ore_type for specific colors
+            ore_type = self.get_stat('ore_type', 'copper')
+            ore_colors = {
+                'copper': 'yellow',
+                'iron': 'bright_white',
+                'mithril': 'bright_cyan',
+                'adamantite': 'bright_magenta',
+            }
+            return ore_colors.get(ore_type, 'white')
+        elif self.entity_type == EntityType.FORGE:
+            # Special case: check forge_type for specific colors
+            forge_type = self.get_stat('forge_type', 'basic_forge')
+            if 'master' in forge_type:
+                return 'yellow'
+            elif 'iron' in forge_type:
+                return 'bright_white'
+            else:
+                return 'yellow'
+        elif self.entity_type == EntityType.NPC:
+            return 'bright_green'
+        else:
+            return 'white'
+
     def to_dict(self) -> dict:
         """Serialize to dictionary (for save/load, multiplayer)."""
         return {

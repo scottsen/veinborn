@@ -9,8 +9,9 @@ Handles:
 
 import logging
 from dataclasses import dataclass
-from ..base.action import Action, ActionOutcome, ActionResult
+from ..base.action import Action, ActionOutcome
 from ..base.game_context import GameContext
+from ..base.entity import EntityType
 
 logger = logging.getLogger(__name__)
 
@@ -123,6 +124,16 @@ class MoveAction(Action):
             from .attack_action import AttackAction
             attack = AttackAction(self.actor_id, target.entity_id)
             return attack.execute(context)
+
+        # Ore vein - bump to mine
+        if target.entity_type == EntityType.ORE_VEIN:
+            logger.info("MoveAction redirecting to mine (bump mining)",
+                       extra={'actor_id': self.actor_id, 'actor_name': actor.name,
+                              'ore_vein_id': target.entity_id, 'ore_vein_name': target.name,
+                              'position': (new_x, new_y)})
+            from .mine_action import MineAction
+            mine = MineAction(self.actor_id, target.entity_id)
+            return mine.execute(context)
 
         # Blocking entity - cannot pass
         if target.blocks_movement:

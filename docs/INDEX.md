@@ -32,7 +32,7 @@
 | Document | Purpose | Audience |
 |----------|---------|----------|
 | **[STATUS_DASHBOARD.md](STATUS_DASHBOARD.md)** ⭐ | 🎯 **One-page at-a-glance status** (2 min read) | Everyone |
-| **[PROJECT_STATUS.md](PROJECT_STATUS.md)** | ✅ Comprehensive status report (858/860 tests, 100% accurate) | Everyone |
+| **[PROJECT_STATUS.md](PROJECT_STATUS.md)** | ✅ Comprehensive status report (1063 tests, 100% accurate) | Everyone |
 | **[MVP_CURRENT_FOCUS.md](MVP_CURRENT_FOCUS.md)** | 🎯 Current priorities and next steps | Developers |
 | **[MVP_ROADMAP.md](MVP_ROADMAP.md)** | 📋 High-level roadmap | Project managers |
 
@@ -88,8 +88,8 @@
 
 | Directory | Contents | Location |
 |-----------|----------|----------|
-| **Archive/** | Old/conflicting designs, historical summaries | `../.archived/Archive/` |
-| **future-multiplayer/** | Phase 2 multiplayer designs (16+ docs) | `../.archived/future-multiplayer/` |
+| **Archive/** | Old/conflicting designs, historical summaries | `~/Archive/veinborn/docs-archive-2026-01-13/Archive/` |
+| **future-multiplayer/** | Phase 2 multiplayer designs (16+ docs) | `~/Archive/veinborn/docs-archive-2026-01-13/future-multiplayer/` |
 
 **For current design:** Read [VEINBORN_CONSOLIDATED_DESIGN.md](VEINBORN_CONSOLIDATED_DESIGN.md) instead!
 

@@ -4,6 +4,16 @@ This directory contains guides for testing, debugging, and development workflows
 
 ## Quick Links
 
+### Validation & Playtesting
+- **[PLAYTEST_PROTOCOL.md](PLAYTEST_PROTOCOL.md)** - Systematic gameplay validation framework (10-20 hours)
+- **[BALANCE_REVIEW.md](BALANCE_REVIEW.md)** - Pre-validated balance analysis and watch areas
+- **[playtest-findings-TEMPLATE.md](playtest-findings-TEMPLATE.md)** - Template for capturing playtest sessions
+
+### Bot Development & Competition
+- **[BOT_SYSTEM_ANALYSIS.md](BOT_SYSTEM_ANALYSIS.md)** - Technical analysis of bot infrastructure and competitive potential
+- **[BOT_CHALLENGE.md](BOT_CHALLENGE.md)** - 🏆 The Floor 100 Challenge (competitive bot programming)
+- **[BOT_CREATION_GUIDE.md](BOT_CREATION_GUIDE.md)** - Bot creation tutorial (outline, TODO: complete)
+
 ### Testing & Debugging
 - **[DEBUG_INSTRUCTIONS.md](DEBUG_INSTRUCTIONS.md)** - How to debug the game
 - **[TESTING_ACTION_FACTORY.md](TESTING_ACTION_FACTORY.md)** - Action factory testing guide
