@@ -444,6 +444,32 @@ class Map:
             return ore_pos_config['wall_adjacency_probability']
         return 0.1  # Default
 
+    def _find_ore_positions_in_room(
+        self, room, needed_count: int, spawn_prob: float
+    ) -> List[Tuple[int, int]]:
+        """
+        Find valid ore positions within a single room.
+
+        Args:
+            room: The room to search for ore positions
+            needed_count: Maximum number of positions to find
+            spawn_prob: Probability threshold for ore spawning
+
+        Returns:
+            List of (x, y) positions found in this room (up to needed_count)
+        """
+        rng = GameRNG.get_instance()
+        positions = []
+
+        for x in range(room.x, room.x + room.width):
+            for y in range(room.y, room.y + room.height):
+                if len(positions) >= needed_count:
+                    break  # Found enough in this room
+                if self._is_valid_ore_position(x, y) and rng.random() < spawn_prob:
+                    positions.append((x, y))
+
+        return positions
+
     def find_ore_vein_positions(self, count: int) -> List[Tuple[int, int]]:
         """
         Find positions for ore veins.
@@ -453,45 +479,27 @@ class Map:
         """
         positions = []
         spawn_prob = self._get_ore_spawn_probability()
-        rng = GameRNG.get_instance()
 
         for room in self.rooms:
-            # Check room area for valid ore positions
-            for x in range(room.x, room.x + room.width):
-                for y in range(room.y, room.y + room.height):
-                    # Early exit if we have enough positions
-                    if len(positions) >= count:
-                        return positions
+            needed = count - len(positions)
+            if needed <= 0:
+                break  # Found enough positions
 
-                    # Check if position is valid and roll for spawn
-                    if self._is_valid_ore_position(x, y) and rng.random() < spawn_prob:
-                        positions.append((x, y))
+            room_positions = self._find_ore_positions_in_room(room, needed, spawn_prob)
+            positions.extend(room_positions)
 
         return positions
 
-    def assign_special_rooms(self):
+    def _get_special_room_config(self):
         """
-        Assign special room types to some rooms.
+        Get special room configuration with defaults.
 
-        Special rooms provide unique gameplay elements:
-        - Treasure rooms: High-quality loot
-        - Monster dens: Extra monsters and challenges
-        - Ore chambers: Multiple high-quality ore veins
-        - Shrines: Healing and buffs
-        - Trap rooms: Environmental hazards
-
-        Rules:
-        - First room (starting room) is always NORMAL
-        - Last room (stairs room) is always NORMAL
-        - 20-30% of other rooms become special
+        Returns:
+            tuple: (special_types, min_pct, max_pct)
+                - special_types: List of (RoomType, weight) tuples
+                - min_pct: Minimum percentage of rooms to make special
+                - max_pct: Maximum percentage of rooms to make special
         """
-        if len(self.rooms) <= 2:
-            # Not enough rooms for special types
-            return
-
-        rng = GameRNG.get_instance()
-
-        # Get special room configuration (with defaults for backward compatibility)
         if self.config:
             assignment_config = self.config.get_special_room_assignment_config()
             room_weights = assignment_config['room_type_weights']
@@ -516,6 +524,31 @@ class Map:
             ]
             min_pct = 0.2
             max_pct = 0.3
+
+        return special_types, min_pct, max_pct
+
+    def assign_special_rooms(self):
+        """
+        Assign special room types to some rooms.
+
+        Special rooms provide unique gameplay elements:
+        - Treasure rooms: High-quality loot
+        - Monster dens: Extra monsters and challenges
+        - Ore chambers: Multiple high-quality ore veins
+        - Shrines: Healing and buffs
+        - Trap rooms: Environmental hazards
+
+        Rules:
+        - First room (starting room) is always NORMAL
+        - Last room (stairs room) is always NORMAL
+        - 20-30% of other rooms become special
+        """
+        if len(self.rooms) <= 2:
+            # Not enough rooms for special types
+            return
+
+        rng = GameRNG.get_instance()
+        special_types, min_pct, max_pct = self._get_special_room_config()
 
         # Calculate how many special rooms to create
         # Exclude first and last room

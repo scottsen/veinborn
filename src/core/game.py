@@ -21,7 +21,13 @@ from .world import Map
 from .systems.ai_system import AISystem
 from .actions.action_factory import ActionFactory
 from .config import ConfigLoader
-# constants module imported for potential use by other modules
+from .constants import (
+    DEFAULT_MAP_WIDTH,
+    DEFAULT_MAP_HEIGHT,
+    PLAYER_STARTING_HP,
+    PLAYER_STARTING_ATTACK,
+    PLAYER_STARTING_DEFENSE,
+)
 from .spawning import EntitySpawner
 from .turn_processor import TurnProcessor
 from .floor_manager import FloorManager
@@ -205,7 +211,9 @@ class Game:
         player = self._create_player(player_pos, player_name, character_class)
 
         # Initialize game state and context
-        self._initialize_game_state(player, dungeon_map, player_name, is_legacy_run, rng.original_seed)
+        self._initialize_game_state(
+            player, dungeon_map, player_name, is_legacy_run, rng.original_seed
+        )
 
         # Add legacy ore if provided
         if withdrawn_ore:

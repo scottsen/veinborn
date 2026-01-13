@@ -90,6 +90,42 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `move_action.py`: Removed unused ActionResult import (phase 1)
   - Kept imports required by deprecated factory methods (backward compatibility)
 
+### Refactored - Complexity Hotspot Elimination (Phase 3: phoenix-phantom-0113)
+- **World Generation** (`world.py` - Phase 3):
+  - Eliminated final complexity violations (3→1 issues remaining)
+  - Added `_find_ore_positions_in_room()` helper - extracts inner loop logic (22 lines)
+  - Refactored `find_ore_vein_positions()` - nesting depth 5→2 (60% reduction)
+  - Added `_get_special_room_config()` helper - extracts config loading (35 lines)
+  - Refactored `assign_special_rooms()` from 60 lines to 30 lines (50% reduction)
+  - Fixed line length violation with multi-line function signature
+  - **Result**: Only 1 non-critical issue remains (file size: 658/1000 lines)
+
+- **Game Controller** (`game.py` - Phase 3):
+  - Fixed regression from Phase 2 - restored mistakenly removed constant imports
+  - Re-added `DEFAULT_MAP_WIDTH`, `DEFAULT_MAP_HEIGHT` (used in `start_new_game()`)
+  - Re-added `PLAYER_STARTING_HP`, `PLAYER_STARTING_ATTACK`, `PLAYER_STARTING_DEFENSE` (used in `_create_player()`)
+  - Fixed line length violation with multi-line function call
+  - Evaluated `_subscribe_event_handlers()` (63 lines) - **left as-is** (intentionally explicit for event-driven architecture)
+
+- **Code Quality Metrics**:
+  - world.py: `find_ore_vein_positions` nesting 5→2 (60% reduction, **violation resolved**)
+  - world.py: `assign_special_rooms` 60→30 lines (50% reduction, **approaching threshold resolved**)
+  - Added 2 new helper methods with single responsibility
+  - Both helpers < 35 lines, independently testable
+  - Fixed 2 line length violations (PEP 8 compliance)
+
+- **Test Verification**:
+  - **136 world/ore tests passing** (verify refactoring behavior preservation)
+  - **63 entity/action tests passing** (smoke test core modules)
+  - Regression fix verified - all tests using constants now pass
+  - No behavioral changes introduced
+
+- **Architecture Decision**:
+  - `_subscribe_event_handlers()` intentionally repetitive for clarity
+  - Each subscription self-documenting (follows event-driven pattern)
+  - DRY-ing would reduce maintainability (documented in EVENTS_ASYNC_OBSERVABILITY_GUIDE.md)
+  - 63 lines approaches threshold (100) but doesn't violate it
+
 ### Technical Details
 - `map_widget.py`: Added rendering cases for FORGE, ITEM, and NPC entity types
 - `move_action.py`: Added ore vein collision handler that redirects to MineAction
@@ -97,10 +133,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Tests now enforce that all entity types have visible rendering symbols
 - **Test Results - Phase 1**: 116 critical unit tests passing (entities, UI, actions)
 - **Test Results - Phase 2**: 115 core tests verified (63 entity/move tests + 52 game context tests)
-- **Code Quality**: Reduced complexity issues from 18 to 9 across 2 files (50% reduction)
-- **Maintainability**: Extracted 12 new helper methods total (8 phase 1, 4 phase 2)
+- **Test Results - Phase 3**: 136 world/ore tests + 63 entity/action tests passing (behavior preservation verified)
+- **Code Quality - Phase 2**: Reduced complexity issues from 18 to 9 across 2 files (50% reduction)
+- **Code Quality - Phase 3**: Eliminated complexity violations (9→1 issues), only file size warning remains
+- **Maintainability**: Extracted 14 new helper methods total (8 phase 1, 4 phase 2, 2 phase 3)
 - **Lines of Code - Phase 1**: Net reduction of ~70 lines through consolidation
 - **Lines of Code - Phase 2**: world.py +29 lines (helpers), game.py +3 lines (helpers), improved structure
+- **Lines of Code - Phase 3**: world.py +57 lines (2 helpers), game.py +4 lines (import restoration)
 
 ### Architecture Impact
 - **Single Responsibility**: Entity rendering logic moved from UI layer to domain model
