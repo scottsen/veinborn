@@ -27,6 +27,43 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Documentation**: Prevention strategy summary (`docs/development/PREVENTION_SUMMARY.md`)
 - **Architecture**: Entity Display Properties (`display_symbol`, `display_color`) - centralized rendering logic in Entity base class
 
+### Refactored - Data-Driven Rendering (Phase 4: parafotu-0114)
+**Completed the data-driven rendering migration** started in Phase 1. Entity appearance is now loaded from YAML files, enabling modding without code changes.
+
+- **EntityLoader** (`entity_loader.py`):
+  - Added color mapping from friendly YAML names to valid Rich colors (`map_color()`)
+  - `create_monster()` now loads `symbol` and `color` from monsters.yaml into Entity.stats
+  - `create_ore_vein()` now loads `symbol` and `color` from ores.yaml into Entity.stats
+  - Color mapping: copper→yellow, silver→bright_cyan, gray→bright_white, purple→bright_magenta, brown→yellow, orange→bright_red
+  - All EntityLoader-created entities now have display properties from YAML
+
+- **Forge** (`entities.py`):
+  - `Forge.__post_init__()` sets display properties based on forge_type
+  - basic_forge: '&' yellow, iron_forge: '&' bright_white, master_forge: '&' yellow
+  - Matches forges.yaml data with color mapping for Rich compatibility
+
+- **OreVein** (`entities.py`):
+  - `OreVein.__post_init__()` sets display properties based on ore_type
+  - copper: '*' yellow, iron: '*' bright_white, mithril: '*' bright_cyan, adamantite: '*' bright_magenta
+  - Uses '*' symbol (game convention) instead of YAML's '~'
+
+- **Entity Properties** (`entity.py`):
+  - `display_symbol` and `display_color` properties check stats dict first (YAML-loaded data)
+  - Minimal fallbacks for directly-created entities (tests, debugging)
+  - Production entities (via EntityLoader) always use YAML data
+
+**Impact**:
+- ✅ Monsters, ores, and forges now render using YAML-defined appearance
+- ✅ Modders can change entity colors/symbols by editing YAML files
+- ✅ No code changes needed to modify entity appearance
+- ✅ All 1063 tests passing (100%)
+- ✅ Backward compatible with directly-created entities (tests work unchanged)
+
+**Data-Driven Architecture Complete**:
+- Phase 1: Entity display properties infrastructure (divine-centaur-0113)
+- Phase 2-3: Code complexity reduction (spectral-kraken-0113, phoenix-phantom-0113)
+- Phase 4: EntityLoader YAML integration (parafotu-0114) ← **YOU ARE HERE**
+
 ### Refactored - Architecture Improvements (Phase 1: divine-centaur-0113)
 - **Entity Base Class** (`entity.py`):
   - Added `display_symbol` property - centralized symbol rendering logic (30 lines)

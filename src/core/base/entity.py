@@ -145,19 +145,19 @@ class Entity:
     @property
     def display_symbol(self) -> str:
         """
-        Get display symbol for rendering.
+        Get display symbol for rendering (data-driven).
 
-        Checks stats dict first (for YAML-loaded entities),
-        falls back to type-specific defaults.
+        Symbol is loaded from YAML for monsters/ores/forges created via EntityLoader.
+        Minimal fallbacks for directly-created entities (tests, manual creation).
 
         Returns:
             Single character symbol for map display
         """
-        # Check stats dict first (future: loaded from YAML)
+        # Check stats dict (loaded from YAML for monsters/ores/forges)
         if 'display_symbol' in self.stats:
             return self.stats['display_symbol']
 
-        # Fall back to type-specific defaults
+        # Fallback for directly-created entities (not via EntityLoader)
         if self.entity_type == EntityType.PLAYER:
             return '@'
         elif self.entity_type == EntityType.MONSTER:
@@ -176,19 +176,19 @@ class Entity:
     @property
     def display_color(self) -> str:
         """
-        Get display color for rendering.
+        Get display color for rendering (data-driven).
 
-        Checks stats dict first (for YAML-loaded entities),
-        falls back to type-specific defaults.
+        Color is loaded from YAML for monsters/ores/forges created via EntityLoader.
+        Minimal fallbacks for directly-created entities (tests, manual creation).
 
         Returns:
             Color name string (e.g., 'bright_red', 'yellow')
         """
-        # Check stats dict first (future: loaded from YAML)
+        # Check stats dict (loaded from YAML for monsters/ores/forges)
         if 'display_color' in self.stats:
             return self.stats['display_color']
 
-        # Fall back to type-specific defaults
+        # Fallback for directly-created entities (not via EntityLoader)
         if self.entity_type == EntityType.PLAYER:
             return 'bright_yellow'
         elif self.entity_type == EntityType.MONSTER:
@@ -196,24 +196,9 @@ class Entity:
         elif self.entity_type == EntityType.ITEM:
             return 'bright_cyan'
         elif self.entity_type == EntityType.ORE_VEIN:
-            # Special case: check ore_type for specific colors
-            ore_type = self.get_stat('ore_type', 'copper')
-            ore_colors = {
-                'copper': 'yellow',
-                'iron': 'bright_white',
-                'mithril': 'bright_cyan',
-                'adamantite': 'bright_magenta',
-            }
-            return ore_colors.get(ore_type, 'white')
+            return 'yellow'  # Generic fallback (real entities get specific colors from YAML)
         elif self.entity_type == EntityType.FORGE:
-            # Special case: check forge_type for specific colors
-            forge_type = self.get_stat('forge_type', 'basic_forge')
-            if 'master' in forge_type:
-                return 'yellow'
-            elif 'iron' in forge_type:
-                return 'bright_white'
-            else:
-                return 'yellow'
+            return 'yellow'  # Generic fallback (real entities get specific colors)
         elif self.entity_type == EntityType.NPC:
             return 'bright_green'
         else:

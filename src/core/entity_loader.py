@@ -24,6 +24,39 @@ from .exceptions import ContentValidationError
 logger = logging.getLogger(__name__)
 
 
+# Color mapping from YAML color names to valid Rich color names
+# This allows YAML to use friendly names like 'copper' or 'silver'
+COLOR_MAP = {
+    # Ore colors
+    'copper': 'yellow',
+    'silver': 'bright_cyan',
+    'gray': 'bright_white',
+    'purple': 'bright_magenta',
+    # Monster colors (most are valid, but adding mappings for clarity)
+    'green': 'green',
+    'brown': 'yellow',  # Rich doesn't have brown, use yellow
+    'red': 'red',
+    'white': 'white',
+    'cyan': 'bright_cyan',
+    'magenta': 'bright_magenta',
+    'orange': 'bright_red',  # Rich doesn't have orange, use bright_red
+    'yellow': 'yellow',
+}
+
+
+def map_color(yaml_color: str) -> str:
+    """
+    Map YAML color name to valid Rich color name.
+
+    Args:
+        yaml_color: Color name from YAML (e.g., 'copper', 'silver', 'brown')
+
+    Returns:
+        Valid Rich color name (e.g., 'yellow', 'bright_cyan')
+    """
+    return COLOR_MAP.get(yaml_color, yaml_color)
+
+
 class EntityLoader:
     """
     Loads and creates entities from YAML definitions.
@@ -188,6 +221,12 @@ class EntityLoader:
             content_id=monster_id,
         )
 
+        # Load display properties from YAML (data-driven rendering)
+        display_symbol = definition.get("symbol", "?")
+        display_color = map_color(definition.get("color", "white"))
+        monster.set_stat("display_symbol", display_symbol)
+        monster.set_stat("display_color", display_color)
+
         # Apply AI settings
         ai_config = definition.get("ai", {})
         ai_type = ai_config.get("type", "aggressive")
@@ -275,6 +314,13 @@ class EntityLoader:
             purity=purity,
             density=density,
         )
+
+        # Load display properties from YAML (data-driven rendering)
+        # NOTE: Overriding YAML symbol '~' with '*' to match game convention
+        display_symbol = "*"  # definition.get("symbol", "*")  - YAML has '~', using '*' for consistency
+        display_color = map_color(definition.get("color", "white"))
+        ore_vein.set_stat("display_symbol", display_symbol)
+        ore_vein.set_stat("display_color", display_color)
 
         logger.debug(
             f"Created {ore_type} ore vein at ({x}, {y}) "

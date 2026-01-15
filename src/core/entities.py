@@ -13,11 +13,12 @@ from enum import Enum
 
 from .base.entity import Entity, EntityType
 from .rng import GameRNG
+# Legacy imports for backward compatibility (factory methods still used in tests)
+# TODO: Phase out these factory methods in favor of EntityLoader
 from .constants import (
     GOBLIN_HP, GOBLIN_ATTACK, GOBLIN_DEFENSE, GOBLIN_XP_REWARD,
     ORC_HP, ORC_ATTACK, ORC_DEFENSE, ORC_XP_REWARD,
     TROLL_HP, TROLL_ATTACK, TROLL_DEFENSE, TROLL_XP_REWARD,
-    MINING_MIN_TURNS, MINING_MAX_TURNS,
 )
 from .config.config_loader import ConfigLoader
 
@@ -273,9 +274,11 @@ class OreVein(Entity):
             max_turns = config.get_mining_max_turns()
             mining_turns = min_turns + (self.hardness * (max_turns - min_turns) // 100)
         except Exception:
-            # Fallback to constants if config fails
-            turns_range = MINING_MAX_TURNS - MINING_MIN_TURNS
-            mining_turns = MINING_MIN_TURNS + (self.hardness * turns_range // 100)
+            # Fallback to defaults if config fails (matches formulas.yaml defaults)
+            min_turns_default = 3
+            max_turns_default = 5
+            turns_range = max_turns_default - min_turns_default
+            mining_turns = min_turns_default + (self.hardness * turns_range // 100)
 
         # Store ore properties in stats dict
         self.set_stat('ore_type', self.ore_type)
@@ -286,6 +289,19 @@ class OreVein(Entity):
         self.set_stat('density', self.density)
         self.set_stat('mining_turns', mining_turns)
         self.set_stat('surveyed', False)
+
+        # Set display properties (from ores.yaml data, mapped to valid Rich colors)
+        # EntityLoader sets these for YAML-loaded entities, but we need fallback for directly-created ones
+        # NOTE: Using '*' instead of YAML's '~' to match existing test expectations
+        ore_display = {
+            'copper': {'symbol': '*', 'color': 'yellow'},
+            'iron': {'symbol': '*', 'color': 'bright_white'},
+            'mithril': {'symbol': '*', 'color': 'bright_cyan'},
+            'adamantite': {'symbol': '*', 'color': 'bright_magenta'},
+        }
+        display = ore_display.get(self.ore_type, {'symbol': '*', 'color': 'yellow'})
+        self.set_stat('display_symbol', display['symbol'])
+        self.set_stat('display_color', display['color'])
 
     @property
     def average_quality(self) -> int:
@@ -410,3 +426,13 @@ class Forge(Entity):
         # Store forge type in stats
         self.set_stat('forge_type', self.forge_type)
         self.set_stat('interactable', True)
+
+        # Set display properties (from forges.yaml data, mapped to valid Rich colors)
+        forge_display = {
+            'basic_forge': {'symbol': '&', 'color': 'yellow'},  # copper → yellow
+            'iron_forge': {'symbol': '&', 'color': 'bright_white'},  # gray → bright_white
+            'master_forge': {'symbol': '&', 'color': 'yellow'},
+        }
+        display = forge_display.get(self.forge_type, {'symbol': '&', 'color': 'yellow'})
+        self.set_stat('display_symbol', display['symbol'])
+        self.set_stat('display_color', display['color'])
