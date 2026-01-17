@@ -74,7 +74,8 @@ class EquipAction(Action):
 
     def _validate_equipment_slot(self, item) -> str:
         """Validate item has a valid equipment slot."""
-        equipment_slot = item.get_stat('equipment_slot')
+        # Check equipment_slot first, fallback to item_type
+        equipment_slot = item.get_stat('equipment_slot') or item.get_stat('item_type')
         if not equipment_slot:
             self._log_validation_failure(
                 "item is not equippable",
@@ -110,7 +111,8 @@ class EquipAction(Action):
                          'item_id': self.item_id, 'item_name': item.name})
 
         # Handle equipping based on slot
-        equipment_slot = item.get_stat('equipment_slot')
+        # Check equipment_slot first, fallback to item_type
+        equipment_slot = item.get_stat('equipment_slot') or item.get_stat('item_type')
         messages = self._equip_item(actor, item, equipment_slot)
 
         # Add total stats summary

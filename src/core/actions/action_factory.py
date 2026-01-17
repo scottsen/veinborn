@@ -25,6 +25,7 @@ from .descend_action import DescendAction
 from .attack_action import AttackAction
 from .craft_action import CraftAction
 from .equip_action import EquipAction
+from .pickup_action import PickupAction
 
 logger = logging.getLogger(__name__)
 
@@ -184,6 +185,12 @@ class ActionFactory:
             name='equip',
             create_fn=self._create_equip_action,
             description='Equip an item from inventory'
+        )
+
+        self._handlers['pickup'] = ActionHandler(
+            name='pickup',
+            create_fn=self._create_pickup_action,
+            description='Pick up items from the ground'
         )
 
     # ============================================================================
@@ -375,6 +382,24 @@ class ActionFactory:
             return None
 
         return EquipAction(actor_id, item_id)
+
+    def _create_pickup_action(
+        self,
+        context: GameContext,
+        kwargs: dict
+    ) -> Optional[Action]:
+        """
+        Create a pickup action.
+
+        Args:
+            context: Game context
+            kwargs: Not used
+
+        Returns:
+            PickupAction
+        """
+        actor_id = context.get_player().entity_id
+        return PickupAction(actor_id)
 
     # ============================================================================
     # Helper Methods

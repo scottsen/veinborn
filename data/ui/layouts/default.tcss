@@ -1,0 +1,52 @@
+/*
+ * Veinborn Default Layout
+ *
+ * Right sidebar layout - sidebar shows stats/monsters/inventory together
+ */
+
+StatusBar {
+    height: 1;
+    dock: top;
+    background: $boost;
+    color: $text;
+    padding: 0 1;
+    border: solid $primary;
+}
+
+/* Combined sidebar on right - contains stats, monsters, AND inventory */
+Sidebar {
+    width: 30;
+    dock: right;
+    background: $panel;
+    border: solid $primary;
+    padding: 1;
+    height: 100%;
+}
+
+/* Inventory widget - hide it since Sidebar will show inventory */
+InventoryWidget {
+    display: none;
+}
+
+/* Main map area (fills remaining space) */
+MapWidget {
+    background: $surface;
+    border: solid $primary;
+}
+
+/* Message log (bottom) */
+MessageLog {
+    height: 10;
+    dock: bottom;
+    background: $surface;
+    border: solid $primary;
+    padding: 0 1;
+}
+
+/* Chat input (overlay) */
+ChatInput {
+    dock: bottom;
+    height: 3;
+    background: $panel;
+    border: solid $primary;
+}

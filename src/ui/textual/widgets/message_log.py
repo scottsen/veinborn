@@ -7,15 +7,7 @@ from rich.text import Text
 class MessageLog(Static):
     """Bottom message log for game events and chat."""
 
-    DEFAULT_CSS = """
-    MessageLog {
-        height: 5;
-        dock: bottom;
-        background: $surface;
-        border-top: solid $primary;
-        padding: 0 1;
-    }
-    """
+    # DEFAULT_CSS removed - use external layout files instead
 
     def __init__(self, game_state=None, **kwargs):
         super().__init__(**kwargs)
@@ -57,23 +49,23 @@ class MessageLog(Static):
 
         # Add game messages (if in single-player mode)
         if self.game_state and self.game_state.messages:
-            for msg in self.game_state.messages[-4:]:
+            for msg in self.game_state.messages[-8:]:
                 all_messages.append(("game", msg))
 
         # Add recent system messages (multiplayer events)
-        for msg in self.system_messages[-4:]:
+        for msg in self.system_messages[-8:]:
             all_messages.append(("system", msg))
 
         # Add recent chat messages
-        for player_name, msg in self.chat_messages[-4:]:
+        for player_name, msg in self.chat_messages[-8:]:
             all_messages.append(("chat", (player_name, msg)))
 
         # If no messages at all, show welcome
         if not all_messages:
             return Text("Welcome to Veinborn!", style="italic")
 
-        # Display the last 4 messages (mixed game/chat/system)
-        displayed_messages = all_messages[-4:]
+        # Display the last 8 messages (mixed game/chat/system)
+        displayed_messages = all_messages[-8:]
 
         for msg_type, msg_data in displayed_messages:
             if msg_type == "game":

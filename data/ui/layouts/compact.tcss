@@ -1,0 +1,62 @@
+/*
+ * Veinborn Compact Layout
+ *
+ * Maximizes map space by using narrow sidebars:
+ * - Minimal status bar
+ * - Small right sidebar (20 width instead of 25)
+ * - Small message log (6 lines instead of 10)
+ *
+ * Best for large dungeons or small terminals.
+ */
+
+StatusBar {
+    height: 1;
+    dock: top;
+    background: $boost;
+    color: $text;
+    padding: 0 1;
+}
+
+/* Narrower sidebar for more map space */
+Sidebar {
+    width: 20;
+    dock: right;
+    background: $panel;
+    border-left: solid $primary;
+    padding: 1;
+    height: 55%;
+}
+
+/* Narrower inventory */
+InventoryWidget {
+    width: 20;
+    dock: right;
+    background: $panel;
+    border-left: solid $primary;
+    border-top: solid $primary;
+    padding: 1;
+    height: 45%;
+}
+
+/* Map fills most of the screen */
+MapWidget {
+    background: $surface;
+    border: solid $primary;
+}
+
+/* Smaller message log for more map space */
+MessageLog {
+    height: 6;
+    dock: bottom;
+    background: $surface;
+    border-top: solid $primary;
+    padding: 0 1;
+}
+
+/* Chat input (overlay) */
+ChatInput {
+    dock: bottom;
+    height: 3;
+    background: $panel;
+    border: solid $primary;
+}

@@ -278,7 +278,7 @@ default_seed =
 
 # Autopickup settings
 autopickup = true
-autopickup_types = ore,food,weapon
+autopickup_types = ore,food,weapon,gold
 
 [display]
 # Show damage numbers in combat
@@ -286,6 +286,12 @@ show_damage_numbers = true
 
 # Color scheme (classic, modern, colorblind)
 color_scheme = classic
+
+[ui]
+# Layout style (default, compact)
+# See data/ui/layouts/README.md for details
+# default: Classic stacked sidebar layout (RECOMMENDED)
+layout = default
 
 [keys]
 # Custom keybindings (future feature)

@@ -1,0 +1,58 @@
+/*
+ * Veinborn Wide Layout
+ *
+ * Gives inventory more breathing room by using narrower sidebars
+ * and better proportions.
+ */
+
+StatusBar {
+    height: 1;
+    dock: top;
+    background: $boost;
+    color: $text;
+    padding: 0 1;
+}
+
+/* Sidebar (stats/monsters) - narrower for more map space */
+Sidebar {
+    width: 22;
+    dock: right;
+    background: $panel;
+    border-left: solid $primary;
+    padding: 1;
+    height: 50%;
+}
+
+/* Inventory - equal height with sidebar */
+InventoryWidget {
+    width: 22;
+    dock: right;
+    background: $panel;
+    border-left: solid $primary;
+    border-top: solid $primary;
+    padding: 1;
+    height: 50%;
+}
+
+/* Map fills remaining space */
+MapWidget {
+    background: $surface;
+    border: solid $primary;
+}
+
+/* Message log at bottom */
+MessageLog {
+    height: 10;
+    dock: bottom;
+    background: $surface;
+    border-top: solid $primary;
+    padding: 0 1;
+}
+
+/* Chat input (overlay) */
+ChatInput {
+    dock: bottom;
+    height: 3;
+    background: $panel;
+    border: solid $primary;
+}

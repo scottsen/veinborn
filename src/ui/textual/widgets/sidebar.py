@@ -9,19 +9,12 @@ from core.base.entity import EntityType
 class Sidebar(Static):
     """Right sidebar showing player stats and monster info."""
 
-    DEFAULT_CSS = """
-    Sidebar {
-        width: 25;
-        dock: right;
-        background: $panel;
-        border-left: solid $primary;
-        padding: 1;
-    }
-    """
+    # DEFAULT_CSS removed - use external layout files instead
 
-    def __init__(self, game_state=None, **kwargs):
+    def __init__(self, game_state=None, layout_name='default', **kwargs):
         super().__init__(**kwargs)
         self.game_state = game_state
+        self.layout_name = layout_name
 
     def compose(self):
         """Compose the sidebar content."""
@@ -39,7 +32,24 @@ class Sidebar(Static):
         text.append("=== PLAYER ===\n", style="bold bright_green")
         text.append(f"Health: {player.hp}/{player.max_hp}\n")
         text.append(f"Attack: {player.attack}\n")
-        text.append(f"Defense: {player.defense}\n\n")
+        text.append(f"Defense: {player.defense}\n")
+        text.append(f"XP: {player.get_stat('xp', 0)}\n")
+        text.append(f"Level: {player.get_stat('level', 1)}\n\n")
+
+        # Show inventory only if InventoryWidget is hidden (for default layout)
+        # Skip if using split-sidebars layout (InventoryWidget has its own panel on left)
+        if self.layout_name != 'split-sidebars':
+            text.append("=== INVENTORY ===\n", style="bold bright_yellow")
+            inventory = player.inventory
+            if inventory:
+                for item in inventory[:5]:  # Show up to 5 items
+                    name = item.name[:18] if len(item.name) > 18 else item.name
+                    text.append(f"• {name}\n", style="bright_white")
+                if len(inventory) > 5:
+                    text.append(f"  (+{len(inventory) - 5} more)\n", style="dim")
+            else:
+                text.append("  (empty)\n", style="dim")
+            text.append("\n")
 
         # Monster info
         monsters = [e for e in self.game_state.entities.values()
@@ -55,9 +65,13 @@ class Sidebar(Static):
         text.append("Arrow/HJKL: Move\n")
         text.append("YUBN: Diagonal\n")
         text.append("S: Survey Ore\n")
-        text.append("Bump ore to mine\n")
-        text.append("Q: Quit\n")
-        text.append("R: Restart\n")
+        text.append("W: Wield/Wear\n")
+        text.append("G: Pick up Items\n")
+        text.append("I: Full Inventory\n")
+        text.append(":: Look at Ground\n")
+        text.append(".: Wait/Rest\n")
+        text.append("Bump to attack/mine\n")
+        text.append("Q: Quit | R: Restart\n")
 
         return text
 

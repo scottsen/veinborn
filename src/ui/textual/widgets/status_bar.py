@@ -6,15 +6,7 @@ from rich.text import Text
 class StatusBar(Widget):
     """Top status bar showing HP, turn count, etc."""
 
-    DEFAULT_CSS = """
-    StatusBar {
-        height: 1;
-        dock: top;
-        background: $boost;
-        color: $text;
-        padding: 0 1;
-    }
-    """
+    # DEFAULT_CSS removed - use external layout files instead
 
     def __init__(self, game_state=None, **kwargs):
         super().__init__(**kwargs)

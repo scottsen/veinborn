@@ -14,7 +14,6 @@ following Single Responsibility Principle.
 import logging
 from typing import TYPE_CHECKING
 
-from .constants import HP_REGEN_INTERVAL_TURNS, HP_REGEN_AMOUNT
 from .base.entity import EntityType
 from .highscore import HighScoreManager, HighScoreEntry
 from .legacy import get_vault
@@ -37,16 +36,20 @@ class TurnProcessor:
     - Clear separation of concerns
     """
 
-    def __init__(self, context: 'GameContext'):
+    def __init__(self, context: 'GameContext', hp_regen_interval: int = 10, hp_regen_amount: int = 1):
         """
         Initialize turn processor.
 
         Args:
             context: Game context for safe state access
+            hp_regen_interval: Number of turns between HP regeneration (default: 10)
+            hp_regen_amount: Amount of HP restored per regeneration tick (default: 1)
         """
         self.context = context
         self.game_state = context.game_state
-        logger.debug("TurnProcessor initialized")
+        self.hp_regen_interval = hp_regen_interval
+        self.hp_regen_amount = hp_regen_amount
+        logger.debug(f"TurnProcessor initialized (HP regen: {hp_regen_amount} per {hp_regen_interval} turns)")
 
     def process_turn(self) -> None:
         """
@@ -91,13 +94,13 @@ class TurnProcessor:
         """
         Apply natural HP regeneration to player.
 
-        NetHack-style: 1 HP every 10 turns
+        NetHack-style: 1 HP every 10 turns (configurable)
         """
-        if self.game_state.turn_count % HP_REGEN_INTERVAL_TURNS == 0:
+        if self.game_state.turn_count % self.hp_regen_interval == 0:
             player = self.game_state.player
 
             if player.hp < player.max_hp:
-                healed = player.heal(HP_REGEN_AMOUNT)
+                healed = player.heal(self.hp_regen_amount)
 
                 if healed > 0:
                     logger.debug(

@@ -98,6 +98,17 @@ highscore:
     gold_weight: 1  # Points per gold piece
     description: "Weighted scoring formula for high score calculation"
 
+# Mining system
+mining:
+  min_turns: 3
+  max_turns: 5
+  description: "Multi-turn mining duration (randomized per vein)"
+
+# Legacy system (vault)
+legacy:
+  ore_purity_threshold: 80
+  description: "Ore with 80+ purity saved to vault (survives death)"
+
 # Debug settings
 debug:
   enabled: false

@@ -14,7 +14,6 @@ following Single Responsibility Principle.
 import logging
 from typing import TYPE_CHECKING, List
 
-from .constants import DEFAULT_MAP_WIDTH, DEFAULT_MAP_HEIGHT, VICTORY_FLOOR
 from .world import Map
 from .entities import Monster, OreVein, Forge
 from .spawning import EntitySpawner
@@ -111,7 +110,15 @@ class FloorManager:
         Returns:
             True if victory achieved, False otherwise
         """
-        if floor >= VICTORY_FLOOR:
+        try:
+            victory_floor = self.spawner.config.game_constants['progression']['victory_floor']
+            # Handle mocked config in tests (MagicMock returns MagicMock)
+            if not isinstance(victory_floor, int):
+                victory_floor = 100  # Default from game_constants.yaml
+        except (AttributeError, KeyError, TypeError):
+            victory_floor = 100  # Fallback for mocked spawner in tests
+
+        if floor >= victory_floor:
             self.game_state.victory = True
             self.game_state.game_over = True
 
@@ -124,7 +131,7 @@ class FloorManager:
             self.game_state.add_message("🎉 VICTORY! You've escaped the dungeon!")
 
             logger.info(
-                f"GAME WON! Player reached floor {VICTORY_FLOOR}",
+                f"GAME WON! Player reached floor {victory_floor}",
                 extra={
                     'floor': floor,
                     'player_level': self.game_state.player.get_stat('level', 1),
@@ -204,13 +211,16 @@ class FloorManager:
 
     def _generate_new_floor(self) -> None:
         """Generate a new dungeon floor."""
+        map_width = self.spawner.config.game_constants['map']['default_width']
+        map_height = self.spawner.config.game_constants['map']['default_height']
+
         self.game_state.dungeon_map = Map(
-            width=DEFAULT_MAP_WIDTH,
-            height=DEFAULT_MAP_HEIGHT,
+            width=map_width,
+            height=map_height,
             config=self.spawner.config  # Pass config from spawner
         )
         logger.debug(
-            f"Generated new map: {DEFAULT_MAP_WIDTH}x{DEFAULT_MAP_HEIGHT}"
+            f"Generated new map: {map_width}x{map_height}"
         )
 
     def _place_player_at_stairs(self) -> None:

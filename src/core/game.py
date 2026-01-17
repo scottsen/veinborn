@@ -21,13 +21,6 @@ from .world import Map
 from .systems.ai_system import AISystem
 from .actions.action_factory import ActionFactory
 from .config import ConfigLoader
-from .constants import (
-    DEFAULT_MAP_WIDTH,
-    DEFAULT_MAP_HEIGHT,
-    PLAYER_STARTING_HP,
-    PLAYER_STARTING_ATTACK,
-    PLAYER_STARTING_DEFENSE,
-)
 from .spawning import EntitySpawner
 from .turn_processor import TurnProcessor
 from .floor_manager import FloorManager
@@ -103,13 +96,19 @@ class Game:
             )
             logger.info(f"Created {character_class.value} player: {player_name}")
         else:
+            # Get starting stats from config
+            starting_stats = self.config.game_constants['player']['starting_stats']
+            starting_hp = starting_stats['hp']
+            starting_attack = starting_stats['attack']
+            starting_defense = starting_stats['defense']
+
             player = Player(
                 x=player_pos[0],
                 y=player_pos[1],
-                hp=PLAYER_STARTING_HP,
-                max_hp=PLAYER_STARTING_HP,
-                attack=PLAYER_STARTING_ATTACK,
-                defense=PLAYER_STARTING_DEFENSE,
+                hp=starting_hp,
+                max_hp=starting_hp,
+                attack=starting_attack,
+                defense=starting_defense,
             )
             if player_name:
                 player.stats['name'] = player_name
@@ -204,7 +203,9 @@ class Game:
         logger.info(f"Starting new game with {rng.get_seed_display()}")
 
         # Create map and find player position
-        dungeon_map = Map(width=DEFAULT_MAP_WIDTH, height=DEFAULT_MAP_HEIGHT)
+        map_width = self.config.game_constants['map']['default_width']
+        map_height = self.config.game_constants['map']['default_height']
+        dungeon_map = Map(width=map_width, height=map_height)
         player_pos = dungeon_map.find_starting_position()
 
         # Create player
@@ -214,6 +215,9 @@ class Game:
         self._initialize_game_state(
             player, dungeon_map, player_name, is_legacy_run, rng.original_seed
         )
+
+        # Add player to game context (needed for monster AI to target player)
+        self.context.add_entity(player)
 
         # Add legacy ore if provided
         if withdrawn_ore:
@@ -391,7 +395,13 @@ class Game:
 
         # Initialize core subsystems
         self.spawner = EntitySpawner(self.config, self.entity_loader)
-        self.turn_processor = TurnProcessor(self.context)
+
+        # Get HP regen config
+        hp_regen_config = self.config.game_constants['player']['health_regeneration']
+        hp_regen_interval = hp_regen_config['interval_turns']
+        hp_regen_amount = hp_regen_config['amount']
+
+        self.turn_processor = TurnProcessor(self.context, hp_regen_interval, hp_regen_amount)
         self.floor_manager = FloorManager(self.context, self.spawner)
         self.action_factory = ActionFactory(self.context)
 
@@ -543,6 +553,9 @@ class Game:
 
             # Create game context for loaded state
             self.context = GameContext(self.state)
+
+            # Add player to game context (needed for monster AI to target player)
+            self.context.add_entity(self.state.player)
 
             # Reinitialize subsystems with loaded state
             self._initialize_subsystems()

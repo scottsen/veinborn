@@ -1,0 +1,60 @@
+/*
+ * Veinborn Split Sidebars Layout
+ *
+ * Three-panel layout:
+ * - Inventory on LEFT
+ * - Player stats/monsters/controls on RIGHT
+ * - Map in the MIDDLE (fills remaining space)
+ */
+
+StatusBar {
+    height: 1;
+    dock: top;
+    background: $boost;
+    color: $text;
+    padding: 0 1;
+    border: solid $primary;
+}
+
+/* Inventory on the LEFT side */
+InventoryWidget {
+    width: 28;
+    dock: left;
+    background: $panel;
+    border: solid $primary;
+    padding: 1;
+    height: 100%;
+}
+
+/* Player stats, monsters, controls on the RIGHT side */
+Sidebar {
+    width: 28;
+    dock: right;
+    background: $panel;
+    border: solid $primary;
+    padding: 1;
+    height: 100%;
+}
+
+/* Main map area (fills remaining space in the middle) */
+MapWidget {
+    background: $surface;
+    border: solid $primary;
+}
+
+/* Message log at bottom (spans full width) */
+MessageLog {
+    height: 10;
+    dock: bottom;
+    background: $surface;
+    border: solid $primary;
+    padding: 0 1;
+}
+
+/* Chat input (overlay) */
+ChatInput {
+    dock: bottom;
+    height: 3;
+    background: $panel;
+    border: solid $primary;
+}
