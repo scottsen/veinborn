@@ -38,14 +38,15 @@ priority: urgent
 effort: 4h
 tags: [bug, multiplayer]
 created: '2026-08-05T06:31:18Z'
-updated: '2026-08-05T06:55:01Z'
+updated: '2026-08-05T06:55:17Z'
 session: yaeger-zealot-0804
 links:
   references:
   - docs/PROJECT_REVIEW_2026-04-17.md
   commits:
   - b7635c2b027fa716a7969ab9e735588060499e99
-notes_next: 2
+  - 8622a113d7e431fada7187bd1f4f514cc96a41b5
+notes_next: 3
 ```
 
 AuthManager.create_session (auth.py:52-78) always mints a new player_id/session_id; verify_token() is dead code, never called; auth_token generated but never sent to client (websocket_server.py Message.auth_success). handle_reconnect (websocket_server.py:342-378) rejects any reconnect because session.game_id is None on the fresh session. All disconnect-timeout/AI-takeover machinery in game_session.py (lines 191-296, 422-486) is unreachable dead functionality from the client's perspective.
@@ -53,6 +54,7 @@ AuthManager.create_session (auth.py:52-78) always mints a new player_id/session_
 <!-- notes: append-only log; each has a stable #id (see CLI §5) -->
 ### Notes
 - [#1 2026-08-05T06:55:01Z session:neural-queen-0804] auth resume via auth_token wired into authenticate_connection; client gained reconnect()
+- [#2 2026-08-05T06:55:17Z session:neural-queen-0804] auth resume via auth_token wired into authenticate_connection; client gained reconnect()
 
 
 ## TASK-VB-3 · Seeded multiplayer game creation crashes: GameRNG.seed property called as a method
