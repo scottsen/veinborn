@@ -83,20 +83,24 @@ multiplayer_game_state.py:94 calls rng.seed(self.seed) but GameRNG.seed (rng.py:
 ## TASK-VB-4 · Multiplayer state sync silently drops monster/map data and never diffs floor changes
 
 ```yaml
-status: backlog
+status: done
 priority: high
 effort: 1d
 tags: [bug, multiplayer]
 created: '2026-08-05T06:31:18Z'
-updated: '2026-08-05T06:31:18Z'
+updated: '2026-08-05T16:56:36Z'
 session: yaeger-zealot-0804
+links:
+  commits:
+  - 0b227d37278c7840c04c7ca9078fbba02747fadb
+notes_next: 2
 ```
 
 get_state_dict() (multiplayer_game_state.py:233-303) never includes monster or dungeon-map data at all. StateDelta.compute_delta (state_delta.py:34-101) never diffs current_floor. After the first full-state broadcast, clients have no wire-protocol channel for monster positions or floor changes -- real desync gap.
 
 <!-- notes: append-only log; each has a stable #id (see CLI §5) -->
 ### Notes
-_(no notes yet)_
+- [#1 2026-08-05T16:56:36Z session:runic-sword-0805] Fixed: monster/floor spawning wired into MP, descend_floor event wired, state_delta diffs floor/monsters/map, client applies deltas
 
 
 ## TASK-VB-5 · game_over never propagates to GameSession.is_finished -- finished MP sessions leak
