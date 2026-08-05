@@ -12,6 +12,7 @@ Validates:
 import pytest
 import os
 import tempfile
+import warnings
 from pathlib import Path
 from unittest.mock import patch, MagicMock
 
@@ -176,6 +177,44 @@ class TestConfigManager:
         config = ConfigManager()
         config.set('player.name', '')
         assert config.get('player.name', 'Default') == 'Default'
+
+    def test_preferred_path_does_not_warn(self):
+        """Loading a config from a preferred (non-legacy) path should not warn."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            preferred_path = Path(tmpdir) / ".veinbornrc"
+            preferred_path.write_text("[player]\nname = Alice\n")
+
+            with patch.object(ConfigManager, 'CONFIG_PATHS', [preferred_path]):
+                with warnings.catch_warnings(record=True) as caught:
+                    warnings.simplefilter("always")
+                    config = ConfigManager()
+                    assert config.config_file == preferred_path
+                    assert not any(
+                        issubclass(w.category, DeprecationWarning) for w in caught
+                    )
+
+    def test_legacy_path_warns_with_correct_rename_target(self):
+        """Loading a legacy (pre-rename Brogue) config path should warn, naming the new veinborn path."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            legacy_path = Path(tmpdir) / ".broguerc"
+            legacy_path.write_text("[player]\nname = Alice\n")
+
+            # Real legacy_paths in ConfigManager.load() are hardcoded to ~/.broguerc etc,
+            # so patching CONFIG_PATHS to home-relative legacy names exercises the real check.
+            with patch.object(Path, 'home', return_value=Path(tmpdir)):
+                with patch.object(ConfigManager, 'CONFIG_PATHS', [Path(tmpdir) / ".broguerc"]):
+                    with warnings.catch_warnings(record=True) as caught:
+                        warnings.simplefilter("always")
+                        config = ConfigManager()
+                        assert config.config_file == legacy_path
+
+                        deprecation_warnings = [
+                            w for w in caught if issubclass(w.category, DeprecationWarning)
+                        ]
+                        assert len(deprecation_warnings) == 1
+                        message = str(deprecation_warnings[0].message)
+                        assert "brogue" in message
+                        assert str(legacy_path).replace("brogue", "veinborn") in message
 
 
 class TestGetPlayerName:
