@@ -439,6 +439,29 @@ async def test_process_action_disconnected_player():
     assert "disconnected" in error.lower()
 
 
+@pytest.mark.asyncio
+async def test_process_action_descend_floor_advances_floor():
+    """VB-4: DescendAction's 'descend_floor' outcome event was previously
+    dropped entirely - current_floor never advanced and no new floor was
+    ever generated."""
+    from core.actions.descend_action import DescendAction
+
+    game = GameSession("game1", "Test Game", max_players=4)
+    await game.add_player("player1", "Alice", "warrior")
+    await game.start_game(seed=42)
+
+    mp_state = game.mp_game_state
+    stairs_down = mp_state.game_state.dungeon_map.find_stairs_down()
+    assert stairs_down is not None
+    mp_state.game_state.player.move_to(*stairs_down)
+
+    action = DescendAction(actor_id="player")
+    success, error = await game.process_action("player1", action)
+
+    assert success, error
+    assert mp_state.game_state.current_floor == 2
+
+
 # ============================================================================
 # GameSessionManager Tests
 # ============================================================================

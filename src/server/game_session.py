@@ -402,6 +402,13 @@ class GameSession:
                 if not outcome.is_success:
                     return False, "; ".join(outcome.messages) or "Action failed"
 
+                # Handle floor transitions (VB-4: this was previously dropped
+                # entirely, so DescendAction succeeded but current_floor never
+                # advanced and no new floor was ever generated)
+                for event in outcome.events:
+                    if event.get('type') == 'descend_floor':
+                        self.mp_game_state.descend_floor()
+
                 # Increment action counter
                 self.mp_game_state.increment_actions()
 

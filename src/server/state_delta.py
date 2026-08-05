@@ -76,6 +76,25 @@ class StateDelta:
         if player_changes:
             changes["players"] = player_changes
 
+        # Check floor changes (VB-4: previously never diffed, so clients had
+        # no way to learn current_floor advanced)
+        if old_state.get("current_floor") != new_state.get("current_floor"):
+            changes["current_floor"] = new_state.get("current_floor")
+
+        # Check map changes (the map only regenerates on floor transitions,
+        # so this naturally stays empty except right after a descend)
+        if old_state.get("map") != new_state.get("map"):
+            changes["map"] = new_state.get("map")
+
+        # Check monster/ore-vein/forge changes (VB-4: previously dropped
+        # entirely - same add/update/remove pattern as players, keyed by
+        # entity_id instead of player_id)
+        monster_changes = StateDelta._compute_entity_list_delta(
+            old_state.get("monsters", []), new_state.get("monsters", [])
+        )
+        if monster_changes:
+            changes["monsters"] = monster_changes
+
         # Check message changes (only send new messages)
         old_messages = old_state.get("recent_messages", [])
         new_messages = new_state.get("recent_messages", [])
@@ -148,6 +167,62 @@ class StateDelta:
         return delta if delta else None
 
     @staticmethod
+    def _compute_entity_list_delta(old_entities: List[Dict], new_entities: List[Dict]) -> List[Dict]:
+        """Compute add/update/remove changes for a list of entity dicts.
+
+        Used for monsters/ore veins/forges (Entity.to_dict() output), keyed
+        by entity_id. Since entity_id is a fresh UUID per spawn, a floor
+        transition (which respawns all entities) naturally falls out as a
+        full remove-then-add set with no special-casing needed.
+
+        Args:
+            old_entities: Previous entity dicts
+            new_entities: New entity dicts
+
+        Returns:
+            List of change records (empty if no changes)
+        """
+        old_by_id = {e["entity_id"]: e for e in old_entities}
+        new_by_id = {e["entity_id"]: e for e in new_entities}
+
+        changes = []
+        for entity_id, new_entity in new_by_id.items():
+            old_entity = old_by_id.get(entity_id)
+            if old_entity is None:
+                changes.append({"type": "entity_added", "entity": new_entity})
+            else:
+                entity_delta = StateDelta._compute_entity_delta(old_entity, new_entity)
+                if entity_delta:
+                    changes.append({
+                        "type": "entity_updated",
+                        "entity_id": entity_id,
+                        "changes": entity_delta
+                    })
+
+        for entity_id in old_by_id:
+            if entity_id not in new_by_id:
+                changes.append({"type": "entity_removed", "entity_id": entity_id})
+
+        return changes
+
+    @staticmethod
+    def _compute_entity_delta(old_entity: Dict, new_entity: Dict) -> Optional[Dict]:
+        """Compute delta for a single monster/ore-vein/forge entity.
+
+        Args:
+            old_entity: Old entity dict (Entity.to_dict() output)
+            new_entity: New entity dict
+
+        Returns:
+            Delta dict or None if no changes
+        """
+        delta = {}
+        for key in ("x", "y", "hp", "max_hp", "is_alive", "is_active", "stats"):
+            if old_entity.get(key) != new_entity.get(key):
+                delta[key] = new_entity.get(key)
+        return delta if delta else None
+
+    @staticmethod
     def apply_delta(current_state: Dict, delta: Dict) -> Dict:
         """Apply a delta to a state.
 
@@ -203,6 +278,37 @@ class StateDelta:
                     current_players.pop(player_id, None)
 
             new_state["players"] = list(current_players.values())
+
+        # Apply floor change
+        if "current_floor" in changes:
+            new_state["current_floor"] = changes["current_floor"]
+
+        # Apply map change
+        if "map" in changes:
+            new_state["map"] = changes["map"]
+
+        # Apply monster/ore-vein/forge changes
+        if "monsters" in changes:
+            current_monsters = {m["entity_id"]: m for m in new_state.get("monsters", [])}
+
+            for change in changes["monsters"]:
+                change_type = change.get("type")
+
+                if change_type == "entity_added":
+                    entity = change["entity"]
+                    current_monsters[entity["entity_id"]] = entity
+
+                elif change_type == "entity_updated":
+                    entity_id = change["entity_id"]
+                    if entity_id in current_monsters:
+                        entity = current_monsters[entity_id]
+                        for key, value in change["changes"].items():
+                            entity[key] = value
+
+                elif change_type == "entity_removed":
+                    current_monsters.pop(change["entity_id"], None)
+
+            new_state["monsters"] = list(current_monsters.values())
 
         # Apply new messages
         if "new_messages" in changes:

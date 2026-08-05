@@ -314,6 +314,21 @@ class Map:
         """Check if position is within map bounds."""
         return 0 <= x < self.width and 0 <= y < self.height
 
+    def to_dict(self) -> dict:
+        """Serialize to a compact dict (for multiplayer wire protocol).
+
+        Tiles are row-major (one string per y, one char per x) using each
+        tile's single-character TileType value.
+        """
+        return {
+            "width": self.width,
+            "height": self.height,
+            "tiles": [
+                "".join(self.tiles[x][y].tile_type.value for x in range(self.width))
+                for y in range(self.height)
+            ],
+        }
+
     def is_walkable(self, x: int, y: int) -> bool:
         """Check if a tile is walkable."""
         if self.in_bounds(x, y):

@@ -12,6 +12,10 @@ from core.game_state import GameState
 from core.entities import Player
 from core.base.entity import Entity
 from core.rng import GameRNG
+from core.world import Map
+from core.config import ConfigLoader
+from core.entity_loader import EntityLoader
+from core.spawning import EntitySpawner
 
 logger = logging.getLogger(__name__)
 
@@ -55,6 +59,11 @@ class MultiplayerGameState:
         # We'll initialize this when first player joins
         self.game_state: Optional[GameState] = None
         self.seed = seed
+
+        # Entity spawning (monsters/ore veins/forges) - shared config/loader,
+        # cheap to construct, so build it eagerly rather than lazily
+        self.config = ConfigLoader.load()
+        self.spawner = EntitySpawner(self.config, EntityLoader())
 
         # Multiplayer state
         self.is_multiplayer = True
@@ -106,6 +115,11 @@ class MultiplayerGameState:
                 self.max_players
             )
             logger.info(f"Generated {len(self.spawn_positions)} spawn positions for multiplayer game")
+
+            # Populate floor 1 with monsters/ore veins/forges (VB-4: MP previously
+            # never spawned any entities at all - AISystem ran every round over an
+            # empty entities dict)
+            self._spawn_floor_entities(self.game_state.current_floor)
 
         # Get spawn position for this player
         player_index = len(self.player_slots)
@@ -286,12 +300,23 @@ class MultiplayerGameState:
                 }
             )
 
+        # Non-player entities (monsters/ore veins/forges) - player entities are
+        # already represented above in players_info
+        player_entity_ids = set(self.entity_to_player.keys())
+        monsters_info = [
+            entity.to_dict()
+            for entity_id, entity in self.game_state.entities.items()
+            if entity_id not in player_entity_ids
+        ]
+
         return {
             "initialized": True,
             "is_multiplayer": self.is_multiplayer,
             "player_count": self.get_player_count(),
             "max_players": self.max_players,
             "players": players_info,
+            "monsters": monsters_info,
+            "map": self.game_state.dungeon_map.to_dict(),
             "turn_count": self.game_state.turn_count,
             "current_floor": self.game_state.current_floor,
             "round_number": self.round_number,
@@ -349,3 +374,97 @@ class MultiplayerGameState:
             for slot in self.player_slots.values()
             if slot.is_active and slot.is_alive
         )
+
+    def _spawn_floor_entities(self, floor: int) -> None:
+        """Spawn monsters, ore veins, and forges for the given floor.
+
+        Args:
+            floor: Floor number to spawn entities for
+        """
+        dungeon_map = self.game_state.dungeon_map
+
+        monsters = self.spawner.spawn_monsters_for_floor(floor, dungeon_map)
+        ore_veins = self.spawner.spawn_ore_veins_for_floor(floor, dungeon_map)
+        forges = self.spawner.spawn_forges_for_floor(floor, dungeon_map)
+
+        special_entities = self.spawner.spawn_special_room_entities(floor, dungeon_map)
+        monsters.extend(special_entities['monsters'])
+        ore_veins.extend(special_entities['ores'])
+
+        for entity in [*monsters, *ore_veins, *forges]:
+            self.game_state.entities[entity.entity_id] = entity
+
+        logger.info(
+            f"Spawned floor {floor} entities: {len(monsters)} monsters, "
+            f"{len(ore_veins)} ore veins, {len(forges)} forges"
+        )
+
+    def _get_victory_floor(self) -> int:
+        """Get the floor number that triggers victory."""
+        try:
+            floor = self.config.game_constants['progression']['victory_floor']
+            return floor if isinstance(floor, int) else 100
+        except (AttributeError, KeyError, TypeError):
+            return 100
+
+    def _clear_non_player_entities(self) -> None:
+        """Remove monsters/ore veins/forges from the previous floor.
+
+        Cannot use dict.clear() here (unlike single-player FloorManager) -
+        MP stores non-host players in game_state.entities too, and wiping
+        the whole dict would kick them from the game on every descent.
+        """
+        player_entity_ids = set(self.entity_to_player.keys())
+        for entity_id in list(self.game_state.entities.keys()):
+            if entity_id not in player_entity_ids:
+                del self.game_state.entities[entity_id]
+
+    def _reposition_players_at_new_floor(self) -> None:
+        """Move every player to a spawn position on the newly generated floor."""
+        spawn_positions = self.game_state.dungeon_map.find_player_spawn_positions(
+            len(self.player_slots)
+        )
+        self.spawn_positions = spawn_positions
+
+        for index, slot in enumerate(self.player_slots.values()):
+            if index < len(spawn_positions):
+                x, y = spawn_positions[index]
+            else:
+                x, y = self.game_state.dungeon_map.find_starting_position()
+            slot.player_entity.move_to(x, y)
+
+    def descend_floor(self) -> None:
+        """Descend the whole party to the next floor.
+
+        Regenerates the map, repositions all players, and respawns floor
+        entities. Kept separate from core.floor_manager.FloorManager since
+        that class assumes a single player (entities.clear() would delete
+        other MP players) and has single-player-only side effects
+        (high scores, Legacy Vault) that don't apply to a shared session.
+        """
+        if not self.game_state:
+            return
+
+        old_floor = self.game_state.current_floor
+        new_floor = old_floor + 1
+
+        if new_floor >= self._get_victory_floor():
+            self.game_state.victory = True
+            self.game_state.game_over = True
+            self.add_message("🎉 VICTORY! The party has escaped the dungeon!")
+            logger.info(f"Multiplayer game reached victory floor {new_floor}")
+            return
+
+        self.game_state.current_floor = new_floor
+        self.game_state.dungeon_map = Map(
+            width=self.config.game_constants['map']['default_width'],
+            height=self.config.game_constants['map']['default_height'],
+            config=self.config,
+        )
+
+        self._reposition_players_at_new_floor()
+        self._clear_non_player_entities()
+        self._spawn_floor_entities(new_floor)
+
+        self.add_message(f"The party descends to floor {new_floor}!")
+        logger.info(f"Multiplayer descended from floor {old_floor} to floor {new_floor}")

@@ -11,6 +11,7 @@ except ImportError:
     websockets = None
 
 from server.messages import Message
+from server.state_delta import StateDelta
 
 logger = logging.getLogger('veinborn.multiplayer_client')
 
@@ -52,6 +53,11 @@ class MultiplayerClient:
         self.port = port
         self.ws = None
         self.state = MultiplayerState()
+
+        # Cached full game state, kept current by merging delta messages in
+        # (VB-4: previously raw delta dicts were forwarded straight to the
+        # callback with no merge step, so deltas could never be applied)
+        self._game_state: Dict = {}
 
         # Callbacks
         self.on_chat_message: Optional[Callable[[ChatMessage], None]] = None
@@ -292,6 +298,7 @@ class MultiplayerClient:
         elif msg_type == "state":
             # Handle full state update
             state = message.data.get("state", {})
+            self._game_state = state
 
             # Update game_id if we joined a game
             game_id = state.get("game_id")
@@ -299,14 +306,21 @@ class MultiplayerClient:
                 self.state.game_id = game_id
 
             if self.on_state_update:
-                self.on_state_update(state)
+                self.on_state_update(self._game_state)
 
             logger.debug("Received full state update")
 
         elif msg_type == "delta":
-            # Handle delta state update
+            # Handle delta state update - merge onto the cached full state
+            # rather than forwarding the raw delta (see Message.delta: the
+            # payload here is StateDelta.compute_delta()'s own
+            # {"type": "delta", "changes": {...}, ...} dict, nested one level
+            # under "changes" by the message wrapper)
+            delta_payload = message.data.get("changes", {})
+            self._game_state = StateDelta.apply_delta(self._game_state, delta_payload)
+
             if self.on_state_update:
-                self.on_state_update(message.data)
+                self.on_state_update(self._game_state)
 
             logger.debug("Received delta state update")
 
