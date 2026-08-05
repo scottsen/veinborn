@@ -306,20 +306,24 @@ _(no notes yet)_
 ## TASK-VB-14 · Quick-win code cleanup: silent except swallow, stale version string, unused/duplicate imports
 
 ```yaml
-status: backlog
+status: done
 priority: low
 effort: 1h
 tags: [code-quality]
 created: '2026-08-05T06:31:19Z'
-updated: '2026-08-05T06:31:19Z'
+updated: '2026-08-05T17:44:56Z'
 session: yaeger-zealot-0804
+links:
+  commits:
+  - 7e2e9c3354852feab4cfd8f5f995ddefc4561553
+notes_next: 2
 ```
 
 websocket_server.py:509 except Exception: pass with zero logging around socket close. server/__init__.py __version__='0.1.0' vs pyproject.toml 0.4.0. ~32 unused imports (I001) and 7 duplicate imports (I005) confirmed via reveal check, zero risk to remove.
 
 <!-- notes: append-only log; each has a stable #id (see CLI §5) -->
 ### Notes
-_(no notes yet)_
+- [#1 2026-08-05T17:44:56Z session:steel-sunbeam-0805] Fixed silent except swallow (logged instead), synced __version__ to pyproject.toml, removed 33 dead/duplicate imports (kept 6 reveal false-positives — function-local re-imports needed per-scope to avoid circular imports). Full test suite passes (1094 passed, 2 skipped).
 
 
 ## TASK-VB-15 · Lua/Python boundary cleanup: coercion helper for _table_to_outcome
