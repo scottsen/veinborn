@@ -13,6 +13,7 @@ from ..base.action import Action, ActionOutcome, ActionResult
 from ..base.game_context import GameContext
 from ..scripting.lua_runtime import LuaRuntime
 from ..scripting.game_context_api import GameContextAPI
+from ..scripting.lua_utils import lua_table_get, lua_array_to_list
 
 logger = logging.getLogger(__name__)
 
@@ -263,43 +264,15 @@ class LuaAction(Action):
                 else:
                     return ActionOutcome.failure()
 
-            # Extract fields from Lua table (use try/except for optional fields)
-            try:
-                success = bool(outcome_table["success"])
-            except (KeyError, TypeError):
-                success = True
+            # Extract fields from Lua table (missing/non-table fields fall back to defaults)
+            success = lua_table_get(outcome_table, "success", default=True, coerce=bool)
+            took_turn = lua_table_get(outcome_table, "took_turn", default=True, coerce=bool)
 
-            try:
-                took_turn = bool(outcome_table["took_turn"])
-            except (KeyError, TypeError):
-                took_turn = True
-
-            # Extract messages
-            messages = []
-            try:
-                lua_messages = outcome_table["messages"]
-                if lua_messages:
-                    # Lua tables are 1-indexed
-                    for i in range(1, len(lua_messages) + 1):
-                        msg = lua_messages[i]
-                        if msg:
-                            messages.append(str(msg))
-            except (KeyError, TypeError):
-                pass
-
-            # Extract events
-            events = []
-            try:
-                lua_events = outcome_table["events"]
-            except (KeyError, TypeError):
-                lua_events = None
-
-            if lua_events:
-                for i in range(1, len(lua_events) + 1):
-                    event = lua_events[i]
-                    if event:
-                        # Convert Lua table to Python dict
-                        events.append(self._lua_table_to_dict(event))
+            # Extract messages and events (Lua arrays are 1-indexed)
+            messages = lua_array_to_list(lua_table_get(outcome_table, "messages"), transform=str)
+            events = lua_array_to_list(
+                lua_table_get(outcome_table, "events"), transform=self._lua_table_to_dict
+            )
 
             # Determine result
             result = ActionResult.SUCCESS if success else ActionResult.FAILURE
