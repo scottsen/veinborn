@@ -229,7 +229,9 @@ class PerceptionSystem:
 
         return visible
 
-    def get_visible_monsters(self, game, observer: Entity, radius: float = 10.0) -> List[Monster]:
+    def get_visible_monsters(
+        self, game, observer: Entity, radius: float = 10.0, line_of_sight: bool = True
+    ) -> List[Monster]:
         """
         Get living monsters visible to observer.
 
@@ -237,17 +239,20 @@ class PerceptionSystem:
             game: Game instance
             observer: Observer entity
             radius: Visibility range
+            line_of_sight: If True, check line of sight (default: True for realistic vision)
 
         Returns:
             List of visible living monsters
         """
-        visible = self.get_visible_entities(game, observer, radius)
+        visible = self.get_visible_entities(game, observer, radius, line_of_sight=line_of_sight)
         return [
             entity for entity in visible
             if isinstance(entity, Monster) and entity.is_alive
         ]
 
-    def get_visible_items(self, game, observer: Entity, radius: float = 10.0) -> List[Entity]:
+    def get_visible_items(
+        self, game, observer: Entity, radius: float = 10.0, line_of_sight: bool = True
+    ) -> List[Entity]:
         """
         Get items visible to observer.
 
@@ -255,17 +260,20 @@ class PerceptionSystem:
             game: Game instance
             observer: Observer entity
             radius: Visibility range
+            line_of_sight: If True, check line of sight (default: True for realistic vision)
 
         Returns:
             List of visible items
         """
-        visible = self.get_visible_entities(game, observer, radius)
+        visible = self.get_visible_entities(game, observer, radius, line_of_sight=line_of_sight)
         return [
             entity for entity in visible
             if entity.entity_type == EntityType.ITEM
         ]
 
-    def get_nearby_ore(self, game, observer: Entity, radius: float = 10.0) -> List[OreVein]:
+    def get_nearby_ore(
+        self, game, observer: Entity, radius: float = 10.0, line_of_sight: bool = True
+    ) -> List[OreVein]:
         """
         Get ore veins visible to observer.
 
@@ -273,11 +281,12 @@ class PerceptionSystem:
             game: Game instance
             observer: Observer entity
             radius: Visibility range
+            line_of_sight: If True, check line of sight (default: True for realistic vision)
 
         Returns:
             List of visible ore veins
         """
-        visible = self.get_visible_entities(game, observer, radius)
+        visible = self.get_visible_entities(game, observer, radius, line_of_sight=line_of_sight)
         return [
             entity for entity in visible
             if isinstance(entity, OreVein)
@@ -398,11 +407,16 @@ class PerceptionSystem:
 
         return True
 
-    def get_perception_info(self, game, observer: Entity) -> dict:
+    def get_perception_info(self, game, observer: Entity, line_of_sight: bool = True) -> dict:
         """
         Get comprehensive perception information for observer.
 
         Useful for debugging and AI decision-making.
+
+        Args:
+            game: Game instance
+            observer: Observer entity
+            line_of_sight: If True, check line of sight (default: True for realistic vision)
 
         Returns:
             Dictionary with visibility stats:
@@ -413,7 +427,7 @@ class PerceptionSystem:
             - nearest_threat: Nearest living monster
             - nearest_item: Nearest item
         """
-        visible = self.get_visible_entities(game, observer, radius=10.0)
+        visible = self.get_visible_entities(game, observer, radius=10.0, line_of_sight=line_of_sight)
         monsters = [e for e in visible if isinstance(e, Monster) and e.is_alive]
         items = [e for e in visible if e.entity_type == EntityType.ITEM]
         ore_veins = [e for e in visible if isinstance(e, OreVein)]

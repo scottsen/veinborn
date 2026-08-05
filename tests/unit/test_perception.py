@@ -43,8 +43,10 @@ class TestGetVisibleEntities:
         )
         game.context.add_entity(monster)
 
-        # Check visibility with radius=10
-        visible = perception.get_visible_entities(game, player, radius=10.0)
+        # line_of_sight=False: this test covers radius-based visibility,
+        # not vision — the random dungeon layout gives no guarantee of a
+        # clear line to a fixed offset from the player.
+        visible = perception.get_visible_entities(game, player, radius=10.0, line_of_sight=False)
 
         assert monster in visible
 
@@ -153,7 +155,10 @@ class TestGetVisibleEntities:
         game.state.entities[mid.entity_id] = mid
         game.state.entities[far.entity_id] = far
 
-        visible = perception.get_visible_entities(game, player, radius=10.0)
+        # line_of_sight=False: this test covers radius-based distance
+        # filtering, not vision — the random dungeon layout gives no
+        # guarantee of a clear line to a fixed offset from the player.
+        visible = perception.get_visible_entities(game, player, radius=10.0, line_of_sight=False)
 
         assert close in visible, "Close monster (3 tiles) should be visible"
         assert mid in visible, "Mid-range monster (7 tiles) should be visible"
@@ -404,7 +409,10 @@ class TestGetVisibleMonsters:
         game.context.add_entity(dead)
         game.context.add_entity(ore)
 
-        monsters = perception.get_visible_monsters(game, player, radius=10.0)
+        # line_of_sight=False: this test covers entity-type/alive filtering,
+        # not vision — the random dungeon layout gives no guarantee of a
+        # clear line to a fixed offset from the player.
+        monsters = perception.get_visible_monsters(game, player, radius=10.0, line_of_sight=False)
 
         assert alive in monsters
         assert dead not in monsters  # Dead monsters excluded
@@ -455,7 +463,10 @@ class TestGetVisibleItems:
         game.state.entities[item.entity_id] = item
         game.context.add_entity(monster)
 
-        items = perception.get_visible_items(game, player, radius=10.0)
+        # line_of_sight=False: this test covers entity-type filtering,
+        # not vision — the random dungeon layout gives no guarantee of a
+        # clear line to a fixed offset from the player.
+        items = perception.get_visible_items(game, player, radius=10.0, line_of_sight=False)
 
         assert item in items
         assert monster not in items
@@ -498,7 +509,10 @@ class TestGetNearbyOre:
         game.context.add_entity(ore)
         game.context.add_entity(monster)
 
-        ore_veins = perception.get_nearby_ore(game, player, radius=10.0)
+        # line_of_sight=False: this test covers entity-type filtering
+        # (ore vs. monster), not vision — the random dungeon layout gives
+        # no guarantee of a clear line to a fixed offset from the player.
+        ore_veins = perception.get_nearby_ore(game, player, radius=10.0, line_of_sight=False)
 
         assert ore in ore_veins
         assert monster not in ore_veins
@@ -704,12 +718,15 @@ class TestGetPerceptionInfo:
         game.state.entities[ore.entity_id] = ore
         game.state.entities[item.entity_id] = item
 
-        info = perception.get_perception_info(game, player)
+        # line_of_sight=False: this test covers count aggregation, not
+        # vision — even adjacent placement doesn't guarantee a clear line
+        # on the random dungeon layout.
+        info = perception.get_perception_info(game, player, line_of_sight=False)
 
         # Check exact counts (deterministic now)
         # Add debugging to help diagnose flakiness
         all_entities = list(game.state.entities.values())
-        visible_entities = perception.get_visible_entities(game, player, radius=10.0)
+        visible_entities = perception.get_visible_entities(game, player, radius=10.0, line_of_sight=False)
 
         assert info['total_visible'] == 3, (
             f"Expected 3 visible entities (monster, ore, item), got {info['total_visible']}. "
@@ -734,7 +751,10 @@ class TestGetPerceptionInfo:
         game.context.add_entity(close)
         game.context.add_entity(far)
 
-        info = perception.get_perception_info(game, player)
+        # line_of_sight=False: this test covers nearest-of-type selection,
+        # not vision — the random dungeon layout gives no guarantee of a
+        # clear line to a fixed offset from the player.
+        info = perception.get_perception_info(game, player, line_of_sight=False)
 
         assert info['nearest_threat'] == close
 
