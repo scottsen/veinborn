@@ -81,14 +81,15 @@ Balance configuration appears **intentionally challenging** but not obviously br
 
 ### Ore Vein Spawns
 
-| Floor Range | Ore Veins per Floor | Material Types Available |
-|-------------|---------------------|--------------------------|
-| 1-9 | 1 | Copper, Iron |
-| 10-19 | 2 | Iron, Steel, Mithril |
-| 20-29 | 3 | Steel, Mithril, Adamantite |
-| 30+ | 4 | Mithril, Adamantite |
+**Corrected 2026-08-05 (`VB-7`):** the table below replaces a stale one that claimed only 1 vein/floor through floor 9 — that figure came from a dead, unused block in `game_constants.yaml` (see `Summary` and `Potential Balance Issues` above). Values below are read directly from `data/balance/ore_veins.yaml`, the config the game actually loads (`config_loader.py:96-127`).
 
-**Concern:** Only 1 ore vein on early floors. If player doesn't find it or mining gets interrupted, they may not have materials for crafting before troll encounters.
+| Floor Range | Ore Veins per Floor | Ore Type Spawn Weights |
+|-------------|---------------------|--------------------------|
+| 1-3 | 8-10 (`8 + floor - 1`) | Copper 75%, Iron 25% |
+| 4-6 | 11-13 | Iron 75%, Mithril 25% |
+| 7+ | 14+ | Mithril 65%, Adamantite 35% |
+
+With 8+ veins guaranteed on floor 1 alone, ore starvation before troll encounters (floors 6-10) is unlikely — see the troll-wall note under `Potential Balance Issues` above for what's still worth playtesting.
 
 ### Mining Mechanics
 - **Base time:** 3-5 turns (based on hardness)
@@ -294,8 +295,7 @@ Floors 16+: **30% Trolls** → Late game, expect good gear ✅
 - ✅ Good critical hit balance (10%, 2x)
 
 **What needs validation:**
-- ⚠️ Ore scarcity on early floors
-- ⚠️ Mining risk vs reward
+- ⚠️ Mining risk vs reward (ore scarcity itself is not a real risk — see `Resource Availability` above, `VB-7`)
 - ⚠️ Health regeneration speed
 - ⚠️ Troll encounter timing vs player power
 - ⚠️ Class differentiation
