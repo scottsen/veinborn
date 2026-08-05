@@ -1,6 +1,8 @@
 # Veinborn Project Status Report
 
-> ⚠️ **This document is under revalidation (2026-04-17).** Claims below date from 2026-01-13 and are known to be wrong in several places — especially "1063 tests passing / 100%" and "Multiplayer Phase 2 complete." Evidence: `docs/PROJECT_REVIEW_2026-04-17.md`. Current reality: SP core ~802 unit tests pass (2 test-drift failures now fixed); MP has 7+ server test failures plus async hangs, `GameSession` misuses `GameState` instead of `GameContext`, and `WaitAction` module is missing. Read `PROJECT_REVIEW_2026-04-17.md` for authoritative status until this doc is rewritten.
+> 🗄️ **ARCHIVED (2026-08-05).** This doc is a historical snapshot dated 2026-01-13 and was never rewritten after being flagged stale on 2026-04-17. For current status, see `docs/STATUS_DASHBOARD.md` (validated against code/tests) and `docs/PROJECT_REVIEW_2026-04-17.md` (the audit that found this doc wrong). Do not link to this file from active docs.
+
+> ⚠️ **Original revalidation banner (2026-04-17), kept for history:** Claims below date from 2026-01-13 and are known to be wrong in several places — especially "1063 tests passing / 100%" and "Multiplayer Phase 2 complete." Evidence: `docs/PROJECT_REVIEW_2026-04-17.md`. Current reality: SP core ~802 unit tests pass (2 test-drift failures now fixed); MP has 7+ server test failures plus async hangs, `GameSession` misuses `GameState` instead of `GameContext`, and `WaitAction` module is missing.
 
 **Last Updated:** 2026-01-13 (stale — see banner above)
 **Status:** ✅ MVP Complete + Multiplayer Phase 2 Complete + Phase 3 Refactoring In Progress 🎉

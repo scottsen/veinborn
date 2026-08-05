@@ -144,7 +144,7 @@ python3 src/server/test_client.py
 | Doc | Purpose | Time to Read |
 |-----|---------|--------------|
 | **This file** | At-a-glance status | 2 min |
-| [PROJECT_STATUS.md](PROJECT_STATUS.md) | Comprehensive status | 10 min |
+| [PROJECT_REVIEW_2026-04-17.md](PROJECT_REVIEW_2026-04-17.md) | Detailed audit with evidence | 10 min |
 | [MVP_CURRENT_FOCUS.md](MVP_CURRENT_FOCUS.md) | Current priorities | 5 min |
 | [design/MULTIPLAYER_DESIGN_2025.md](design/MULTIPLAYER_DESIGN_2025.md) | Multiplayer design | 30 min |
 | [README.md](../README.md) | Project overview | 5 min |
@@ -215,7 +215,7 @@ python3 src/server/test_client.py
 
 ## 📞 Need More Info?
 
-- **Comprehensive status:** [PROJECT_STATUS.md](PROJECT_STATUS.md)
+- **Detailed audit:** [PROJECT_REVIEW_2026-04-17.md](PROJECT_REVIEW_2026-04-17.md)
 - **Current work:** [MVP_CURRENT_FOCUS.md](MVP_CURRENT_FOCUS.md)
 - **Game design:** [VEINBORN_CONSOLIDATED_DESIGN.md](VEINBORN_CONSOLIDATED_DESIGN.md)
 - **Architecture:** [architecture/00_ARCHITECTURE_OVERVIEW.md](architecture/00_ARCHITECTURE_OVERVIEW.md)
@@ -228,4 +228,4 @@ python3 src/server/test_client.py
 ---
 
 **Last Updated:** 2026-08-05
-**Next Update:** When picking up the next `tt` item (`VB-8`, low priority — PROJECT_STATUS.md revalidation)
+**Next Update:** When picking up the next `tt` item (`VB-11`/`VB-12`, the `Game`/`GameSession` god-object splits)

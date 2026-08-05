@@ -297,7 +297,7 @@ stats.print_stats(20)  # Top 20 functions
 **Start Here:**
 - `README.md` - Project overview
 - `docs/START_HERE.md` - 15-minute onboarding
-- `docs/PROJECT_STATUS.md` - Current state (under revalidation)
+- `docs/STATUS_DASHBOARD.md` - Current state (validated)
 - `docs/PROJECT_REVIEW_2026-04-17.md` - Trust-restore audit (current)
 
 **Development:**
@@ -450,10 +450,10 @@ git push
 | Question | Check |
 |----------|-------|
 | "How does X work?" | `docs/VEINBORN_CONSOLIDATED_DESIGN.md` |
-| "Where is X implemented?" | `docs/PROJECT_STATUS.md` |
+| "Where is X implemented?" | `docs/STATUS_DASHBOARD.md` |
 | "How do I test X?" | `tests/README.md` |
 | "What's the architecture?" | `docs/architecture/00_ARCHITECTURE_OVERVIEW.md` |
-| "Is X complete?" | `docs/PROJECT_STATUS.md` (100% accurate) |
+| "Is X complete?" | `docs/STATUS_DASHBOARD.md` |
 
 ---
 

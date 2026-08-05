@@ -58,11 +58,11 @@
 **Join development:**
 
 → **[START_HERE.md](START_HERE.md)** - Developer onboarding (15 min) 📖
-→ **[PROJECT_STATUS.md](PROJECT_STATUS.md)** - What's implemented (source of truth) ✅
+→ **[STATUS_DASHBOARD.md](STATUS_DASHBOARD.md)** - What's implemented (source of truth) ✅
 → **[MVP_CURRENT_FOCUS.md](MVP_CURRENT_FOCUS.md)** - Current priorities
 → **[development/README.md](development/README.md)** - Development workflows
 
-**Path:** START_HERE → PROJECT_STATUS → Pick a task → Code → Test → PR!
+**Path:** START_HERE → STATUS_DASHBOARD → Pick a task → Code → Test → PR!
 
 ---
 
@@ -84,12 +84,11 @@
 **Current state and plans:**
 
 → **[PROJECT_REVIEW_2026-04-17.md](PROJECT_REVIEW_2026-04-17.md)** - Current audit ⭐
-→ **[PROJECT_STATUS.md](PROJECT_STATUS.md)** - Comprehensive status (under revalidation)
 → **[STATUS_DASHBOARD.md](STATUS_DASHBOARD.md)** - Quick overview (2 min)
 → **[MVP_ROADMAP.md](MVP_ROADMAP.md)** - Future plans
 → **[VEINBORN_CONSOLIDATED_DESIGN.md](VEINBORN_CONSOLIDATED_DESIGN.md)** - Game vision
 
-**Source of Truth:** PROJECT_REVIEW_2026-04-17.md for current audited state; PROJECT_STATUS.md is being revalidated.
+**Source of Truth:** PROJECT_REVIEW_2026-04-17.md for the audited state and evidence; STATUS_DASHBOARD.md for the quick view.
 
 ---
 
@@ -127,7 +126,7 @@ docs/
 ├── README.md (you are here)           # Documentation hub
 ├── INDEX.md                           # Detailed index
 ├── START_HERE.md                      # Developer onboarding
-├── PROJECT_STATUS.md                  # Current state (source of truth)
+├── STATUS_DASHBOARD.md                 # Current state (source of truth)
 ├── QUICK_REFERENCE.md                 # Keybinds & commands
 │
 ├── architecture/                      # Technical design
@@ -143,7 +142,7 @@ docs/
 ## 🆘 Need Help?
 
 1. **Check the relevant section above** based on what you want to do
-2. **Read PROJECT_STATUS.md** to understand current state
+2. **Read STATUS_DASHBOARD.md** to understand current state
 3. **Check INDEX.md** for comprehensive documentation index
 4. **Ask questions** on GitHub issues or discussions
 

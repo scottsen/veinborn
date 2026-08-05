@@ -752,7 +752,7 @@ Legacy Victory:
 - **DATA_FILES_GUIDE.md** - YAML schemas and data structure
 - **CONTENT_CREATION.md** - Adding monsters, recipes, ore
 - **game_constants.yaml** - Adjustable balance values
-- **PROJECT_STATUS.md** - Implementation status
+- **STATUS_DASHBOARD.md** - Implementation status
 
 ---
 

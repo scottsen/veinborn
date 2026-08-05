@@ -82,7 +82,7 @@ Both paths are valid! Use the vault to learn or overcome bad luck.
 **Full documentation hub:** [docs/README.md](docs/README.md)
 
 **Quick lookup:**
-- [docs/PROJECT_STATUS.md](docs/PROJECT_STATUS.md) - What's implemented (1065/1067 tests ✅)
+- [docs/STATUS_DASHBOARD.md](docs/STATUS_DASHBOARD.md) - What's implemented (1065/1067 tests ✅)
 - [docs/MVP_ROADMAP.md](docs/MVP_ROADMAP.md) - What's next
 - [docs/INDEX.md](docs/INDEX.md) - Complete documentation index
 
@@ -187,7 +187,7 @@ Full test suite is now green. End-to-end real two-client playtest is the next va
 |----------|------|---------|
 | [`docs/STATUS_DASHBOARD.md`](docs/STATUS_DASHBOARD.md) ⭐ | 2 min | **At-a-glance status** (read this first!) |
 | [`docs/START_HERE.md`](docs/START_HERE.md) | 15 min | New developer onboarding |
-| [`docs/PROJECT_STATUS.md`](docs/PROJECT_STATUS.md) | 10 min | Comprehensive status report (under revalidation — see PROJECT_REVIEW_2026-04-17) |
+| [`docs/PROJECT_REVIEW_2026-04-17.md`](docs/PROJECT_REVIEW_2026-04-17.md) | 10 min | Detailed audit with evidence |
 | [`docs/MVP_CURRENT_FOCUS.md`](docs/MVP_CURRENT_FOCUS.md) | 5 min | What to build right now |
 | [`docs/VEINBORN_CONSOLIDATED_DESIGN.md`](docs/VEINBORN_CONSOLIDATED_DESIGN.md) | 30 min | Master game design vision |
 
@@ -199,7 +199,7 @@ Full test suite is now green. End-to-end real two-client playtest is the next va
 
 **Current Work:**
 - [`docs/STATUS_DASHBOARD.md`](docs/STATUS_DASHBOARD.md) - ⭐ **At-a-glance status** (2 min, read this first!)
-- [`docs/PROJECT_STATUS.md`](docs/PROJECT_STATUS.md) - Comprehensive status (under revalidation)
+- [`docs/PROJECT_REVIEW_2026-04-17.md`](docs/PROJECT_REVIEW_2026-04-17.md) - Detailed audit with evidence
 - [`docs/MVP_CURRENT_FOCUS.md`](docs/MVP_CURRENT_FOCUS.md) - Current priorities
 - [`docs/MVP_ROADMAP.md`](docs/MVP_ROADMAP.md) - High-level roadmap
 

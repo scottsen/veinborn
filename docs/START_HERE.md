@@ -181,7 +181,7 @@ def generate_dungeon():
 - ✅ High Score tracking (COMPLETE - 10 tests)
 - ✅ Pure Victory vs Legacy Victory implemented
 
-**See full status:** `docs/PROJECT_STATUS.md` (comprehensive report)
+**See full status:** `docs/STATUS_DASHBOARD.md` (comprehensive report)
 
 ### 🚀 Multiplayer (Phase 2 COMPLETE!)
 

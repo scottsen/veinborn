@@ -11,7 +11,7 @@
 **All Phase 1 systems are COMPLETE!** This document provides a high-level overview only.
 
 **For current work:** See [MVP_CURRENT_FOCUS.md](MVP_CURRENT_FOCUS.md)
-**For detailed status:** See [PROJECT_STATUS.md](PROJECT_STATUS.md)
+**For detailed status:** See [STATUS_DASHBOARD.md](STATUS_DASHBOARD.md)
 
 ---
 
@@ -186,7 +186,7 @@ src/
 ### Essential Reading
 - **[README.md](../README.md)** - Project overview (5 min)
 - **[START_HERE.md](START_HERE.md)** - Developer onboarding (15 min)
-- **[PROJECT_STATUS.md](PROJECT_STATUS.md)** - Comprehensive status (under revalidation — see PROJECT_REVIEW_2026-04-17)
+- **[STATUS_DASHBOARD.md](STATUS_DASHBOARD.md)** - Comprehensive status (validated — see PROJECT_REVIEW_2026-04-17)
 - **[MVP_CURRENT_FOCUS.md](MVP_CURRENT_FOCUS.md)** - Current priorities
 
 ### Game Design
@@ -205,7 +205,7 @@ src/
 
 ## 🗺️ Historical Roadmap (Reference)
 
-This section preserved for reference. See PROJECT_STATUS.md for current state.
+This section preserved for reference. See STATUS_DASHBOARD.md for current state.
 
 ### Week 1-2: Mining System ✅ DONE
 - Ore vein generation with 5 properties
@@ -260,7 +260,7 @@ This section preserved for reference. See PROJECT_STATUS.md for current state.
 4. Pick a task and start coding!
 
 ### Experienced Developers
-1. Check [PROJECT_STATUS.md](PROJECT_STATUS.md) for gaps
+1. Check [STATUS_DASHBOARD.md](STATUS_DASHBOARD.md) for gaps
 2. Review [MVP_CURRENT_FOCUS.md](MVP_CURRENT_FOCUS.md) priorities
 3. Pick a high-priority task
 4. Write tests, implement, playtest!

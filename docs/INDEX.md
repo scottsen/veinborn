@@ -19,11 +19,11 @@
 | Document | Time | Purpose |
 |----------|------|---------|
 | **[START_HERE.md](START_HERE.md)** ⭐ | 15 min | **Developer onboarding - START HERE!** |
-| **[PROJECT_STATUS.md](PROJECT_STATUS.md)** | 10 min | What's implemented (everything!) |
+| **[STATUS_DASHBOARD.md](STATUS_DASHBOARD.md)** | 2 min | What's implemented, current status |
 | **[MVP_CURRENT_FOCUS.md](MVP_CURRENT_FOCUS.md)** | 5 min | Current priorities |
 | **[QUICK_REFERENCE.md](QUICK_REFERENCE.md)** | 2 min | Commands, file locations |
 
-**Recommended path:** START_HERE → PROJECT_STATUS → Pick a task → Code!
+**Recommended path:** START_HERE → STATUS_DASHBOARD → Pick a task → Code!
 
 ---
 
@@ -32,13 +32,12 @@
 | Document | Purpose | Audience |
 |----------|---------|----------|
 | **[STATUS_DASHBOARD.md](STATUS_DASHBOARD.md)** ⭐ | 🎯 **One-page at-a-glance status** (2 min read) | Everyone |
-| **[PROJECT_STATUS.md](PROJECT_STATUS.md)** | Comprehensive status (under revalidation — see PROJECT_REVIEW_2026-04-17) | Everyone |
-| **[PROJECT_REVIEW_2026-04-17.md](PROJECT_REVIEW_2026-04-17.md)** | ⭐ Current trust-restore review: test/MP/docs audit | Everyone |
+| **[PROJECT_REVIEW_2026-04-17.md](PROJECT_REVIEW_2026-04-17.md)** | ⭐ Trust-restore review: test/MP/docs audit | Everyone |
 | **[MVP_CURRENT_FOCUS.md](MVP_CURRENT_FOCUS.md)** | 🎯 Current priorities and next steps | Developers |
 | **[MVP_ROADMAP.md](MVP_ROADMAP.md)** | 📋 High-level roadmap | Project managers |
 
 **Quick status check:** → **STATUS_DASHBOARD.md** (2 min)
-**Detailed status:** → **PROJECT_STATUS.md** (under revalidation) and **PROJECT_REVIEW_2026-04-17.md** (current audit)
+**Detailed status/evidence:** → **PROJECT_REVIEW_2026-04-17.md** (audit)
 
 ---
 
@@ -85,7 +84,7 @@
 
 ## 🗃️ Archived Documentation
 
-Historical docs live outside the repo at `~/Archive/veinborn/docs-archive-2026-01-13/` (machine-local — not portable for contributors). Do not link from active docs. For current design, read [VEINBORN_CONSOLIDATED_DESIGN.md](VEINBORN_CONSOLIDATED_DESIGN.md).
+Historical docs live in [`.archived/`](.archived/) (in-repo, portable) and outside the repo at `~/Archive/veinborn/docs-archive-2026-01-13/` (machine-local — not portable for contributors). Do not link from active docs. For current design, read [VEINBORN_CONSOLIDATED_DESIGN.md](VEINBORN_CONSOLIDATED_DESIGN.md).
 
 ---
 
@@ -98,7 +97,7 @@ Historical docs live outside the repo at `~/Archive/veinborn/docs-archive-2026-0
 4. Check [MVP_CURRENT_FOCUS.md](MVP_CURRENT_FOCUS.md) for tasks
 
 ### "I want to add a feature"
-1. Check [PROJECT_STATUS.md](PROJECT_STATUS.md) - is it done?
+1. Check [STATUS_DASHBOARD.md](STATUS_DASHBOARD.md) - is it done?
 2. Check [MVP_CURRENT_FOCUS.md](MVP_CURRENT_FOCUS.md) - is it planned?
 3. Read relevant system docs in [systems/](systems/)
 4. Check [architecture/](architecture/) for patterns
@@ -112,18 +111,18 @@ Historical docs live outside the repo at `~/Archive/veinborn/docs-archive-2026-0
 
 ### "How does X work?"
 1. Check [VEINBORN_CONSOLIDATED_DESIGN.md](VEINBORN_CONSOLIDATED_DESIGN.md) - design
-2. Check [PROJECT_STATUS.md](PROJECT_STATUS.md) - implementation status
+2. Check [STATUS_DASHBOARD.md](STATUS_DASHBOARD.md) - implementation status
 3. Check [architecture/](architecture/) - technical details
 4. Read the code in `src/core/`
 
 ### "What should I work on?"
 1. Read [MVP_CURRENT_FOCUS.md](MVP_CURRENT_FOCUS.md)
-2. Check [PROJECT_STATUS.md](PROJECT_STATUS.md) for gaps
+2. Check [STATUS_DASHBOARD.md](STATUS_DASHBOARD.md) for gaps
 3. Pick a task that interests you
 4. Ask if unsure!
 
 ### "Is X complete?"
-Check [PROJECT_REVIEW_2026-04-17.md](PROJECT_REVIEW_2026-04-17.md) first, then [PROJECT_STATUS.md](PROJECT_STATUS.md) (status claims are being revalidated).
+Check [STATUS_DASHBOARD.md](STATUS_DASHBOARD.md) first, then [PROJECT_REVIEW_2026-04-17.md](PROJECT_REVIEW_2026-04-17.md) for full evidence.
 
 ---
 
@@ -133,7 +132,7 @@ Check [PROJECT_REVIEW_2026-04-17.md](PROJECT_REVIEW_2026-04-17.md) first, then [
 |----------|-------|
 | "How do I run the game?" | [README.md](../README.md) or [QUICK_REFERENCE.md](QUICK_REFERENCE.md) |
 | "What's the vision?" | [VEINBORN_CONSOLIDATED_DESIGN.md](VEINBORN_CONSOLIDATED_DESIGN.md) |
-| "What's done?" | [PROJECT_STATUS.md](PROJECT_STATUS.md) |
+| "What's done?" | [STATUS_DASHBOARD.md](STATUS_DASHBOARD.md) |
 | "What's next?" | [MVP_CURRENT_FOCUS.md](MVP_CURRENT_FOCUS.md) |
 | "How does X work?" | [architecture/](architecture/) or read `src/core/` |
 | "How do I test?" | [development/TESTING_ACTION_FACTORY.md](development/TESTING_ACTION_FACTORY.md) |
@@ -146,7 +145,7 @@ Check [PROJECT_REVIEW_2026-04-17.md](PROJECT_REVIEW_2026-04-17.md) first, then [
 ### Essential Reading
 - [README.md](../README.md) - Start here!
 - [START_HERE.md](START_HERE.md) - Developer guide
-- [PROJECT_STATUS.md](PROJECT_STATUS.md) - Truth about current state
+- [STATUS_DASHBOARD.md](STATUS_DASHBOARD.md) - Truth about current state
 - [VEINBORN_CONSOLIDATED_DESIGN.md](VEINBORN_CONSOLIDATED_DESIGN.md) - Game vision
 
 ### Working on MVP

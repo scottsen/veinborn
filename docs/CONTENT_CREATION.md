@@ -706,7 +706,7 @@ python3 -c "import yaml; yaml.safe_load(open('data/entities/monsters.yaml'))"
 - **DATA_FILES_GUIDE.md** - Detailed schema reference
 - **QUICK_REFERENCE.md** - File locations and commands
 - **MECHANICS_REFERENCE.md** - Game formulas and calculations
-- **PROJECT_STATUS.md** - What's implemented
+- **STATUS_DASHBOARD.md** - What's implemented
 
 ---
 

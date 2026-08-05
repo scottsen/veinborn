@@ -14,6 +14,9 @@ Historical records of documentation reorganizations and development milestones:
 ### `/analysis/`
 Reserved for archived architectural analysis documents when consolidation occurs.
 
+### `PROJECT_STATUS_2026-01-13.md`
+The former "comprehensive status" doc (dated 2026-01-13, claimed 1063/1063 tests passing and multiplayer Phase 2 complete). Superseded by `docs/STATUS_DASHBOARD.md`, which is validated against current code/tests. Archived 2026-08-05 (VB-8) rather than revalidated line-by-line, since `STATUS_DASHBOARD.md` + `PROJECT_REVIEW_2026-04-17.md` already cover the same ground accurately.
+
 ## When to Archive
 
 Documents should be moved here when they are:
@@ -26,10 +29,10 @@ Documents should be moved here when they are:
 
 For current, up-to-date documentation, see:
 - `/docs/README.md` or `/docs/INDEX.md` - Documentation map
-- `/docs/PROJECT_STATUS.md` - Current project status (source of truth)
+- `/docs/STATUS_DASHBOARD.md` - Current project status (source of truth)
 - `/docs/START_HERE.md` - Developer onboarding guide
 
 ---
 
-**Last Updated:** 2025-11-06
+**Last Updated:** 2026-08-05
 **Maintained by:** Project documentation team

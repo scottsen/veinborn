@@ -379,7 +379,7 @@ python3 -m pytest tests/ -v
 
 ### 3. Read the Code
 **Start with these files (in order):**
-1. `docs/PROJECT_STATUS.md` - Current state overview
+1. `docs/STATUS_DASHBOARD.md` - Current state overview
 2. `src/core/game.py` - Game loop (~500 lines)
 3. `src/core/entities.py` - Player/Monster (~300 lines)
 4. `src/core/actions/` - Action system (mining, crafting, etc.)
@@ -405,7 +405,7 @@ python3 -m pytest tests/ -v
 ## 📚 Essential Documentation
 
 ### For Current Work:
-1. **PROJECT_STATUS.md** - Comprehensive status report (NEW)
+1. **STATUS_DASHBOARD.md** - Comprehensive status report
 2. **MVP_ROADMAP.md** - Original roadmap (needs update)
 3. **VEINBORN_CONSOLIDATED_DESIGN.md** - Game design vision (accurate)
 4. **architecture/00_ARCHITECTURE_OVERVIEW.md** - System architecture (accurate)
@@ -436,7 +436,7 @@ Very little! Main gaps:
 ✅ **YES!** This is the perfect time for content expansion.
 
 ### "What about all the TODO checkboxes in MVP_ROADMAP.md?"
-⚠️ **Those are outdated.** Everything marked TODO is actually complete. See `PROJECT_STATUS.md` for truth.
+⚠️ **Those are outdated.** Everything marked TODO is actually complete. See `STATUS_DASHBOARD.md` for truth.
 
 ---
 
@@ -491,14 +491,14 @@ Very little! Main gaps:
 ## 📞 Need Help?
 
 ### Where to Look:
-- **Current Status:** `docs/PROJECT_STATUS.md`
+- **Current Status:** `docs/STATUS_DASHBOARD.md`
 - **Game Design:** `docs/VEINBORN_CONSOLIDATED_DESIGN.md`
 - **Architecture:** `docs/architecture/00_ARCHITECTURE_OVERVIEW.md`
 - **Testing:** `tests/README.md`
 
 ### What to Do:
 - Play the game first (understand what works)
-- Read `PROJECT_STATUS.md` (truth about current state)
+- Read `STATUS_DASHBOARD.md` (truth about current state)
 - Pick a task from the lists above
 - Write tests for your changes
 - Playtest your additions
@@ -517,6 +517,6 @@ Very little! Main gaps:
 
 **Ready? Let's make this game shine!** ✨
 
-**Questions?** Check `PROJECT_STATUS.md` for the full story.
+**Questions?** Check `STATUS_DASHBOARD.md` for the full story.
 
 **Confused?** Remember: MVP is complete, now we polish and add content.

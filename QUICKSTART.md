@@ -69,7 +69,7 @@ python3 run_textual.py
 
 ### For Developers
 - **[docs/START_HERE.md](docs/START_HERE.md)** - Developer onboarding
-- **[docs/PROJECT_STATUS.md](docs/PROJECT_STATUS.md)** - What's implemented
+- **[docs/STATUS_DASHBOARD.md](docs/STATUS_DASHBOARD.md)** - What's implemented
 - **[docs/architecture/](docs/architecture/)** - Technical architecture
 
 ---

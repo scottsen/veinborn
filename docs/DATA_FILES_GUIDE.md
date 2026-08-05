@@ -702,7 +702,7 @@ EOF
 - **CONTENT_CREATION.md** - Step-by-step content creation guide
 - **QUICK_REFERENCE.md** - File locations and commands
 - **MECHANICS_REFERENCE.md** - Exact game formulas
-- **PROJECT_STATUS.md** - What systems are implemented
+- **STATUS_DASHBOARD.md** - What systems are implemented
 
 ---
 
