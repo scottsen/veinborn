@@ -22,6 +22,8 @@ from dataclasses import dataclass, field
 import heapq
 import math
 
+from .geometry import bresenham_line
+
 
 @dataclass(order=True)
 class Node:
@@ -199,36 +201,13 @@ def _line_of_sight(game_map, start: Tuple[int, int], goal: Tuple[int, int]) -> O
     Returns:
         List of positions if clear line exists, None otherwise
     """
-    x0, y0 = start
-    x1, y1 = goal
-
-    # Bresenham's line algorithm
-    dx = abs(x1 - x0)
-    dy = abs(y1 - y0)
-    sx = 1 if x0 < x1 else -1
-    sy = 1 if y0 < y1 else -1
-    err = dx - dy
-
     path = []
-    x, y = x0, y0
-
-    while True:
-        # Check if current tile is walkable
+    for x, y in bresenham_line(start[0], start[1], goal[0], goal[1]):
         if not game_map.is_walkable(x, y):
             return None  # Path blocked
-
         path.append((x, y))
 
-        if x == x1 and y == y1:
-            return path  # Clear line of sight!
-
-        e2 = 2 * err
-        if e2 > -dy:
-            err -= dy
-            x += sx
-        if e2 < dx:
-            err += dx
-            y += sy
+    return path  # Clear line of sight!
 
 
 def find_path(

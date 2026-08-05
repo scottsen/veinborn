@@ -17,6 +17,7 @@ from typing import List, Optional, Tuple, Set
 from enum import Enum
 from .base.entity import Entity, EntityType
 from .entities import Monster, OreVein
+from .geometry import has_line_of_sight
 
 
 class TileVisibility(Enum):
@@ -138,35 +139,7 @@ class FogOfWar:
         Returns:
             True if line of sight is clear
         """
-        dx = abs(x1 - x0)
-        dy = abs(y1 - y0)
-        sx = 1 if x0 < x1 else -1
-        sy = 1 if y0 < y1 else -1
-        err = dx - dy
-
-        x, y = x0, y0
-
-        while True:
-            # Don't check starting or ending position
-            if (x, y) != (x0, y0) and (x, y) != (x1, y1):
-                # Check if this tile blocks line of sight
-                if not dungeon_map.is_transparent(x, y):
-                    return False
-
-            # Reached target
-            if x == x1 and y == y1:
-                break
-
-            # Bresenham step
-            e2 = 2 * err
-            if e2 > -dy:
-                err -= dy
-                x += sx
-            if e2 < dx:
-                err += dx
-                y += sy
-
-        return True
+        return has_line_of_sight(x0, y0, x1, y1, dungeon_map.is_transparent)
 
 
 class PerceptionSystem:
@@ -372,40 +345,10 @@ class PerceptionSystem:
             True if line of sight is clear
         """
         dungeon_map = game.state.dungeon_map
-
-        # Bresenham's line algorithm
         x0, y0 = int(observer.x), int(observer.y)
         x1, y1 = int(target.x), int(target.y)
 
-        dx = abs(x1 - x0)
-        dy = abs(y1 - y0)
-        sx = 1 if x0 < x1 else -1
-        sy = 1 if y0 < y1 else -1
-        err = dx - dy
-
-        x, y = x0, y0
-
-        while True:
-            # Don't check the observer's starting position or target's final position
-            if (x, y) != (x0, y0) and (x, y) != (x1, y1):
-                # Check if this tile blocks line of sight (walls block)
-                if not dungeon_map.is_transparent(x, y):
-                    return False
-
-            # Reached target
-            if x == x1 and y == y1:
-                break
-
-            # Bresenham step
-            e2 = 2 * err
-            if e2 > -dy:
-                err -= dy
-                x += sx
-            if e2 < dx:
-                err += dx
-                y += sy
-
-        return True
+        return has_line_of_sight(x0, y0, x1, y1, dungeon_map.is_transparent)
 
     def get_perception_info(self, game, observer: Entity, line_of_sight: bool = True) -> dict:
         """
