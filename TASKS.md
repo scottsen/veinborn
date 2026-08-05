@@ -179,23 +179,26 @@ Doc claims 'only 1 ore vein on floors 1-9' as the #1 critical balance concern. R
 ## TASK-VB-8 · PROJECT_STATUS.md still marked under revalidation, never revalidated
 
 ```yaml
-status: backlog
+status: done
 priority: low
 effort: 1h
 tags: [docs]
 created: '2026-08-05T06:31:19Z'
-updated: '2026-08-05T06:31:25Z'
+updated: '2026-08-05T17:48:46Z'
 session: yaeger-zealot-0804
 links:
   references:
   - docs/PROJECT_STATUS.md
+  commits:
+  - 4a6209501ba1fcd46b9416ca589b310bcb6ea749
+notes_next: 2
 ```
 
 Linked from START_HERE.md and INDEX.md as 'comprehensive status' but flagged under revalidation since the 2026-04-17 PROJECT_REVIEW. Either revalidate its claims against current code/tests or fold it into STATUS_DASHBOARD.md and archive it.
 
 <!-- notes: append-only log; each has a stable #id (see CLI §5) -->
 ### Notes
-_(no notes yet)_
+- [#1 2026-08-05T17:48:46Z session:steel-sunbeam-0805] Archived docs/PROJECT_STATUS.md to docs/.archived/PROJECT_STATUS_2026-01-13.md (never rewritten since the 2026-04-17 revalidation flag; STATUS_DASHBOARD.md + PROJECT_REVIEW_2026-04-17.md already cover accurate current status). Repointed ~30 live references across 12 docs to STATUS_DASHBOARD.md and cleaned up stale 'under revalidation' phrasing.
 
 
 ## TASK-VB-9 · Extract shared Bresenham line-of-sight helper (triplicated in pathfinding.py/perception.py x2)
