@@ -31,6 +31,7 @@ class MultiplayerState:
     player_id: Optional[str] = None
     player_name: Optional[str] = None
     game_id: Optional[str] = None
+    auth_token: Optional[str] = None
     chat_messages: list = field(default_factory=list)  # List of ChatMessage objects
 
 
@@ -61,11 +62,14 @@ class MultiplayerClient:
         self._listen_task: Optional[asyncio.Task] = None
         self._running = False
 
-    async def connect(self, player_name: str) -> bool:
+    async def connect(self, player_name: str, auth_token: Optional[str] = None) -> bool:
         """Connect to the multiplayer server and authenticate.
 
         Args:
             player_name: Name for this player
+            auth_token: Previously issued token to resume a session (reconnect)
+                instead of minting a new one. Ignored if not recognized by
+                the server.
 
         Returns:
             True if connection and authentication succeeded
@@ -79,7 +83,7 @@ class MultiplayerClient:
 
             # Send authentication
             self.state.player_name = player_name
-            auth_msg = Message.auth(player_name)
+            auth_msg = Message.auth(player_name, auth_token=auth_token)
             await self.ws.send(auth_msg.to_json())
             logger.info(f"Sent authentication as '{player_name}'")
 
@@ -90,6 +94,7 @@ class MultiplayerClient:
             if response.type == "auth_success":
                 self.state.session_id = response.data["session_id"]
                 self.state.player_id = response.data["player_id"]
+                self.state.auth_token = response.data.get("auth_token", auth_token)
                 self.state.is_connected = True
                 logger.info(f"Authenticated successfully as {player_name}")
                 logger.info(f"Session ID: {self.state.session_id}")
@@ -107,6 +112,30 @@ class MultiplayerClient:
         except Exception as e:
             logger.error(f"Connection error: {e}")
             return False
+
+    async def reconnect(self) -> bool:
+        """Reconnect using the session's stored auth_token and, if the
+        session was previously in a game, resume that game.
+
+        Returns:
+            True if reconnection (and game resume, if applicable) succeeded
+        """
+        if not self.state.auth_token or not self.state.player_name:
+            logger.warning("Cannot reconnect: no prior session to resume")
+            return False
+
+        was_in_game = self.state.game_id is not None
+
+        connected = await self.connect(self.state.player_name, auth_token=self.state.auth_token)
+        if not connected:
+            return False
+
+        if was_in_game:
+            reconnect_msg = Message.reconnect(self.state.session_id)
+            await self.ws.send(reconnect_msg.to_json())
+            logger.info(f"Sent reconnect request for game {self.state.game_id}")
+
+        return True
 
     async def disconnect(self):
         """Disconnect from the server."""

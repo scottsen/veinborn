@@ -10,61 +10,72 @@ areas: {}
 ## TASK-VB-1 · Floor-11 KeyError crash: get_monster_spawn_weights() references nonexistent 'floors_11_plus' key
 
 ```yaml
-status: backlog
+status: done
 priority: urgent
 effort: 30m
 tags: [bug, crash]
 created: '2026-08-05T06:31:18Z'
-updated: '2026-08-05T06:31:18Z'
+updated: '2026-08-05T06:50:15Z'
 session: yaeger-zealot-0804
+links:
+  commits:
+  - b7635c2b027fa716a7969ab9e735588060499e99
+notes_next: 2
 ```
 
 config_loader.py:92 does weights['floors_11_plus'] but data/balance/monster_spawns.yaml only has floors_11_15/floors_16_plus keys. Reproduced directly: config.get_monster_spawn_weights(11) raises KeyError. Uncaught anywhere in the call chain (entity_spawner.py -> floor_manager.py -> game.py:282 -> UI descend handler). Blocks ~90% of the game's intended floor range (victory_floor=100).
 
 <!-- notes: append-only log; each has a stable #id (see CLI §5) -->
 ### Notes
-_(no notes yet)_
+- [#1 2026-08-05T06:50:15Z session:neural-queen-0804] config_loader now matches actual floors_11_15/floors_16_plus keys
 
 
 ## TASK-VB-2 · Multiplayer reconnection is non-functional end-to-end
 
 ```yaml
-status: backlog
+status: done
 priority: urgent
 effort: 4h
 tags: [bug, multiplayer]
 created: '2026-08-05T06:31:18Z'
-updated: '2026-08-05T06:31:25Z'
+updated: '2026-08-05T06:55:01Z'
 session: yaeger-zealot-0804
 links:
   references:
   - docs/PROJECT_REVIEW_2026-04-17.md
+  commits:
+  - b7635c2b027fa716a7969ab9e735588060499e99
+notes_next: 2
 ```
 
 AuthManager.create_session (auth.py:52-78) always mints a new player_id/session_id; verify_token() is dead code, never called; auth_token generated but never sent to client (websocket_server.py Message.auth_success). handle_reconnect (websocket_server.py:342-378) rejects any reconnect because session.game_id is None on the fresh session. All disconnect-timeout/AI-takeover machinery in game_session.py (lines 191-296, 422-486) is unreachable dead functionality from the client's perspective.
 
 <!-- notes: append-only log; each has a stable #id (see CLI §5) -->
 ### Notes
-_(no notes yet)_
+- [#1 2026-08-05T06:55:01Z session:neural-queen-0804] auth resume via auth_token wired into authenticate_connection; client gained reconnect()
 
 
 ## TASK-VB-3 · Seeded multiplayer game creation crashes: GameRNG.seed property called as a method
 
 ```yaml
-status: backlog
+status: done
 priority: high
 effort: 15m
 tags: [bug, multiplayer]
 created: '2026-08-05T06:31:18Z'
-updated: '2026-08-05T06:31:18Z'
+updated: '2026-08-05T06:50:15Z'
 session: yaeger-zealot-0804
+links:
+  commits:
+  - b7635c2b027fa716a7969ab9e735588060499e99
+notes_next: 2
 ```
 
 multiplayer_game_state.py:94 calls rng.seed(self.seed) but GameRNG.seed (rng.py:123) is a read-only @property, not a method -> TypeError: 'NoneType' object is not callable. Reproduced directly. Not hit by the live websocket flow today (no client passes a seed), but GameSession.start_game(seed=...) passes it straight through -- landmine for the first seeded/competitive-match feature.
 
 <!-- notes: append-only log; each has a stable #id (see CLI §5) -->
 ### Notes
-_(no notes yet)_
+- [#1 2026-08-05T06:50:15Z session:neural-queen-0804] seed via GameRNG.initialize() instead of calling read-only seed property
 
 
 ## TASK-VB-4 · Multiplayer state sync silently drops monster/map data and never diffs floor changes
@@ -89,20 +100,24 @@ _(no notes yet)_
 ## TASK-VB-5 · game_over never propagates to GameSession.is_finished -- finished MP sessions leak
 
 ```yaml
-status: backlog
+status: done
 priority: medium
 effort: 1h
 tags: [bug, multiplayer]
 created: '2026-08-05T06:31:18Z'
-updated: '2026-08-05T06:31:18Z'
+updated: '2026-08-05T06:50:15Z'
 session: yaeger-zealot-0804
+links:
+  commits:
+  - b7635c2b027fa716a7969ab9e735588060499e99
+notes_next: 2
 ```
 
 multiplayer_game_state.py:333-344 sets game_state.game_over=True when all players die, but nothing propagates it into GameSession.is_finished (game_session.py). Session lingers in GameSessionManager._games indefinitely unless every player also explicitly leaves.
 
 <!-- notes: append-only log; each has a stable #id (see CLI §5) -->
 ### Notes
-_(no notes yet)_
+- [#1 2026-08-05T06:50:15Z session:neural-queen-0804] game_over now propagates to session.is_finished in process_action paths
 
 
 ## TASK-VB-6 · Stale future-multiplayer/ and ~/Archive doc references across 9+ docs

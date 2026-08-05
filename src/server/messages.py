@@ -56,22 +56,32 @@ class Message:
         return cls(**data)
 
     @classmethod
-    def auth(cls, player_name: str) -> "Message":
-        """Create authentication request."""
+    def auth(cls, player_name: str, auth_token: Optional[str] = None) -> "Message":
+        """Create authentication request.
+
+        auth_token, if provided, resumes a previously issued session
+        instead of minting a new one (used when reconnecting).
+        """
+        data = {"player_name": player_name}
+        if auth_token:
+            data["auth_token"] = auth_token
         return cls(
             type=MessageType.AUTH.value,
-            data={"player_name": player_name},
+            data=data,
         )
 
     @classmethod
-    def auth_success(cls, session_id: str, player_id: str) -> "Message":
+    def auth_success(cls, session_id: str, player_id: str, auth_token: Optional[str] = None) -> "Message":
         """Create authentication success response."""
+        data = {
+            "session_id": session_id,
+            "player_id": player_id,
+        }
+        if auth_token:
+            data["auth_token"] = auth_token
         return cls(
             type=MessageType.AUTH_SUCCESS.value,
-            data={
-                "session_id": session_id,
-                "player_id": player_id,
-            },
+            data=data,
         )
 
     @classmethod

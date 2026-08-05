@@ -161,13 +161,19 @@ class VeinbornServer:
                 )
                 return None
 
-            # Create session
-            auth_token, session = self.auth_manager.create_session(player_name)
+            # Resume an existing session if a valid auth_token was sent
+            # (reconnect flow); otherwise mint a new session.
+            auth_token = message.data.get("auth_token")
+            session = self.auth_manager.verify_token(auth_token) if auth_token else None
+            if session:
+                session.mark_active()
+            else:
+                auth_token, session = self.auth_manager.create_session(player_name)
 
             # Send success response
             await self.send_message(
                 websocket,
-                Message.auth_success(session.session_id, session.player_id),
+                Message.auth_success(session.session_id, session.player_id, auth_token),
             )
 
             return session.session_id

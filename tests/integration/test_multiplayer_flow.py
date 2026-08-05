@@ -562,3 +562,68 @@ async def test_full_multiplayer_session_lifecycle(server):
     # Verify final state
     assert not game.is_finished  # Still has active players
     assert game.get_player_count() == 3  # All in players dict
+
+
+@pytest.mark.asyncio
+async def test_reconnect_over_new_connection_with_auth_token(server):
+    """Test the real reconnect path: a dropped connection resumes via a
+    brand-new WebSocket + auth_token, not by reusing the old Session object.
+
+    This is the scenario VB-2 found broken: authenticate_connection always
+    minted a fresh session with no game_id, so handle_reconnect always
+    rejected with "Not in a game to reconnect to".
+    """
+    # Player connects for the first time (no auth_token yet)
+    ws1 = AsyncMock()
+    ws1.recv = AsyncMock(return_value=Message.auth("Player1").to_json())
+    session_id1 = await server.authenticate_connection(ws1)
+    session1 = server.auth_manager.get_session(session_id1)
+    server.connections[session_id1] = ws1
+    server.session_to_player[session_id1] = session1.player_id
+
+    # Capture the auth_token the server handed back
+    sent_msg = Message.from_json(ws1.send.call_args[0][0])
+    assert sent_msg.type == "auth_success"
+    auth_token = sent_msg.data["auth_token"]
+    assert auth_token
+
+    async def mock_broadcast_state(game_id, force_full_state=False):
+        pass
+
+    server.broadcast_game_state = mock_broadcast_state
+
+    async def mock_broadcast(game_id, message):
+        pass
+
+    server.broadcast_to_game = mock_broadcast
+
+    # Player creates a game
+    create_msg = Message.create_game("Test Game", max_players=2, player_class="warrior")
+    await server.handle_create_game(session_id1, session1, create_msg)
+    game_id = session1.game_id
+    assert game_id is not None
+
+    # Connection drops (server-side disconnect, session preserved)
+    await server.disconnect_client(session_id1, "Connection lost", preserve_session=True)
+    game = await server.game_manager.get_game(game_id)
+    assert game.players[session1.player_id].is_disconnected()
+
+    # Player reconnects over a BRAND NEW WebSocket, resuming via auth_token
+    ws1_new = AsyncMock()
+    ws1_new.recv = AsyncMock(
+        return_value=Message.auth("Player1", auth_token=auth_token).to_json()
+    )
+    session_id_new = await server.authenticate_connection(ws1_new)
+
+    # The resumed session must be the SAME session (same game_id preserved)
+    assert session_id_new == session_id1
+    resumed_session = server.auth_manager.get_session(session_id_new)
+    assert resumed_session.game_id == game_id
+
+    server.connections[session_id_new] = ws1_new
+
+    # Client follows up with the RECONNECT message, as multiplayer_client.reconnect() does
+    reconnect_msg = Message.reconnect(session_id_new)
+    await server.handle_reconnect(session_id_new, resumed_session, reconnect_msg)
+
+    assert game.players[session1.player_id].is_connected()
