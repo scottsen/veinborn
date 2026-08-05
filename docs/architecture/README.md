@@ -3,7 +3,7 @@
 **Last Updated:** 2026-04-17
 **Current Phase:** Single-player feature-complete; multiplayer experimental
 
-> ⚠️ **Stale references ahead.** References below to `/docs/future-multiplayer/` are defunct — that directory was archived to `~/Archive/veinborn/docs-archive-2026-01-13/` (machine-local, not in this repo). The current, in-repo multiplayer design lives at **`docs/design/MULTIPLAYER_DESIGN_2025.md`**. When following a `/docs/future-multiplayer/...` link, use that file instead. See `docs/PROJECT_REVIEW_2026-04-17.md` for the full audit.
+> ⚠️ **Stale references ahead.** References below to `/docs/future-multiplayer/` are defunct — that directory was archived out of the repo (machine-local, not portable for contributors; see `docs/INDEX.md`). The current, in-repo multiplayer design lives at **`docs/design/MULTIPLAYER_DESIGN_2025.md`**. When following a `/docs/future-multiplayer/...` link, use that file instead. See `docs/PROJECT_REVIEW_2026-04-17.md` for the full audit.
 
 ---
 
@@ -18,11 +18,11 @@
 - ✅ Future planning docs
 
 **What's NOT here:**
-- ❌ NATS/messaging (moved to `/docs/future-multiplayer/`)
-- ❌ Microservices (moved to `/docs/future-multiplayer/`)
-- ❌ Deployment infrastructure (moved to `/docs/future-multiplayer/`)
+- ❌ NATS/messaging (moved to `/docs/future-multiplayer/`) *(archived, not in this repo — see `docs/design/MULTIPLAYER_DESIGN_2025.md`)*
+- ❌ Microservices (moved to `/docs/future-multiplayer/`) *(archived, not in this repo — see `docs/design/MULTIPLAYER_DESIGN_2025.md`)*
+- ❌ Deployment infrastructure (moved to `/docs/future-multiplayer/`) *(archived, not in this repo — see `docs/design/MULTIPLAYER_DESIGN_2025.md`)*
 
-**If you're looking for Phase 2 (multiplayer):** See `/docs/future-multiplayer/`
+**If you're looking for Phase 2 (multiplayer):** See `/docs/future-multiplayer/` *(archived, not in this repo — see `docs/design/MULTIPLAYER_DESIGN_2025.md`)*
 
 ---
 
@@ -113,18 +113,14 @@
 
 ---
 
-## What's NOT Here (Moved to future-multiplayer/)
+## What's NOT Here (originally moved to future-multiplayer/, now archived)
 
-These docs were moved because they're for Phase 2 (multiplayer):
-
-| Document | New Location | Why Moved |
-|----------|--------------|-----------|
-| DEVELOPMENT_GUIDELINES.md | `/docs/future-multiplayer/` | NATS, PostgreSQL, microservices (Phase 2) |
-| LOGGING_OBSERVABILITY.md | `/docs/future-multiplayer/` | Prometheus, Grafana, ELK stack (Phase 2) |
-| MESSAGING_ARCHITECTURE.md | `/docs/future-multiplayer/` | NATS, microservices (Phase 2) |
-| INFRASTRUCTURE_DEPLOYMENT.md | `/docs/future-multiplayer/` | Podman, deployment (Phase 2) |
-| ADR-010-PODMAN-CONTAINER-TECHNOLOGY.md | `/docs/future-multiplayer/` | Container tech (Phase 2) |
-| EXTENSIBILITY_PATTERNS.md | `/docs/future-multiplayer/` | Plugin systems, event bus (Phase 2) |
+These docs (DEVELOPMENT_GUIDELINES.md, LOGGING_OBSERVABILITY.md, MESSAGING_ARCHITECTURE.md,
+INFRASTRUCTURE_DEPLOYMENT.md, ADR-010-PODMAN-CONTAINER-TECHNOLOGY.md, EXTENSIBILITY_PATTERNS.md)
+covered NATS/microservices/Podman infrastructure that was never built — Phase 2 multiplayer
+shipped as a simpler in-process WebSocket server instead (`src/server/`). The
+`/docs/future-multiplayer/` directory that held them is archived, not in this repo (see
+`docs/INDEX.md`). For the design that actually shipped, see `docs/design/MULTIPLAYER_DESIGN_2025.md`.
 
 **MVP uses simple Python game loop, not message-based architecture.**
 
@@ -158,7 +154,7 @@ These docs were moved because they're for Phase 2 (multiplayer):
 ### Path 3: "I want to know about multiplayer" (Future planning)
 
 1. **STOP!** → Don't implement Phase 2 yet!
-2. Read: `/docs/future-multiplayer/README.md` → Overview of Phase 2
+2. Read: `/docs/future-multiplayer/README.md` → Overview of Phase 2 *(archived, not in this repo — see `docs/design/MULTIPLAYER_DESIGN_2025.md`)*
 3. Understand: Phase 2 comes AFTER MVP complete (8-12 weeks)
 4. **Go back to implementing MVP** → Focus on current work
 
@@ -183,8 +179,8 @@ These docs were moved because they're for Phase 2 (multiplayer):
 | DECISIONS.md | Mixed | ⚠️ Caution | Mix of phases |
 | ~~OPERATIONAL_EXCELLENCE_GUIDELINES.md~~ | MVP | ➡️ Consolidated | Merged into MVP_DEVELOPMENT_GUIDELINES.md |
 | ~~COMPREHENSIVE_ANALYSIS.md~~ | Archive | ➡️ Extracted | Unique sections in ARCHITECTURAL_ASSESSMENT.md |
-| ~~DEVELOPMENT_GUIDELINES.md~~ | Phase 2 | ➡️ Moved | In /future-multiplayer/ |
-| ~~LOGGING_OBSERVABILITY.md~~ | Phase 2 | ➡️ Moved | In /future-multiplayer/ |
+| ~~DEVELOPMENT_GUIDELINES.md~~ | Phase 2 | ➡️ Archived | Not in this repo — see `docs/design/MULTIPLAYER_DESIGN_2025.md` |
+| ~~LOGGING_OBSERVABILITY.md~~ | Phase 2 | ➡️ Archived | Not in this repo — see `docs/design/MULTIPLAYER_DESIGN_2025.md` |
 
 **Legend:**
 - ✅ Active - Read and use for MVP
@@ -211,12 +207,12 @@ These docs were moved because they're for Phase 2 (multiplayer):
 | Architectural analysis | `ARCHITECTURAL_ASSESSMENT.md` | 20 min |
 | RNG design | `RANDOMNESS_ANALYSIS.md` | 15 min |
 
-### For Phase 2 (Future):
-| Need | Document | When |
-|------|----------|------|
-| Multiplayer architecture | `/docs/future-multiplayer/` | After MVP complete |
-| NATS setup | `/docs/future-multiplayer/VEINBORN_NATS_INFRASTRUCTURE.md` | Phase 2 only |
-| Microservices | `/docs/future-multiplayer/VEINBORN_MICROSERVICE_ARCHITECTURE.md` | Phase 2 only |
+### For Phase 2 (multiplayer — shipped, WebSocket-based, not the NATS/microservices design below):
+| Need | Document | Status |
+|------|----------|--------|
+| Multiplayer architecture (what shipped) | `docs/design/MULTIPLAYER_DESIGN_2025.md` | ✅ Current |
+| NATS setup | ~~`/docs/future-multiplayer/VEINBORN_NATS_INFRASTRUCTURE.md`~~ | Archived, not in this repo — this design was superseded by the simpler WebSocket server |
+| Microservices | ~~`/docs/future-multiplayer/VEINBORN_MICROSERVICE_ARCHITECTURE.md`~~ | Archived, not in this repo — this design was superseded by the simpler WebSocket server |
 
 ---
 
@@ -245,7 +241,7 @@ These docs were moved because they're for Phase 2 (multiplayer):
 
 ### ❌ DON'T: Implement Phase 2 infrastructure
 
-**Problem:** Phase 2 docs (now in `/docs/future-multiplayer/`) describe NATS, PostgreSQL, Prometheus, Grafana.
+**Problem:** Phase 2 docs (now in `/docs/future-multiplayer/`) describe NATS, PostgreSQL, Prometheus, Grafana. *(archived, not in this repo — see `docs/design/MULTIPLAYER_DESIGN_2025.md`)*
 
 **For MVP:** Use simple approaches from `MVP_DEVELOPMENT_GUIDELINES.md`:
 ```python
@@ -257,7 +253,7 @@ logger.info("Player mined ore: %s", ore.ore_type)
 
 **When to add infrastructure:** Phase 2 (distributed systems)
 
-### ❌ DON'T: Read docs in `/docs/future-multiplayer/` too much
+### ❌ DON'T: Read docs in `/docs/future-multiplayer/` too much *(archived, not in this repo — see `docs/design/MULTIPLAYER_DESIGN_2025.md`)*
 
 **Problem:** Tempting to implement Phase 2 architecture.
 
@@ -287,7 +283,7 @@ logger.info("Player mined ore: %s", ore.ore_type)
 - `RANDOMNESS_ANALYSIS.md` - RNG design (no seeding system currently)
 
 **Skip for now:**
-- Everything in `/docs/future-multiplayer/` (Phase 2)
+- Everything in `/docs/future-multiplayer/` (Phase 2) *(archived, not in this repo — see `docs/design/MULTIPLAYER_DESIGN_2025.md`)*
 - Most of `LUA_INTEGRATION_STRATEGY.md` (Phase 3)
 
 ### "Should I implement Entity base class?"
@@ -344,8 +340,8 @@ logger.info("Player mined ore: %s", ore.ore_type)
 **Previous changes (2025-10-24):**
 - ✅ Created `EVENTS_ASYNC_OBSERVABILITY_GUIDE.md` (event patterns, async/await with Textual, game telemetry)
 - ✅ Created `OPERATIONAL_EXCELLENCE_GUIDELINES.md` (small methods, logging, error handling, performance)
-- ✅ Moved `DEVELOPMENT_GUIDELINES.md` → `/future-multiplayer/` (Phase 2 infrastructure)
-- ✅ Moved `LOGGING_OBSERVABILITY.md` → `/future-multiplayer/` (Phase 2 observability)
+- ✅ Moved `DEVELOPMENT_GUIDELINES.md` → `/future-multiplayer/` (Phase 2 infrastructure) *(archived, not in this repo — see `docs/design/MULTIPLAYER_DESIGN_2025.md`)*
+- ✅ Moved `LOGGING_OBSERVABILITY.md` → `/future-multiplayer/` (Phase 2 observability) *(archived, not in this repo — see `docs/design/MULTIPLAYER_DESIGN_2025.md`)*
 - ✅ Created `MVP_DEVELOPMENT_GUIDELINES.md` (simple Python, pytest)
 - ✅ Created `MVP_TESTING_GUIDE.md` (unit tests, TDD, manual testing)
 - ✅ Added phase markers to `BASE_CLASS_ARCHITECTURE.md` (clear MVP vs Phase 2/3 sections)

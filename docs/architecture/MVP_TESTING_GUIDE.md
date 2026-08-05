@@ -5,7 +5,7 @@
 **Status:** Active
 **Last Updated:** 2025-10-24
 
-> ⚠️ Links below to `/docs/future-multiplayer/` are defunct — that directory was archived to `~/Archive/veinborn/docs-archive-2026-01-13/`. Async/integration/load-testing references there are no longer reachable in-repo. For multiplayer testing context, start from the existing server tests in `tests/unit/server/`.
+> ⚠️ Links below to `/docs/future-multiplayer/` are defunct — that directory was archived out of the repo (machine-local, not portable for contributors; see `docs/INDEX.md`). Async/integration/load-testing references there are no longer reachable in-repo. For multiplayer testing context, start from the existing server tests in `tests/unit/server/`.
 
 ---
 
@@ -13,7 +13,7 @@
 
 This guide explains how to test the Veinborn MVP (single-player Python game).
 
-**For Phase 2 (async, integration, load testing):** See `/docs/future-multiplayer/DEVELOPMENT_GUIDELINES.md`
+**For Phase 2 (async, integration, load testing):** No in-repo doc yet (the original `/docs/future-multiplayer/DEVELOPMENT_GUIDELINES.md` is archived, not in this repo). Start from the existing server tests in `tests/unit/server/`.
 
 ---
 
@@ -799,6 +799,6 @@ python3 run_textual.py
 
 ---
 
-**For Phase 2 (async testing, integration, load tests):** See `/docs/future-multiplayer/DEVELOPMENT_GUIDELINES.md`
+**For Phase 2 (async testing, integration, load tests):** No in-repo doc yet (the original `/docs/future-multiplayer/DEVELOPMENT_GUIDELINES.md` is archived, not in this repo). Start from the existing server tests in `tests/unit/server/`.
 
 **Happy testing!** 🧪

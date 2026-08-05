@@ -511,7 +511,7 @@ python3 -m pytest --cov=src tests/
 
 **But for MVP:** Keep it simple! Direct function calls work perfectly for single-player.
 
-**Complete Phase 2 architecture:** See `/docs/future-multiplayer/`
+**Complete Phase 2 architecture:** See `docs/design/MULTIPLAYER_DESIGN_2025.md` (the original `/docs/future-multiplayer/` directory is archived, not in this repo — see `docs/INDEX.md`)
 
 ---
 
@@ -526,7 +526,7 @@ python3 -m pytest --cov=src tests/
 - `DEVELOPMENT_GUIDELINES.md` - Code style, testing
 
 ### For Future Planning (Don't Build Yet)
-- `future-multiplayer/` - Phase 2 multiplayer architecture
+- `docs/design/MULTIPLAYER_DESIGN_2025.md` - Multiplayer architecture (Phase 2 complete; the original `future-multiplayer/` directory is archived, not in this repo)
 - `LUA_INTEGRATION_STRATEGY.md` - Phase 3 scripting
 - `LOGGING_OBSERVABILITY.md` - Phase 2 monitoring
 
@@ -599,7 +599,7 @@ See `LUA_INTEGRATION_STRATEGY.md` for future planning, but don't implement yet.
 - [START_HERE.md](../START_HERE.md) - Start here if new to project
 - [MVP_ROADMAP.md](../MVP_ROADMAP.md) - Implementation tasks
 - [VEINBORN_CONSOLIDATED_DESIGN.md](../VEINBORN_CONSOLIDATED_DESIGN.md) - Game design
-- [future-multiplayer/](../future-multiplayer/) - Phase 2 architecture
+- [MULTIPLAYER_DESIGN_2025.md](../design/MULTIPLAYER_DESIGN_2025.md) - Multiplayer architecture (the original future-multiplayer/ directory is archived, not in this repo)
 - [BASE_CLASS_ARCHITECTURE.md](./BASE_CLASS_ARCHITECTURE.md) - Optional: Clean base classes
 - [CONTENT_SYSTEM.md](./CONTENT_SYSTEM.md) - YAML content system
 - [DEVELOPMENT_GUIDELINES.md](./DEVELOPMENT_GUIDELINES.md) - Code style

@@ -3,7 +3,7 @@
 **Last Updated**: 2025-10-23
 **Purpose**: Track major architectural decisions, their rationale, and current status
 
-> ⚠️ Links below to `/docs/future-multiplayer/` are defunct — that directory was archived to `~/Archive/veinborn/docs-archive-2026-01-13/`. Use **`docs/design/MULTIPLAYER_DESIGN_2025.md`** for the current in-repo multiplayer design. See `docs/PROJECT_REVIEW_2026-04-17.md`.
+> ⚠️ Links below to `/docs/future-multiplayer/` are defunct — that directory was archived out of the repo (machine-local, not portable for contributors; see `docs/INDEX.md`). Use **`docs/design/MULTIPLAYER_DESIGN_2025.md`** for the current in-repo multiplayer design. See `docs/PROJECT_REVIEW_2026-04-17.md`.
 
 ---
 
@@ -172,7 +172,7 @@
 4. Native systemd integration (pods as systemd units)
 5. No daemon = lower overhead, better security
 
-**Docs**: `docs/future-multiplayer/INFRASTRUCTURE_DEPLOYMENT.md`, `docs/future-multiplayer/ADR-010-PODMAN-CONTAINER-TECHNOLOGY.md`
+**Docs**: ~~docs/future-multiplayer/INFRASTRUCTURE_DEPLOYMENT.md~~, ~~docs/future-multiplayer/ADR-010-PODMAN-CONTAINER-TECHNOLOGY.md~~ *(archived, not in this repo — see `docs/design/MULTIPLAYER_DESIGN_2025.md`)*
 **Impact**: Better security, seamless K8s migration, cleaner production deployment
 
 ---
@@ -189,7 +189,7 @@
 - JetStream for persistence
 - No Zookeeper dependency (vs Kafka)
 
-**Docs**: `docs/future-multiplayer/VEINBORN_NATS_INFRASTRUCTURE.md`, `docs/future-multiplayer/MESSAGING_ARCHITECTURE.md`
+**Docs**: ~~docs/future-multiplayer/VEINBORN_NATS_INFRASTRUCTURE.md~~, ~~docs/future-multiplayer/MESSAGING_ARCHITECTURE.md~~ *(archived, not in this repo — see `docs/design/MULTIPLAYER_DESIGN_2025.md`)*
 **Impact**: Scalable, reliable messaging layer
 
 ---
@@ -204,7 +204,7 @@
 - Replay support (server logs all actions)
 - Easier testing (deterministic state)
 
-**Docs**: `docs/future-multiplayer/VEINBORN_SERVER_ARCHITECTURE.md`, `docs/future-multiplayer/VEINBORN_MICROSERVICE_ARCHITECTURE.md`
+**Docs**: ~~docs/future-multiplayer/VEINBORN_SERVER_ARCHITECTURE.md~~, ~~docs/future-multiplayer/VEINBORN_MICROSERVICE_ARCHITECTURE.md~~ *(archived, not in this repo — see `docs/design/MULTIPLAYER_DESIGN_2025.md`)*
 **Impact**: Secure, flexible architecture
 
 ---
@@ -219,7 +219,7 @@
 - asyncpg performance (3x psycopg2)
 - Better tooling/monitoring
 
-**Docs**: `docs/future-multiplayer/VEINBORN_MICROSERVICE_ARCHITECTURE.md`
+**Docs**: ~~docs/future-multiplayer/VEINBORN_MICROSERVICE_ARCHITECTURE.md~~ *(archived, not in this repo — see `docs/design/MULTIPLAYER_DESIGN_2025.md`)*
 **Impact**: Reliable, performant persistence
 
 ---
@@ -234,7 +234,7 @@
 - Settings from env vars (12-factor)
 - Better error messages
 
-**Docs**: `docs/future-multiplayer/MESSAGING_ARCHITECTURE.md`, `docs/future-multiplayer/VEINBORN_MESSAGE_TAXONOMY.md`
+**Docs**: ~~docs/future-multiplayer/MESSAGING_ARCHITECTURE.md~~, ~~docs/future-multiplayer/VEINBORN_MESSAGE_TAXONOMY.md~~ *(archived, not in this repo — see `docs/design/MULTIPLAYER_DESIGN_2025.md`)*
 **Impact**: Type-safe messaging, better debugging
 
 ---
@@ -249,7 +249,7 @@
 - No griefing (invite-only)
 - Personal loot (no competition)
 
-**Docs**: `docs/future-multiplayer/VEINBORN_MUD_AND_INSTANCES.md`
+**Docs**: ~~docs/future-multiplayer/VEINBORN_MUD_AND_INSTANCES.md~~ *(archived, not in this repo — see `docs/design/MULTIPLAYER_DESIGN_2025.md`)*
 **Impact**: Faster development, better player experience
 
 ---
@@ -264,7 +264,7 @@
 - Competitive gameplay (race to kill)
 - Specialist gameplay (rogue scouts 4 moves)
 
-**Docs**: `docs/future-multiplayer/VEINBORN_TURN_SYSTEM.md`
+**Docs**: ~~docs/future-multiplayer/VEINBORN_TURN_SYSTEM.md~~ *(archived, not in this repo — see `docs/design/MULTIPLAYER_DESIGN_2025.md`)*
 **Impact**: Unique, compelling multiplayer mechanics
 
 ---
@@ -279,7 +279,7 @@
 - Good Python support (websockets library)
 - Industry standard
 
-**Docs**: `docs/future-multiplayer/VEINBORN_MICROSERVICE_ARCHITECTURE.md`
+**Docs**: ~~docs/future-multiplayer/VEINBORN_MICROSERVICE_ARCHITECTURE.md~~ *(archived, not in this repo — see `docs/design/MULTIPLAYER_DESIGN_2025.md`)*
 **Impact**: Web client support, real-time gameplay
 
 ---
@@ -311,7 +311,7 @@
 **Status**: ❌ Rejected
 **Decision**: Use Diablo instances, not shared MMO world
 **Rationale**: Development cost, loot competition, griefing concerns
-**Docs**: `docs/future-multiplayer/VEINBORN_MUD_AND_INSTANCES.md`
+**Docs**: ~~docs/future-multiplayer/VEINBORN_MUD_AND_INSTANCES.md~~ *(archived, not in this repo — see `docs/design/MULTIPLAYER_DESIGN_2025.md`)*
 **Why Rejected**: Too expensive, too complex, worse player experience
 
 ---

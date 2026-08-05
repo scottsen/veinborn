@@ -5,7 +5,7 @@
 **Status:** Active
 **Last Updated:** 2026-01-13
 
-> ⚠️ Links below to `/docs/future-multiplayer/` are defunct — that directory was archived to `~/Archive/veinborn/docs-archive-2026-01-13/`. Use **`docs/design/MULTIPLAYER_DESIGN_2025.md`** for the current in-repo multiplayer design.
+> ⚠️ Links below to `/docs/future-multiplayer/` are defunct — that directory was archived out of the repo (machine-local, not portable for contributors; see `docs/INDEX.md`). Use **`docs/design/MULTIPLAYER_DESIGN_2025.md`** for the current in-repo multiplayer design.
 
 ---
 
@@ -13,7 +13,7 @@
 
 This document defines development standards for the Veinborn MVP (single-player Python game).
 
-**For Phase 2 (multiplayer) guidelines:** See `/docs/future-multiplayer/DEVELOPMENT_GUIDELINES.md`
+**For Phase 2 (multiplayer) guidelines:** See `docs/design/MULTIPLAYER_DESIGN_2025.md` (the original `/docs/future-multiplayer/DEVELOPMENT_GUIDELINES.md` is archived, not in this repo)
 
 ---
 
@@ -305,7 +305,7 @@ logging.basicConfig(
 )
 ```
 
-**For Phase 2 (structured logging, metrics):** See `/docs/future-multiplayer/LOGGING_OBSERVABILITY.md`
+**For Phase 2 (structured logging, metrics):** No in-repo doc yet (the original `/docs/future-multiplayer/LOGGING_OBSERVABILITY.md` is archived, not in this repo)
 
 ---
 
@@ -800,7 +800,7 @@ tia ast dangerous src/core/my_new_file.py
 
 ---
 
-**For Phase 2 (multiplayer) development:** See `/docs/future-multiplayer/DEVELOPMENT_GUIDELINES.md`
+**For Phase 2 (multiplayer) development:** See `docs/design/MULTIPLAYER_DESIGN_2025.md` (the original `/docs/future-multiplayer/DEVELOPMENT_GUIDELINES.md` is archived, not in this repo)
 
 **For operational excellence:** See archived `OPERATIONAL_EXCELLENCE_GUIDELINES.md` (consolidated above)
 
