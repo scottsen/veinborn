@@ -90,8 +90,7 @@ class MultiplayerGameState:
         if self.game_state is None:
             # Initialize RNG with seed if provided
             if self.seed is not None:
-                rng = GameRNG.get_instance()
-                rng.seed(self.seed)
+                GameRNG.initialize(self.seed)
                 logger.info(f"Initialized RNG with seed: {self.seed}")
 
             # Create temporary player entity at (0, 0) to initialize GameState

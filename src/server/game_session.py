@@ -413,6 +413,11 @@ class GameSession:
                 # Update player alive status
                 self.mp_game_state.update_player_alive_status()
 
+                # Propagate game-over into session state so the session
+                # stops accepting actions and can be cleaned up
+                if self.mp_game_state.game_state.game_over:
+                    self.is_finished = True
+
                 return True, None
 
             except Exception as e:
@@ -475,6 +480,11 @@ class GameSession:
 
                 # Update player alive status
                 self.mp_game_state.update_player_alive_status()
+
+                # Propagate game-over into session state so the session
+                # stops accepting actions and can be cleaned up
+                if self.mp_game_state.game_state.game_over:
+                    self.is_finished = True
 
                 return True, None
 

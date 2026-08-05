@@ -88,8 +88,10 @@ class GameConfig:
             return weights['floors_3_5']
         elif 6 <= floor <= 10:
             return weights['floors_6_10']
+        elif 11 <= floor <= 15:
+            return weights['floors_11_15']
         else:
-            return weights['floors_11_plus']
+            return weights['floors_16_plus']
 
     def get_ore_vein_count_for_floor(self, floor: int) -> int:
         """
