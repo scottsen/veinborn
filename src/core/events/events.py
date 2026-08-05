@@ -14,7 +14,7 @@ Design principles:
 - Subscribers are callables (easy to mock/test)
 """
 
-from dataclasses import dataclass, field, asdict
+from dataclasses import dataclass, field
 from typing import Callable, Dict, List, Any, Optional, TYPE_CHECKING
 from enum import Enum
 from collections import defaultdict

@@ -1,5 +1,4 @@
 """Message log widget for game messages."""
-from textual.widget import Widget
 from textual.widgets import Static
 from rich.text import Text
 

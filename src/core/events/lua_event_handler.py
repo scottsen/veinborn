@@ -7,7 +7,7 @@ allowing Lua scripts to subscribe to and respond to game events.
 
 import logging
 from pathlib import Path
-from typing import Any, Dict, Optional
+from typing import Any, Dict
 import lupa
 
 from .events import GameEvent

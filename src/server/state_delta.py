@@ -4,7 +4,7 @@ This module provides efficient delta compression for game state updates,
 reducing network bandwidth by only sending what changed.
 """
 
-from typing import Dict, Any, List, Optional, Set
+from typing import Dict, List, Optional
 import logging
 
 logger = logging.getLogger(__name__)

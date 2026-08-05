@@ -4,13 +4,12 @@ Extends the single-player GameState to support multiple players
 while maintaining compatibility with existing single-player code.
 """
 
-from typing import Dict, List, Optional, Tuple
-from dataclasses import dataclass, field
+from typing import Dict, List, Optional
+from dataclasses import dataclass
 import logging
 
 from core.game_state import GameState
 from core.entities import Player
-from core.base.entity import Entity
 from core.rng import GameRNG
 from core.world import Map
 from core.config import ConfigLoader

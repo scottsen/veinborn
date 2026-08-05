@@ -1,7 +1,6 @@
 """Map display widget for Veinborn."""
 from textual.widget import Widget
 from textual.strip import Strip
-from textual.geometry import Size
 from rich.segment import Segment
 from rich.style import Style
 

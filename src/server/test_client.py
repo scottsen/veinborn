@@ -5,7 +5,6 @@ This is a basic command-line client to test server connectivity and functionalit
 """
 
 import asyncio
-import json
 import sys
 from pathlib import Path
 

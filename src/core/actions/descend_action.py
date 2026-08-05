@@ -9,7 +9,7 @@ Handles:
 
 import logging
 from dataclasses import dataclass
-from ..base.action import Action, ActionOutcome, ActionResult
+from ..base.action import Action, ActionOutcome
 from ..base.game_context import GameContext
 from ..world import TileType
 

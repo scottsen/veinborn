@@ -13,7 +13,7 @@ Design principles:
 - Fair AI (bots use same perception as players would)
 """
 
-from typing import List, Optional, Tuple, Set
+from typing import List, Optional
 from enum import Enum
 from .base.entity import Entity, EntityType
 from .entities import Monster, OreVein

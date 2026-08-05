@@ -13,7 +13,7 @@ import logging
 from dataclasses import dataclass
 from typing import Optional
 from simpleeval import simple_eval
-from ..base.action import Action, ActionOutcome, ActionResult
+from ..base.action import Action, ActionOutcome
 from ..base.game_context import GameContext
 from ..base.entity import EntityType
 from ..loot import LootGenerator

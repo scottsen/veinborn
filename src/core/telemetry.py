@@ -17,11 +17,11 @@ Zero refactoring needed!
 """
 
 from dataclasses import dataclass, field
-from typing import Dict, List, Optional
+from typing import Dict, List
 import logging
 import time
 
-from .events import GameEvent, GameEventType
+from .events import GameEvent
 
 logger = logging.getLogger('veinborn.telemetry')
 

@@ -8,7 +8,6 @@ and executed within the game engine.
 import logging
 from pathlib import Path
 from typing import Any, Dict, Optional
-import lupa
 
 from ..base.action import Action, ActionOutcome, ActionResult
 from ..base.game_context import GameContext

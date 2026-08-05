@@ -10,7 +10,7 @@ Critical for:
 
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Optional, Union, Set
+from typing import TYPE_CHECKING, Optional
 from enum import Enum
 import logging
 
@@ -244,7 +244,6 @@ class Action(ABC):
             Entity if valid, None if validation failed (already logged)
         """
         # Import here to avoid circular import
-        from .entity import EntityType
 
         entity = context.get_entity(entity_id)
 

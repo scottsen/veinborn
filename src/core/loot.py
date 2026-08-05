@@ -18,7 +18,6 @@ import logging
 import yaml
 from pathlib import Path
 from typing import List, Dict, Any, Optional
-from dataclasses import dataclass
 
 from .base.entity import Entity, EntityType
 from .rng import GameRNG

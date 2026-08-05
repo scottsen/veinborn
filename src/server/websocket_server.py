@@ -3,8 +3,7 @@
 import asyncio
 import json
 import logging
-from typing import Dict, Set
-from uuid import uuid4
+from typing import Dict
 
 try:
     import websockets
@@ -513,7 +512,7 @@ class VeinbornServer:
             try:
                 await websocket.close(1000, reason)
             except Exception:
-                pass
+                logger.warning(f"Error closing websocket for session {session_id}", exc_info=True)
 
         # Clean up connection tracking
         self.session_to_player.pop(session_id, None)

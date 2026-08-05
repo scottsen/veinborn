@@ -1,5 +1,4 @@
 """Sidebar widget for player and game information."""
-from textual.widget import Widget
 from textual.widgets import Static
 from rich.text import Text
 

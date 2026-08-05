@@ -33,7 +33,7 @@ Usage:
         vault.save()
 """
 
-from dataclasses import dataclass, field, asdict
+from dataclasses import dataclass, asdict
 from typing import List, Optional, TYPE_CHECKING
 from pathlib import Path
 import json

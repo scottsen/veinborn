@@ -15,7 +15,7 @@ Usage:
 import yaml
 import logging
 from pathlib import Path
-from typing import Dict, Any, List, Optional, Tuple
+from typing import Dict, Any, Optional, Tuple
 from dataclasses import dataclass
 
 from ..exceptions import ContentValidationError

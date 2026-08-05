@@ -74,7 +74,6 @@ class GameContext:
 
     def get_entities_by_type(self, entity_type: 'EntityType') -> List['Entity']:
         """Get all entities of a type."""
-        from .entity import EntityType
         return [e for e in self.game_state.entities.values()
                 if e.entity_type == entity_type]
 

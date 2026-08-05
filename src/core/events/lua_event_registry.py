@@ -9,10 +9,10 @@ from the scripts/events/ directory.
 import logging
 import re
 from pathlib import Path
-from typing import Dict, List, Optional, Set
+from typing import Dict, List, Set
 from collections import defaultdict
 
-from .events import GameEvent, GameEventType, EventBus
+from .events import GameEventType, EventBus
 from ..scripting.lua_runtime import LuaRuntime
 from .lua_event_handler import LuaEventHandler
 
