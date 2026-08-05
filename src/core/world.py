@@ -353,272 +353,35 @@ class Map:
             return self.rooms[0].center
         return (1, 1)
 
-    def _find_first_walkable_in_room(self, room) -> Optional[Tuple[int, int]]:
-        """
-        Find the first walkable position in a room.
-
-        Args:
-            room: The room to search
-
-        Returns:
-            (x, y) tuple if found, None otherwise
-        """
-        for x in range(room.x, room.x + room.width):
-            for y in range(room.y, room.y + room.height):
-                if self.is_walkable(x, y):
-                    return (x, y)
-        return None
-
     def find_player_spawn_positions(self, count: int) -> List[Tuple[int, int]]:
-        """
-        Find spawn positions for multiple players in different rooms.
-
-        Players spawn in the first N rooms, centered or near the center.
-        This ensures they start in different areas of the dungeon.
-
-        Args:
-            count: Number of spawn positions to find
-
-        Returns:
-            List of (x, y) tuples for player spawn positions
-        """
-        positions = []
-
-        # Use the first N rooms for player spawns
-        for room in self.rooms[:count]:
-            if len(positions) >= count:
-                break
-
-            # Try room center first
-            cx, cy = room.center
-            if self.is_walkable(cx, cy):
-                positions.append((cx, cy))
-            else:
-                # Center isn't walkable, find any walkable tile in room
-                pos = self._find_first_walkable_in_room(room)
-                if pos:
-                    positions.append(pos)
-
-        # Fallback if we don't have enough rooms
-        if len(positions) < count:
-            logger.warning(f"Only found {len(positions)} spawn positions, requested {count}")
-
-        return positions
+        """Find spawn positions for multiple players in different rooms."""
+        from .spawning.spawn_policy import find_player_spawn_positions
+        return find_player_spawn_positions(self, count)
 
     def find_monster_positions(self, count: int) -> List[Tuple[int, int]]:
-        """
-        Find walkable positions for monsters.
-
-        Returns room centers, but only if they're actually walkable.
-        Falls back to finding any walkable tile in the room if center isn't walkable.
-        """
-        positions = []
-        for room in self.rooms[1:]:  # Skip first room (player starts there)
-            if len(positions) >= count:
-                break
-
-            # Try room center first
-            cx, cy = room.center
-            if self.is_walkable(cx, cy):
-                positions.append((cx, cy))
-            else:
-                # Center isn't walkable, find any walkable tile in room
-                pos = self._find_first_walkable_in_room(room)
-                if pos:
-                    positions.append(pos)
-
-        return positions
-
-    def _is_adjacent_to_wall(self, x: int, y: int) -> bool:
-        """Check if position is adjacent to at least one wall."""
-        for dx in [-1, 0, 1]:
-            for dy in [-1, 0, 1]:
-                if dx == 0 and dy == 0:
-                    continue
-                if self.is_wall(x + dx, y + dy):
-                    return True
-        return False
-
-    def _is_valid_ore_position(self, x: int, y: int) -> bool:
-        """Check if position is valid for ore vein spawning."""
-        # Must be in bounds
-        if not self.in_bounds(x, y):
-            return False
-
-        # Must be walkable floor
-        if not self.is_walkable(x, y):
-            return False
-
-        # Must be adjacent to at least one wall
-        return self._is_adjacent_to_wall(x, y)
-
-    def _get_ore_spawn_probability(self) -> float:
-        """Get ore spawn probability from config."""
-        if self.config:
-            ore_pos_config = self.config.get_ore_positioning_config()
-            return ore_pos_config['wall_adjacency_probability']
-        return 0.1  # Default
-
-    def _find_ore_positions_in_room(
-        self, room, needed_count: int, spawn_prob: float
-    ) -> List[Tuple[int, int]]:
-        """
-        Find valid ore positions within a single room.
-
-        Args:
-            room: The room to search for ore positions
-            needed_count: Maximum number of positions to find
-            spawn_prob: Probability threshold for ore spawning
-
-        Returns:
-            List of (x, y) positions found in this room (up to needed_count)
-        """
-        rng = GameRNG.get_instance()
-        positions = []
-
-        for x in range(room.x, room.x + room.width):
-            for y in range(room.y, room.y + room.height):
-                if len(positions) >= needed_count:
-                    break  # Found enough in this room
-                if self._is_valid_ore_position(x, y) and rng.random() < spawn_prob:
-                    positions.append((x, y))
-
-        return positions
+        """Find walkable positions for monsters."""
+        from .spawning.spawn_policy import find_monster_positions
+        return find_monster_positions(self, count)
 
     def find_ore_vein_positions(self, count: int) -> List[Tuple[int, int]]:
-        """
-        Find positions for ore veins.
-
-        Ore veins spawn adjacent to walls (along room edges).
-        This gives them a "embedded in rock" feel.
-        """
-        positions = []
-        spawn_prob = self._get_ore_spawn_probability()
-
-        for room in self.rooms:
-            needed = count - len(positions)
-            if needed <= 0:
-                break  # Found enough positions
-
-            room_positions = self._find_ore_positions_in_room(room, needed, spawn_prob)
-            positions.extend(room_positions)
-
-        return positions
-
-    def _get_special_room_config(self):
-        """
-        Get special room configuration with defaults.
-
-        Returns:
-            tuple: (special_types, min_pct, max_pct)
-                - special_types: List of (RoomType, weight) tuples
-                - min_pct: Minimum percentage of rooms to make special
-                - max_pct: Maximum percentage of rooms to make special
-        """
-        if self.config:
-            assignment_config = self.config.get_special_room_assignment_config()
-            room_weights = assignment_config['room_type_weights']
-            special_types = [
-                (RoomType.TREASURE, room_weights['treasure_room']),
-                (RoomType.MONSTER_DEN, room_weights['monster_den']),
-                (RoomType.ORE_CHAMBER, room_weights['ore_chamber']),
-                (RoomType.SHRINE, room_weights['shrine']),
-                (RoomType.TRAP, room_weights['trap_room']),
-            ]
-            percentage_config = assignment_config['percentage']
-            min_pct = percentage_config['min']
-            max_pct = percentage_config['max']
-        else:
-            # Default values if no config provided
-            special_types = [
-                (RoomType.TREASURE, 2),
-                (RoomType.MONSTER_DEN, 2),
-                (RoomType.ORE_CHAMBER, 3),
-                (RoomType.SHRINE, 1),
-                (RoomType.TRAP, 1),
-            ]
-            min_pct = 0.2
-            max_pct = 0.3
-
-        return special_types, min_pct, max_pct
+        """Find positions for ore veins (spawn adjacent to walls)."""
+        from .spawning.spawn_policy import find_ore_vein_positions
+        return find_ore_vein_positions(self, count)
 
     def assign_special_rooms(self):
-        """
-        Assign special room types to some rooms.
-
-        Special rooms provide unique gameplay elements:
-        - Treasure rooms: High-quality loot
-        - Monster dens: Extra monsters and challenges
-        - Ore chambers: Multiple high-quality ore veins
-        - Shrines: Healing and buffs
-        - Trap rooms: Environmental hazards
-
-        Rules:
-        - First room (starting room) is always NORMAL
-        - Last room (stairs room) is always NORMAL
-        - 20-30% of other rooms become special
-        """
-        if len(self.rooms) <= 2:
-            # Not enough rooms for special types
-            return
-
-        rng = GameRNG.get_instance()
-        special_types, min_pct, max_pct = self._get_special_room_config()
-
-        # Calculate how many special rooms to create
-        # Exclude first and last room
-        eligible_rooms = self.rooms[1:-1]
-        num_special = max(1, int(len(eligible_rooms) * rng.uniform(min_pct, max_pct)))
-
-        # Randomly select rooms to make special
-        special_rooms = rng.sample(eligible_rooms, min(num_special, len(eligible_rooms)))
-
-        # Assign types using weighted random selection
-        for room in special_rooms:
-            types, weights = zip(*special_types)
-            room.room_type = rng.choices(types, weights=weights)[0]
+        """Assign special room types (treasure, monster den, etc.) to some rooms."""
+        from .spawning.spawn_policy import assign_special_rooms
+        assign_special_rooms(self)
 
     def place_stairs_down(self) -> Optional[Tuple[int, int]]:
-        """
-        Place stairs down in the last room.
-
-        Returns:
-            Position of stairs, or None if no rooms
-        """
-        if not self.rooms:
-            return None
-
-        # Place in last room (furthest from start)
-        last_room = self.rooms[-1]
-        x, y = last_room.center
-
-        self.tiles[x][y] = Tile(TileType.STAIRS_DOWN)
-
-        # PERFORMANCE: Cache position immediately (avoid 1,290 searches per game!)
-        self._stairs_down_cache = (x, y)
-
-        return (x, y)
+        """Place stairs down in the last room."""
+        from .spawning.spawn_policy import place_stairs_down
+        return place_stairs_down(self)
 
     def place_stairs_up(self) -> Optional[Tuple[int, int]]:
-        """
-        Place stairs up in the first room.
-
-        Returns:
-            Position of stairs, or None if no rooms
-        """
-        if not self.rooms:
-            return None
-
-        # Place in first room (where player starts)
-        first_room = self.rooms[0]
-        x, y = first_room.center
-
-        self.tiles[x][y] = Tile(TileType.STAIRS_UP)
-
-        # PERFORMANCE: Cache position immediately
-        self._stairs_up_cache = (x, y)
-
-        return (x, y)
+        """Place stairs up in the first room."""
+        from .spawning.spawn_policy import place_stairs_up
+        return place_stairs_up(self)
 
     def find_stairs_down(self) -> Optional[Tuple[int, int]]:
         """
