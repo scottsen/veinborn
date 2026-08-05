@@ -290,20 +290,24 @@ _(no notes yet)_
 ## TASK-VB-13 · Move Map's entity-placement policy (find_monster/ore/player positions) out of world.py into src/core/spawning/
 
 ```yaml
-status: backlog
+status: done
 priority: low
 effort: 3h
 tags: [refactor, code-quality]
 created: '2026-08-05T06:31:19Z'
-updated: '2026-08-05T06:31:19Z'
+updated: '2026-08-05T18:01:37Z'
 session: yaeger-zealot-0804
+links:
+  commits:
+  - 10f03440c279bf469657f3eb27c525f2c871dc29
+notes_next: 2
 ```
 
 world.py's Map mixes BSP dungeon-generation algorithm with domain-specific spawn policy (find_player_spawn_positions, find_monster_positions, find_ore_vein_positions, assign_special_rooms, place_stairs). Couples dungeon generation to every future entity type.
 
 <!-- notes: append-only log; each has a stable #id (see CLI §5) -->
 ### Notes
-_(no notes yet)_
+- [#1 2026-08-05T18:01:37Z session:fowevado-0805] Extracted find_player_spawn_positions/find_monster_positions/find_ore_vein_positions/assign_special_rooms/place_stairs_down/place_stairs_up + helpers into src/core/spawning/spawn_policy.py; Map keeps thin delegating methods (lazy-imported to avoid circular import). Also fixed a latent NameError (undefined logger) found during the move. 1094/2 tests pass, no import cycles.
 
 
 ## TASK-VB-14 · Quick-win code cleanup: silent except swallow, stale version string, unused/duplicate imports
