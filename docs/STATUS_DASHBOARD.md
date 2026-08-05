@@ -179,17 +179,17 @@ python3 src/server/test_client.py
 
 | Issue | Severity | Status |
 |-------|----------|--------|
-| Floor 11+ crashes on descend (`KeyError: 'floors_11_plus'` in `config_loader.py:92`) | 🔴 Critical | `VB-1` — blocks ~90% of intended floor range |
-| Multiplayer reconnection is non-functional end-to-end (auth never resumes a session) | 🔴 Critical | `VB-2` |
-| Seeded multiplayer game creation crashes (`GameRNG.seed` property called as a method) | 🟠 High | `VB-3` |
+| ~~Floor 11+ crashes on descend (`KeyError: 'floors_11_plus'` in `config_loader.py:92`)~~ | ~~🔴 Critical~~ | ✅ Fixed — `VB-1` (`b7635c2`) |
+| ~~Multiplayer reconnection is non-functional end-to-end (auth never resumes a session)~~ | ~~🔴 Critical~~ | ✅ Fixed — `VB-2` (`8622a11`) |
+| ~~Seeded multiplayer game creation crashes (`GameRNG.seed` property called as a method)~~ | ~~🟠 High~~ | ✅ Fixed — `VB-3` (`b7635c2`) |
 | Multiplayer state sync drops monster/map data, never diffs floor changes | 🟠 High | `VB-4` |
-| Finished multiplayer sessions never marked `is_finished` (leak) | 🟡 Medium | `VB-5` |
+| ~~Finished multiplayer sessions never marked `is_finished` (leak)~~ | ~~🟡 Medium~~ | ✅ Fixed — `VB-5` (`b7635c2`) |
 | Stale `future-multiplayer/` and `~/Archive` doc references (9+ docs) | 🟡 Medium | `VB-6` |
 | `BALANCE_REVIEW.md` ore-scarcity claim is stale (real value is 8+ veins/floor, not 1) | 🟡 Medium | `VB-7` |
 | 2 skipped Lua timeout tests | 🟡 Low | C-level execution limitation (acceptable) |
 | No tutorial for new players | 🟢 Low | Planned for Phase 3 |
 
-**Critical issues:** 2 — see `VB-1`/`VB-2` above. Found via full code review + bug hunt, 2026-08-04.
+**Critical issues:** 0 open — `VB-1` and `VB-2` fixed 2026-08-05. `VB-4` (high) is the highest-priority remaining item.
 
 ---
 
@@ -221,9 +221,9 @@ python3 src/server/test_client.py
 
 ---
 
-**🎯 TL;DR (2026-08-04):** Single-player has a critical, previously-undiscovered crash on floor 11+ (`VB-1`) — fix before any playtesting, since it blocks the majority of the intended 100-floor run. Multiplayer's 2026-04-17 correctness fixes (`GameContext`, `WaitAction`, deadlock) hold up, but reconnection is still non-functional end-to-end (`VB-2`) and state sync silently drops monster/map data (`VB-4`) — "Phase 2 complete" should not be claimed until those close. Full findings and fixes are tracked in `TASKS.md` (`tt list --project veinborn`), not just this dashboard.
+**🎯 TL;DR (2026-08-05):** The floor 11+ crash (`VB-1`) and multiplayer reconnection (`VB-2`) are both fixed and test-covered — single-player and reconnect-after-disconnect should now both work end-to-end. Multiplayer state sync still silently drops monster/map data and never diffs floor changes (`VB-4`, ~1d estimate) — "Phase 2 complete" should not be claimed until that closes too. Full findings and fixes are tracked in `TASKS.md` (`tt list --project veinborn`), not just this dashboard.
 
 ---
 
-**Last Updated:** 2026-08-04
-**Next Update:** After VB-1/VB-2 are resolved
+**Last Updated:** 2026-08-05
+**Next Update:** After VB-4 is resolved

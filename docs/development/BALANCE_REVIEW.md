@@ -3,7 +3,7 @@
 **Purpose:** Pre-playtest analysis of balance configuration
 **Status:** ⚠️ Configuration reviewed, needs playtesting validation
 **Date:** 2026-01-08
-**Correction (2026-08-04):** Point 2 below ("only 1 vein") was verified against the actually-loaded config and is wrong — see note under Resource Availability. Tracked as `VB-7`. Also see `TASKS.md`/`VB-1`: playtesting is currently blocked entirely by a floor-11 crash bug, unrelated to balance.
+**Correction (2026-08-04):** Point 2 below ("only 1 vein") was verified against the actually-loaded config and is wrong — see note under Resource Availability. Tracked as `VB-7`. Also see `TASKS.md`/`VB-1`: playtesting was blocked by a floor-11 crash bug, unrelated to balance — fixed 2026-08-05, playtesting past floor 10 is now possible.
 
 ---
 

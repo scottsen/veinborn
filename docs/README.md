@@ -151,11 +151,12 @@ docs/
 
 ## 📝 Documentation Quality
 
-⚠️ **Under revalidation.** The 2026-04-17 audit (`PROJECT_REVIEW_2026-04-17.md`) found stale test-count claims, missing file references, outdated controls, and architecture docs still pointing at the non-existent `future-multiplayer/` directory. Controls and test-count claims are now fixed; the `future-multiplayer/`/`~/Archive` reference cleanup is still open — tracked as `VB-6`, not just prose. A 2026-08-04 follow-up review found a critical floor-11+ crash bug (`VB-1`) and confirmed multiplayer reconnection is non-functional end-to-end (`VB-2`). **All open doc and code issues are now tracked in `TASKS.md`** (`tt list --project veinborn`) rather than living only in review docs — check there for current status before trusting narrative claims in any doc, including this one.
+⚠️ **Under revalidation.** The 2026-04-17 audit (`PROJECT_REVIEW_2026-04-17.md`) found stale test-count claims, missing file references, outdated controls, and architecture docs still pointing at the non-existent `future-multiplayer/` directory. Controls and test-count claims are now fixed; the `future-multiplayer/`/`~/Archive` reference cleanup is still open — tracked as `VB-6`, not just prose. A 2026-08-04 follow-up review found a critical floor-11+ crash bug (`VB-1`) and confirmed multiplayer reconnection was non-functional end-to-end (`VB-2`) — both are now fixed (2026-08-05). **All open doc and code issues are now tracked in `TASKS.md`** (`tt list --project veinborn`) rather than living only in review docs — check there for current status before trusting narrative claims in any doc, including this one.
 
 **Recent updates:**
 - 2026-04-17: Trust-restore — fixed pytest asyncio marker, added WaitAction, aligned GameSession with GameContext, fixed chat fixture, updated headline docs with real test numbers
 - 2026-08-04: Full code review + bug hunt — found floor-11 crash, confirmed MP reconnection broken, filed 15 issues to `TASKS.md` (`VB-1` through `VB-15`)
+- 2026-08-05: Fixed floor-11+ crash (`VB-1`), seeded-MP crash (`VB-3`), MP session leak (`VB-5`), and wired up multiplayer reconnection (`VB-2`) — all test-covered
 
 ---
 
