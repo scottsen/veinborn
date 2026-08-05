@@ -271,20 +271,24 @@ _(no notes yet)_
 ## TASK-VB-12 · Split game_session.py: PlayerConnectionState + GameSession + GameSessionManager
 
 ```yaml
-status: backlog
+status: done
 priority: low
 effort: 1d
 tags: [refactor, code-quality]
 created: '2026-08-05T06:31:19Z'
-updated: '2026-08-05T06:31:19Z'
+updated: '2026-08-05T18:13:55Z'
 session: yaeger-zealot-0804
+links:
+  commits:
+  - 6a842fc9a0bb4dea16fa9630030cb177cf021d60
+notes_next: 2
 ```
 
 760 lines, 4 classes in one file, worst nesting in the repo (depth 4-5). process_action has exactly 1 caller yet complexity 13 -- the complexity is not reused/amortized, just deeply nested inline logic.
 
 <!-- notes: append-only log; each has a stable #id (see CLI §5) -->
 ### Notes
-_(no notes yet)_
+- [#1 2026-08-05T18:13:55Z session:fowevado-0805] Split game_session.py (775 lines, 4 classes) into src/server/game_session/ package: player_info.py (ConnectionStatus+PlayerInfo), session.py (GameSession), manager.py (GameSessionManager); __init__.py re-exports all four so existing import paths are unchanged. Also fixed process_action's complexity (13->clean, nesting 5->clean) by extracting shared _advance_round_if_complete/_apply_floor_transitions helpers, deduping logic that was also inline-copied in process_disconnected_player_action. cleanup_expired_disconnections nesting fixed with a guard clause. 1094/2 tests pass, no import cycles, all 148 game_session/websocket/reconnection/chat/multiplayer tests pass.
 
 
 ## TASK-VB-13 · Move Map's entity-placement policy (find_monster/ore/player positions) out of world.py into src/core/spawning/
