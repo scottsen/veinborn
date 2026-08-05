@@ -191,7 +191,7 @@ python3 src/server/test_client.py
 | 2 skipped Lua timeout tests | 🟡 Low | C-level execution limitation (acceptable) |
 | No tutorial for new players | 🟢 Low | Planned for Phase 3 |
 
-**Critical and high-priority issues:** 0 open — `VB-1` through `VB-7`, `VB-9`, `VB-10` all fixed. Remaining open items (`VB-8`, `VB-11` through `VB-15`) are low-priority refactors and doc revalidation.
+**Critical and high-priority issues:** 0 open — `VB-1` through `VB-10` all fixed (only `VB-8` and `VB-14` were medium/low doc+cleanup items). Remaining open items (`VB-11`, `VB-12`, `VB-13`, `VB-15`) are low-priority refactors.
 
 ---
 
@@ -223,7 +223,7 @@ python3 src/server/test_client.py
 
 ---
 
-**🎯 TL;DR (2026-08-05):** The floor 11+ crash (`VB-1`), multiplayer reconnection (`VB-2`), and multiplayer state sync (`VB-4`) are all fixed and test-covered. `VB-4` turned out deeper than "sync forgot to include it" — multiplayer never spawned monsters or handled floor descent at all; both are now implemented, with `StateDelta` diffing floor/monster/map changes and `MultiplayerClient` actually merging deltas client-side. All medium-priority follow-ups are also now fixed: stale doc references (`VB-6`), the ore-scarcity doc error (`VB-7`), and the triplicated Bresenham line-of-sight helper (`VB-9`). Remaining open items (`VB-8`, `VB-11` through `VB-15`) are low-priority doc revalidation and refactors. Full findings and fixes are tracked in `TASKS.md` (`tt list --project veinborn`), not just this dashboard.
+**🎯 TL;DR (2026-08-05):** The floor 11+ crash (`VB-1`), multiplayer reconnection (`VB-2`), and multiplayer state sync (`VB-4`) are all fixed and test-covered. `VB-4` turned out deeper than "sync forgot to include it" — multiplayer never spawned monsters or handled floor descent at all; both are now implemented, with `StateDelta` diffing floor/monster/map changes and `MultiplayerClient` actually merging deltas client-side. All medium-priority follow-ups are also now fixed: stale doc references (`VB-6`), the ore-scarcity doc error (`VB-7`), and the triplicated Bresenham line-of-sight helper (`VB-9`). The two remaining low-priority items are also done: `VB-14` (silent exception swallow now logged, version string synced, 33 dead/duplicate imports removed) and `VB-8` (stale `PROJECT_STATUS.md` archived, ~30 doc references redirected to this dashboard). Remaining open items (`VB-11`, `VB-12`, `VB-13`, `VB-15`) are low-priority architectural refactors. Full findings and fixes are tracked in `TASKS.md` (`tt list --project veinborn`), not just this dashboard.
 
 ---
 
