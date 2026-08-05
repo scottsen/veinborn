@@ -151,23 +151,26 @@ _(no notes yet)_
 ## TASK-VB-7 · BALANCE_REVIEW.md ore-scarcity claim is stale/wrong
 
 ```yaml
-status: backlog
+status: done
 priority: medium
 effort: 30m
 tags: [docs, balance]
 created: '2026-08-05T06:31:19Z'
-updated: '2026-08-05T06:31:25Z'
+updated: '2026-08-05T17:22:22Z'
 session: yaeger-zealot-0804
 links:
   references:
   - docs/development/BALANCE_REVIEW.md
+  commits:
+  - fd25477f821486309dae4c0b9faaa0fabd61c956
+notes_next: 2
 ```
 
 Doc claims 'only 1 ore vein on floors 1-9' as the #1 critical balance concern. Real value is 8+ per floor (data/balance/ore_veins.yaml, base:8, confirmed as the actually-loaded config via config_loader.py:104). The '1 vein' figure matches a dead/unused block in game_constants.yaml (spawning.ore_vein_scaling) that nothing reads. Correct the doc before it drives design decisions.
 
 <!-- notes: append-only log; each has a stable #id (see CLI §5) -->
 ### Notes
-_(no notes yet)_
+- [#1 2026-08-05T17:22:22Z session:beige-twilight-0805] Resource Availability table and Configuration Summary bullet still had the stale '1 vein/floor' figures even though Summary/Potential Balance Issues were already corrected in a prior session. Replaced table with real per-tier vein counts and spawn weights from ore_veins.yaml/config_loader.py.
 
 
 ## TASK-VB-8 · PROJECT_STATUS.md still marked under revalidation, never revalidated
@@ -195,39 +198,49 @@ _(no notes yet)_
 ## TASK-VB-9 · Extract shared Bresenham line-of-sight helper (triplicated in pathfinding.py/perception.py x2)
 
 ```yaml
-status: backlog
+status: done
 priority: medium
 effort: 2h
 tags: [refactor, code-quality]
 created: '2026-08-05T06:31:19Z'
-updated: '2026-08-05T06:31:19Z'
+updated: '2026-08-05T17:14:37Z'
 session: yaeger-zealot-0804
+links:
+  commits:
+  - 4b2c89424efaec11bab07cf9bf309eb0d05936a1
+notes_next: 2
 ```
 
 pathfinding.py:187, perception.py:127, perception.py:351 each hand-roll the same Bresenham stepping loop with different signatures. A fix to one (e.g. an off-by-one) won't propagate to the others.
 
 <!-- notes: append-only log; each has a stable #id (see CLI §5) -->
 ### Notes
-_(no notes yet)_
+- [#1 2026-08-05T17:14:37Z session:beige-twilight-0805] Extracted bresenham_line() and has_line_of_sight() into new src/core/geometry.py. pathfinding._line_of_sight, perception.VisibilitySystem._has_line_of_sight, and perception.PerceptionSystem._has_line_of_sight all now delegate to the shared helper instead of hand-rolling the stepping loop. Added tests/unit/test_geometry.py (10 tests); all 60 targeted tests (geometry+perception+pathfinding) pass. No circular imports introduced (reveal imports:// verified).
 
 
 ## TASK-VB-10 · user_config.py deprecation path is a no-op (self.replace bug + duplicate CONFIG_PATHS)
 
 ```yaml
-status: backlog
+status: done
 priority: low
 effort: 15m
 tags: [bug, code-quality]
 created: '2026-08-05T06:31:19Z'
-updated: '2026-08-05T06:31:19Z'
+updated: '2026-08-05T17:12:40Z'
 session: yaeger-zealot-0804
+links:
+  commits:
+  - 00089faeef4425f5cdcd5f4297cc0e80cd965bb9
+  - 1c4bb022f5c90b932817237d170c59d3b5ec2ea8
+notes_next: 3
 ```
 
 user_config.py ~line 95: new_path = str(path).replace('veinborn','veinborn') replaces a string with itself. CONFIG_PATHS lists the same 3 paths twice under 'preferred' and 'legacy' labels with identical values -- the deprecation warning always fires with a nonsensical message.
 
 <!-- notes: append-only log; each has a stable #id (see CLI §5) -->
 ### Notes
-_(no notes yet)_
+- [#1 2026-08-05T17:12:26Z session:beige-twilight-0805] user_config.py: legacy CONFIG_PATHS/legacy_paths were clobbered to identical veinborn paths by the brogue->veinborn rename (33399a1), making the deprecation warning always no-op. Restored legacy paths to .broguerc/etc and fixed the replace() call. Added 2 regression tests to test_config.py.
+- [#2 2026-08-05T17:12:40Z session:beige-twilight-0805] Corrected commit reference to the actual fix commit.
 
 
 ## TASK-VB-11 · Split Game god-object into bootstrap/Lua-integration/orchestration

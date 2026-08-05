@@ -184,12 +184,14 @@ python3 src/server/test_client.py
 | ~~Seeded multiplayer game creation crashes (`GameRNG.seed` property called as a method)~~ | ~~🟠 High~~ | ✅ Fixed — `VB-3` (`b7635c2`) |
 | ~~Multiplayer state sync drops monster/map data, never diffs floor changes~~ | ~~🟠 High~~ | ✅ Fixed — `VB-4` (`0b227d3`) |
 | ~~Finished multiplayer sessions never marked `is_finished` (leak)~~ | ~~🟡 Medium~~ | ✅ Fixed — `VB-5` (`b7635c2`) |
-| Stale `future-multiplayer/` and `~/Archive` doc references (9+ docs) | 🟡 Medium | `VB-6` |
-| `BALANCE_REVIEW.md` ore-scarcity claim is stale (real value is 8+ veins/floor, not 1) | 🟡 Medium | `VB-7` |
+| ~~Stale `future-multiplayer/` and `~/Archive` doc references (9+ docs)~~ | ~~🟡 Medium~~ | ✅ Fixed — `VB-6` (`a8758e1`) |
+| ~~`BALANCE_REVIEW.md` ore-scarcity claim is stale (real value is 8+ veins/floor, not 1)~~ | ~~🟡 Medium~~ | ✅ Fixed — `VB-7` (`fd25477`) |
+| ~~Triplicated Bresenham line-of-sight (`pathfinding.py`/`perception.py` x2)~~ | ~~🟡 Medium~~ | ✅ Fixed — `VB-9` (`4b2c894`) |
+| ~~`user_config.py` legacy-path deprecation warning was a no-op~~ | ~~🟢 Low~~ | ✅ Fixed — `VB-10` (`1c4bb02`) |
 | 2 skipped Lua timeout tests | 🟡 Low | C-level execution limitation (acceptable) |
 | No tutorial for new players | 🟢 Low | Planned for Phase 3 |
 
-**Critical and high-priority issues:** 0 open — `VB-1`, `VB-2`, `VB-3`, `VB-4`, `VB-5` all fixed. Remaining open items (`VB-6` onward) are medium/low priority.
+**Critical and high-priority issues:** 0 open — `VB-1` through `VB-7`, `VB-9`, `VB-10` all fixed. Remaining open items (`VB-8`, `VB-11` through `VB-15`) are low-priority refactors and doc revalidation.
 
 ---
 
@@ -221,9 +223,9 @@ python3 src/server/test_client.py
 
 ---
 
-**🎯 TL;DR (2026-08-05):** The floor 11+ crash (`VB-1`), multiplayer reconnection (`VB-2`), and multiplayer state sync (`VB-4`) are all fixed and test-covered. `VB-4` turned out deeper than "sync forgot to include it" — multiplayer never spawned monsters or handled floor descent at all; both are now implemented, with `StateDelta` diffing floor/monster/map changes and `MultiplayerClient` actually merging deltas client-side. Remaining open items (`VB-6` onward) are medium/low priority polish and cleanup. Full findings and fixes are tracked in `TASKS.md` (`tt list --project veinborn`), not just this dashboard.
+**🎯 TL;DR (2026-08-05):** The floor 11+ crash (`VB-1`), multiplayer reconnection (`VB-2`), and multiplayer state sync (`VB-4`) are all fixed and test-covered. `VB-4` turned out deeper than "sync forgot to include it" — multiplayer never spawned monsters or handled floor descent at all; both are now implemented, with `StateDelta` diffing floor/monster/map changes and `MultiplayerClient` actually merging deltas client-side. All medium-priority follow-ups are also now fixed: stale doc references (`VB-6`), the ore-scarcity doc error (`VB-7`), and the triplicated Bresenham line-of-sight helper (`VB-9`). Remaining open items (`VB-8`, `VB-11` through `VB-15`) are low-priority doc revalidation and refactors. Full findings and fixes are tracked in `TASKS.md` (`tt list --project veinborn`), not just this dashboard.
 
 ---
 
 **Last Updated:** 2026-08-05
-**Next Update:** When picking up the next `tt` item (`VB-6`/`VB-7`, medium priority)
+**Next Update:** When picking up the next `tt` item (`VB-8`, low priority — PROJECT_STATUS.md revalidation)
