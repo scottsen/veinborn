@@ -336,17 +336,21 @@ websocket_server.py:509 except Exception: pass with zero logging around socket c
 ## TASK-VB-15 · Lua/Python boundary cleanup: coercion helper for _table_to_outcome
 
 ```yaml
-status: backlog
+status: done
 priority: low
 effort: 2h
 tags: [refactor, code-quality]
 created: '2026-08-05T06:31:19Z'
-updated: '2026-08-05T06:31:19Z'
+updated: '2026-08-05T18:07:47Z'
 session: yaeger-zealot-0804
+links:
+  commits:
+  - c29e7024e32e3ecc2dd0ffa751d69f44308e09d1
+notes_next: 2
 ```
 
 lua_action.py:241 _table_to_outcome uses 5 separate nested try/except blocks (cx16-19, depth 6) instead of one lua_table_get(table, key, default, coerce) helper. lua_event_handler.py load/handle look like they'd benefit from the same helper.
 
 <!-- notes: append-only log; each has a stable #id (see CLI §5) -->
 ### Notes
-_(no notes yet)_
+- [#1 2026-08-05T18:07:47Z session:fowevado-0805] Added src/core/scripting/lua_utils.py (lua_table_get, lua_array_to_list); rewrote lua_action.py's _table_to_outcome to use them, dropping nesting 6->3 and complexity 19->8 (reveal C901/C905/C902 all now clean). lua_event_handler.py checked but doesn't have the repeated pattern, left as-is. 1094/2 tests pass.
