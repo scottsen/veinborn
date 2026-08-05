@@ -4,6 +4,8 @@
 **Reviewer:** Codex  
 **Scope:** Repository docs, code quality, architecture, testing posture, and next-step recommendations
 
+**Follow-up (2026-08-04):** This review's Priority 1 multiplayer-correctness fixes (`GameSession`/`GameContext`, `WaitAction`) shipped same-day and were re-verified as clean. A follow-up code review + bug hunt on 2026-08-04 found new critical issues this review didn't cover (a floor-11+ crash, and confirmed multiplayer reconnection is still non-functional). All findings from both reviews are now tracked in `TASKS.md` (`tt list --project veinborn`) — treat that as the current source of truth for open issues, not this document.
+
 ## Executive Summary
 
 Veinborn has a real game codebase with a credible architecture foundation: `GameState` + `GameContext` + action/system separation is a good shape for continued development, and representative synchronous tests still pass. The main problem is not that the project lacks substance. The main problem is that the documentation now overstates accuracy and implementation status, especially around test health, multiplayer completeness, and current controls/UI behavior.

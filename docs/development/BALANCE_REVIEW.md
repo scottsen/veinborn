@@ -3,6 +3,7 @@
 **Purpose:** Pre-playtest analysis of balance configuration
 **Status:** ⚠️ Configuration reviewed, needs playtesting validation
 **Date:** 2026-01-08
+**Correction (2026-08-04):** Point 2 below ("only 1 vein") was verified against the actually-loaded config and is wrong — see note under Resource Availability. Tracked as `VB-7`. Also see `TASKS.md`/`VB-1`: playtesting is currently blocked entirely by a floor-11 crash bug, unrelated to balance.
 
 ---
 
@@ -12,7 +13,7 @@ Balance configuration appears **intentionally challenging** but not obviously br
 
 ⚠️ **5 areas to watch during playtest:**
 1. Troll encounters on floors 6-10 (potentially unbeatable without crafting)
-2. Ore scarcity (only 1 vein on floors 1-9)
+2. ~~Ore scarcity (only 1 vein on floors 1-9)~~ — **Corrected 2026-08-04:** actual value is 8+ veins/floor (`data/balance/ore_veins.yaml`, `base: 8`, formula `8 + (floor - 1)`, confirmed as the config the code actually loads via `config_loader.py:104`). The "1 vein" figure came from a dead, unused block in `game_constants.yaml` that nothing reads. This is likely not a real balance risk — re-verify troll-wall risk under the correct ore availability.
 3. Mining vulnerability (3-5 turns exposed to 3-12 monsters)
 4. Slow health regeneration (1 HP per 10 turns)
 5. Equipment power curve vs monster scaling
@@ -173,11 +174,7 @@ Floors 16+: **30% Trolls** → Late game, expect good gear ✅
 
 ### 🔴 CRITICAL: May break the game
 
-1. **Ore scarcity + Troll wall**
-   - If player doesn't find the 1 ore vein on floors 1-5
-   - And encounters a troll on floor 6
-   - **Result:** Unwinnable encounter, run ends
-   - **Mitigation needed?** More ore veins, or guaranteed ore on early floors
+1. ~~**Ore scarcity + Troll wall**~~ — **Corrected 2026-08-04 (`VB-7`):** this scenario assumed only 1 ore vein per floor; the real config spawns 8+ veins/floor, so ore starvation before floor 6 is unlikely. The troll-wall design (trolls intentionally unbeatable at level 1 per `data/entities/monsters.yaml`) may still be worth playtesting on its own, but not for the ore-scarcity reason originally given here.
 
 ### ⚠️ HIGH: May feel unfair/frustrating
 

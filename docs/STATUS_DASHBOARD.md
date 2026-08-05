@@ -175,13 +175,21 @@ python3 src/server/test_client.py
 
 ## 🚨 Known Issues
 
+**Full tracker:** `tt list --project veinborn` (see `TASKS.md`) — this table is a summary only.
+
 | Issue | Severity | Status |
 |-------|----------|--------|
+| Floor 11+ crashes on descend (`KeyError: 'floors_11_plus'` in `config_loader.py:92`) | 🔴 Critical | `VB-1` — blocks ~90% of intended floor range |
+| Multiplayer reconnection is non-functional end-to-end (auth never resumes a session) | 🔴 Critical | `VB-2` |
+| Seeded multiplayer game creation crashes (`GameRNG.seed` property called as a method) | 🟠 High | `VB-3` |
+| Multiplayer state sync drops monster/map data, never diffs floor changes | 🟠 High | `VB-4` |
+| Finished multiplayer sessions never marked `is_finished` (leak) | 🟡 Medium | `VB-5` |
+| Stale `future-multiplayer/` and `~/Archive` doc references (9+ docs) | 🟡 Medium | `VB-6` |
+| `BALANCE_REVIEW.md` ore-scarcity claim is stale (real value is 8+ veins/floor, not 1) | 🟡 Medium | `VB-7` |
 | 2 skipped Lua timeout tests | 🟡 Low | C-level execution limitation (acceptable) |
-| Balance needs tuning | 🟡 Medium | Requires playtesting |
 | No tutorial for new players | 🟢 Low | Planned for Phase 3 |
 
-**Critical issues:** None! 🎉
+**Critical issues:** 2 — see `VB-1`/`VB-2` above. Found via full code review + bug hunt, 2026-08-04.
 
 ---
 
@@ -213,9 +221,9 @@ python3 src/server/test_client.py
 
 ---
 
-**🎯 TL;DR (2026-04-17):** Single-player core is healthy and playable (2 minor test-drift failures). Multiplayer Phase 2 is NOT complete — `GameSession` is misaligned with the action contract, `WaitAction` module is missing, and multiple async server tests fail or hang. Focus is on restoring doc accuracy and MP correctness before continuing feature work.
+**🎯 TL;DR (2026-08-04):** Single-player has a critical, previously-undiscovered crash on floor 11+ (`VB-1`) — fix before any playtesting, since it blocks the majority of the intended 100-floor run. Multiplayer's 2026-04-17 correctness fixes (`GameContext`, `WaitAction`, deadlock) hold up, but reconnection is still non-functional end-to-end (`VB-2`) and state sync silently drops monster/map data (`VB-4`) — "Phase 2 complete" should not be claimed until those close. Full findings and fixes are tracked in `TASKS.md` (`tt list --project veinborn`), not just this dashboard.
 
 ---
 
-**Last Updated:** 2025-11-14
-**Next Update:** After extended multiplayer testing session
+**Last Updated:** 2026-08-04
+**Next Update:** After VB-1/VB-2 are resolved
