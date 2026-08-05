@@ -129,23 +129,26 @@ multiplayer_game_state.py:333-344 sets game_state.game_over=True when all player
 ## TASK-VB-6 · Stale future-multiplayer/ and ~/Archive doc references across 9+ docs
 
 ```yaml
-status: backlog
+status: done
 priority: medium
 effort: 2h
 tags: [docs]
 created: '2026-08-05T06:31:19Z'
-updated: '2026-08-05T06:31:25Z'
+updated: '2026-08-05T17:27:11Z'
 session: yaeger-zealot-0804
 links:
   references:
   - docs/architecture/00_ARCHITECTURE_OVERVIEW.md
+  commits:
+  - a8758e12a11293bbc7c27981d8f8996d141f044d
+notes_next: 2
 ```
 
 docs/architecture/00_ARCHITECTURE_OVERVIEW.md and 8 other docs still point at docs/future-multiplayer/, which does not exist in the repo. ~9 docs (INDEX.md, PROJECT_STATUS.md, architecture/DECISIONS.md, etc.) cite repo-external ~/Archive/... paths not portable for contributors. docs/README.md:154 already flags this as an open trust-restore item.
 
 <!-- notes: append-only log; each has a stable #id (see CLI §5) -->
 ### Notes
-_(no notes yet)_
+- [#1 2026-08-05T17:27:11Z session:beige-twilight-0805] Fixed banner text in DECISIONS.md/README.md/MVP_TESTING_GUIDE.md/MVP_DEVELOPMENT_GUIDELINES.md to stop exposing the non-portable ~/Archive/... machine-local path (pointed to docs/INDEX.md instead, which already documents the archival policy correctly). Annotated/rewrote ~25 individual dead docs/future-multiplayer/... references across those 4 docs plus 00_ARCHITECTURE_OVERVIEW.md to point at docs/design/MULTIPLAYER_DESIGN_2025.md (the design that actually shipped) instead of a nonexistent path. Also updated STATUS_DASHBOARD.md/docs/README.md to reflect completion.
 
 
 ## TASK-VB-7 · BALANCE_REVIEW.md ore-scarcity claim is stale/wrong
