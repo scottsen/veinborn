@@ -1,82 +1,20 @@
-"""Game session management for multiplayer games."""
+"""GameSession — manages a single multiplayer game instance."""
 
 import asyncio
 import time
 import logging
-from dataclasses import dataclass, field
-from enum import Enum
 from typing import Dict, List, Optional
-from uuid import uuid4
 
+from core.actions.wait_action import WaitAction
 from core.base.action import Action
 from core.base.game_context import GameContext
 from core.systems.ai_system import AISystem
 from server.multiplayer_game_state import MultiplayerGameState
 from server.state_delta import StateDelta
 
+from .player_info import PlayerInfo
+
 logger = logging.getLogger(__name__)
-
-
-class ConnectionStatus(Enum):
-    """Player connection status."""
-    CONNECTED = "connected"
-    DISCONNECTED = "disconnected"
-    LEFT = "left"
-
-
-@dataclass
-class PlayerInfo:
-    """Information about a player in a game session."""
-
-    player_id: str
-    player_name: str
-    player_class: str = "warrior"  # Character class (warrior, mage, rogue, healer)
-    entity_id: Optional[str] = None
-    is_ready: bool = False
-    is_alive: bool = True
-    joined_at: float = field(default_factory=time.time)
-
-    # Reconnection handling
-    connection_status: ConnectionStatus = ConnectionStatus.CONNECTED
-    disconnected_at: Optional[float] = None
-    reconnect_timeout_seconds: int = 120  # 2 minutes default
-
-    def mark_disconnected(self) -> None:
-        """Mark player as disconnected."""
-        self.connection_status = ConnectionStatus.DISCONNECTED
-        self.disconnected_at = time.time()
-        logger.info(f"Player {self.player_name} marked as disconnected")
-
-    def mark_reconnected(self) -> None:
-        """Mark player as reconnected."""
-        self.connection_status = ConnectionStatus.CONNECTED
-        self.disconnected_at = None
-        logger.info(f"Player {self.player_name} reconnected successfully")
-
-    def mark_left(self) -> None:
-        """Mark player as having left the game."""
-        self.connection_status = ConnectionStatus.LEFT
-        logger.info(f"Player {self.player_name} left the game")
-
-    def is_connected(self) -> bool:
-        """Check if player is currently connected."""
-        return self.connection_status == ConnectionStatus.CONNECTED
-
-    def is_disconnected(self) -> bool:
-        """Check if player is disconnected but can rejoin."""
-        return self.connection_status == ConnectionStatus.DISCONNECTED
-
-    def has_left(self) -> bool:
-        """Check if player has permanently left."""
-        return self.connection_status == ConnectionStatus.LEFT
-
-    def is_reconnect_timeout_expired(self) -> bool:
-        """Check if reconnection timeout has expired."""
-        if not self.is_disconnected() or self.disconnected_at is None:
-            return False
-
-        elapsed = time.time() - self.disconnected_at
-        return elapsed > self.reconnect_timeout_seconds
 
 
 class GameSession:
@@ -127,7 +65,9 @@ class GameSession:
             and not self.is_finished
         )
 
-    async def add_player(self, player_id: str, player_name: str, player_class: str = "warrior") -> bool:
+    async def add_player(
+        self, player_id: str, player_name: str, player_class: str = "warrior"
+    ) -> bool:
         """Add a player to the game session.
 
         Args:
@@ -283,13 +223,15 @@ class GameSession:
 
         async with self._lock:
             for player_id, player_info in list(self.players.items()):
-                if player_info.is_reconnect_timeout_expired():
-                    logger.info(
-                        f"Removing player {player_info.player_name} from game {self.game_id} "
-                        f"due to reconnection timeout"
-                    )
-                    if self._remove_player_locked(player_id):
-                        removed_players.append(player_id)
+                if not player_info.is_reconnect_timeout_expired():
+                    continue
+
+                logger.info(
+                    f"Removing player {player_info.player_name} from game {self.game_id} "
+                    f"due to reconnection timeout"
+                )
+                if self._remove_player_locked(player_id):
+                    removed_players.append(player_id)
 
         return removed_players
 
@@ -362,6 +304,31 @@ class GameSession:
 
             return True
 
+    def _apply_floor_transitions(self, outcome) -> None:
+        """Advance to the next floor if the action's outcome triggered a descent.
+
+        VB-4: this was previously dropped entirely, so DescendAction succeeded
+        but current_floor never advanced and no new floor was ever generated.
+        """
+        for event in outcome.events:
+            if event.get('type') == 'descend_floor':
+                self.mp_game_state.descend_floor()
+
+    async def _advance_round_if_complete(self) -> None:
+        """Run the monster turn and roll the round counter once the action quota is hit.
+
+        Also updates alive status and propagates game-over into session state
+        so the session stops accepting actions and can be cleaned up.
+        """
+        if self.mp_game_state.actions_this_round >= self.actions_per_round:
+            await self._process_monster_turn()
+            self.mp_game_state.increment_round()
+
+        self.mp_game_state.update_player_alive_status()
+
+        if self.mp_game_state.game_state.game_over:
+            self.is_finished = True
+
     async def process_action(
         self, player_id: str, action: Action
     ) -> tuple[bool, Optional[str]]:
@@ -400,28 +367,9 @@ class GameSession:
                 if not outcome.is_success:
                     return False, "; ".join(outcome.messages) or "Action failed"
 
-                # Handle floor transitions (VB-4: this was previously dropped
-                # entirely, so DescendAction succeeded but current_floor never
-                # advanced and no new floor was ever generated)
-                for event in outcome.events:
-                    if event.get('type') == 'descend_floor':
-                        self.mp_game_state.descend_floor()
-
-                # Increment action counter
+                self._apply_floor_transitions(outcome)
                 self.mp_game_state.increment_actions()
-
-                # Check if round is complete
-                if self.mp_game_state.actions_this_round >= self.actions_per_round:
-                    await self._process_monster_turn()
-                    self.mp_game_state.increment_round()
-
-                # Update player alive status
-                self.mp_game_state.update_player_alive_status()
-
-                # Propagate game-over into session state so the session
-                # stops accepting actions and can be cleaned up
-                if self.mp_game_state.game_state.game_over:
-                    self.is_finished = True
+                await self._advance_round_if_complete()
 
                 return True, None
 
@@ -429,7 +377,9 @@ class GameSession:
                 logger.error(f"Action execution error: {e}", exc_info=True)
                 return False, f"Action execution failed: {str(e)}"
 
-    async def process_disconnected_player_action(self, player_id: str) -> tuple[bool, Optional[str]]:
+    async def process_disconnected_player_action(
+        self, player_id: str
+    ) -> tuple[bool, Optional[str]]:
         """Process an AI-controlled action for a disconnected player.
 
         This method generates a defensive "wait" action for disconnected players.
@@ -455,10 +405,6 @@ class GameSession:
             if not self.mp_game_state or not self.mp_game_state.game_state:
                 return False, "Game state not initialized"
 
-            # Import WaitAction here to avoid circular imports
-            from core.actions.wait_action import WaitAction
-
-            # Generate a defensive wait action for the disconnected player
             try:
                 wait_action = WaitAction(actor_id=player_info.entity_id)
                 context = GameContext(self.mp_game_state.game_state)
@@ -467,7 +413,8 @@ class GameSession:
                 if not outcome.is_success:
                     message = "; ".join(outcome.messages) or "AI wait action failed"
                     logger.warning(
-                        f"AI action for disconnected player {player_info.player_name} failed: {message}"
+                        f"AI action for disconnected player {player_info.player_name} "
+                        f"failed: {message}"
                     )
                     return False, message
 
@@ -478,18 +425,7 @@ class GameSession:
                     f"AI executed wait action for disconnected player {player_info.player_name}"
                 )
 
-                # Check if round is complete
-                if self.mp_game_state.actions_this_round >= self.actions_per_round:
-                    await self._process_monster_turn()
-                    self.mp_game_state.increment_round()
-
-                # Update player alive status
-                self.mp_game_state.update_player_alive_status()
-
-                # Propagate game-over into session state so the session
-                # stops accepting actions and can be cleaned up
-                if self.mp_game_state.game_state.game_over:
-                    self.is_finished = True
+                await self._advance_round_if_complete()
 
                 return True, None
 
@@ -533,7 +469,7 @@ class GameSession:
         # Clean up dead entities
         self.mp_game_state.game_state.cleanup_dead_entities()
 
-    def get_state_dict(self, use_delta: bool = None) -> Dict:
+    def get_state_dict(self, use_delta: Optional[bool] = None) -> Dict:
         """Get the current game state as a dictionary.
 
         Args:
@@ -602,174 +538,3 @@ class GameSession:
         """
         self.last_state = None
         logger.debug(f"Reset state tracking for game {self.game_id}")
-
-
-class GameSessionManager:
-    """Manages all active game sessions."""
-
-    def __init__(self):
-        self._games: Dict[str, GameSession] = {}
-        self._player_to_game: Dict[str, str] = {}
-        self._lock = asyncio.Lock()
-
-    async def create_game(
-        self,
-        game_name: str,
-        max_players: int = 4,
-        actions_per_round: int = 4,
-    ) -> GameSession:
-        """Create a new game session.
-
-        Args:
-            game_name: Name of the game
-            max_players: Maximum number of players
-            actions_per_round: Number of actions before monster turn
-
-        Returns:
-            Created game session
-        """
-        async with self._lock:
-            game_id = str(uuid4())
-            game = GameSession(
-                game_id=game_id,
-                game_name=game_name,
-                max_players=max_players,
-                actions_per_round=actions_per_round,
-            )
-            self._games[game_id] = game
-            return game
-
-    async def get_game(self, game_id: str) -> Optional[GameSession]:
-        """Get a game session by ID."""
-        return self._games.get(game_id)
-
-    async def join_game(
-        self, game_id: str, player_id: str, player_name: str, player_class: str = "warrior"
-    ) -> tuple[bool, Optional[str]]:
-        """Join a player to a game.
-
-        Args:
-            game_id: Game to join
-            player_id: Player ID
-            player_name: Player name
-            player_class: Character class (warrior, mage, rogue, healer)
-
-        Returns:
-            Tuple of (success, error_message)
-        """
-        async with self._lock:
-            game = self._games.get(game_id)
-            if not game:
-                return False, "Game not found"
-
-            if not game.can_join():
-                return False, "Game is full or already started"
-
-            # Check if player is already in another game
-            if player_id in self._player_to_game:
-                return False, "Player is already in another game"
-
-            success = await game.add_player(player_id, player_name, player_class)
-            if success:
-                self._player_to_game[player_id] = game_id
-                return True, None
-            else:
-                return False, "Failed to join game"
-
-    async def leave_game(self, player_id: str) -> tuple[bool, Optional[str]]:
-        """Remove a player from their current game.
-
-        Args:
-            player_id: Player to remove
-
-        Returns:
-            Tuple of (success, error_message)
-        """
-        async with self._lock:
-            game_id = self._player_to_game.get(player_id)
-            if not game_id:
-                return False, "Player not in any game"
-
-            game = self._games.get(game_id)
-            if not game:
-                return False, "Game not found"
-
-            success = await game.remove_player(player_id)
-            if success:
-                del self._player_to_game[player_id]
-
-                # Clean up empty games
-                if game.get_player_count() == 0:
-                    del self._games[game_id]
-
-                return True, None
-            else:
-                return False, "Failed to leave game"
-
-    async def mark_player_left(self, player_id: str) -> tuple[bool, Optional[str]]:
-        """Mark a player as having left their game (preserving the record).
-
-        Unlike leave_game, this keeps the player in game.players with
-        has_left() == True so the game can still track who participated.
-        Cleans up the player→game mapping so the player can join a new game.
-        Cleans up empty games (no connected or disconnected players remain).
-        """
-        async with self._lock:
-            game_id = self._player_to_game.get(player_id)
-            if not game_id:
-                return False, "Player not in any game"
-
-            game = self._games.get(game_id)
-            if not game:
-                return False, "Game not found"
-
-            success = await game.leave_player(player_id)
-            if not success:
-                return False, "Failed to leave game"
-
-            del self._player_to_game[player_id]
-
-            # Clean up game only if everyone has left (not just disconnected)
-            remaining = sum(
-                1 for p in game.players.values() if not p.has_left()
-            )
-            if remaining == 0:
-                del self._games[game_id]
-
-            return True, None
-
-    async def get_player_game(self, player_id: str) -> Optional[GameSession]:
-        """Get the game a player is currently in.
-
-        Args:
-            player_id: Player ID
-
-        Returns:
-            Game session or None
-        """
-        game_id = self._player_to_game.get(player_id)
-        if game_id:
-            return self._games.get(game_id)
-        return None
-
-    def get_available_games(self) -> List[Dict]:
-        """Get list of games that can be joined.
-
-        Returns:
-            List of game info dictionaries
-        """
-        return [
-            {
-                "game_id": game.game_id,
-                "game_name": game.game_name,
-                "player_count": game.get_player_count(),
-                "max_players": game.max_players,
-                "is_started": game.is_started,
-            }
-            for game in self._games.values()
-            if game.can_join()
-        ]
-
-    def get_active_game_count(self) -> int:
-        """Get count of active games."""
-        return len(self._games)
