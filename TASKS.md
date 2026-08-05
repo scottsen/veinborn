@@ -252,20 +252,24 @@ user_config.py ~line 95: new_path = str(path).replace('veinborn','veinborn') rep
 ## TASK-VB-11 · Split Game god-object into bootstrap/Lua-integration/orchestration
 
 ```yaml
-status: backlog
+status: done
 priority: low
 effort: 1d
 tags: [refactor, code-quality]
 created: '2026-08-05T06:31:19Z'
-updated: '2026-08-05T06:31:19Z'
+updated: '2026-08-05T18:19:50Z'
 session: yaeger-zealot-0804
+links:
+  commits:
+  - 891873e33509c6e19d520f5f78d26325643dfbd0
+notes_next: 2
 ```
 
 game.py: 1 class, 20 methods, 23 imports, 5 mixed responsibilities (bootstrap, event wiring, Lua integration, turn orchestration, persistence). handle_player_action is a single chokepoint for all 7 UI callers.
 
 <!-- notes: append-only log; each has a stable #id (see CLI §5) -->
 ### Notes
-_(no notes yet)_
+- [#1 2026-08-05T18:19:50Z session:fowevado-0805] Split game.py (584 lines, 20 methods, 5 mixed responsibilities) via composition: GameBootstrapper (src/core/game_bootstrap.py, world/subsystem construction) and GameLuaIntegration (src/core/game_lua_integration.py, event wiring + Lua). Game keeps all public attrs/methods unchanged (game.turn_processor/floor_manager etc still direct attrs, matching what app.py's 7 UI callers and tests/integration/test_phase5_integration.py depend on). game.py 584->362 lines. 1094/2 tests pass; manual smoke test of start_new_game->handle_player_action->save_game->load_game round trip confirmed all subsystems wire correctly.
 
 
 ## TASK-VB-12 · Split game_session.py: PlayerConnectionState + GameSession + GameSessionManager
