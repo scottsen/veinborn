@@ -60,7 +60,7 @@ class AttackAction(Action):
     def execute(self, context: GameContext) -> ActionOutcome:
         """Execute attack."""
         if not self.validate(context):
-            logger.error(
+            logger.warning(
                 f"AttackAction execution failed validation",
                 extra={'actor_id': self.actor_id, 'target_id': self.target_id}
             )

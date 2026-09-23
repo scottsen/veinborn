@@ -230,9 +230,13 @@ class GameContext:
 
     # Message log
     def add_message(self, message: str) -> None:
-        """Add message to game log."""
-        self.game_state.messages.append(message)
-        logger.info(f"Game message: {message}")
+        """Add message to game log.
+
+        Goes through GameState.add_message so message_count advances and the
+        100-message cap applies; appending to .messages directly made monster-turn
+        messages invisible to multiplayer state deltas (which key off message_count).
+        """
+        self.game_state.add_message(message)
 
     # Game state
     def get_turn_count(self) -> int:

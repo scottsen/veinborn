@@ -99,7 +99,7 @@ class MoveAction(Action):
 
         # Validate and perform move
         if not self.validate(context):
-            logger.error("MoveAction execution failed validation",
+            logger.warning("MoveAction execution failed validation",
                         extra={'actor_id': self.actor_id, 'actor_name': actor.name,
                                'from_pos': (actor.x, actor.y), 'to_pos': (new_x, new_y)})
             return ActionOutcome.failure("Cannot move there")

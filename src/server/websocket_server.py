@@ -28,7 +28,7 @@ class VeinbornServer:
 
     def __init__(self, host: str = None, port: int = None):
         self.host = host or config.host
-        self.port = port or config.port
+        self.port = port if port is not None else config.port  # 0 = OS-assigned (tests)
 
         # Managers
         self.auth_manager = AuthManager()
@@ -90,12 +90,13 @@ class VeinbornServer:
 
         logger.info("Server stopped")
 
-    async def handle_connection(self, websocket: WebSocketServerProtocol, path: str):
+    async def handle_connection(self, websocket: WebSocketServerProtocol, path: str = None):
         """Handle a new WebSocket connection.
 
         Args:
             websocket: WebSocket connection
-            path: Connection path
+            path: Connection path. Only websockets < 13 (legacy API) passes it; the
+                current asyncio API calls the handler with the connection alone.
         """
         session_id = None
         try:

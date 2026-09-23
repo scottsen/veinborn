@@ -15,6 +15,9 @@ class StateDelta:
 
     _COUNTER_KEYS = ("turn_count", "message_count", "round_number", "actions_this_round")
     _REPLACED_KEYS = ("current_floor", "map", "game_over", "victory")
+    # State a delta has no way to express (lobby fields, entity ids, ...): if any of
+    # these change, resend everything instead of silently dropping the change.
+    _FULL_STATE_KEYS = ("initialized", "is_started", "is_finished", "is_multiplayer")
     _MESSAGE_WINDOW = 20  # Must match the recent_messages window the server broadcasts
 
     @staticmethod
@@ -30,6 +33,12 @@ class StateDelta:
         """
         if old_state is None:
             # First state - send everything
+            return {
+                "type": "full",
+                "state": new_state
+            }
+
+        if any(old_state.get(k) != new_state.get(k) for k in StateDelta._FULL_STATE_KEYS):
             return {
                 "type": "full",
                 "state": new_state

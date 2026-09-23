@@ -50,7 +50,7 @@ class DescendAction(Action):
     def execute(self, context: GameContext) -> ActionOutcome:
         """Descend to next floor."""
         if not self.validate(context):
-            logger.error(
+            logger.warning(
                 f"DescendAction execution failed validation",
                 extra={'actor_id': self.actor_id}
             )

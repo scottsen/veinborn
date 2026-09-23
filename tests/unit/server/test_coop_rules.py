@@ -175,3 +175,16 @@ async def test_each_player_is_scored_on_their_own_run_stats():
     assert by_name["Alice"].monsters_killed == 3
     assert by_name["Bob"].monsters_killed == 7
     assert by_name["Bob"].score - by_name["Alice"].score >= 40  # 4 more kills at 10 points
+
+
+@pytest.mark.asyncio
+async def test_dead_player_actions_are_rejected_cleanly(caplog):
+    game = await _started_session()
+    _kill(game, "player0")
+    await _wait(game, "player1")  # status update notices Alice is dead
+
+    with caplog.at_level("ERROR"):
+        success, error = await _wait(game, "player0")
+
+    assert not success and "dead" in error
+    assert caplog.text == ""  # no 'actor not found' ERROR spam from the action layer

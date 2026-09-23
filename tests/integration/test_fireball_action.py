@@ -22,6 +22,7 @@ def game_state():
     state = Mock()
     state.entities = {}
     state.messages = []
+    state.add_message = lambda message: state.messages.append(message)  # GameContext.add_message delegates here
     state.turn_count = 1
     state.current_floor = 1
 

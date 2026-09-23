@@ -53,7 +53,7 @@ class MineAction(Action):
     def execute(self, context: GameContext) -> ActionOutcome:
         """Execute mining turn."""
         if not self.validate(context):
-            logger.error(
+            logger.warning(
                 f"MineAction execution failed validation",
                 extra={'actor_id': self.actor_id, 'ore_vein_id': self.ore_vein_id}
             )

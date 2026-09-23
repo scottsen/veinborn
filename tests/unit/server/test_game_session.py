@@ -766,3 +766,19 @@ async def test_get_player_names():
     assert len(names) == 2
     assert "Alice" in names
     assert "Bob" in names
+
+
+@pytest.mark.asyncio
+async def test_first_state_after_start_is_a_plain_full_state():
+    """The lobby->started transition must reach clients as a full state (not a delta
+    and not a {"type": "full", "state": ...} wrapper) so they learn entity ids."""
+    game = GameSession("g1", "Test", max_players=2)
+    await game.add_player("p1", "Alice", "warrior")
+    game.get_state_dict()  # lobby broadcast establishes the delta baseline
+    await game.start_game(seed=42)
+
+    state = game.get_state_dict(use_delta=True)
+
+    assert state.get("type") not in ("delta", "full")
+    assert state["is_started"] is True
+    assert state["players"][0]["entity_id"]

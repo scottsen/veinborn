@@ -276,3 +276,32 @@ def test_apply_delta_does_not_mutate_the_state_it_was_given():
     assert state == snapshot
     assert merged["players"][0]["hp"] == 1
     assert merged["monsters"][0]["hp"] == 1
+
+
+def test_compute_delta_sends_full_state_when_the_game_starts():
+    """A real two-client playtest found the lobby->started transition went out as a delta:
+    clients never got is_started/initialized or their entity_id, so they could not act."""
+    lobby = {"is_started": False, "initialized": False, "players": [
+        {"player_id": "p1", "player_name": "Alice", "is_ready": True}]}
+    started = {"is_started": True, "initialized": True, "players": [
+        {"player_id": "p1", "player_name": "Alice", "entity_id": "player_p1",
+         "position": {"x": 1, "y": 2}, "health": {"current": 30, "max": 30}}]}
+
+    delta = StateDelta.compute_delta(lobby, started)
+
+    assert delta == {"type": "full", "state": started}
+    assert StateDelta.apply_delta(lobby, delta) == started
+
+
+def test_compute_delta_sends_full_state_when_the_game_finishes():
+    running = {"is_started": True, "is_finished": False, "initialized": True, "players": []}
+    finished = {"is_started": True, "is_finished": True, "initialized": True, "players": []}
+
+    assert StateDelta.compute_delta(running, finished)["type"] == "full"
+
+
+def test_compute_delta_stays_a_delta_while_the_game_is_running():
+    state = {"is_started": True, "is_finished": False, "initialized": True, "players": [],
+             "turn_count": 1}
+
+    assert StateDelta.compute_delta(state, {**state, "turn_count": 2})["type"] == "delta"

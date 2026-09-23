@@ -85,3 +85,32 @@ async def test_disconnected_player_wait_goes_through_pipeline():
     assert success, error
     assert game.mp_game_state.game_state.message_count == before + 1
     assert game.mp_game_state.actions_this_round == 1
+
+
+@pytest.mark.asyncio
+async def test_messages_added_through_context_reach_state_deltas():
+    """Monster-turn messages go through GameContext.add_message; it used to append to
+    .messages directly, skipping message_count, so multiplayer deltas never carried them."""
+    from core.base.game_context import GameContext
+
+    game = await _started_session()
+    baseline = game.get_state_dict(use_delta=True)  # sets the delta baseline
+    count_before = game.mp_game_state.game_state.message_count
+
+    GameContext(game.mp_game_state.game_state).add_message("Goblin hits Alice for 1 damage!")
+    delta = game.get_state_dict(use_delta=True)
+
+    assert game.mp_game_state.game_state.message_count == count_before + 1
+    assert delta["changes"]["new_messages"] == ["Goblin hits Alice for 1 damage!"]
+
+
+def test_context_messages_respect_the_message_cap(simple_game_state):
+    from core.base.game_context import GameContext
+
+    state = simple_game_state
+    context = GameContext(state)
+    for i in range(150):
+        context.add_message(f"m{i}")
+
+    assert len(state.messages) == 100
+    assert state.message_count == 150

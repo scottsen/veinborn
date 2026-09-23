@@ -97,7 +97,7 @@ class EquipAction(Action):
     def execute(self, context: GameContext) -> ActionOutcome:
         """Execute equipment action."""
         if not self.validate(context):
-            logger.error("EquipAction execution failed validation",
+            logger.warning("EquipAction execution failed validation",
                         extra={'actor_id': self.actor_id, 'item_id': self.item_id})
             return ActionOutcome.failure("Cannot equip item")
 

@@ -224,7 +224,8 @@ class TestClient:
             if self.current_state is None:
                 print(f"\n⚠ Received delta without current state, ignoring")
             else:
-                delta_data = message.data
+                # Message.delta nests compute_delta()'s dict one level under "changes"
+                delta_data = message.data.get("changes", {})
                 self.current_state = StateDelta.apply_delta(self.current_state, delta_data)
                 print(f"\n📊 Game State Update (Delta):")
 

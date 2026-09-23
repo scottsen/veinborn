@@ -410,6 +410,11 @@ class GameSession:
             if not self.mp_game_state or not self.mp_game_state.game_state:
                 return False, "Game state not initialized"
 
+            # Dead players spectate until the run ends (the party plays on while anyone lives)
+            slot = self.mp_game_state.player_slots.get(player_id)
+            if slot and not slot.is_alive:
+                return False, "You are dead - spectating until the run ends"
+
             # Validate action belongs to player
             if player_info.entity_id and action.actor_id != player_info.entity_id:
                 return False, "Action actor does not match player entity"
@@ -568,6 +573,11 @@ class GameSession:
 
             # Update last state
             self.last_state = base_state.copy()
+
+            # compute_delta falls back to {"type": "full", "state": ...} when a delta
+            # can't express the change; broadcast that as a plain full state
+            if delta.get("type") == "full":
+                return base_state
 
             # Log compression ratio
             if logger.isEnabledFor(logging.DEBUG):

@@ -84,7 +84,7 @@ class CraftAction(Action):
     def execute(self, context: GameContext) -> ActionOutcome:
         """Execute crafting."""
         if not self.validate(context):
-            logger.error("CraftAction execution failed validation",
+            logger.warning("CraftAction execution failed validation",
                         extra={'actor_id': self.actor_id, 'forge_id': self.forge_id,
                                'recipe_id': self.recipe_id})
             return ActionOutcome.failure("Cannot craft")
