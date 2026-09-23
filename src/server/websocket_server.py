@@ -543,7 +543,7 @@ class VeinbornServer:
         else:
             dead_socket = self.connections.pop(session_id, None)
 
-        if dead_socket and not dead_socket.closed:
+        if dead_socket and not self._is_closed(dead_socket):
             try:
                 await dead_socket.close(1000, reason)
             except Exception:
@@ -559,6 +559,19 @@ class VeinbornServer:
         else:
             logger.info(f"Client disconnected but session preserved: {session_id} ({reason})")
 
+    @staticmethod
+    def _is_closed(websocket) -> bool:
+        """Whether a socket is closed, on both websockets APIs.
+
+        The legacy protocol has `.closed`; the asyncio API (websockets >= 13, the
+        default since 14) dropped it in favour of `.state`.
+        """
+        closed = getattr(websocket, "closed", None)
+        if closed is not None:
+            return closed
+        state = getattr(websocket, "state", None)
+        return state is not None and state.name in ("CLOSING", "CLOSED")
+
     async def send_message(self, websocket: WebSocketServerProtocol, message: Message):
         """Send a message to a WebSocket.
 
@@ -568,6 +581,9 @@ class VeinbornServer:
         """
         try:
             await websocket.send(message.to_json())
+        except websockets.exceptions.ConnectionClosed:
+            # Normal race: a broadcast reached a player whose socket just dropped
+            logger.info("Not sending to a closed connection")
         except Exception as e:
             logger.error(f"Error sending message: {e}")
 

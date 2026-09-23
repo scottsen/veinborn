@@ -26,12 +26,14 @@ class _Client:
         self.errors = []
         self.game_started = False
 
-    async def connect(self, port):
+    async def connect(self, port, token=None):
         self.ws = await websockets.connect(f"ws://127.0.0.1:{port}")
-        await self.ws.send(Message.auth(self.name).to_json())
+        await self.ws.send(Message.auth(self.name, token).to_json())
         reply = Message.from_json(await self.ws.recv())
         assert reply.type == "auth_success", reply.data
         self.player_id = reply.data["player_id"]
+        self.session_id = reply.data["session_id"]
+        self.token = reply.data["auth_token"]
         self._reader = asyncio.create_task(self._read())
 
     async def _read(self):
@@ -114,5 +116,47 @@ async def test_two_real_clients_can_start_and_play_a_coop_session():
     finally:
         for client in (alice, bob):
             if getattr(client, "ws", None):
+                await client.ws.close()
+        await server.stop()
+
+
+@pytest.mark.asyncio
+async def test_dropped_client_reconnects_with_a_full_state_and_no_server_errors(caplog):
+    server = VeinbornServer("127.0.0.1", 0)
+    await server.start()
+    port = server.server.sockets[0].getsockname()[1]
+    alice, bob = _Client("Alice"), _Client("Bob")
+    try:
+        await alice.connect(port)
+        await bob.connect(port)
+        await alice.send(Message.create_game("Drop", max_players=4))
+        await _until(lambda: alice.game_id)
+        await bob.send(Message.join_game(alice.game_id))
+        await alice.send(Message(type="ready", data={"ready": True}))
+        await bob.send(Message(type="ready", data={"ready": True}))
+        await _until(lambda: alice.entity_id and bob.entity_id)
+        game = await server.game_manager.get_game(alice.game_id)
+        bob_entity, bob_token = bob.entity_id, bob.token
+
+        with caplog.at_level("ERROR"):
+            await bob.ws.close()  # abrupt drop, no leave_game
+            await _until(lambda: game.players[bob.player_id].is_disconnected())
+            for i in range(8):
+                await alice.move(*[(1, 0), (0, 1), (-1, 0), (0, -1)][i % 4])
+                await asyncio.sleep(0.01)
+
+            bob2 = _Client("Bob")
+            await bob2.connect(port, token=bob_token)
+            await bob2.send(Message.reconnect(bob2.session_id))
+            await _until(lambda: bob2.state is not None and bob2.entity_id)
+
+        assert bob2.player_id == bob.player_id
+        assert bob2.entity_id == bob_entity
+        assert bob2.state["is_started"]
+        assert not game.players[bob.player_id].is_disconnected()
+        assert caplog.text == ""  # no server-side tracebacks for a normal disconnect
+    finally:
+        for client in (alice, bob, locals().get("bob2")):
+            if client is not None and getattr(client, "ws", None):
                 await client.ws.close()
         await server.stop()
