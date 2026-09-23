@@ -11,7 +11,7 @@
 |----------|--------|---------|
 | **Single-Player core** | 🟢 Healthy | All tests pass |
 | **Multiplayer** | 🟡 8 critical/urgent/high bugs fixed 2026-09-22, playtest still pending | `VB-16`–`VB-23` all fixed and test-covered this session (dead-actor redirect, Lua sandbox RCE, process-global RNG cross-contamination, save/load data loss, chat delta desync after 20 messages, Pickup/Wait actions unusable in MP, reconnect race, 3-way player storage). Still no real two-client playtest. `VB-24` (SP/MP separate post-action pipelines) is done as of 2026-09-23: MP shares the outcome pipeline (messages, events, took_turn) and HP regen, the party plays on while any player is alive, and co-op runs are scored per player on their own leaderboard (`data/highscores_multiplayer.json`, no viewer yet — see `tt list --project veinborn`). |
-| **Test Health** | ✅ Green | 1185 collected: 1185 passing / 0 failing / 0 skipped (verified 2026-09-23) — up from 1067/1065/0/2 baseline; the 2 previously-skipped Lua timeout tests now genuinely pass (see `VB-17`), and the flaky planner tests are seeded (`VB-34`) / given a walkable arena (`test_get_smart_action_prioritizes_forced_combat` still failed ~25% of runs after seeding) |
+| **Test Health** | ✅ Green | 1196 collected: 1196 passing / 0 failing / 0 skipped (verified 2026-09-23) — up from 1067/1065/0/2 baseline; the 2 previously-skipped Lua timeout tests now genuinely pass (see `VB-17`), and the flaky planner tests are seeded (`VB-34`) / given a walkable arena (`test_get_smart_action_prioritizes_forced_combat` still failed ~25% of runs after seeding) |
 | **Current Phase** | 🎮 MP hardening + playtest | No open high-priority findings; the next milestone is the first real two-client playtest |
 | **Playability** | ✅ SP playable / 🟡 MP no longer has known exploitable bugs, still unplaytested | |
 
@@ -207,6 +207,8 @@ python3 src/server/test_client.py
 | ~~`cleanup_task` busy-loops with no backoff on repeated errors~~ | ~~🟡 Medium~~ | ✅ Fixed — `VB-27`: capped exponential backoff. |
 | ~~`PickupAction` has zero test coverage~~ | ~~🟡 Medium~~ | ✅ Fixed — `VB-28`: 10 tests; a pickup that took nothing no longer costs a turn. |
 | ~~Action events failed to reach the EventBus (flat dicts, unknown types) — Lua/telemetry saw almost nothing~~ | ~~🟠 High~~ | ✅ Fixed — `VB-33` |
+| ~~High scores ignored combat and mining (run stats never written to `player.stats`)~~ | ~~🟠 High~~ | ✅ Fixed — `VB-38`: `AttackAction`/`MineAction`/`SurveyAction` now record kills, damage, ore mined/surveyed, best purity and death cause on the acting Player (per player in co-op too) |
+| ~~Damage formula never evaluated (`max` passed as a name, every attack used the fallback)~~ | ~~🟢 Low~~ | ✅ Fixed — `VB-37`: `functions=` in `simple_eval`; configured formula and `min_damage` now honored |
 | Dead-code candidates (`perception.py` module, `GameTelemetry.log_*`) | 🟢 Low | Held — `VB-32`: need a wire-in-or-delete decision |
 | No tutorial for new players | 🟢 Low | Planned for Phase 3 |
 

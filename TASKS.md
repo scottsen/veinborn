@@ -2,7 +2,7 @@
 project: veinborn
 schema_version: '1.0'
 id_prefix: VB
-next_id: 38
+next_id: 39
 archival: inline
 areas: {}
 ---
@@ -791,19 +791,20 @@ status: backlog
 priority: medium
 tags: [multiplayer, highscore]
 created: '2026-09-23T17:19:57Z'
-updated: '2026-09-23T17:19:57Z'
+updated: '2026-09-23T17:29:04Z'
 session: crimson-jewel-0923
 links:
   references:
   - VB-24
   - src/core/highscore.py
+notes_next: 2
 ```
 
 VB-24 writes per-player co-op scores to data/highscores_multiplayer.json but nothing displays them (no client message, CLI, or screen). Legacy Vault (rare-ore save on death) is still single-player only; get_vault() is a process-wide singleton, so wiring it into a server needs a per-player persistence decision first. Per-player stats (monsters_killed etc.) are also read from player.stats, which nothing appears to write in either mode - check before designing a co-op scoring UI.
 
 <!-- notes: append-only log; each has a stable #id (see CLI §5) -->
 ### Notes
-_(no notes yet)_
+- [#1 2026-09-23T17:29:04Z session:crimson-jewel-0923] Update 2026-09-23: the 'player.stats never written' concern is resolved by VB-38 (d16aa49) - co-op scores now include kills/damage/ore per player, so a leaderboard viewer is now worth building.
 
 
 ## TASK-VB-36 · Single-player 'wait' bypasses the action pipeline (no actor_waited event, no message)
@@ -832,20 +833,47 @@ _(no notes yet)_
 ## TASK-VB-37 · Damage formula never evaluates: 'max' passed as a name, simpleeval needs functions=
 
 ```yaml
-status: backlog
+status: done
 priority: low
 tags: [combat, bug]
 created: '2026-09-23T17:19:57Z'
-updated: '2026-09-23T17:19:57Z'
+updated: '2026-09-23T17:29:04Z'
 session: crimson-jewel-0923
 links:
   references:
   - src/core/actions/attack_action.py
   - data/balance/formulas.yaml
+  commits:
+  - d16aa49e93fcdc6d8e42eec495834ff1db1fd6d8
+notes_next: 2
 ```
 
 attack_action._calculate_and_apply_damage passes max/min in simple_eval's names= so every attack raises 'Function max not defined' and uses the hardcoded fallback max(1, atk-def) (88 errors in logs/veinborn.log). Result is identical for the current default formula, but any balance change to the configured damage formula is silently ignored. Fix: functions={'max': max, 'min': min}. Also check min_damage is applied.
 
 <!-- notes: append-only log; each has a stable #id (see CLI §5) -->
 ### Notes
-_(no notes yet)_
+- [#1 2026-09-23T17:29:04Z session:crimson-jewel-0923] functions={'max','min'} in simple_eval; configured formula and min_damage now honored; 2 regression tests in test_attack_action.py.
+
+
+## TASK-VB-38 · High scores ignored combat and mining: run stats were never written to player.stats
+
+```yaml
+status: done
+priority: high
+tags: [highscore, bug]
+created: '2026-09-23T17:28:55Z'
+updated: '2026-09-23T17:29:03Z'
+session: crimson-jewel-0923
+links:
+  references:
+  - src/core/highscore.py
+  commits:
+  - d16aa49e93fcdc6d8e42eec495834ff1db1fd6d8
+notes_next: 2
+```
+
+HighScoreEntry reads monsters_killed/damage_dealt/damage_taken/ore_mined/ore_surveyed/best_ore_purity/death_cause from player.stats; nothing wrote them, so every score (SP and co-op) was floor*1000 + turns + xp. Found while building VB-24 co-op scoring. Fixed by recording the stats inside AttackAction/MineAction/SurveyAction on the acting Player.
+
+<!-- notes: append-only log; each has a stable #id (see CLI §5) -->
+### Notes
+- [#1 2026-09-23T17:29:03Z session:crimson-jewel-0923] Actions record run stats on the acting/targeted Player; 8 tests in tests/unit/actions/test_run_stats.py plus a co-op per-player score test.
