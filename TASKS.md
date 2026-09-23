@@ -791,13 +791,13 @@ status: backlog
 priority: medium
 tags: [multiplayer, highscore]
 created: '2026-09-23T17:19:57Z'
-updated: '2026-09-23T17:29:04Z'
+updated: '2026-09-23T17:42:48Z'
 session: crimson-jewel-0923
 links:
   references:
   - VB-24
   - src/core/highscore.py
-notes_next: 2
+notes_next: 3
 ```
 
 VB-24 writes per-player co-op scores to data/highscores_multiplayer.json but nothing displays them (no client message, CLI, or screen). Legacy Vault (rare-ore save on death) is still single-player only; get_vault() is a process-wide singleton, so wiring it into a server needs a per-player persistence decision first. Per-player stats (monsters_killed etc.) are also read from player.stats, which nothing appears to write in either mode - check before designing a co-op scoring UI.
@@ -805,6 +805,7 @@ VB-24 writes per-player co-op scores to data/highscores_multiplayer.json but not
 <!-- notes: append-only log; each has a stable #id (see CLI §5) -->
 ### Notes
 - [#1 2026-09-23T17:29:04Z session:crimson-jewel-0923] Update 2026-09-23: the 'player.stats never written' concern is resolved by VB-38 (d16aa49) - co-op scores now include kills/damage/ore per player, so a leaderboard viewer is now worth building.
+- [#2 2026-09-23T17:42:48Z session:crimson-jewel-0923] 0851b8f: added the veinborn-scores CLI (--coop, --limit, --file) - the first way to see either leaderboard (neither mode had a viewer). Still open on this ticket: an in-game/TUI high score screen, and the Legacy Vault decision for MP.
 
 
 ## TASK-VB-36 · Single-player 'wait' bypasses the action pipeline (no actor_waited event, no message)
