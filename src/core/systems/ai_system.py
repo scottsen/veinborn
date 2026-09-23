@@ -10,7 +10,6 @@ Responsibilities:
 """
 
 import logging
-import random
 from typing import Optional, Dict, Any
 from ..base.system import System
 from ..base.entity import EntityType
@@ -432,13 +431,15 @@ class AISystem(System):
 
     def _wander(self, monster) -> None:
         """Random movement."""
+        rng = self.context.get_rng()
+
         # 50% chance to stand still (monsters don't always move)
-        if random.random() < 0.5:
+        if rng.random() < 0.5:
             return
 
         # Pick random direction
         directions = [(-1, 0), (1, 0), (0, -1), (0, 1)]
-        random.shuffle(directions)
+        rng.shuffle(directions)
 
         game_map = self.context.get_map()
         for dx, dy in directions:

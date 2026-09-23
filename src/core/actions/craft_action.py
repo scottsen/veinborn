@@ -166,11 +166,6 @@ class CraftAction(Action):
 
         return outcome
 
-    def _get_actor(self, context: GameContext):
-        """Get the actor performing the crafting action."""
-        actor = context.get_entity(self.actor_id)
-        return actor if actor else context.get_player()
-
     def _find_and_remove_ore(self, actor, recipe) -> list:
         """
         Find and remove required ore from actor's inventory.

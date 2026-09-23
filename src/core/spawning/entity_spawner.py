@@ -70,7 +70,7 @@ class EntitySpawner:
         monsters = []
         for x, y in positions:
             # Choose monster type based on weights
-            monster_type = self._weighted_random_choice(spawn_weights)
+            monster_type = self._weighted_random_choice(spawn_weights, dungeon_map.rng)
             monster = self.entity_loader.create_monster(monster_type, x, y)
             monsters.append(monster)
 
@@ -107,8 +107,8 @@ class EntitySpawner:
         ore_veins = []
         for x, y in positions:
             # Choose ore type based on weights
-            ore_type = self._weighted_random_choice(ore_weights)
-            ore_vein = self.entity_loader.create_ore_vein(ore_type, x, y, floor)
+            ore_type = self._weighted_random_choice(ore_weights, dungeon_map.rng)
+            ore_vein = self.entity_loader.create_ore_vein(ore_type, x, y, floor, rng=dungeon_map.rng)
             ore_veins.append(ore_vein)
 
             logger.debug(
@@ -170,7 +170,7 @@ class EntitySpawner:
 
         return [forge]
 
-    def _weighted_random_choice(self, weights: Dict[str, int]) -> str:
+    def _weighted_random_choice(self, weights: Dict[str, int], rng: GameRNG) -> str:
         """
         Choose random item based on weights.
 
@@ -179,6 +179,10 @@ class EntitySpawner:
 
         Args:
             weights: Dictionary of item -> weight
+            rng: The RNG instance for the game this spawn belongs to
+                 (VB-18: must be the calling map's own instance, not the
+                 process-global singleton, so concurrent multiplayer games
+                 don't stomp each other's randomness)
 
         Returns:
             Randomly chosen item based on weights
@@ -200,7 +204,7 @@ class EntitySpawner:
         for item, weight in choices.items():
             items.extend([item] * weight)
 
-        return GameRNG.get_instance().choice(items)
+        return rng.choice(items)
 
     def spawn_special_room_entities(self, floor: int, dungeon_map: Map):
         """
@@ -257,7 +261,7 @@ class EntitySpawner:
 
     def _spawn_treasure_room(self, room, floor: int, dungeon_map: Map) -> List[OreVein]:
         """Spawn treasure in a treasure room (currently high-quality ore)."""
-        rng = GameRNG.get_instance()
+        rng = dungeon_map.rng
 
         # Get configuration from spawning.yaml
         treasure_config = self.config.get_special_room_config('treasure_room')
@@ -278,8 +282,8 @@ class EntitySpawner:
             if not dungeon_map.is_walkable(x, y):
                 continue
 
-            ore_type = self._weighted_random_choice(ore_weights)
-            ore = self.entity_loader.create_ore_vein(ore_type, x, y, floor)
+            ore_type = self._weighted_random_choice(ore_weights, rng)
+            ore = self.entity_loader.create_ore_vein(ore_type, x, y, floor, rng=rng)
 
             # Boost purity for treasure rooms (from config)
             ore.purity = min(100, rng.randint(
@@ -294,7 +298,7 @@ class EntitySpawner:
 
     def _spawn_monster_den(self, room, floor: int, dungeon_map: Map) -> List[Monster]:
         """Spawn extra monsters in a monster den."""
-        rng = GameRNG.get_instance()
+        rng = dungeon_map.rng
 
         # Get configuration from spawning.yaml
         den_config = self.config.get_special_room_config('monster_den')
@@ -316,7 +320,7 @@ class EntitySpawner:
             if not dungeon_map.is_walkable(x, y):
                 continue
 
-            monster_type = self._weighted_random_choice(spawn_weights)
+            monster_type = self._weighted_random_choice(spawn_weights, rng)
             monster = self.entity_loader.create_monster(monster_type, x, y)
 
             # Boost stats from config
@@ -331,7 +335,7 @@ class EntitySpawner:
 
     def _spawn_ore_chamber(self, room, floor: int, dungeon_map: Map) -> List[OreVein]:
         """Spawn multiple high-quality ore veins in an ore chamber."""
-        rng = GameRNG.get_instance()
+        rng = dungeon_map.rng
 
         # Get configuration from spawning.yaml
         chamber_config = self.config.get_special_room_config('ore_chamber')
@@ -352,8 +356,8 @@ class EntitySpawner:
             if not dungeon_map.is_walkable(x, y):
                 continue
 
-            ore_type = self._weighted_random_choice(ore_weights)
-            ore = self.entity_loader.create_ore_vein(ore_type, x, y, floor)
+            ore_type = self._weighted_random_choice(ore_weights, rng)
+            ore = self.entity_loader.create_ore_vein(ore_type, x, y, floor, rng=rng)
 
             # Boost purity from config
             ore.purity = min(100, rng.randint(

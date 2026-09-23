@@ -17,7 +17,8 @@ import shutil
 
 from src.core.save_load import SaveSystem, SaveLoadError
 from src.core.game_state import GameState
-from src.core.entities import Player, Monster, OreVein
+from src.core.entities import Player, Monster, OreVein, Forge
+from src.core.base.entity import Entity
 from src.core.world import Map, TileType
 from src.core.rng import GameRNG
 
@@ -308,8 +309,11 @@ class TestRNGStatePersistence:
         # Load (should restore RNG state to after first 5 numbers)
         loaded_state = save_system.load_game("test_save")
 
-        # Get the restored RNG instance
-        rng = GameRNG.get_instance()
+        # VB-18: RNG state is restored into the loaded GameState's own
+        # dedicated instance (loaded_state.rng), not the process-global
+        # singleton -- so a loaded game's randomness can no longer be
+        # clobbered by another concurrent game re-seeding the singleton.
+        rng = loaded_state.rng
 
         # Generate next 5 numbers - should match expected_next
         after_values = [rng.randint(1, 100) for _ in range(5)]
@@ -406,11 +410,103 @@ class TestSeededRunPersistence:
         # Load (should restore to after first 10 numbers)
         loaded_state = save_system.load_game("seeded_test")
 
-        # Get restored RNG instance
-        rng = GameRNG.get_instance()
+        # VB-18: get the restored RNG from the loaded GameState's own
+        # instance, not the process-global singleton (see
+        # test_rng_state_restored above).
+        rng = loaded_state.rng
 
         # Continue generating from loaded state (should get next 10)
         sequence_after = [rng.randint(1, 100) for _ in range(10)]
 
         # After-load sequence should match continue sequence
         assert sequence_after == sequence_continue
+
+
+class TestVB19DataFidelity:
+    """VB-19: save/load previously silently dropped inventory, equipped
+    gear, run_type, and OreVein/Forge-specific fields entirely -- a
+    reproduced round-trip went inventory 1 -> 0, run_type legacy -> pure,
+    and Forge -> plain Entity. These tests pin the fixed behavior."""
+
+    def test_inventory_round_trips(self, save_system, sample_state):
+        item = Entity(entity_id='sword1', name='Iron Sword', hp=0, max_hp=0)
+        sample_state.player.inventory.append(item)
+
+        save_system.save_game(sample_state, "inv_test")
+        loaded = save_system.load_game("inv_test")
+
+        assert len(loaded.player.inventory) == 1
+        assert loaded.player.inventory[0].entity_id == 'sword1'
+        assert loaded.player.inventory[0].name == 'Iron Sword'
+
+    def test_equipped_weapon_and_armor_round_trip(self, save_system, sample_state):
+        weapon = Entity(entity_id='w1', name='Longsword', attack=10)
+        armor = Entity(entity_id='a1', name='Chainmail', defense=8)
+        sample_state.player.equipped_weapon = weapon
+        sample_state.player.equipped_armor = armor
+
+        save_system.save_game(sample_state, "equip_test")
+        loaded = save_system.load_game("equip_test")
+
+        assert loaded.player.equipped_weapon is not None
+        assert loaded.player.equipped_weapon.entity_id == 'w1'
+        assert loaded.player.equipped_weapon.attack == 10
+        assert loaded.player.equipped_armor is not None
+        assert loaded.player.equipped_armor.entity_id == 'a1'
+        assert loaded.player.equipped_armor.defense == 8
+
+    def test_no_equipped_gear_round_trips_as_none(self, save_system, sample_state):
+        assert sample_state.player.equipped_weapon is None
+        save_system.save_game(sample_state, "no_equip_test")
+        loaded = save_system.load_game("no_equip_test")
+        assert loaded.player.equipped_weapon is None
+        assert loaded.player.equipped_armor is None
+
+    def test_run_type_round_trips(self, save_system, sample_state):
+        sample_state.run_type = "legacy"
+        save_system.save_game(sample_state, "run_type_test")
+        loaded = save_system.load_game("run_type_test")
+        assert loaded.run_type == "legacy"
+
+    def test_ore_vein_properties_round_trip(self, save_system, sample_state):
+        # Non-default values -- proves fidelity, not a coincidental match.
+        ore = OreVein(
+            entity_id='ore_custom',
+            x=5, y=5,
+            ore_type='adamantite',
+            hardness=91, conductivity=88, malleability=77, purity=95, density=60,
+        )
+        sample_state.entities['ore_custom'] = ore
+
+        save_system.save_game(sample_state, "ore_test")
+        loaded = save_system.load_game("ore_test")
+
+        loaded_ore = loaded.entities['ore_custom']
+        assert isinstance(loaded_ore, OreVein)
+        assert loaded_ore.ore_type == 'adamantite'
+        assert loaded_ore.hardness == 91
+        assert loaded_ore.conductivity == 88
+        assert loaded_ore.malleability == 77
+        assert loaded_ore.purity == 95
+        assert loaded_ore.density == 60
+        assert loaded_ore.name == 'Adamantite Ore Vein'
+
+    def test_forge_round_trips_as_forge_not_plain_entity(self, save_system, sample_state):
+        forge = Forge(entity_id='forge1', x=8, y=8, forge_type='master_forge')
+        sample_state.entities['forge1'] = forge
+
+        save_system.save_game(sample_state, "forge_test")
+        loaded = save_system.load_game("forge_test")
+
+        loaded_forge = loaded.entities['forge1']
+        assert isinstance(loaded_forge, Forge)
+        assert loaded_forge.forge_type == 'master_forge'
+        assert loaded_forge.name == 'Master Forge'
+        assert loaded_forge.blocks_movement is True
+        assert loaded_forge.get_stat('interactable') is True
+
+    def test_blocks_movement_round_trips(self, save_system, sample_state):
+        sample_state.player.blocks_movement = True
+        save_system.save_game(sample_state, "blocks_test")
+        loaded = save_system.load_game("blocks_test")
+        assert loaded.player.blocks_movement is True

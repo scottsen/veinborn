@@ -102,3 +102,34 @@ def test_descend_floor_at_victory_floor_ends_game(monkeypatch):
     assert mp.game_state.game_over is True
     # Victory short-circuits before advancing current_floor
     assert mp.game_state.current_floor == 1
+
+
+def test_concurrent_games_do_not_share_rng_stream():
+    """VB-18: each MultiplayerGameState used to draw all randomness from
+    the process-global GameRNG singleton. add_player() re-seeded it
+    (GameRNG.initialize(seed)) whenever a NEW game's first player joined,
+    silently rewiring every OTHER in-flight game's dungeon-gen/combat/loot
+    rolls to the new game's seed. Reproduced: start game A, then start
+    game B with a different seed while A is "mid-session" -- game A's own
+    RNG instance (and therefore its dungeon layout) must be unaffected by
+    game B's existence."""
+    mp_a = _make_two_player_game(seed=111)
+    layout_a_before = [[t.tile_type for t in col] for col in mp_a.game_state.dungeon_map.tiles]
+    rng_a_next_before = mp_a.game_state.rng.randint(1, 1_000_000)
+
+    # A second, differently-seeded game starts while A is already running.
+    mp_b = _make_two_player_game(seed=222)
+
+    # Game A's own RNG instance must be a different object from game B's,
+    # and must not have been reseeded/advanced by game B starting.
+    assert mp_a.game_state.rng is not mp_b.game_state.rng
+    layout_a_after = [[t.tile_type for t in col] for col in mp_a.game_state.dungeon_map.tiles]
+    assert layout_a_before == layout_a_after
+
+    # Re-create game A fresh with the same seed and replay the same first
+    # draw -- it must reproduce rng_a_next_before, proving A's stream was
+    # never touched by B's setup.
+    mp_a_replay = _make_two_player_game(seed=111)
+    replay_layout = [[t.tile_type for t in col] for col in mp_a_replay.game_state.dungeon_map.tiles]
+    assert replay_layout == layout_a_before
+    assert mp_a_replay.game_state.rng.randint(1, 1_000_000) == rng_a_next_before

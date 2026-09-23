@@ -14,7 +14,6 @@ in_bounds) rather than being methods on Map itself.
 import logging
 from typing import List, Tuple, Optional, TYPE_CHECKING
 
-from ..rng import GameRNG
 from ..world import RoomType, Tile, TileType
 
 if TYPE_CHECKING:
@@ -149,7 +148,7 @@ def _find_ore_positions_in_room(
     Returns:
         List of (x, y) positions found in this room (up to needed_count)
     """
-    rng = GameRNG.get_instance()
+    rng = game_map.rng
     positions = []
 
     for x in range(room.x, room.x + room.width):
@@ -241,7 +240,7 @@ def assign_special_rooms(game_map: 'Map'):
         # Not enough rooms for special types
         return
 
-    rng = GameRNG.get_instance()
+    rng = game_map.rng
     special_types, min_pct, max_pct = _get_special_room_config(game_map)
 
     # Calculate how many special rooms to create

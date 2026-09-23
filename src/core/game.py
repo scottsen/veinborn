@@ -109,7 +109,11 @@ class Game:
         # Create map and find player position
         map_width = self.config.game_constants['map']['default_width']
         map_height = self.config.game_constants['map']['default_height']
-        dungeon_map = Map(width=map_width, height=map_height)
+        # VB-18: pass this game's own RNG instance explicitly rather than
+        # letting Map() default to GameRNG.get_instance() -- correct today
+        # since single-player has one game per process, but explicit here
+        # so it doesn't depend on that timing coincidence.
+        dungeon_map = Map(width=map_width, height=map_height, rng=rng)
         player_pos = dungeon_map.find_starting_position()
 
         # Create player
@@ -269,8 +273,10 @@ class Game:
             return False
 
         try:
-            # Store current RNG state in game state for serialization
-            rng = GameRNG.get_instance()
+            # Store current RNG state in game state for serialization.
+            # VB-18: use this game's own RNG instance (self.state.rng),
+            # not the process-global singleton.
+            rng = self.state.rng or GameRNG.get_instance()
             if rng:
                 self.state.rng_state = rng.getstate()
 

@@ -14,6 +14,7 @@ import logging
 from .entities import Player
 from .base.entity import Entity
 from .world import Map
+from .rng import GameRNG
 
 logger = logging.getLogger(__name__)
 
@@ -43,6 +44,14 @@ class GameState:
     # Randomness (for reproducibility)
     seed: Optional[Union[int, str]] = None
     rng_state: Optional[tuple] = None
+    # VB-18: the live RNG instance this game's randomness draws from. Not
+    # serialized (rng_state above is the save/load snapshot) -- a live
+    # object reference so callers (world gen, spawning, AI) use this game's
+    # own stream rather than the process-global GameRNG singleton, which
+    # multiplayer's concurrent games would otherwise share and corrupt.
+    # None only for legacy construction paths that haven't been updated to
+    # pass one explicitly; get_rng() below falls back to the singleton.
+    rng: Optional[GameRNG] = None
 
     # Message log
     messages: List[str] = field(default_factory=list)

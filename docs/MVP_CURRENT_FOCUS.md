@@ -1,9 +1,9 @@
 # Veinborn MVP: Current Focus & Next Steps
 
-**Status:** Single-player MVP feature-complete; multiplayer experimental (see `PROJECT_REVIEW_2026-04-17.md`)
+**Status:** Single-player MVP feature-complete; multiplayer experimental (see `docs/STATUS_DASHBOARD.md` for current status, `PROJECT_REVIEW_2026-04-17.md` for the last full audit)
 **Phase:** Trust-restore + MP stabilization + Polish
-**Last Updated:** 2026-04-17
-**Test Status:** 1067 collected, 1065 passing / 0 failing / 2 skipped
+**Last Updated:** 2026-09-22 (test numbers only; see `docs/STATUS_DASHBOARD.md` for the 2026-09-22 review findings)
+**Test Status:** 1109 collected, 1109 passing / 0 failing / 0 skipped
 
 ---
 

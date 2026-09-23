@@ -2,7 +2,7 @@
 project: veinborn
 schema_version: '1.0'
 id_prefix: VB
-next_id: 16
+next_id: 33
 archival: inline
 areas: {}
 ---
@@ -362,3 +362,333 @@ lua_action.py:241 _table_to_outcome uses 5 separate nested try/except blocks (cx
 <!-- notes: append-only log; each has a stable #id (see CLI §5) -->
 ### Notes
 - [#1 2026-08-05T18:07:47Z session:fowevado-0805] Added src/core/scripting/lua_utils.py (lua_table_get, lua_array_to_list); rewrote lua_action.py's _table_to_outcome to use them, dropping nesting 6->3 and complexity 19->8 (reveal C901/C905/C902 all now clean). lua_event_handler.py checked but doesn't have the repeated pattern, left as-is. 1094/2 tests pass.
+
+
+## TASK-VB-16 · Dead multiplayer player's actions move the host's character
+
+```yaml
+status: done
+priority: urgent
+effort: small
+tags: [multiplayer, bug, security]
+created: '2026-09-23T05:25:41Z'
+updated: '2026-09-23T05:35:07Z'
+session: earthly-god-0922
+notes_next: 2
+```
+
+core/base/action.py:147-171 (and mine_action.py:81, craft_action.py:172, attack_action.py:86) fall back to context.get_player() when an actor lookup fails. Dead entities are purged from 'entities' each round, so an action sent for a dead player's ID silently redirects to the host. Reproduced: killed player 2, sent MoveAction with player 2's id, host moved instead. Fix: reject actions whose actor isn't alive in session.py:process_action; remove the get_player() fallback from Action._get_actor/_get_and_validate_actor and fail validation instead. Add a regression test.
+
+<!-- notes: append-only log; each has a stable #id (see CLI §5) -->
+### Notes
+- [#1 2026-09-23T05:35:07Z session:earthly-god-0922] Fixed: Action._get_actor()/_get_and_validate_actor() only fall back to context.get_player() when actor_id genuinely equals the player's own entity_id, not for any unresolved actor. Removed duplicate _get_actor overrides in mine_action.py/craft_action.py (now inherit the fixed base). Fixed attack_action.py's _get_attacker_and_target to stop falling back to the player for a missing target too. Aligned player_entity.entity_id with its logical dict key in multiplayer_game_state.add_player() (host='player', guests='player_xxxx') so the fix doesn't break legitimate host action resolution. Added regression test test_process_action_dead_guest_does_not_redirect_to_host (tests/unit/server/test_game_session.py) and rewrote the stale test_get_actor_fallback_to_player test that had codified the bug as expected behavior. All targeted suites pass (183 tests: actions, stairs_descent, game_session, multiplayer_game_state, multiplayer_flow integration, equipment_system).
+
+
+## TASK-VB-17 · Lua sandbox exposes python bridge — arbitrary Python execution from scripts
+
+```yaml
+status: done
+priority: urgent
+effort: small
+tags: [security, lua]
+created: '2026-09-23T05:25:45Z'
+updated: '2026-09-23T05:47:46Z'
+session: earthly-god-0922
+notes_next: 2
+```
+
+core/scripting/lua_runtime.py:52 builds lupa.LuaRuntime with defaults (register_eval/register_builtins) and no attribute_filter; io/os are removed but the python bridge is left live. Reproduced: execute_script("return python.eval('__import__(\"os\").getcwd()')") returned the real working directory. Also call_function's timeout param (:233) is read but never enforced — _execute_with_timeout uses SIGALRM (main-thread only) and truncates to whole seconds. Fix: LuaRuntime(register_eval=False, register_builtins=False, attribute_filter=...), nil out python/string.dump/collectgarbage/rawset on metatables, replace signal-based timeout with an instruction-count hook. Must fix before shipping any user/mod scripts or server-side Lua.
+
+<!-- notes: append-only log; each has a stable #id (see CLI §5) -->
+### Notes
+- [#1 2026-09-23T05:47:46Z session:earthly-god-0922] Fixed all three parts. (1) RCE: LuaRuntime now built with register_eval=False, register_builtins=False, closing the python.eval() bridge. (2) Dunder-attribute sandbox escape: added attribute_filter blocking any underscore-prefixed attribute (obj.__class__ etc.) on any Python object/bound method handed to Lua -- this was a second, independent escape route since every veinborn.* API method is a live bound method. (3) Timeout enforcement was fully broken, not just imprecise: proved a signal-based timeout cannot interrupt a tight Lua loop with no Python callbacks (a 'while true do end' script ran past a 300s SIGALRM wall-clock timeout without ever raising). Replaced it with a debug.sethook() instruction-count hook (fires every 1000 VM instructions regardless of what the script is doing), with pcall/xpcall hardened to detect-and-re-raise the timeout sentinel so a script can't neutralize it via 'while true do pcall(fn) end' retry-loops. Wired the same deadline into call_function(), which previously accepted a timeout kwarg but never enforced it. Un-skipped the two long-standing timeout tests in test_lua_runtime.py (previously skip-reasoned 'signal-based timeout doesn't work reliably') -- they now pass for real; this was the documented 'C-level execution limitation (acceptable)' in STATUS_DASHBOARD.md's known issues, now actually fixed rather than accepted. Added 5 new regression tests (RCE, builtins, dunder-walk, pcall-evasion). Full suite run: 421 tests across lua_*, server, actions, stairs_descent, multiplayer_flow, equipment_system -- all pass.
+
+
+## TASK-VB-18 · Process-global RNG singleton cross-contaminates concurrent multiplayer games
+
+```yaml
+status: done
+priority: urgent
+effort: medium
+tags: [multiplayer, bug, rng]
+created: '2026-09-23T05:25:50Z'
+updated: '2026-09-23T05:56:31Z'
+session: earthly-god-0922
+notes_next: 2
+```
+
+GameRNG is a class-level singleton (core/rng.py:75-112). multiplayer_game_state.py:100-102 calls GameRNG.initialize(self.seed) unconditionally when the first player joins a new game, which replaces the shared process-wide instance. Every dungeon-gen/spawn/loot call site (world.py, entity_spawner.py, spawn_policy.py, entity_loader.py:242, entities.py:322) reads via GameRNG.get_instance() -- the same shared object. Two games running concurrently on one server stomp each other's RNG stream: starting game B mid-session silently rewires game A's in-flight combat rolls, loot, and future dungeon-gen to draw from game B's seed. Breaks per-game determinism/reproducibility. Fix: give each GameState its own GameRNG instance threaded through GameSession/MultiplayerGameState and exposed via ctx.rng; also remove ai_system.py's direct stdlib random module usage (lines ~436,441) which never replays from a seed either.
+
+<!-- notes: append-only log; each has a stable #id (see CLI §5) -->
+### Notes
+- [#1 2026-09-23T05:56:31Z session:earthly-god-0922] Fixed: each game now gets its own dedicated GameRNG instance instead of every generation/spawn call reaching for the process-global GameRNG.get_instance() singleton. Map now holds self.rng (captured at construction, defaults to the singleton only for back-compat callers); world.py's split_node/create_rooms/connect_rooms, spawn_policy.py's ore-position/special-room functions, and entity_spawner.py's weighted-choice/treasure-room/monster-den/ore-chamber methods all read the owning map's .rng instead of calling GameRNG.get_instance() fresh. entity_loader.create_ore_vein() takes an explicit rng param now (falls back to the singleton only when omitted). multiplayer_game_state.add_player() constructs GameRNG(seed) directly and threads it through GameState.rng/dungeon_map.rng, instead of calling GameRNG.initialize(seed) which reassigned the shared class-level singleton out from under any other concurrent game; descend_floor() reuses the same instance for the next floor. Added GameState.rng field and GameContext.get_rng(); ai_system.py's _wander() now uses context.get_rng() instead of stdlib random (removed the direct import). save_load.py's _deserialize_state() restores RNG state into a dedicated per-load instance (state.rng/dungeon_map.rng) instead of writing into the global singleton, so a loaded game's continued play can't be corrupted by another concurrent game either -- required updating two existing tests (test_rng_state_restored, test_seeded_run_continues_correctly) that had asserted against GameRNG.get_instance() by design. Added test_concurrent_games_do_not_share_rng_stream (tests/unit/server/test_multiplayer_game_state.py) proving two concurrently-started MultiplayerGameStates get independent RNG streams and dungeon layouts. Full suite: 1102 tests pass (up from 1067 baseline; net new/updated tests from this work plus VB-16/17).
+
+
+## TASK-VB-19 · Save/load silently drops inventory, equipment, run_type; Forge deserializes as plain Entity
+
+```yaml
+status: done
+priority: urgent
+effort: medium
+tags: [bug, save-load]
+created: '2026-09-23T05:26:04Z'
+updated: '2026-09-23T06:02:20Z'
+session: earthly-god-0922
+notes_next: 2
+```
+
+save_load.py: _serialize_entity (219-237) skips inventory, equipped_weapon, equipped_armor, and blocks_movement; _serialize_state (200-217) skips run_type. _deserialize_entity (325-366) has a hard-coded class switch so Forge entities come back as plain Entity. Reproduced round-trip: inventory 1 -> 0, run_type legacy -> pure, Forge -> Entity. VERSION field exists (save_load.py:45) but a version mismatch only logs a warning -- migration is a literal TODO (132-134). Loading also creates two separate player objects; only game.py:336 re-links them, a hidden requirement for any other caller of SaveSystem. A second serializer (Entity.to_dict/from_dict in core/base/entity.py:220,226) exists in parallel and can drift further. Fix: serialize through each class's own to_dict/from_dict via a type registry, add a version migration chain, add a round-trip property test.
+
+<!-- notes: append-only log; each has a stable #id (see CLI §5) -->
+### Notes
+- [#1 2026-09-23T06:02:20Z session:earthly-god-0922] Fixed the concrete data-loss bugs. _serialize_entity now includes inventory (recursively serialized), equipped_weapon, equipped_armor, and blocks_movement, plus type-specific fields needed to reconstruct the right subclass: OreVein's ore_type/hardness/conductivity/malleability/purity/density and Forge's forge_type. _deserialize_entity gained a Forge branch (previously fell through to a plain, non-interactable Entity) and now passes the type-specific fields into each subclass's constructor so __post_init__ derives correct name/stats instead of reverting to defaults (a loaded ore vein previously silently became a default 50-quality copper vein regardless of what was actually mined). _serialize_state/_deserialize_state now round-trip run_type. Also found and fixed a second, separate bug while testing: _deserialize_state had its own inline stripped-down Player reconstruction (entity_id/name/x/y/hp/max_hp/attack/defense/stats/is_alive/content_id only) completely independent of _deserialize_entity's Player branch -- so even after fixing _deserialize_entity, the PRIMARY player (state.player, as opposed to player-type entities in state.entities) still lost inventory/equipment/blocks_movement on every load. Fixed by having _deserialize_state delegate to _deserialize_entity instead of duplicating the logic. Added 7 regression tests (TestVB19DataFidelity in tests/unit/test_save_load.py) covering inventory, equipped weapon/armor, empty-equipment-stays-none, run_type, OreVein properties with non-default values, Forge type identity, and blocks_movement. Full suite: 1109 tests pass. NOT done: the version-migration chain (VERSION mismatch still just logs a warning) -- out of scope for this pass since there's only ever been one save format version (1.0.0) shipped, so there's nothing to migrate from yet; worth a follow-up once a v2 format is actually introduced.
+
+
+## TASK-VB-20 · Multiplayer chat/message log silently stops syncing after 20 messages
+
+```yaml
+status: backlog
+priority: high
+effort: small
+tags: [multiplayer, bug]
+created: '2026-09-23T05:26:08Z'
+updated: '2026-09-23T05:26:08Z'
+session: earthly-god-0922
+```
+
+state_delta.py compute_delta (98-104) sends new log lines only when len(new_messages) > len(old_messages), assuming recent_messages only grows. But multiplayer_game_state.py:325 caps it via get_recent_messages(20), and game_state.py:67-69 keeps only a fixed-size sliding window. Once a game passes 20 total messages, both snapshots are permanently 20 items long, so the length check is always False and no further chat/log messages are ever delta-broadcast for the rest of the game. Only a full-state resync (e.g. reconnect) briefly shows the latest 20-message window. Will reproduce deterministically in the pending 2-client playtest. Fix: track messages by an incrementing index/sequence rather than list length, or send an explicit new-message-count/cursor in the delta protocol.
+
+<!-- notes: append-only log; each has a stable #id (see CLI §5) -->
+### Notes
+_(no notes yet)_
+
+
+## TASK-VB-21 · Server and core action registries have drifted: Pickup and Lua actions don't work in multiplayer
+
+```yaml
+status: backlog
+priority: high
+effort: small
+tags: [multiplayer, bug, architecture]
+created: '2026-09-23T05:26:12Z'
+updated: '2026-09-23T05:26:12Z'
+session: earthly-god-0922
+```
+
+server/action_handler.py's ActionRegistry (26-34) registers 7 actions. core/actions/action_factory.py's ActionFactory._register_standard_actions (145, 433-480) additionally has PickupAction and LuaAction. Result: pickup and every Lua-scripted action silently can't be used in multiplayer. Fix: keep a single type-to-class map in core; server deserializes actions through it instead of maintaining its own registry. Add a parity test that fails if the two registries diverge again.
+
+<!-- notes: append-only log; each has a stable #id (see CLI §5) -->
+### Notes
+_(no notes yet)_
+
+
+## TASK-VB-22 · Reconnect race can strand a player: inputs rejected, outputs dropped, no error
+
+```yaml
+status: backlog
+priority: high
+effort: medium
+tags: [multiplayer, bug]
+created: '2026-09-23T05:26:17Z'
+updated: '2026-09-23T05:26:17Z'
+session: earthly-god-0922
+```
+
+websocket_server.py:106 registers self.connections[session_id] = websocket on connect; reconnect reuses the same session_id (verify_token, 127-178) and overwrites the entry with the new live socket. If the original socket's recv() hadn't yet observed the drop, its finally block later calls disconnect_client (473-525) unconditionally -- with no check that the dying websocket is still the one currently registered for that session. This (a) marks the player disconnected in GameSession (game_session/session.py:353-354), causing the server to reject that player's real actions with 'Player is disconnected -- AI is controlling this character', and (b) pops the live websocket out of self.connections, so send_message_to_session (546-548) silently no-ops for all further server->client sends to that player. A brief network blip + fast reconnect leaves the player's inputs rejected and outputs undelivered with no visible error until reconnection-timeout cleanup intervenes. Fix: guard disconnect_client with an identity check (only disconnect if self.connections.get(session_id) is the socket that just closed).
+
+<!-- notes: append-only log; each has a stable #id (see CLI §5) -->
+### Notes
+_(no notes yet)_
+
+
+## TASK-VB-23 · Players are stored three different ways (root cause of VB-16's fallback bug)
+
+```yaml
+status: backlog
+priority: high
+effort: medium
+tags: [architecture, multiplayer]
+created: '2026-09-23T05:26:21Z'
+updated: '2026-09-23T05:26:21Z'
+session: earthly-god-0922
+```
+
+Single-player: the player is in both state.player and entities. Multiplayer host: id 'player', stored only in state.player (multiplayer_game_state.py:147-150). Multiplayer guests: stored only in entities (153-155). GameContext.get_entity (game_context.py:37-39) reads only entities, so the host is found only through the Action._get_actor fallback that causes VB-16. Lua get_entity('player') returns nil for the host in multiplayer. get_all_players (45-64) has to merge the two sources by hand. Fix: make entities the single store; GameState.player becomes a derived property looked up by a local_player_id. Medium effort -- many call sites use .player directly.
+
+<!-- notes: append-only log; each has a stable #id (see CLI §5) -->
+### Notes
+_(no notes yet)_
+
+
+## TASK-VB-24 · Single-player and multiplayer run separate post-action pipelines -- root cause of repeated MP feature drift
+
+```yaml
+status: backlog
+priority: high
+effort: medium
+tags: [architecture, multiplayer]
+created: '2026-09-23T05:26:26Z'
+updated: '2026-09-23T05:26:26Z'
+session: earthly-god-0922
+```
+
+Single-player (core/game.py:160-242, turn_processor.py:54-91): publishes outcome.events to the EventBus, adds outcome.messages, respects took_turn, applies HP regen, AI, cleanup, game-over and high-score/Legacy hooks. Multiplayer (server/game_session/session.py:363-373, 317-330, 451-470): never publishes to the EventBus (Lua event handlers and telemetry never fire in MP), only reads messages on failure, calls increment_actions() without checking took_turn, and has no HP regen. It also builds a fresh GameContext per action (365, 410), so systems registered on self.game_context (296) aren't visible from inside actions. The server never references Lua, EventBus, TurnProcessor, FloorManager, or SaveSystem anywhere outside docstrings. This is the structural cause of VB-16 (dead-actor fallback), VB-21 (action registry drift), and VB-25 (duplicated floor progression) -- every new post-action rule has to be built twice and MP is the copy that gets forgotten. Fix: extract a core TurnEngine.apply(action, ctx) -> outcome that owns publish/messages/transitions/turn-processing with hooks for what legitimately differs (floor policy, end-of-run); have both Game and GameSession call it.
+
+<!-- notes: append-only log; each has a stable #id (see CLI §5) -->
+### Notes
+_(no notes yet)_
+
+
+## TASK-VB-25 · Floor progression logic duplicated between FloorManager and MultiplayerGameState
+
+```yaml
+status: backlog
+priority: medium
+effort: medium
+tags: [architecture, multiplayer]
+created: '2026-09-23T05:26:30Z'
+updated: '2026-09-23T05:26:30Z'
+session: earthly-god-0922
+links:
+  relates_to:
+  - VB-24
+```
+
+multiplayer_game_state.py:377-469 (descend_floor, _spawn_floor_entities, _get_victory_floor) duplicates core/floor_manager.py:54-273. Its own docstring (439-442) says this is because FloorManager assumes a single player. Fix: make FloorManager handle a whole party, with end-of-run hooks injected from outside; fold into the VB-24 TurnEngine extraction.
+
+<!-- notes: append-only log; each has a stable #id (see CLI §5) -->
+### Notes
+_(no notes yet)_
+
+
+## TASK-VB-26 · state_delta.apply_delta: highest-complexity function in repo, no sequencing, mutates shared dict state
+
+```yaml
+status: backlog
+priority: medium
+effort: medium
+tags: [multiplayer, architecture, quality]
+created: '2026-09-23T05:26:36Z'
+updated: '2026-09-23T05:26:36Z'
+session: earthly-god-0922
+```
+
+state_delta.py:225 apply_delta has complexity 27 / nesting depth 6, the single worst production function in the codebase; compute_delta (16) is complexity 17. session.py:509-513 keeps one last_state per session shared by every client, and there's no sequence number or base-version in the delta protocol -- one dropped WS message leaves a client desynced until the next full-state broadcast. reset_state_tracking (session.py:533) is never called; reconnect instead broadcasts full state to everyone (websocket_server.py:383). Also apply_delta shallow-copies current_state (245) then mutates nested dicts in place (272-274, 304-306) -- a latent aliasing hazard for any future caller that retains a reference to a prior snapshot (replay/debug tooling). The client also depends directly on the server package for the protocol (ui/multiplayer_client.py:13-14), leaking a protocol dependency into the UI layer. Fix: move messages.py/state_delta.py into a shared protocol/ package; add seq/base_seq to deltas with a per-client baseline; have the client request a resync on a detected gap.
+
+<!-- notes: append-only log; each has a stable #id (see CLI §5) -->
+### Notes
+_(no notes yet)_
+
+
+## TASK-VB-27 · cleanup_task busy-loops with no backoff if cleanup raises every iteration
+
+```yaml
+status: backlog
+priority: medium
+effort: small
+tags: [bug, multiplayer]
+created: '2026-09-23T05:26:39Z'
+updated: '2026-09-23T05:26:39Z'
+session: earthly-god-0922
+```
+
+websocket_server.py:599-640: await asyncio.sleep(10) (line 637) is only reached on the success path. except Exception (639-640) falls straight back to while self.is_running with no backoff -- if cleanup_expired_sessions/cleanup_expired_disconnections raises every iteration, this spins a CPU core and floods logs indefinitely. Fix: move the sleep into a finally, or add exponential backoff on repeated failures.
+
+<!-- notes: append-only log; each has a stable #id (see CLI §5) -->
+### Notes
+_(no notes yet)_
+
+
+## TASK-VB-28 · PickupAction has zero test coverage (highest-complexity single-player action untested)
+
+```yaml
+status: backlog
+priority: medium
+effort: small
+tags: [test-coverage]
+created: '2026-09-23T05:26:43Z'
+updated: '2026-09-23T05:26:43Z'
+session: earthly-god-0922
+```
+
+core/actions/pickup_action.py:47 execute has complexity 14, the highest of any single-player action, and no unit or integration test references PickupAction anywhere in tests/. attack/mine/move/wait/action_factory all have dedicated unit tests; craft/equip are covered indirectly via test_equipment_system.py. Fix: add tests/unit/actions/test_pickup_action.py covering normal pickup, inventory-full, and stacking edge cases.
+
+<!-- notes: append-only log; each has a stable #id (see CLI §5) -->
+### Notes
+_(no notes yet)_
+
+
+## TASK-VB-29 · Duplicate imports crept back in since VB-14 was closed
+
+```yaml
+status: backlog
+priority: low
+effort: small
+tags: [cleanup, quality]
+created: '2026-09-23T05:26:46Z'
+updated: '2026-09-23T05:26:46Z'
+session: earthly-god-0922
+```
+
+VB-14 (fixed, 1c4bb02) previously removed 33 dead/duplicate imports, but I005 duplicate-import instances have reappeared: attack_action.py:213, mine_action.py:221, move_action.py:200, game_context.py:87, game_context_api.py:695,728 -- all 'imported once at module scope, re-imported inside a function' pattern. Cheap cleanup pass. Separately, ~25 I006 import-inside-function instances scattered through core/actions/* and core/base/game_context.py look like deliberate circular-import avoidance (matches constants.py:56's TODO on factory-method phase-out) -- worth a pass to confirm which are load-bearing vs habit before touching.
+
+<!-- notes: append-only log; each has a stable #id (see CLI §5) -->
+### Notes
+_(no notes yet)_
+
+
+## TASK-VB-30 · VeinbornServer self-subclasses itself as a dead deprecated alias
+
+```yaml
+status: backlog
+priority: low
+effort: small
+tags: [cleanup]
+created: '2026-09-23T05:26:49Z'
+updated: '2026-09-23T05:26:49Z'
+session: earthly-god-0922
+```
+
+websocket_server.py:667 defines class VeinbornServer(VeinbornServer), a 'deprecated alias' of itself, with a circular warning message ('VeinbornServer is deprecated, use VeinbornServer instead'). Leftover from a rename; shadows the real class name. Just delete it.
+
+<!-- notes: append-only log; each has a stable #id (see CLI §5) -->
+### Notes
+_(no notes yet)_
+
+
+## TASK-VB-31 · Architecture docs reference stale/nonexistent source paths
+
+```yaml
+status: backlog
+priority: low
+effort: small
+tags: [docs]
+created: '2026-09-23T05:26:53Z'
+updated: '2026-09-23T05:26:53Z'
+session: earthly-god-0922
+```
+
+docs/architecture/00_ARCHITECTURE_OVERVIEW.md:30-31 points to src/scripting/ and src/content/entity_loader.py, which don't exist -- real paths are src/core/scripting/ and src/core/entity_loader.py. Its 'Current Game Loop' section (59-86) shows a Game that owns self.ui; the real code (post VB-11 split into GameBootstrapper/GameLuaIntegration) is better than the doc describes -- the doc is just stale, not aspirational. BASE_CLASS_ARCHITECTURE.md also still labels GameContext 'Phase 2' (1279) though it's fully implemented (only outline-checked, medium confidence). Fix: update paths and the game-loop description to match current code.
+
+<!-- notes: append-only log; each has a stable #id (see CLI §5) -->
+### Notes
+_(no notes yet)_
+
+
+## TASK-VB-32 · Confirm and clean up suspected dead code: perception helpers, telemetry hooks
+
+```yaml
+status: backlog
+priority: low
+effort: small
+tags: [cleanup, quality]
+created: '2026-09-23T05:26:58Z'
+updated: '2026-09-23T05:26:58Z'
+session: earthly-god-0922
+```
+
+Static-analysis heuristic flagged 33 uncalled functions; most (action_factory.py 8 _create_* methods, ai_system.py 5 _behavior_* methods) are almost certainly dict/registry-dispatched and not actually dead -- confirm via reveal 'calls://src?target=_create_move_action&depth=2' before touching. Genuinely worth investigating: telemetry.py:311/349 (log_combat, log_player_death -- hooks that may just not be wired up yet) and perception.py:205-268 (four get_visible_*/get_nearby_ore/get_entities_at_distance helpers, all uncalled -- possibly superseded by update_visibility's internal logic, or dead API surface left from a refactor). run_server.py flagged as 'not imported anywhere' is a false positive (CLI entry point) -- ignore.
+
+<!-- notes: append-only log; each has a stable #id (see CLI §5) -->
+### Notes
+_(no notes yet)_

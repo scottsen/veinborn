@@ -4,15 +4,15 @@
 
 ---
 
-## ⚠️ IMPORTANT: Current Development Phase (2026-04-17)
+## ⚠️ IMPORTANT: Current Development Phase (2026-09-22)
 
-This doc was rewritten as part of the 2026-04-17 trust-restore audit. For the full audit, read `docs/PROJECT_REVIEW_2026-04-17.md`.
+This doc was rewritten as part of the 2026-04-17 trust-restore audit; test numbers and multiplayer status refreshed 2026-09-22 after a full code review found and fixed 4 critical/urgent bugs (`VB-16`–`VB-19`). For the full picture, read `docs/STATUS_DASHBOARD.md` (current status) and `docs/PROJECT_REVIEW_2026-04-17.md` (last full architecture audit).
 
 ### Track A: Single-Player (playable, healthy)
 
 The single-player roguelike is feature-complete and playable: mining, crafting, equipment, save/load, character classes, floor progression, Legacy Vault, Lua event system. Current test numbers:
 
-- **1065 tests passing / 0 failing / 2 skipped** (suite of 1067 — collection clean, run clean, no hangs).
+- **1109 tests passing / 0 failing / 0 skipped** (verified 2026-09-22, up from the 1065/0/2 baseline).
 - MP async-cleanup and lock-reentrancy bugs closed in commit 33d72f7.
 
 **Polish work in flight:**
@@ -23,11 +23,12 @@ The single-player roguelike is feature-complete and playable: mining, crafting, 
 
 ### Track B: Multiplayer (experimental)
 
-Earlier docs claimed "Phase 2 complete (2+ player co-op working)". That overstated reality. As of 2026-04-17:
+Earlier docs claimed "Phase 2 complete (2+ player co-op working)". That overstated reality. As of 2026-09-22:
 
 - Core alignment between the MP server and the single-player action API was broken. `GameSession.process_action()` executed actions against a raw `GameState` instead of the `GameContext` the action API requires, the ActionOutcome API calls used old attribute names, and the disconnected-player fallback imported a `WaitAction` module that did not exist. **Repaired in commit 0449d66.**
 - Subsequent pass (commit 33d72f7) fixed a non-reentrant-lock deadlock in `cleanup_expired_disconnections`, contradictory leave-game semantics, and two stale tests. **All MP server tests now pass (server suite: clean).**
-- Treat multiplayer as experimental until the remaining async tests are green and a 30+ min co-op session has been validated end-to-end.
+- A 2026-09-22 code review found and fixed 4 more critical/urgent MP bugs: a dead player's action could silently move the host (`VB-16`), the Lua sandbox allowed arbitrary Python execution (`VB-17`), the RNG was a process-global singleton that concurrent games corrupted for each other (`VB-18`), and save/load dropped inventory/equipment/run_type (`VB-19`, single-player-affecting too). 5 more high-priority MP-architecture findings remain open (`VB-20`–`VB-24`) — see `docs/STATUS_DASHBOARD.md`.
+- Treat multiplayer as experimental until the remaining open findings are resolved and a 30+ min co-op session has been validated end-to-end.
 
 **For multiplayer design:** See `docs/design/MULTIPLAYER_DESIGN_2025.md`
 

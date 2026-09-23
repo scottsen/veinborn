@@ -96,17 +96,25 @@ class MultiplayerGameState:
 
         # If this is the first player, initialize GameState with dungeon generation
         if self.game_state is None:
-            # Initialize RNG with seed if provided
-            if self.seed is not None:
-                GameRNG.initialize(self.seed)
-                logger.info(f"Initialized RNG with seed: {self.seed}")
+            # VB-18: construct a dedicated GameRNG instance for THIS game
+            # rather than calling GameRNG.initialize(), which reassigns the
+            # process-global singleton. Two multiplayer games starting
+            # concurrently on the same server used to share (and each
+            # re-seed) that one singleton, corrupting each other's
+            # in-flight combat/loot/dungeon-gen randomness. This instance
+            # is threaded explicitly through dungeon_map.rng/state.rng
+            # instead, so it's never affected by another game's setup.
+            game_rng = GameRNG(self.seed)
+            logger.info(f"Initialized dedicated RNG with seed: {self.seed}")
 
             # Create temporary player entity at (0, 0) to initialize GameState
             temp_player = Player(name=player_name, x=0, y=0)
             self.game_state = GameState(
                 player=temp_player,
+                dungeon_map=Map(rng=game_rng),
                 seed=self.seed,
                 player_name=player_name,
+                rng=game_rng,
             )
 
             # Generate spawn positions for all potential players
@@ -147,10 +155,12 @@ class MultiplayerGameState:
         if player_index == 0:
             # First player uses "player" as ID and replaces the temp player
             entity_id = "player"
+            player_entity.entity_id = entity_id
             self.game_state.player = player_entity
         else:
             # Additional players get unique IDs
             entity_id = f"player_{player_id[:8]}"
+            player_entity.entity_id = entity_id
             # Add to entities dict
             self.game_state.entities[entity_id] = player_entity
 
@@ -459,6 +469,9 @@ class MultiplayerGameState:
             width=self.config.game_constants['map']['default_width'],
             height=self.config.game_constants['map']['default_height'],
             config=self.config,
+            # VB-18: reuse this game's own RNG instance, not the
+            # process-global singleton.
+            rng=self.game_state.rng,
         )
 
         self._reposition_players_at_new_floor()

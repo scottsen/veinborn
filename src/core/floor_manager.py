@@ -217,7 +217,12 @@ class FloorManager:
         self.game_state.dungeon_map = Map(
             width=map_width,
             height=map_height,
-            config=self.spawner.config  # Pass config from spawner
+            config=self.spawner.config,  # Pass config from spawner
+            # VB-18: reuse this game's own RNG instance so floor descent
+            # keeps drawing from the same stream, not the process-global
+            # singleton (which a concurrent multiplayer game could have
+            # re-seeded in the meantime).
+            rng=self.game_state.rng,
         )
         logger.debug(
             f"Generated new map: {map_width}x{map_height}"

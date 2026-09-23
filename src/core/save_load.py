@@ -18,7 +18,7 @@ from typing import Optional, Dict, Any, List
 from datetime import datetime
 
 from .game_state import GameState
-from .entities import Player, Monster, OreVein
+from .entities import Player, Monster, OreVein, Forge
 from .base.entity import Entity, EntityType
 from .world import Map, Tile, TileType, Room
 from .rng import GameRNG
@@ -214,11 +214,24 @@ class SaveSystem:
             "game_over": state.game_over,
             "victory": state.victory,
             "player_name": state.player_name,
+            # VB-19: previously dropped -- a loaded legacy run silently
+            # reverted to "pure", changing Legacy Vault eligibility.
+            "run_type": state.run_type,
         }
 
     def _serialize_entity(self, entity: Entity) -> Dict[str, Any]:
-        """Convert Entity to JSON-serializable dict."""
-        return {
+        """Convert Entity to JSON-serializable dict.
+
+        VB-19: this previously dropped inventory, equipped_weapon,
+        equipped_armor, and blocks_movement entirely, and the type-specific
+        fields (OreVein's ore_type/hardness/conductivity/malleability/
+        purity/density, Forge's forge_type) needed by _deserialize_entity to
+        reconstruct the correct subclass with correct data -- without them
+        a loaded ore vein silently reverted to default copper/50-quality
+        stats and a loaded Forge came back as a plain, non-interactable
+        Entity (see VB-19, _deserialize_entity).
+        """
+        data = {
             "entity_id": entity.entity_id,
             "entity_type": entity.entity_type.value,
             "name": entity.name,
@@ -231,10 +244,31 @@ class SaveSystem:
             "stats": entity.stats,
             "is_alive": entity.is_alive,
             "is_active": entity.is_active,
+            "blocks_movement": entity.blocks_movement,
             "content_id": entity.content_id,
             # Specialized fields for different entity types
             "_class": entity.__class__.__name__,
         }
+
+        if isinstance(entity, Player):
+            data["inventory"] = [self._serialize_entity(item) for item in entity.inventory]
+            data["equipped_weapon"] = (
+                self._serialize_entity(entity.equipped_weapon) if entity.equipped_weapon else None
+            )
+            data["equipped_armor"] = (
+                self._serialize_entity(entity.equipped_armor) if entity.equipped_armor else None
+            )
+        elif isinstance(entity, OreVein):
+            data["ore_type"] = entity.ore_type
+            data["hardness"] = entity.hardness
+            data["conductivity"] = entity.conductivity
+            data["malleability"] = entity.malleability
+            data["purity"] = entity.purity
+            data["density"] = entity.density
+        elif isinstance(entity, Forge):
+            data["forge_type"] = entity.forge_type
+
+        return data
 
     def _serialize_map(self, dungeon_map: Map) -> Dict[str, Any]:
         """Convert Map to JSON-serializable dict."""
@@ -266,21 +300,13 @@ class SaveSystem:
 
     def _deserialize_state(self, data: Dict[str, Any]) -> GameState:
         """Convert dict to GameState."""
-        # Deserialize player
-        player_data = data["player"]
-        player = Player(
-            entity_id=player_data["entity_id"],
-            name=player_data["name"],
-            x=player_data["x"],
-            y=player_data["y"],
-            hp=player_data["hp"],
-            max_hp=player_data["max_hp"],
-            attack=player_data["attack"],
-            defense=player_data["defense"],
-        )
-        player.stats = player_data["stats"]
-        player.is_alive = player_data["is_alive"]
-        player.content_id = player_data.get("content_id")
+        # Deserialize player. VB-19: this used to duplicate a stripped-down
+        # copy of _deserialize_entity's Player reconstruction inline here
+        # (missing inventory/equipped_weapon/equipped_armor/blocks_movement
+        # entirely) -- delegate to _deserialize_entity so the primary
+        # player and any player-type entities in state.entities go through
+        # the same, fully correct reconstruction path.
+        player = self._deserialize_entity(data["player"])
 
         # Deserialize entities
         entities = {}
@@ -291,13 +317,18 @@ class SaveSystem:
         # Deserialize map
         dungeon_map = self._deserialize_map(data["dungeon_map"])
 
-        # Restore RNG state
+        # Restore RNG state. VB-18: restore into a dedicated GameRNG
+        # instance for this game (not the process-global singleton) and
+        # thread it through state.rng/dungeon_map.rng explicitly, same as
+        # a freshly-started game -- otherwise a loaded game's continued
+        # play (next floor descent, etc.) would silently fall back to
+        # GameRNG.get_instance(), which a concurrent multiplayer game could
+        # have re-seeded.
+        rng = GameRNG(data.get("seed"))
         if data.get("rng_state"):
-            rng = GameRNG.get_instance()
-            if rng:
-                # Convert from JSON (list) to tuple for setstate
-                rng_state = self._json_to_rng_state(data["rng_state"])
-                rng.setstate(rng_state)
+            rng_state = self._json_to_rng_state(data["rng_state"])
+            rng.setstate(rng_state)
+        dungeon_map.rng = rng
 
         # Create game state
         state = GameState(
@@ -308,20 +339,35 @@ class SaveSystem:
             current_floor=data["current_floor"],
             seed=data.get("seed"),
             rng_state=data.get("rng_state"),
+            rng=rng,
             messages=data["messages"],
             game_over=data["game_over"],
             victory=data["victory"],
             player_name=data["player_name"],
+            # VB-19: previously dropped -- see _serialize_state.
+            run_type=data.get("run_type", "pure"),
         )
 
         return state
 
     def _deserialize_entity(self, data: Dict[str, Any]) -> Entity:
-        """Convert dict to Entity (or subclass)."""
+        """Convert dict to Entity (or subclass).
+
+        VB-19: previously every branch here only passed the base Entity
+        fields to the constructor, so OreVein-specific properties
+        (ore_type/hardness/conductivity/malleability/purity/density) and
+        Forge's forge_type were never restored -- a loaded ore vein's
+        __post_init__ would re-derive its name/mining-time from default
+        field values ("copper", hardness=50) regardless of what was
+        actually mined, and Forge had no branch at all so it silently fell
+        through to the generic Entity case, becoming a plain,
+        non-interactable object.
+        """
         entity_type = EntityType(data["entity_type"])
         entity_class = data.get("_class", "Entity")
 
-        # Create appropriate entity class
+        # Create appropriate entity class, passing type-specific
+        # constructor fields so __post_init__ derives correct data.
         if entity_class == "Player":
             entity = Player(
                 entity_id=data["entity_id"],
@@ -347,9 +393,21 @@ class SaveSystem:
         elif entity_class == "OreVein":
             entity = OreVein(
                 entity_id=data["entity_id"],
-                name=data["name"],
                 x=data["x"],
                 y=data["y"],
+                ore_type=data.get("ore_type", "copper"),
+                hardness=data.get("hardness", 50),
+                conductivity=data.get("conductivity", 50),
+                malleability=data.get("malleability", 50),
+                purity=data.get("purity", 50),
+                density=data.get("density", 50),
+            )
+        elif entity_class == "Forge":
+            entity = Forge(
+                entity_id=data["entity_id"],
+                x=data["x"],
+                y=data["y"],
+                forge_type=data.get("forge_type", "basic_forge"),
             )
         else:
             # Generic entity
@@ -370,6 +428,24 @@ class SaveSystem:
         entity.is_alive = data["is_alive"]
         entity.is_active = data["is_active"]
         entity.content_id = data.get("content_id")
+        # VB-19: previously dropped -- affects collision after reload.
+        if "blocks_movement" in data:
+            entity.blocks_movement = data["blocks_movement"]
+
+        # VB-19: previously dropped entirely -- a loaded player's inventory
+        # and equipped gear vanished.
+        if isinstance(entity, Player):
+            entity.inventory = [
+                self._deserialize_entity(item_data) for item_data in data.get("inventory", [])
+            ]
+            entity.equipped_weapon = (
+                self._deserialize_entity(data["equipped_weapon"])
+                if data.get("equipped_weapon") else None
+            )
+            entity.equipped_armor = (
+                self._deserialize_entity(data["equipped_armor"])
+                if data.get("equipped_armor") else None
+            )
 
         return entity
 

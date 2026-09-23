@@ -82,9 +82,15 @@ class AttackAction(Action):
         return outcome
 
     def _get_attacker_and_target(self, context: GameContext):
-        """Get attacker and target entities."""
-        actor = context.get_entity(self.actor_id) or context.get_player()
-        target = context.get_entity(self.target_id) or context.get_player()
+        """Get attacker and target entities.
+
+        Only called after validate() has already confirmed both exist, so
+        this is a plain lookup -- it must not fall back to the local player
+        for a missing target (VB-16: that would redirect a swing at a
+        dead/despawned target onto the host).
+        """
+        actor = self._get_actor(context)
+        target = context.get_entity(self.target_id)
         return actor, target
 
     def _log_attack_start(self, actor, target):

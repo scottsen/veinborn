@@ -132,6 +132,48 @@ class TestSandboxRestrictions:
         with pytest.raises(lupa.LuaError):
             runtime.execute_script("return require('socket')")
 
+    def test_python_eval_blocked(self):
+        """VB-17: python.eval() previously let Lua scripts run arbitrary
+        Python. Reproduced: execute_script("return python.eval('__import__
+        (\\"os\\").getcwd()')") returned the real process working
+        directory. register_eval=False on the LuaRuntime closes this."""
+        runtime = LuaRuntime()
+        with pytest.raises(lupa.LuaError):
+            runtime.execute_script(
+                "return python.eval('__import__(\"os\").getcwd()')"
+            )
+
+    def test_python_builtins_blocked(self):
+        """VB-17: register_builtins=False -- python.builtins.* must not be
+        reachable (with register_builtins=False the 'builtins' key is
+        simply absent from the python table, so Lua sees a plain nil
+        rather than raising)."""
+        runtime = LuaRuntime()
+        assert runtime.execute_script("return python.builtins") is None
+
+    def test_dunder_attribute_access_blocked(self):
+        """VB-17: register_eval/register_builtins alone don't close the
+        sandbox -- any Python object or bound method handed to Lua (every
+        veinborn.* API function) is still walkable via dunder attributes
+        (obj.__class__.__base__.__subclasses__() is a standard Python
+        sandbox-escape gadget chain). The attribute_filter must block any
+        underscore-prefixed attribute while still allowing normal calls.
+        The filter raises a raw AttributeError, which lupa propagates
+        as-is rather than wrapping into a LuaError."""
+        runtime = LuaRuntime()
+
+        class Probe:
+            def greet(self):
+                return "hi"
+
+        runtime.set_global("probe", Probe())
+
+        with pytest.raises(AttributeError):
+            runtime.execute_script("return probe.__class__")
+
+        # Legitimate (non-underscore) method calls must still work.
+        assert runtime.execute_script("return probe:greet()") == "hi"
+
 
 class TestAllowedLibraries:
     """Test that safe libraries are allowed."""
@@ -316,10 +358,14 @@ class TestSyntaxValidation:
 class TestTimeoutProtection:
     """Test timeout protection for long-running scripts."""
 
-    @pytest.mark.skip(reason="Signal-based timeout doesn't work reliably with lupa's C-level execution")
     def test_infinite_loop_timeout(self):
-        """Test that infinite loops are terminated."""
-        runtime = LuaRuntime(default_timeout=1.0)
+        """VB-17: previously skipped -- signal-based timeout couldn't
+        interrupt a tight Lua loop making no calls back into Python
+        (CPython only services pending signals between its own bytecode
+        instructions, which never happens while lupa is deep in a pure-C
+        Lua VM loop). Fixed via a debug.sethook() instruction-count hook,
+        which fires regardless of what the Lua VM is doing."""
+        runtime = LuaRuntime(default_timeout=0.5)
         with pytest.raises((LuaTimeoutError, lupa.LuaError)):
             runtime.execute_script("""
                 while true do
@@ -327,10 +373,9 @@ class TestTimeoutProtection:
                 end
             """)
 
-    @pytest.mark.skip(reason="Signal-based timeout doesn't work reliably with lupa's C-level execution")
     def test_long_computation_timeout(self):
-        """Test that long computations are terminated."""
-        runtime = LuaRuntime(default_timeout=1.0)
+        """VB-17: see test_infinite_loop_timeout."""
+        runtime = LuaRuntime(default_timeout=0.5)
         with pytest.raises((LuaTimeoutError, lupa.LuaError)):
             runtime.execute_script("""
                 local sum = 0
@@ -338,6 +383,21 @@ class TestTimeoutProtection:
                     sum = sum + i
                 end
                 return sum
+            """)
+
+    def test_timeout_survives_pcall_retry_evasion(self):
+        """VB-17: a script wrapping itself in `while true do pcall(...) end`
+        must not be able to swallow the timeout sentinel and retry forever
+        -- pcall/xpcall are hardened in _setup_sandbox() to detect and
+        re-raise it."""
+        runtime = LuaRuntime(default_timeout=0.5)
+        with pytest.raises((LuaTimeoutError, lupa.LuaError)):
+            runtime.execute_script("""
+                while true do
+                    pcall(function()
+                        while true do end
+                    end)
+                end
             """)
 
     def test_quick_execution_no_timeout(self):

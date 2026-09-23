@@ -79,6 +79,10 @@ class GameBootstrapper:
             player=player,
             dungeon_map=dungeon_map,
             seed=seed,
+            # VB-18: share the map's own RNG instance rather than defaulting
+            # to the process-global singleton -- dungeon_map was already
+            # constructed with the game's dedicated GameRNG.
+            rng=dungeon_map.rng,
         )
         state.player_name = player_name or "Anonymous"
         state.run_type = "legacy" if is_legacy_run else "pure"

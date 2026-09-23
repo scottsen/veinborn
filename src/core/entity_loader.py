@@ -245,6 +245,7 @@ class EntityLoader:
         x: int,
         y: int,
         floor: int = 1,
+        rng: Optional[GameRNG] = None,
     ) -> OreVein:
         """
         Create an ore vein instance from YAML definition.
@@ -255,6 +256,12 @@ class EntityLoader:
             ore_type: Ore type ID (e.g., "copper", "iron", "mithril")
             x, y: Position coordinates
             floor: Floor number (used for jackpot calculation)
+            rng: RNG instance to use (VB-18: pass the owning map's own
+                 instance -- e.g. dungeon_map.rng -- rather than relying on
+                 the process-global singleton, so concurrent multiplayer
+                 games can't stomp each other's randomness). Falls back to
+                 the global singleton only when not given, for callers
+                 (deprecated paths, tests) that don't have a map handy.
 
         Returns:
             OreVein instance with randomized properties
@@ -281,7 +288,7 @@ class EntityLoader:
         # OLD CODE: generation_data = self._load_yaml("ores.yaml").get("generation", {})
         jackpot_config = self.ore_generation_config.get("jackpot", {})
         jackpot_chance = jackpot_config.get("chance", 0.05)
-        rng = GameRNG.get_instance()
+        rng = rng or GameRNG.get_instance()
         is_jackpot = rng.random() < jackpot_chance
 
         if is_jackpot:

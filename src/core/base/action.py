@@ -133,10 +133,13 @@ class Action(ABC):
         """
         Get actor entity (simple lookup, no validation).
 
-        This helper eliminates the common boilerplate pattern:
-            actor = context.get_entity(self.actor_id)
-            if not actor:
-                actor = context.get_player()
+        Looks up self.actor_id in the entities dict first. Only falls back to
+        context.get_player() when self.actor_id genuinely IS the local/host
+        player's own id (the host is not stored in the entities dict, so a
+        direct lookup for it always misses). Any other actor_id that fails to
+        resolve (e.g. a multiplayer guest who died and was purged from
+        entities this round) is treated as not found rather than silently
+        redirected to the host -- see VB-16.
 
         Use this when you need the actor but will do custom validation.
         For standard validation (is_alive check), use _get_and_validate_actor().
@@ -146,29 +149,23 @@ class Action(ABC):
         """
         actor = context.get_entity(self.actor_id)
         if not actor:
-            actor = context.get_player()
+            player = context.get_player()
+            if player is not None and player.entity_id == self.actor_id:
+                actor = player
         return actor
 
     def _get_and_validate_actor(self, context: 'GameContext') -> Optional['Entity']:
         """
         Get actor entity and perform basic validation.
 
-        This helper eliminates the common boilerplate pattern:
-            actor = context.get_entity(self.actor_id) or context.get_player()
-            if not actor:
-                logger.warning(...)
-                return False
-            if not actor.is_alive:
-                logger.warning(...)
-                return False
+        See _get_actor() for the actor-resolution rules (in particular, why
+        this no longer blindly falls back to the local player for any unknown
+        actor_id -- VB-16).
 
         Returns:
             Entity if valid, None if validation fails
         """
-        # Try to get from entities dict first, then fall back to player
-        actor = context.get_entity(self.actor_id)
-        if not actor:
-            actor = context.get_player()
+        actor = self._get_actor(context)
 
         if not actor:
             self._log_validation_failure("actor not found")

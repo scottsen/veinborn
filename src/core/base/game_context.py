@@ -217,6 +217,20 @@ class GameContext:
         self.systems[name] = system
         logger.info(f"System registered: {name}")
 
+    # Randomness
+    def get_rng(self):
+        """Get this game's own RNG instance.
+
+        VB-18: prefer this over GameRNG.get_instance() anywhere a
+        GameContext is available -- the process-global singleton is shared
+        by every concurrent multiplayer game and gets re-seeded whenever a
+        new one starts, silently corrupting any other game's in-flight
+        randomness. Falls back to the singleton only for game states built
+        before this field existed.
+        """
+        from ..rng import GameRNG
+        return self.game_state.rng or GameRNG.get_instance()
+
     # Message log
     def add_message(self, message: str) -> None:
         """Add message to game log."""

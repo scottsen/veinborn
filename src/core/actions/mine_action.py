@@ -75,11 +75,6 @@ class MineAction(Action):
         else:
             return self._handle_mining_completion(context, actor, ore_vein)
 
-    def _get_actor(self, context: GameContext):
-        """Get the actor performing the mining action."""
-        actor = context.get_entity(self.actor_id)
-        return actor if actor else context.get_player()
-
     def _initialize_mining(self, actor, ore_vein):
         """Initialize mining on first turn."""
         mining_turns = ore_vein.get_stat('mining_turns', 3)

@@ -408,23 +408,34 @@ def test_serialization_roundtrip():
 
 @pytest.mark.unit
 def test_get_actor_fallback_to_player(mining_context, copper_ore):
-    """If actor_id is invalid, _get_actor falls back to player."""
+    """VB-16: an actor_id that resolves to nothing must NOT silently fall
+    back to the local player -- that fallback let a dead/despawned
+    multiplayer actor's action move/act as the host. The only legitimate
+    fallback is when actor_id genuinely IS the player's own entity_id
+    (which isn't stored in the entities dict), not any unresolved id."""
     player = mining_context.get_player()
     copper_ore.x = player.x + 1
     copper_ore.y = player.y
 
-    # Use invalid actor_id - should fall back to player
+    # Use an actor_id that belongs to nobody - should fail, not resolve to player
     action = MineAction(
         actor_id="nonexistent_actor",
         ore_vein_id=copper_ore.entity_id,
         turns_remaining=1
     )
 
-    # This should still work by falling back to player
     outcome = action.execute(mining_context)
 
-    # Should succeed because it fell back to player
-    assert outcome.is_success
+    assert not outcome.is_success
+
+    # The legitimate fallback: actor_id IS the player's own id.
+    player_action = MineAction(
+        actor_id=player.entity_id,
+        ore_vein_id=copper_ore.entity_id,
+        turns_remaining=1
+    )
+    player_outcome = player_action.execute(mining_context)
+    assert player_outcome.is_success
 
 
 @pytest.mark.unit

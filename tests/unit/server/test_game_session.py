@@ -462,6 +462,40 @@ async def test_process_action_descend_floor_advances_floor():
     assert mp_state.game_state.current_floor == 2
 
 
+@pytest.mark.asyncio
+async def test_process_action_dead_guest_does_not_redirect_to_host():
+    """VB-16: a dead multiplayer guest is purged from entities each round
+    (GameState.cleanup_dead_entities). Action._get_actor() previously fell
+    back to context.get_player() for ANY unresolved actor_id, so submitting
+    the dead guest's own entity_id afterward silently moved/acted as the
+    host instead of failing. Reproduced: kill player2, purge dead entities,
+    then send a MoveAction for player2's entity_id -- the host must not
+    move and the action must fail."""
+    from core.actions.move_action import MoveAction
+
+    game = GameSession("game1", "Test Game", max_players=4)
+    await game.add_player("player1", "Alice", "warrior")
+    await game.add_player("player2", "Bob", "rogue")
+    await game.start_game(seed=42)
+
+    mp_state = game.mp_game_state
+    host = mp_state.game_state.player
+    host_pos = (host.x, host.y)
+
+    guest_entity_id = mp_state.get_player_entity_id("player2")
+    guest = mp_state.game_state.entities[guest_entity_id]
+    guest.is_alive = False
+    guest.hp = 0
+    mp_state.game_state.cleanup_dead_entities()
+    assert guest_entity_id not in mp_state.game_state.entities
+
+    action = MoveAction(actor_id=guest_entity_id, dx=1, dy=0)
+    success, error = await game.process_action("player2", action)
+
+    assert not success, "dead guest's action must not silently succeed as the host"
+    assert (host.x, host.y) == host_pos, "host must not move on another player's behalf"
+
+
 # ============================================================================
 # GameSessionManager Tests
 # ============================================================================

@@ -77,12 +77,21 @@ class Room:
 
 class Map:
     """Game map with BSP generation."""
-    def __init__(self, width: int = 80, height: int = 24, config=None):
+    def __init__(self, width: int = 80, height: int = 24, config=None, rng: Optional[GameRNG] = None):
         self.width = width
         self.height = height
         self.tiles = [[Tile() for _ in range(height)] for _ in range(width)]
         self.rooms: List[Room] = []
         self.config = config  # GameConfig for spawning rules
+
+        # VB-18: each Map holds its own RNG instance rather than every
+        # generation method reaching for the process-global
+        # GameRNG.get_instance() singleton. Defaults to the current global
+        # instance when not given, so single-player/tests that don't pass
+        # one explicitly are unaffected -- but multiplayer now constructs a
+        # dedicated GameRNG per game and passes it in here, so two
+        # concurrent games no longer share (and can't stomp) one stream.
+        self.rng: GameRNG = rng or GameRNG.get_instance()
 
         # PERFORMANCE: Cache stairs positions (searched 1,290x per game!)
         self._stairs_down_cache: Optional[Tuple[int, int]] = None
@@ -147,7 +156,7 @@ class Map:
             split_ratio_max = 0.67
 
         # Decide split direction
-        rng = GameRNG.get_instance()
+        rng = self.rng
         split_horizontal = rng.choice([True, False])
         if node.width > node.height * aspect_ratio_threshold:
             split_horizontal = False
@@ -194,7 +203,7 @@ class Map:
                 min_room_size = 4
 
             # Ensure valid range for room dimensions
-            rng = GameRNG.get_instance()
+            rng = self.rng
             max_width = max(min_room_size, node.width - (padding * 2))
             max_height = max(min_room_size, node.height - (padding * 2))
 
@@ -271,7 +280,7 @@ class Map:
             direction_prob = 0.5  # Fallback to hardcoded default
 
         # Create L-shaped corridor
-        rng = GameRNG.get_instance()
+        rng = self.rng
         horizontal_first = rng.random() < direction_prob
         self._create_l_corridor(node, left_room.center, right_room.center, horizontal_first)
 

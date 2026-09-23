@@ -1,6 +1,6 @@
 # Veinborn Status Dashboard 🎯
 
-**Last Updated:** 2026-04-17 (validated against code & tests; see `PROJECT_REVIEW_2026-04-17.md`)
+**Last Updated:** 2026-09-22 (full code review + urgent-fix pass; see `TASKS.md` `VB-16`–`VB-32`)
 **Quick View:** One-page status overview
 
 ---
@@ -9,13 +9,13 @@
 
 | Category | Status | Details |
 |----------|--------|---------|
-| **Single-Player core** | 🟢 Healthy | All tests pass; action factory drift fixed (0449d66) |
-| **Multiplayer** | 🟡 Server tests green, playtest pending | `WaitAction` created, `GameSession` uses `GameContext`, lock-reentrancy deadlock fixed, leave-game semantics unified (0449d66 + 33d72f7). No real two-client playtest yet. |
-| **Test Health** | ✅ Green | 1067 collected: 1065 passing / 0 failing / 2 skipped (verified 2026-04-17 after commit 33d72f7) |
-| **Current Phase** | 🎮 MP playtest + polish | Run real two-client session to validate end-to-end; continue SP polish |
-| **Playability** | ✅ SP playable / 🟡 MP ready for playtest | |
+| **Single-Player core** | 🟢 Healthy | All tests pass |
+| **Multiplayer** | 🟡 4 critical/urgent bugs fixed 2026-09-22, playtest still pending | Dead-actor action redirect (`VB-16`), Lua sandbox RCE (`VB-17`), process-global RNG cross-contamination (`VB-18`), and save/load data loss (`VB-19`) all fixed and test-covered this session. Still no real two-client playtest, and 5 more high/medium multiplayer-architecture findings remain open (`VB-20`–`VB-27`) — see Known Issues. |
+| **Test Health** | ✅ Green | 1109 collected: 1109 passing / 0 failing / 0 skipped (verified 2026-09-22) — up from 1067/1065/0/2 baseline; the 2 previously-skipped Lua timeout tests now genuinely pass (see `VB-17`) |
+| **Current Phase** | 🎮 MP hardening + playtest | Work through remaining `VB-20`–`VB-27` multiplayer findings before the first real two-client playtest |
+| **Playability** | ✅ SP playable / 🟡 MP no longer has known exploitable bugs, still unplaytested | |
 
-See `docs/PROJECT_REVIEW_2026-04-17.md` for full evidence.
+See `docs/PROJECT_REVIEW_2026-04-17.md` for the last full architecture audit, and `TASKS.md` for the 2026-09-22 review's findings (`VB-16` onward).
 
 **Codebase Stats:**
 - **114+ Python files**
@@ -192,10 +192,23 @@ python3 src/server/test_client.py
 | ~~`lua_action.py`'s `_table_to_outcome` had 4 nested try/except + 2 manual loops~~ | ~~🟢 Low~~ | ✅ Fixed — `VB-15` (`c29e702`) |
 | ~~`game_session.py` was a 775-line, 4-class file~~ | ~~🟢 Low~~ | ✅ Fixed — `VB-12` (`6a842fc`) |
 | ~~`Game` god-object mixed bootstrap/event-wiring/Lua/orchestration/persistence~~ | ~~🟢 Low~~ | ✅ Fixed — `VB-11` (`891873e`) |
-| 2 skipped Lua timeout tests | 🟡 Low | C-level execution limitation (acceptable) |
+| ~~2 skipped Lua timeout tests~~ | ~~🟡 Low~~ | ✅ Fixed — `VB-17`: signal-based timeout genuinely could not interrupt a tight Lua loop; replaced with a `debug.sethook` instruction-count hook. Both tests now pass for real. |
+| ~~Dead multiplayer player's actions silently moved the host's character~~ | ~~🔴 Critical~~ | ✅ Fixed — `VB-16` |
+| ~~Lua sandbox exposed `python.eval` + dunder-attribute walk (RCE)~~ | ~~🔴 Critical~~ | ✅ Fixed — `VB-17` |
+| ~~Process-global RNG singleton cross-contaminated concurrent MP games~~ | ~~🔴 Critical~~ | ✅ Fixed — `VB-18` |
+| ~~Save/load dropped inventory, equipment, run_type; Forge→plain Entity~~ | ~~🔴 Critical~~ | ✅ Fixed — `VB-19` |
+| Multiplayer chat/message log stops syncing after 20 messages | 🟠 High | Open — `VB-20` |
+| Server/core action registries drifted (Pickup, Lua actions broken in MP) | 🟠 High | Open — `VB-21` |
+| Reconnect race can strand a player (inputs rejected, outputs dropped) | 🟠 High | Open — `VB-22` |
+| Players stored 3 different ways (root cause pattern behind `VB-16`) | 🟠 High | Open — `VB-23` |
+| SP/MP run separate post-action pipelines (MP misses EventBus/regen) | 🟠 High | Open — `VB-24` |
+| Floor progression duplicated between `FloorManager` and MP game state | 🟡 Medium | Open — `VB-25` |
+| `state_delta.apply_delta` highest-complexity fn, no seq numbers | 🟡 Medium | Open — `VB-26` |
+| `cleanup_task` busy-loops with no backoff on repeated errors | 🟡 Medium | Open — `VB-27` |
+| `PickupAction` has zero test coverage | 🟡 Medium | Open — `VB-28` |
 | No tutorial for new players | 🟢 Low | Planned for Phase 3 |
 
-**Critical and high-priority issues:** 0 open — `VB-1` through `VB-15` all fixed. The `tt` tracker (`TASKS.md`) has no open items as of 2026-08-05.
+**Critical and urgent issues:** 0 open — `VB-1` through `VB-19` all fixed (`VB-16`–`VB-19` fixed 2026-09-22). **5 high-priority multiplayer-architecture findings remain open** (`VB-20`–`VB-24`), plus 4 medium (`VB-25`–`VB-28`) and 4 low (`VB-29`–`VB-32`) — see `tt list --project veinborn` / `TASKS.md`.
 
 ---
 
@@ -227,9 +240,11 @@ python3 src/server/test_client.py
 
 ---
 
-**🎯 TL;DR (2026-08-05):** The floor 11+ crash (`VB-1`), multiplayer reconnection (`VB-2`), and multiplayer state sync (`VB-4`) are all fixed and test-covered. `VB-4` turned out deeper than "sync forgot to include it" — multiplayer never spawned monsters or handled floor descent at all; both are now implemented, with `StateDelta` diffing floor/monster/map changes and `MultiplayerClient` actually merging deltas client-side. All medium-priority follow-ups are also now fixed: stale doc references (`VB-6`), the ore-scarcity doc error (`VB-7`), and the triplicated Bresenham line-of-sight helper (`VB-9`). All low-priority items are now done too: `VB-14` (silent exception swallow now logged, version string synced, 33 dead/duplicate imports removed), `VB-8` (stale `PROJECT_STATUS.md` archived), `VB-13` (`Map`'s spawn/placement policy moved to `src/core/spawning/spawn_policy.py`), `VB-15` (`lua_table_get`/`lua_array_to_list` helpers replace `lua_action.py`'s nested try/except chain), `VB-12` (`game_session.py` split into a `player_info.py`/`session.py`/`manager.py` package), and `VB-11` (`Game` split into `GameBootstrapper` + `GameLuaIntegration` collaborators, `game.py` 584→362 lines). The `tt` tracker (`TASKS.md`) has zero open items — all 15 findings from the 2026-08-04 code review are resolved.
+**🎯 TL;DR (2026-08-05):** The floor 11+ crash (`VB-1`), multiplayer reconnection (`VB-2`), and multiplayer state sync (`VB-4`) are all fixed and test-covered. `VB-4` turned out deeper than "sync forgot to include it" — multiplayer never spawned monsters or handled floor descent at all; both are now implemented, with `StateDelta` diffing floor/monster/map changes and `MultiplayerClient` actually merging deltas client-side. All medium-priority follow-ups are also now fixed: stale doc references (`VB-6`), the ore-scarcity doc error (`VB-7`), and the triplicated Bresenham line-of-sight helper (`VB-9`). All low-priority items are now done too: `VB-14` (silent exception swallow now logged, version string synced, 33 dead/duplicate imports removed), `VB-8` (stale `PROJECT_STATUS.md` archived), `VB-13` (`Map`'s spawn/placement policy moved to `src/core/spawning/spawn_policy.py`), `VB-15` (`lua_table_get`/`lua_array_to_list` helpers replace `lua_action.py`'s nested try/except chain), `VB-12` (`game_session.py` split into a `player_info.py`/`session.py`/`manager.py` package), and `VB-11` (`Game` split into `GameBootstrapper` + `GameLuaIntegration` collaborators, `game.py` 584→362 lines). The `tt` tracker (`TASKS.md`) had zero open items until the 2026-09-22 review below.
+
+**🎯 TL;DR (2026-09-22):** A full code review (bug hunt + code quality + architecture, 3 parallel passes) found 17 new issues, filed as `VB-16`–`VB-32`. The 4 urgent/critical ones are now fixed and test-covered: `VB-16` (a dead multiplayer guest's action silently redirected onto the host — `Action._get_actor()`'s fallback to `context.get_player()` fired for ANY unresolved actor, not just the local player; also fixed the same pattern in `attack_action.py`'s target lookup), `VB-17` (Lua sandbox let scripts call `python.eval()` directly, and separately let any Python object handed to Lua be walked via `.__class__`/`.__globals__` dunder attributes — both closed; also discovered the existing signal-based script timeout couldn't interrupt a tight `while true do end` loop at all, confirmed by a 300s hang, and replaced it with a `debug.sethook` instruction-count hook hardened against `pcall`-retry evasion), `VB-18` (`GameRNG` was a process-global singleton that `multiplayer_game_state.add_player()` reseeded on every new game, silently corrupting any other concurrent game's randomness — now each game gets its own `GameRNG` instance threaded through `Map.rng`/`GameState.rng`/`GameContext.get_rng()`), and `VB-19` (save/load dropped inventory, equipped gear, `run_type`, and reconstructed `Forge` as a plain non-interactable `Entity` — plus a second bug found mid-fix: `_deserialize_state` had its own separate, more-stripped-down inline player reconstruction that didn't even go through the entity deserializer). Test suite grew from 1067 to 1109 (all passing, 0 skipped — the 2 previously-skipped Lua timeout tests now genuinely pass). **5 high-priority multiplayer-architecture findings remain open** (`VB-20`–`VB-24`) — notably `VB-23`/`VB-24` describe the structural root cause (players stored 3 different ways; single-player and multiplayer run separate post-action pipelines) that produced `VB-16` and will keep producing similar bugs until fixed.
 
 ---
 
-**Last Updated:** 2026-08-05
-**Next Update:** When new work is filed via `tt add --project veinborn` (no open items as of this update)
+**Last Updated:** 2026-09-22
+**Next Update:** When `VB-20` onward are picked up, or new work is filed via `tt add --project veinborn`
