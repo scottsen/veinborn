@@ -13,22 +13,25 @@ A terminal roguelike (NetHack-style) in Python with:
 - **Single-player core** — mining, crafting, dungeon exploration (working, playable)
 - **Textual UI** — the live client (`src/ui/textual/app.py`)
 - **Multiplayer (in-progress)** — WebSocket-based server (`src/server/`) with `GameSession`, reconnection, chat; design in `docs/design/MULTIPLAYER_DESIGN_2025.md`
-- **Lua scripting** — event-driven modding (`src/scripting/`)
+- **Lua scripting** — event-driven modding (`src/core/scripting/`, `src/core/events/`)
 - **YAML-driven content** — recipes, monsters, ores
 
-**Verified test state (2026-04-17):** 1065 passing / 0 failing / 2 skipped (after commit 33d72f7 closed async-cleanup and lock-reentrancy bugs).
+**Verified test state (2026-09-23):** 1170 passing / 0 failing / 0 skipped (`python3 -m pytest tests/ -q`).
 
 ## Key Subsystems
 
 | Area | Home | Notes |
 |------|------|-------|
-| Game loop / turn engine | `src/core/game.py` | Owns event bus, Lua runtime, telemetry, floor manager, save-load |
+| Game loop / turn engine | `src/core/game.py` | Owns event bus, Lua runtime, telemetry, floor manager, save-load; assembled by `GameBootstrapper` (`game_bootstrap.py`) and `GameLuaIntegration` (`game_lua_integration.py`) |
+| Post-action pipeline | `src/core/action_pipeline.py` | `process_action_outcome()` — log failures, publish events, react to `descend_floor`, record messages. Shared by single-player `Game` and multiplayer `GameSession` |
+| Turn processing | `src/core/turn_processor.py` | Single-player only today: HP regen, monster AI, cleanup, game over / high score |
+| Floors | `src/core/floor_manager.py` + `EntitySpawner.spawn_all_for_floor` | Shared helpers (`generate_floor_map`, `get_victory_floor`, `GameState.clear_floor_entities`) are used by both modes |
 | Actions | `src/core/actions/` | `Action.validate(ctx) / execute(ctx) → ActionOutcome` — always passed a `GameContext`, not raw `GameState` |
 | Game state | `src/core/game_state.py` + `GameContext` facade | Actions see `GameContext`; `GameState` is the underlying store |
 | UI | `src/ui/textual/` | Bindings live in `app.py` — source of truth for keybinds |
 | Multiplayer server | `src/server/` | `GameSession`, `WebSocketServer`, reconnection, chat |
-| Scripting | `src/scripting/` | Lua event handlers |
-| Content | `data/` + `src/content/entity_loader.py` | Monsters, ores, recipes |
+| Scripting | `src/core/scripting/` | Lua runtime and context API; event handlers in `src/core/events/` |
+| Content | `data/` + `src/core/entity_loader.py` | Monsters, ores, recipes |
 
 ## Canonical Design Docs
 
@@ -58,32 +61,27 @@ Earlier phases framed this as "MVP single-player only, multiplayer is future wor
 
 ### Current Game Loop
 
+The loop is driven by the UI; `Game` owns no input loop of its own. One player action flows like this:
+
 ```python
 # src/core/game.py (simplified)
-class Game:
-    def __init__(self):
-        self.player = Player()
-        self.map = generate_dungeon()
-        self.monsters = spawn_monsters(self.map)
-        self.turn_count = 0
-
-    def run(self):
-        while self.player.is_alive:
-            # 1. Get player input
-            action = self.ui.get_input()
-
-            # 2. Process player action
-            self.handle_player_action(action)
-
-            # 3. Monsters take turns
-            for monster in self.monsters:
-                self.handle_monster_turn(monster)
-
-            # 4. Update UI
-            self.ui.refresh()
-
-            self.turn_count += 1
+def handle_player_action(self, action_type, **kwargs) -> bool:
+    action = self.action_factory.create(action_type, **kwargs)
+    outcome = action.execute(self.context)          # GameContext, not raw GameState
+    took_turn = process_action_outcome(             # src/core/action_pipeline.py
+        outcome, action_type,
+        add_message=self.state.add_message,
+        on_descend_floor=self.descend_floor,        # -> FloorManager
+        event_bus=self.event_bus,
+    )
+    if took_turn:
+        self.turn_processor.process_turn()          # HP regen, monster AI, cleanup, game over
+    return took_turn
 ```
+
+Multiplayer (`src/server/game_session/session.py`) runs the same `process_action_outcome()` per action, but
+counts turn-taking actions toward a per-round quota and runs monsters once per round instead of after every
+action. HP regen and game-over/high-score handling are still single-player-only (see VB-24 in `TASKS.md`).
 
 **Key Characteristics:**
 - ✅ Simple and direct
@@ -99,26 +97,37 @@ class Game:
 ```
 projects/veinborn/
 ├── src/
-│   ├── core/              # Game logic
-│   │   ├── game.py        # Game loop, state management
-│   │   ├── entities.py    # Player, monsters, items
-│   │   ├── world.py       # Map generation (BSP algorithm)
-│   │   ├── recipes.py     # Crafting system (TODO)
-│   │   ├── legacy.py      # Legacy Vault (TODO)
-│   │   └── save.py        # Save/load (TODO)
+│   ├── core/                  # Game logic (no UI, no network)
+│   │   ├── game.py            # Game facade: wires subsystems, handles player actions
+│   │   ├── game_bootstrap.py  # Subsystem construction
+│   │   ├── action_pipeline.py # Post-action handling shared with multiplayer
+│   │   ├── turn_processor.py  # Per-turn regen / AI / game over (single-player)
+│   │   ├── floor_manager.py   # Descent, victory, shared floor helpers
+│   │   ├── game_state.py      # State store (entities is the single entity store)
+│   │   ├── entities.py        # Player, monsters, ore veins, forges
+│   │   ├── world.py           # Map generation (BSP algorithm)
+│   │   ├── actions/           # Move, mine, attack, craft, pickup, ...
+│   │   ├── events/            # EventBus + Lua event handlers
+│   │   ├── scripting/         # Lua runtime and context API
+│   │   ├── spawning/          # EntitySpawner
+│   │   ├── systems/           # AI system and behaviours
+│   │   ├── crafting.py, loot.py, legacy.py, highscore.py, save_load.py
+│   │   └── config/            # YAML config loading
 │   │
+│   ├── server/                # WebSocket multiplayer (GameSession, state deltas, auth)
 │   └── ui/
-│       └── textual/       # Textual UI widgets
-│           ├── app.py
-│           └── widgets/
+│       ├── textual/           # Textual UI (app.py, widgets/)
+│       └── multiplayer_client.py
 │
 ├── data/
-│   ├── recipes/           # Recipe YAML files (TODO)
-│   └── saves/             # Save games (TODO)
+│   ├── entities/              # Monster/ore/item YAML definitions
+│   ├── balance/               # Balance tuning
+│   └── ui/                    # UI layouts
 │
-├── tests/                 # pytest tests
+├── tests/                     # pytest tests (unit/, integration/, fuzz/)
 │
-└── run_textual.py         # Main entry point
+├── run_textual.py             # Single-player entry point
+└── run_multiplayer.py         # Multiplayer entry point
 ```
 
 ---

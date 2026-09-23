@@ -1119,10 +1119,9 @@ class SystemManager:
 
 ---
 
-## 5. GameEvent Base Class 📋 Phase 2
+## 5. GameEvent Base Class ✅ Implemented
 
-**Phase:** Phase 2 (Multiplayer) - Skip for MVP
-**Priority:** MEDIUM (Future)
+**Status:** Implemented as `GameEvent` / `GameEventType` / `EventBus` in `src/core/events/events.py`. The design below is the original proposal and may differ in detail from the code. Known gap: most action events are flat dicts that do not match `GameEvent.from_dict` (see VB-33 in `TASKS.md`).
 
 ### Purpose
 Type-safe event bus messages for decoupled communication.
@@ -1276,10 +1275,9 @@ event_bus.subscribe_lua(GameEventType.ENTITY_DIED, "events/on_monster_died.lua")
 
 ---
 
-## 6. GameContext Class 📋 Phase 2
+## 6. GameContext Class ✅ Implemented
 
-**Phase:** Phase 2 (Multiplayer) - Skip for MVP
-**Priority:** MEDIUM (Future)
+**Status:** Implemented in `src/core/base/game_context.py`; every action receives a `GameContext`, and multiplayer builds one per action. The design below is the original proposal and may differ in detail from the code.
 
 ### Purpose
 Safe, controlled access to game state for systems/Lua.
