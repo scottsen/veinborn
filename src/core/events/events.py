@@ -51,6 +51,7 @@ class GameEventType(Enum):
     ORE_MINED = "ore_mined"
     MINING_STARTED = "mining_started"
     MINING_COMPLETED = "mining_completed"
+    MINING_PROGRESS = "mining_progress"
 
     # Crafting events
     ITEM_CRAFTED = "item_crafted"
@@ -63,10 +64,18 @@ class GameEventType(Enum):
     ITEM_EQUIPPED = "item_equipped"
     ITEM_UNEQUIPPED = "item_unequipped"
     ITEM_USED = "item_used"
+    LOOT_DROPPED = "loot_dropped"
+    PERSONAL_LOOT_DROPPED = "personal_loot_dropped"
+    EQUIPMENT_EQUIPPED = "equipment_equipped"
+    EQUIPMENT_CRAFTED = "equipment_crafted"
 
     # Floor events
+    DESCEND_FLOOR = "descend_floor"
     FLOOR_CHANGED = "floor_changed"
     FLOOR_GENERATED = "floor_generated"
+
+    # Actor events
+    ACTOR_WAITED = "actor_waited"
 
     # Turn events
     TURN_STARTED = "turn_started"
@@ -108,10 +117,22 @@ class GameEvent:
 
     @classmethod
     def from_dict(cls, event_dict: dict) -> 'GameEvent':
-        """Deserialize from dictionary."""
+        """Deserialize from dictionary.
+
+        Accepts both the structured form ({'type', 'data': {...}}) and the flat
+        form actions emit ({'type', 'actor_id': ..., ...}); for the flat form
+        every key except type/timestamp/turn becomes the event's data.
+        """
+        if 'data' in event_dict:
+            data = event_dict['data']
+        else:
+            data = {
+                key: value for key, value in event_dict.items()
+                if key not in ('type', 'timestamp', 'turn')
+            }
         return cls(
             event_type=GameEventType(event_dict['type']),
-            data=event_dict['data'],
+            data=data,
             timestamp=event_dict.get('timestamp', time.time()),
             turn=event_dict.get('turn'),
         )
