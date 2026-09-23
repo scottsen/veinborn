@@ -153,3 +153,126 @@ def test_apply_delta_appends_new_messages_and_advances_message_count():
     assert merged["recent_messages"][-3:] == ["msg-20", "msg-21", "msg-22"]
     assert len(merged["recent_messages"]) == 20
     assert merged["message_count"] == 23
+
+
+# --- apply_delta characterization (VB-26) -----------------------------------
+
+import copy
+
+
+def _player(player_id, hp=10, x=0, y=0):
+    return {"player_id": player_id, "name": player_id.title(), "hp": hp, "x": x, "y": y}
+
+
+def _delta(changes=None, **counters):
+    return {"type": "delta", "changes": changes or {}, **counters}
+
+
+def test_apply_delta_full_replaces_state():
+    fresh = _base_state(floor=3)
+    assert StateDelta.apply_delta(_base_state(), {"type": "full", "state": fresh}) is fresh
+
+
+def test_apply_delta_no_changes_returns_current_state():
+    state = _base_state()
+    assert StateDelta.apply_delta(state, {"type": "delta", "no_changes": True}) is state
+
+
+def test_apply_delta_advances_counters():
+    merged = StateDelta.apply_delta(
+        _base_state(),
+        _delta(turn_count=7, round_number=2, actions_this_round=3, message_count=9),
+    )
+    assert (merged["turn_count"], merged["round_number"]) == (7, 2)
+    assert (merged["actions_this_round"], merged["message_count"]) == (3, 9)
+
+
+def test_apply_delta_player_added_updated_removed():
+    state = _base_state()
+    state["players"] = [_player("a", hp=10), _player("b", hp=10)]
+    delta = _delta({"players": [
+        {"type": "player_added", "player": _player("c")},
+        {"type": "player_updated", "player_id": "a", "changes": {"hp": 4, "x": 5}},
+        {"type": "player_removed", "player_id": "b"},
+    ]})
+
+    merged = StateDelta.apply_delta(state, delta)
+
+    by_id = {p["player_id"]: p for p in merged["players"]}
+    assert set(by_id) == {"a", "c"}
+    assert (by_id["a"]["hp"], by_id["a"]["x"]) == (4, 5)
+
+
+def test_apply_delta_ignores_updates_and_removals_for_unknown_ids():
+    state = _base_state(monsters=[_monster("m1")])
+    state["players"] = [_player("a")]
+    delta = _delta({
+        "players": [
+            {"type": "player_updated", "player_id": "ghost", "changes": {"hp": 1}},
+            {"type": "player_removed", "player_id": "ghost"},
+        ],
+        "monsters": [
+            {"type": "entity_updated", "entity_id": "ghost", "changes": {"hp": 1}},
+            {"type": "entity_removed", "entity_id": "ghost"},
+        ],
+    })
+
+    merged = StateDelta.apply_delta(state, delta)
+
+    assert [p["player_id"] for p in merged["players"]] == ["a"]
+    assert [m["entity_id"] for m in merged["monsters"]] == ["m1"]
+
+
+def test_apply_delta_monster_added_updated_removed():
+    state = _base_state(monsters=[_monster("m1", hp=10), _monster("m2")])
+    delta = _delta({"monsters": [
+        {"type": "entity_added", "entity": _monster("m3")},
+        {"type": "entity_updated", "entity_id": "m1", "changes": {"hp": 3}},
+        {"type": "entity_removed", "entity_id": "m2"},
+    ]})
+
+    merged = StateDelta.apply_delta(state, delta)
+
+    by_id = {m["entity_id"]: m for m in merged["monsters"]}
+    assert set(by_id) == {"m1", "m3"}
+    assert by_id["m1"]["hp"] == 3
+
+
+def test_apply_delta_game_over_victory_and_floor():
+    merged = StateDelta.apply_delta(
+        _base_state(),
+        _delta({"game_over": True, "victory": True, "current_floor": 4}),
+    )
+    assert merged["game_over"] is True
+    assert merged["victory"] is True
+    assert merged["current_floor"] == 4
+
+
+def test_apply_delta_message_window_is_last_20():
+    state = _base_state()
+    state["recent_messages"] = [f"old{i}" for i in range(20)]
+
+    merged = StateDelta.apply_delta(state, _delta({"new_messages": ["n1", "n2"]}))
+
+    assert len(merged["recent_messages"]) == 20
+    assert merged["recent_messages"][-2:] == ["n1", "n2"]
+    assert merged["recent_messages"][0] == "old2"
+
+
+def test_apply_delta_does_not_mutate_the_state_it_was_given():
+    """apply_delta used to shallow-copy then mutate nested player/monster
+    dicts in place, corrupting any snapshot the caller still held."""
+    state = _base_state(monsters=[_monster("m1", hp=10)])
+    state["players"] = [_player("a", hp=10)]
+    snapshot = copy.deepcopy(state)
+    delta = _delta({
+        "players": [{"type": "player_updated", "player_id": "a", "changes": {"hp": 1}}],
+        "monsters": [{"type": "entity_updated", "entity_id": "m1", "changes": {"hp": 1}}],
+        "new_messages": ["hi"],
+    })
+
+    merged = StateDelta.apply_delta(state, delta)
+
+    assert state == snapshot
+    assert merged["players"][0]["hp"] == 1
+    assert merged["monsters"][0]["hp"] == 1

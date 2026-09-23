@@ -13,6 +13,10 @@ logger = logging.getLogger(__name__)
 class StateDelta:
     """Computes and applies state deltas for efficient updates."""
 
+    _COUNTER_KEYS = ("turn_count", "message_count", "round_number", "actions_this_round")
+    _REPLACED_KEYS = ("current_floor", "map", "game_over", "victory")
+    _MESSAGE_WINDOW = 20  # Must match the recent_messages window the server broadcasts
+
     @staticmethod
     def compute_delta(old_state: Optional[Dict], new_state: Dict) -> Dict:
         """Compute delta between two states.
@@ -234,6 +238,9 @@ class StateDelta:
     def apply_delta(current_state: Dict, delta: Dict) -> Dict:
         """Apply a delta to a state.
 
+        Never mutates current_state or its nested dicts, so callers can keep
+        earlier snapshots (replay/debug tooling) safely.
+
         Args:
             current_state: Current state
             delta: Delta to apply
@@ -242,99 +249,63 @@ class StateDelta:
             New state with delta applied
         """
         if delta.get("type") == "full":
-            # Full state replacement
             return delta["state"]
 
         if delta.get("no_changes"):
-            # No changes, return current state
             return current_state
 
-        # Create a copy of the current state
         new_state = current_state.copy()
-
-        # Apply changes
         changes = delta.get("changes", {})
 
-        # Update turn counters
-        if "turn_count" in delta:
-            new_state["turn_count"] = delta["turn_count"]
-        if "message_count" in delta:
-            new_state["message_count"] = delta["message_count"]
-        if "round_number" in delta:
-            new_state["round_number"] = delta["round_number"]
-        if "actions_this_round" in delta:
-            new_state["actions_this_round"] = delta["actions_this_round"]
+        for key in StateDelta._COUNTER_KEYS:
+            if key in delta:
+                new_state[key] = delta[key]
 
-        # Apply player changes
         if "players" in changes:
-            current_players = {p["player_id"]: p for p in new_state.get("players", [])}
+            new_state["players"] = StateDelta._apply_keyed_changes(
+                new_state.get("players", []), changes["players"], "player"
+            )
 
-            for change in changes["players"]:
-                change_type = change.get("type")
-
-                if change_type == "player_added":
-                    player = change["player"]
-                    current_players[player["player_id"]] = player
-
-                elif change_type == "player_updated":
-                    player_id = change["player_id"]
-                    if player_id in current_players:
-                        player = current_players[player_id]
-                        for key, value in change["changes"].items():
-                            player[key] = value
-
-                elif change_type == "player_removed":
-                    player_id = change["player_id"]
-                    current_players.pop(player_id, None)
-
-            new_state["players"] = list(current_players.values())
-
-        # Apply floor change
-        if "current_floor" in changes:
-            new_state["current_floor"] = changes["current_floor"]
-
-        # Apply map change
-        if "map" in changes:
-            new_state["map"] = changes["map"]
-
-        # Apply monster/ore-vein/forge changes
         if "monsters" in changes:
-            current_monsters = {m["entity_id"]: m for m in new_state.get("monsters", [])}
+            new_state["monsters"] = StateDelta._apply_keyed_changes(
+                new_state.get("monsters", []), changes["monsters"], "entity"
+            )
 
-            for change in changes["monsters"]:
-                change_type = change.get("type")
+        for key in StateDelta._REPLACED_KEYS:
+            if key in changes:
+                new_state[key] = changes[key]
 
-                if change_type == "entity_added":
-                    entity = change["entity"]
-                    current_monsters[entity["entity_id"]] = entity
-
-                elif change_type == "entity_updated":
-                    entity_id = change["entity_id"]
-                    if entity_id in current_monsters:
-                        entity = current_monsters[entity_id]
-                        for key, value in change["changes"].items():
-                            entity[key] = value
-
-                elif change_type == "entity_removed":
-                    current_monsters.pop(change["entity_id"], None)
-
-            new_state["monsters"] = list(current_monsters.values())
-
-        # Apply new messages
         if "new_messages" in changes:
-            current_messages = new_state.get("recent_messages", [])
-            new_messages = changes["new_messages"]
-            # Append new messages and limit to last 20
-            all_messages = current_messages + new_messages
-            new_state["recent_messages"] = all_messages[-20:]
-
-        # Apply game_over and victory changes
-        if "game_over" in changes:
-            new_state["game_over"] = changes["game_over"]
-        if "victory" in changes:
-            new_state["victory"] = changes["victory"]
+            all_messages = new_state.get("recent_messages", []) + changes["new_messages"]
+            new_state["recent_messages"] = all_messages[-StateDelta._MESSAGE_WINDOW:]
 
         return new_state
+
+    @staticmethod
+    def _apply_keyed_changes(items: List[Dict], changes: List[Dict], kind: str) -> List[Dict]:
+        """Apply added/updated/removed changes to a list of dicts keyed by '<kind>_id'.
+
+        Updated items are replaced by a merged copy rather than mutated in place.
+        """
+        id_field = f"{kind}_id"
+        by_id = {item[id_field]: item for item in items}
+
+        for change in changes:
+            change_type = change.get("type")
+
+            if change_type == f"{kind}_added":
+                added = change[kind]
+                by_id[added[id_field]] = added
+
+            elif change_type == f"{kind}_updated":
+                item_id = change[id_field]
+                if item_id in by_id:
+                    by_id[item_id] = {**by_id[item_id], **change["changes"]}
+
+            elif change_type == f"{kind}_removed":
+                by_id.pop(change[id_field], None)
+
+        return list(by_id.values())
 
     @staticmethod
     def estimate_compression_ratio(old_state: Optional[Dict], new_state: Dict, delta: Dict) -> float:
