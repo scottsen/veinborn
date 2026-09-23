@@ -22,12 +22,11 @@ def test_wait_execute_takes_turn_and_succeeds(game_context):
 
 
 def test_wait_execute_fails_for_unknown_actor(game_context):
+    """VB-23/VB-16: an actor_id that resolves to nothing must fail cleanly,
+    not silently execute as the local player."""
     action = WaitAction(actor_id='does-not-exist')
     outcome = action.execute(game_context)
-    # _get_actor falls back to player, so even unknown ID still executes.
-    # Assert stable API: outcome is truthy and either succeeds on player fallback
-    # or fails cleanly.
-    assert outcome is not None
+    assert not outcome.is_success
 
 
 def test_wait_round_trip_serialization():

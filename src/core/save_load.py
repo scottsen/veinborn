@@ -201,9 +201,15 @@ class SaveSystem:
         """Convert GameState to JSON-serializable dict."""
         return {
             "player": self._serialize_entity(state.player),
+            # VB-23: state.entities now also contains the player (kept in
+            # sync so entity/position lookups can find them), but the save
+            # format keeps them separate as it always has -- exclude here
+            # to avoid writing (and, on load, deserializing) the player
+            # twice under two different object instances.
             "entities": {
                 entity_id: self._serialize_entity(entity)
                 for entity_id, entity in state.entities.items()
+                if entity_id != state.player.entity_id
             },
             "dungeon_map": self._serialize_map(state.dungeon_map),
             "turn_count": state.turn_count,

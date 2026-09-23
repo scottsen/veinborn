@@ -133,13 +133,15 @@ class Action(ABC):
         """
         Get actor entity (simple lookup, no validation).
 
-        Looks up self.actor_id in the entities dict first. Only falls back to
-        context.get_player() when self.actor_id genuinely IS the local/host
-        player's own id (the host is not stored in the entities dict, so a
-        direct lookup for it always misses). Any other actor_id that fails to
+        Looks up self.actor_id in context.get_entity(), which reads from
+        game_state.entities -- the single store for every entity, including
+        the local/host player (VB-23; GameState keeps .player synced into
+        entities under its own entity_id). No special-casing is needed for
+        the local player's own id any more: an actor_id that fails to
         resolve (e.g. a multiplayer guest who died and was purged from
-        entities this round) is treated as not found rather than silently
-        redirected to the host -- see VB-16.
+        entities this round) is correctly treated as not found rather than
+        silently redirected to the host -- see VB-16, which this replaces
+        a narrower fallback-based fix for.
 
         Use this when you need the actor but will do custom validation.
         For standard validation (is_alive check), use _get_and_validate_actor().
@@ -147,12 +149,7 @@ class Action(ABC):
         Returns:
             Entity if found, None otherwise
         """
-        actor = context.get_entity(self.actor_id)
-        if not actor:
-            player = context.get_player()
-            if player is not None and player.entity_id == self.actor_id:
-                actor = player
-        return actor
+        return context.get_entity(self.actor_id)
 
     def _get_and_validate_actor(self, context: 'GameContext') -> Optional['Entity']:
         """

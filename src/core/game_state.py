@@ -71,6 +71,31 @@ class GameState:
     # Run type (Phase 6: for Legacy Vault tracking)
     run_type: str = "pure"  # "pure" or "legacy"
 
+    def __post_init__(self) -> None:
+        # VB-23: entities is the single store every lookup reads from
+        # (GameContext.get_entity/get_entity_at/get_entities_in_range/
+        # get_all_players all scan entities only). Previously the local
+        # player lived ONLY in .player -- invisible to every one of those,
+        # so the multiplayer host couldn't be found at their own tile and
+        # Action._get_actor() needed a special-case fallback (VB-16) just
+        # to resolve actor_id == the player's own id. __setattr__ below
+        # keeps this in sync for every later reassignment of .player too
+        # (e.g. multiplayer_game_state.add_player() replacing the initial
+        # placeholder player with the real one).
+        if self.player is not None:
+            self.entities[self.player.entity_id] = self.player
+
+    def __setattr__(self, name: str, value) -> None:
+        if name == "player" and value is not None and "entities" in self.__dict__:
+            old_player = self.__dict__.get("player")
+            if old_player is not None and old_player.entity_id != value.entity_id:
+                # Drop the stale entry so reassigning .player (e.g. a
+                # placeholder player made real at its spawn position)
+                # doesn't leave an orphaned duplicate entity behind.
+                self.entities.pop(old_player.entity_id, None)
+            self.entities[value.entity_id] = value
+        super().__setattr__(name, value)
+
     def add_message(self, message: str) -> None:
         """Add message to log (max 100 messages)."""
         self.messages.append(message)

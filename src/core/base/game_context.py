@@ -50,18 +50,15 @@ class GameContext:
             List of all player entities (alive and dead)
         """
         from .entity import EntityType
-        players = []
 
-        # First player is stored separately
-        if self.game_state.player:
-            players.append(self.game_state.player)
-
-        # Additional players are in entities dict with PLAYER type
-        for entity in self.game_state.entities.values():
-            if entity.entity_type == EntityType.PLAYER and entity != self.game_state.player:
-                players.append(entity)
-
-        return players
+        # VB-23: entities is the single store for every player (the local/
+        # host player included -- GameState keeps it in sync), so this no
+        # longer needs to special-case self.game_state.player separately
+        # and de-dup against it.
+        return [
+            entity for entity in self.game_state.entities.values()
+            if entity.entity_type == EntityType.PLAYER
+        ]
 
     def get_alive_players(self) -> List['Entity']:
         """

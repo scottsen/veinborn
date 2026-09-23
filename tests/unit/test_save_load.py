@@ -209,14 +209,20 @@ class TestLoadGame:
         assert loaded_state.player.max_hp == 20
 
     def test_load_restores_entities(self, save_system, sample_state):
-        """Load restores all entities."""
+        """Load restores all entities.
+
+        VB-23: entities is now the single store for every entity including
+        the player (kept in sync by GameState), so the loaded count is the
+        2 saved non-player entities plus the player itself.
+        """
         save_system.save_game(sample_state, "test_save")
 
         loaded_state = save_system.load_game("test_save")
 
-        assert len(loaded_state.entities) == 2
+        assert len(loaded_state.entities) == 3
         assert "m1" in loaded_state.entities
         assert "ore1" in loaded_state.entities
+        assert loaded_state.player.entity_id in loaded_state.entities
 
         monster = loaded_state.entities["m1"]
         assert monster.name == "Goblin"

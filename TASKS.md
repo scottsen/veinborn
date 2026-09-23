@@ -507,20 +507,27 @@ websocket_server.py:106 registers self.connections[session_id] = websocket on co
 ## TASK-VB-23 · Players are stored three different ways (root cause of VB-16's fallback bug)
 
 ```yaml
-status: backlog
+status: done
 priority: high
 effort: medium
 tags: [architecture, multiplayer]
 created: '2026-09-23T05:26:21Z'
-updated: '2026-09-23T05:26:21Z'
+updated: '2026-09-23T06:41:33Z'
 session: earthly-god-0922
+notes_next: 2
 ```
 
 Single-player: the player is in both state.player and entities. Multiplayer host: id 'player', stored only in state.player (multiplayer_game_state.py:147-150). Multiplayer guests: stored only in entities (153-155). GameContext.get_entity (game_context.py:37-39) reads only entities, so the host is found only through the Action._get_actor fallback that causes VB-16. Lua get_entity('player') returns nil for the host in multiplayer. get_all_players (45-64) has to merge the two sources by hand. Fix: make entities the single store; GameState.player becomes a derived property looked up by a local_player_id. Medium effort -- many call sites use .player directly.
 
 <!-- notes: append-only log; each has a stable #id (see CLI §5) -->
 ### Notes
-_(no notes yet)_
+- [#1 2026-09-23T06:41:33Z session:glowing-pulsar-0922] Fixed with a lower-risk design than the ticket's literal suggestion. Ticket proposed making GameState.player a fully derived property backed by a new local_player_id field; instead GameState.__post_init__ + a __setattr__ override keep .player synced INTO entities (insert on construction, insert-and-remove-stale-entry on reassignment) every time .player is set. This preserves every existing call site verbatim -- all ~50 GameState(player=...) constructor calls and ~29 .player read sites across core/server/ui/tests needed zero changes -- while establishing the same invariant the ticket wanted: entities is now the single store every lookup reads from, and the local/host player is always in it under its own entity_id.
+
+  Downstream fixes that fell out of this: GameContext.get_all_players() no longer hand-merges .player with entities (was the ticket's own cited symptom); Action._get_actor() no longer needs the VB-16 fallback since context.get_entity() now finds the host directly (fallback removed, VB-16's regression test still passes since the observable behavior is identical); Lua's get_entity('player') is fixed for free since GameContextAPI._get_entity delegates straight to context.get_entity(). save_load.py's _serialize_state now excludes the player's entity_id from the generic 'entities' block (on-disk format unchanged, avoids double-storing the player under two object instances on load).
+
+  Verified get_entity_at/get_entities_in_range now actually find the host at their own tile (previously a real, live blind spot for monster AI targeting the host specifically -- not just the VB-16 fallback bug). Did NOT touch cleanup_dead_entities: confirmed via test_process_action_dead_guest_does_not_redirect_to_host that purging a dead player from entities each round is existing, intentional, tested behavior (matches dead monster cleanup), not a bug -- a dead player disappearing from entities-based lookups while remaining resolvable via context.get_player() (still reads live .player, untouched by cleanup) is a deliberate and now-consistent distinction between host and guest, not a regression.
+
+  Added tests/unit/test_game_state.py (5 tests on the sync mechanism itself) and 4 new tests in test_multiplayer_game_state.py (host findable via get_entity/get_entity_at, get_all_players clean). Fixed one now-incorrect test assumption (test_save_load.py::test_load_restores_entities expected entities to exclude the player; updated to 3, not 2, with an explicit assertion the player is included) and one already-stale comment (test_wait_action.py, predated VB-16, now also tightened to a real assertion). Full suite: 1109 -> 1127 passing, 0 failing, 0 skipped.
 
 
 ## TASK-VB-24 · Single-player and multiplayer run separate post-action pipelines -- root cause of repeated MP feature drift

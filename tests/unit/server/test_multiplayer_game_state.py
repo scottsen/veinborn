@@ -39,6 +39,67 @@ def test_add_player_spawns_floor_entities():
     assert len(_non_player_entity_ids(mp)) > 0
 
 
+def test_host_player_is_in_entities():
+    """VB-23: the host (first player added) used to live ONLY in
+    game_state.player, invisible to game_state.entities -- the dict every
+    position/id-based lookup (GameContext.get_entity, get_entity_at, Lua
+    get_entity) actually scans. Confirm it's now present under its real
+    entity_id, matching how guests already worked."""
+    mp = _make_two_player_game()
+    host_slot = mp.player_slots["p1"]
+
+    assert host_slot.entity_id in mp.game_state.entities
+    assert mp.game_state.entities[host_slot.entity_id] is host_slot.player_entity
+    assert mp.game_state.entities[host_slot.entity_id] is mp.game_state.player
+
+
+def test_host_player_findable_by_game_context_get_entity():
+    """VB-23: GameContext.get_entity() previously missed the host entirely
+    (it only reads game_state.entities). Action._get_actor() needed a
+    special-case fallback (VB-16) to work around exactly this."""
+    from core.base.game_context import GameContext
+
+    mp = _make_two_player_game()
+    host_slot = mp.player_slots["p1"]
+    context = GameContext(game_state=mp.game_state)
+
+    found = context.get_entity(host_slot.entity_id)
+
+    assert found is host_slot.player_entity
+
+
+def test_host_player_findable_at_own_position():
+    """VB-23: get_entity_at/get_entities_in_range/get_entities_at all scan
+    entities only -- the host was invisible to all of them, meaning e.g.
+    monster AI could never see or target the host at their own tile."""
+    from core.base.game_context import GameContext
+
+    mp = _make_two_player_game()
+    host = mp.game_state.player
+    context = GameContext(game_state=mp.game_state)
+
+    found = context.get_entity_at(host.x, host.y)
+
+    assert found is host
+
+
+def test_get_all_players_includes_host_and_guest_without_duplication():
+    """VB-23: get_all_players() used to hand-merge game_state.player with
+    entities and de-dup by object identity. Now entities is the single
+    store, so this should just be a clean type filter with no duplicates."""
+    from core.base.game_context import GameContext
+
+    mp = _make_two_player_game()
+    context = GameContext(game_state=mp.game_state)
+
+    all_players = context.get_all_players()
+
+    assert len(all_players) == 2
+    assert mp.game_state.player in all_players
+    guest_entity = mp.game_state.entities[mp.player_slots["p2"].entity_id]
+    assert guest_entity in all_players
+
+
 def test_get_state_dict_includes_monsters_and_map():
     mp = _make_two_player_game()
     state = mp.get_state_dict()
