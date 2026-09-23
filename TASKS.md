@@ -447,20 +447,21 @@ save_load.py: _serialize_entity (219-237) skips inventory, equipped_weapon, equi
 ## TASK-VB-20 · Multiplayer chat/message log silently stops syncing after 20 messages
 
 ```yaml
-status: backlog
+status: done
 priority: high
 effort: small
 tags: [multiplayer, bug]
 created: '2026-09-23T05:26:08Z'
-updated: '2026-09-23T05:26:08Z'
+updated: '2026-09-23T06:28:23Z'
 session: earthly-god-0922
+notes_next: 2
 ```
 
 state_delta.py compute_delta (98-104) sends new log lines only when len(new_messages) > len(old_messages), assuming recent_messages only grows. But multiplayer_game_state.py:325 caps it via get_recent_messages(20), and game_state.py:67-69 keeps only a fixed-size sliding window. Once a game passes 20 total messages, both snapshots are permanently 20 items long, so the length check is always False and no further chat/log messages are ever delta-broadcast for the rest of the game. Only a full-state resync (e.g. reconnect) briefly shows the latest 20-message window. Will reproduce deterministically in the pending 2-client playtest. Fix: track messages by an incrementing index/sequence rather than list length, or send an explicit new-message-count/cursor in the delta protocol.
 
 <!-- notes: append-only log; each has a stable #id (see CLI §5) -->
 ### Notes
-_(no notes yet)_
+- [#1 2026-09-23T06:28:23Z session:glowing-pulsar-0922] Fixed: GameState now tracks a monotonic message_count (incremented in add_message, never trimmed, unlike the capped-at-100 messages list). Included in multiplayer_game_state.get_state_dict(). state_delta.compute_delta now diffs message_count instead of len(recent_messages) -- the old check went permanently blind once >20 messages had ever been sent, since recent_messages is capped at 20 for broadcast and both snapshots stayed the same length forever after. apply_delta propagates message_count forward too. Added 3 regression tests in test_state_delta.py reproducing the exact >20-message blind spot.
 
 
 ## TASK-VB-21 · Server and core action registries have drifted: Pickup and Lua actions don't work in multiplayer

@@ -37,6 +37,7 @@ class StateDelta:
             "turn_count": new_state.get("turn_count", 0),
             "round_number": new_state.get("round_number", 0),
             "actions_this_round": new_state.get("actions_this_round", 0),
+            "message_count": new_state.get("message_count", 0),
         }
 
         # Track what changed
@@ -95,13 +96,20 @@ class StateDelta:
         if monster_changes:
             changes["monsters"] = monster_changes
 
-        # Check message changes (only send new messages)
+        # Check message changes (only send new messages). VB-20: recent_messages
+        # is capped at 20 server-side, so once more than 20 messages have ever
+        # been sent, both snapshots permanently have the same length and a
+        # len(new) > len(old) check never fires again. Compare the monotonic
+        # message_count instead -- it keeps growing even after recent_messages
+        # stops.
         old_messages = old_state.get("recent_messages", [])
         new_messages = new_state.get("recent_messages", [])
+        old_message_count = old_state.get("message_count", len(old_messages))
+        new_message_count = new_state.get("message_count", len(new_messages))
 
-        # Send only messages that weren't in the old state
-        if len(new_messages) > len(old_messages):
-            changes["new_messages"] = new_messages[len(old_messages):]
+        num_new = new_message_count - old_message_count
+        if num_new > 0:
+            changes["new_messages"] = new_messages[-num_new:]
 
         # Check game_over and victory status
         if old_state.get("game_over") != new_state.get("game_over"):
@@ -250,6 +258,8 @@ class StateDelta:
         # Update turn counters
         if "turn_count" in delta:
             new_state["turn_count"] = delta["turn_count"]
+        if "message_count" in delta:
+            new_state["message_count"] = delta["message_count"]
         if "round_number" in delta:
             new_state["round_number"] = delta["round_number"]
         if "actions_this_round" in delta:

@@ -55,6 +55,11 @@ class GameState:
 
     # Message log
     messages: List[str] = field(default_factory=list)
+    # VB-20: total messages ever added, monotonic and never trimmed (unlike
+    # `messages`, which is capped at 100). Lets multiplayer's state_delta
+    # detect new chat/log lines even after the message list itself stops
+    # growing in length (recent_messages is capped at 20 for broadcast).
+    message_count: int = 0
 
     # Game state
     game_over: bool = False
@@ -69,6 +74,7 @@ class GameState:
     def add_message(self, message: str) -> None:
         """Add message to log (max 100 messages)."""
         self.messages.append(message)
+        self.message_count += 1
         if len(self.messages) > 100:
             self.messages.pop(0)
         logger.info(f"Game message: {message}")

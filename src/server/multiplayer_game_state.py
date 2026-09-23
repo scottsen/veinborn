@@ -333,6 +333,9 @@ class MultiplayerGameState:
             "game_over": self.game_state.game_over,
             "victory": self.game_state.victory,
             "recent_messages": self.game_state.get_recent_messages(20),
+            # VB-20: monotonic total, so state_delta can detect new messages
+            # even once recent_messages stops growing in length.
+            "message_count": self.game_state.message_count,
         }
 
     def to_dict(self) -> Dict:
