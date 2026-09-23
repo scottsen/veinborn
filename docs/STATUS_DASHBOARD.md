@@ -10,9 +10,9 @@
 | Category | Status | Details |
 |----------|--------|---------|
 | **Single-Player core** | 🟢 Healthy | All tests pass |
-| **Multiplayer** | 🟡 8 critical/urgent/high bugs fixed 2026-09-22, playtest still pending | `VB-16`–`VB-23` all fixed and test-covered this session (dead-actor redirect, Lua sandbox RCE, process-global RNG cross-contamination, save/load data loss, chat delta desync after 20 messages, Pickup/Wait actions unusable in MP, reconnect race, 3-way player storage). Still no real two-client playtest. `VB-24` (SP/MP separate post-action pipelines) remains open — deferred pending an N-player HP-regen/game-over design decision, see Known Issues and `tt show VB-24`. |
-| **Test Health** | ✅ Green | 1127 collected: 1127 passing / 0 failing / 0 skipped (verified 2026-09-22) — up from 1067/1065/0/2 baseline; the 2 previously-skipped Lua timeout tests now genuinely pass (see `VB-17`) |
-| **Current Phase** | 🎮 MP hardening + playtest | `VB-24` is the last open high-priority finding; work through it (needs a design decision first, see `tt show VB-24`) before the first real two-client playtest |
+| **Multiplayer** | 🟡 8 critical/urgent/high bugs fixed 2026-09-22, playtest still pending | `VB-16`–`VB-23` all fixed and test-covered this session (dead-actor redirect, Lua sandbox RCE, process-global RNG cross-contamination, save/load data loss, chat delta desync after 20 messages, Pickup/Wait actions unusable in MP, reconnect race, 3-way player storage). Still no real two-client playtest. `VB-24` (SP/MP separate post-action pipelines) is half done: the shared outcome pipeline landed 2026-09-23 (MP now records messages, publishes events, and only counts turn-taking actions); HP regen / game-over / high scores are still SP-only, pending an N-player design decision — see Known Issues and `tt show VB-24`. |
+| **Test Health** | ✅ Green | 1176 collected: 1176 passing / 0 failing / 0 skipped (verified 2026-09-23) — up from 1067/1065/0/2 baseline; the 2 previously-skipped Lua timeout tests now genuinely pass (see `VB-17`), and the two flaky planner tests are seeded (`VB-34`) |
+| **Current Phase** | 🎮 MP hardening + playtest | `VB-24`'s remaining half is the last open high-priority finding (needs a design decision first, see `tt show VB-24`) before the first real two-client playtest |
 | **Playability** | ✅ SP playable / 🟡 MP no longer has known exploitable bugs, still unplaytested | |
 
 See `docs/PROJECT_REVIEW_2026-04-17.md` for the last full architecture audit, and `TASKS.md` for the 2026-09-22 review's findings (`VB-16` onward).
@@ -201,14 +201,16 @@ python3 src/server/test_client.py
 | ~~Server/core action registries drifted (Pickup, Wait actions unusable in MP)~~ | ~~🟠 High~~ | ✅ Fixed — `VB-21`: `core.actions.ACTION_TYPES` is now the single source both registries build from. Lua actions still can't be deserialized in MP (needs `VB-24`'s pipeline work — MP has no `LuaRuntime` instance at all yet). |
 | ~~Reconnect race can strand a player (inputs rejected, outputs dropped)~~ | ~~🟠 High~~ | ✅ Fixed — `VB-22`: `disconnect_client` is now a no-op if a fast reconnect already replaced its socket. |
 | ~~Players stored 3 different ways (root cause pattern behind `VB-16`)~~ | ~~🟠 High~~ | ✅ Fixed — `VB-23`: `entities` is now the single store every lookup reads from; `GameState` keeps `.player` synced into it. |
-| SP/MP run separate post-action pipelines (MP misses EventBus/regen) | 🟠 High | Open — `VB-24`. Investigated 2026-09-22: not a mechanical refactor, needs an N-player HP-regen/game-over design decision first — see `tt show VB-24`. |
-| Floor progression duplicated between `FloorManager` and MP game state | 🟡 Medium | Open — `VB-25` |
-| `state_delta.apply_delta` highest-complexity fn, no seq numbers | 🟡 Medium | Open — `VB-26` |
-| `cleanup_task` busy-loops with no backoff on repeated errors | 🟡 Medium | Open — `VB-27` |
-| `PickupAction` has zero test coverage of its actual game logic (inventory-full, stacking) | 🟡 Medium | Open — `VB-28` |
+| SP/MP run separate post-action pipelines | 🟠 High | Half fixed — `VB-24`: outcome handling (messages, events, took_turn) is now shared via `core/action_pipeline.py` (`ca475b8`). Still open: HP regen / game over / high scores are single-player only, which needs an N-player design decision — see `tt show VB-24`. |
+| ~~Floor progression duplicated between `FloorManager` and MP game state~~ | ~~🟡 Medium~~ | ✅ Fixed — `VB-25`: shared `spawn_all_for_floor` / `clear_floor_entities` / `generate_floor_map` / `get_victory_floor`. Also fixed two bugs it exposed: SP descent evicted the player from `entities`, and skipped special rooms after floor 1. |
+| `state_delta` protocol has no sequence numbers / resync | 🟡 Medium | Partly fixed — `VB-26`: `apply_delta` split (complexity 27→10) and no longer mutates its input. Still open: `seq`/`base_seq`, client resync, shared `protocol/` package. |
+| ~~`cleanup_task` busy-loops with no backoff on repeated errors~~ | ~~🟡 Medium~~ | ✅ Fixed — `VB-27`: capped exponential backoff. |
+| ~~`PickupAction` has zero test coverage~~ | ~~🟡 Medium~~ | ✅ Fixed — `VB-28`: 10 tests; a pickup that took nothing no longer costs a turn. |
+| ~~Action events failed to reach the EventBus (flat dicts, unknown types) — Lua/telemetry saw almost nothing~~ | ~~🟠 High~~ | ✅ Fixed — `VB-33` |
+| Dead-code candidates (`perception.py` module, `GameTelemetry.log_*`) | 🟢 Low | Held — `VB-32`: need a wire-in-or-delete decision |
 | No tutorial for new players | 🟢 Low | Planned for Phase 3 |
 
-**Critical and urgent issues:** 0 open — `VB-1` through `VB-19` all fixed. **1 high-priority multiplayer-architecture finding remains open** (`VB-24`, deferred pending a design decision), plus 4 medium (`VB-25`–`VB-28`) and 4 low (`VB-29`–`VB-32`) — see `tt list --project veinborn` / `TASKS.md`.
+**Critical and urgent issues:** 0 open — `VB-1` through `VB-19` all fixed. **1 high-priority multiplayer-architecture finding remains open** (`VB-24`'s HP-regen/game-over half, pending a design decision), plus `VB-26`'s protocol half and the held `VB-32` — see `tt list --project veinborn` / `TASKS.md`.
 
 ---
 
