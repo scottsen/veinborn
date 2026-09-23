@@ -120,9 +120,11 @@ class VeinbornServer:
         except Exception as e:
             logger.error(f"Error handling connection: {e}", exc_info=True)
         finally:
-            # Cleanup
+            # Cleanup. Pass this socket's own identity so disconnect_client can
+            # detect a fast reconnect that already replaced it in self.connections
+            # (VB-22) and skip tearing down the live connection.
             if session_id:
-                await self.disconnect_client(session_id, "Connection closed")
+                await self.disconnect_client(session_id, "Connection closed", websocket=websocket)
 
     async def authenticate_connection(
         self, websocket: WebSocketServerProtocol
@@ -471,7 +473,11 @@ class VeinbornServer:
         )
 
     async def disconnect_client(
-        self, session_id: str, reason: str = "Disconnected", preserve_session: bool = True
+        self,
+        session_id: str,
+        reason: str = "Disconnected",
+        preserve_session: bool = True,
+        websocket: WebSocketServerProtocol | None = None,
     ):
         """Disconnect a client and optionally preserve session for reconnection.
 
@@ -479,7 +485,21 @@ class VeinbornServer:
             session_id: Session to disconnect
             reason: Disconnect reason
             preserve_session: If True, preserve session for reconnection; if False, clean up completely
+            websocket: The specific socket that closed, if known (passed by
+                handle_connection's finally block). A fast reconnect can reuse
+                session_id and overwrite self.connections[session_id] with a new,
+                live socket before the old socket's finally block runs. When given,
+                this call is a no-op unless it's still the socket currently
+                registered for session_id -- otherwise it would tear down the
+                connection the reconnect just established (VB-22).
         """
+        if websocket is not None and self.connections.get(session_id) is not websocket:
+            logger.info(
+                f"Ignoring stale disconnect for session {session_id}: connection "
+                f"already replaced by a reconnect ({reason})"
+            )
+            return
+
         session = self.auth_manager.get_session(session_id)
 
         if session and session.game_id:
@@ -506,11 +526,20 @@ class VeinbornServer:
                 # Permanently remove from game
                 await self.game_manager.leave_game(session.player_id)
 
-        # Close WebSocket
-        websocket = self.connections.pop(session_id, None)
-        if websocket and not websocket.closed:
+        # Close WebSocket. If a specific socket was given, only remove it from
+        # self.connections if it's still the one registered -- the awaits above
+        # (disconnect_player, broadcast_to_game) give a concurrent reconnect a
+        # window to have already replaced it with a new live socket.
+        if websocket is not None:
+            if self.connections.get(session_id) is websocket:
+                self.connections.pop(session_id, None)
+            dead_socket = websocket
+        else:
+            dead_socket = self.connections.pop(session_id, None)
+
+        if dead_socket and not dead_socket.closed:
             try:
-                await websocket.close(1000, reason)
+                await dead_socket.close(1000, reason)
             except Exception:
                 logger.warning(f"Error closing websocket for session {session_id}", exc_info=True)
 

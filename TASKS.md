@@ -485,20 +485,21 @@ _(no notes yet)_
 ## TASK-VB-22 · Reconnect race can strand a player: inputs rejected, outputs dropped, no error
 
 ```yaml
-status: backlog
+status: done
 priority: high
 effort: medium
 tags: [multiplayer, bug]
 created: '2026-09-23T05:26:17Z'
-updated: '2026-09-23T05:26:17Z'
+updated: '2026-09-23T06:25:06Z'
 session: earthly-god-0922
+notes_next: 2
 ```
 
 websocket_server.py:106 registers self.connections[session_id] = websocket on connect; reconnect reuses the same session_id (verify_token, 127-178) and overwrites the entry with the new live socket. If the original socket's recv() hadn't yet observed the drop, its finally block later calls disconnect_client (473-525) unconditionally -- with no check that the dying websocket is still the one currently registered for that session. This (a) marks the player disconnected in GameSession (game_session/session.py:353-354), causing the server to reject that player's real actions with 'Player is disconnected -- AI is controlling this character', and (b) pops the live websocket out of self.connections, so send_message_to_session (546-548) silently no-ops for all further server->client sends to that player. A brief network blip + fast reconnect leaves the player's inputs rejected and outputs undelivered with no visible error until reconnection-timeout cleanup intervenes. Fix: guard disconnect_client with an identity check (only disconnect if self.connections.get(session_id) is the socket that just closed).
 
 <!-- notes: append-only log; each has a stable #id (see CLI §5) -->
 ### Notes
-_(no notes yet)_
+- [#1 2026-09-23T06:25:06Z session:glowing-pulsar-0922] Fixed: disconnect_client now takes an optional websocket param; handle_connection's finally block passes its own socket. If self.connections[session_id] no longer points at that socket (a fast reconnect already replaced it), disconnect_client is a no-op instead of tearing down the live connection and re-marking the player disconnected. Re-checked identity again before the final pop to guard against the awaits (disconnect_player/broadcast_to_game) letting a reconnect race in mid-call. Added 2 regression tests in test_websocket_server.py.
 
 
 ## TASK-VB-23 · Players are stored three different ways (root cause of VB-16's fallback bug)

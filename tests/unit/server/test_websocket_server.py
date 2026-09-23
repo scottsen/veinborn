@@ -511,6 +511,56 @@ async def test_disconnect_nonexistent_client():
     await server.disconnect_client("nonexistent", "Test", preserve_session=False)
 
 
+@pytest.mark.asyncio
+async def test_disconnect_client_stale_socket_does_not_evict_reconnect():
+    """VB-22: a dying socket's own disconnect_client call must not tear down a
+    live connection that a fast reconnect already registered for the same
+    session_id. Simulates handle_connection's finally block firing for the old
+    socket after handle_reconnect has already overwritten self.connections."""
+    server = VeinbornServer()
+
+    token, session = server.auth_manager.create_session("TestPlayer")
+    old_ws = AsyncMock()
+    old_ws.closed = False
+    new_ws = AsyncMock()
+    new_ws.closed = False
+
+    # Reconnect already happened: the new socket is the one registered now.
+    server.connections[session.session_id] = new_ws
+    server.session_to_player[session.session_id] = session.player_id
+
+    # The old socket's own connection handler notices its close afterwards.
+    await server.disconnect_client(
+        session.session_id, "Connection closed", websocket=old_ws
+    )
+
+    assert server.connections[session.session_id] is new_ws
+    assert session.session_id in server.session_to_player
+    old_ws.close.assert_not_called()
+    new_ws.close.assert_not_called()
+
+
+@pytest.mark.asyncio
+async def test_disconnect_client_matching_socket_still_disconnects():
+    """The identity guard must not block a normal disconnect when the socket
+    passed in is still the one currently registered."""
+    server = VeinbornServer()
+
+    token, session = server.auth_manager.create_session("TestPlayer")
+    ws = AsyncMock()
+    ws.closed = False
+    server.connections[session.session_id] = ws
+    server.session_to_player[session.session_id] = session.player_id
+
+    await server.disconnect_client(
+        session.session_id, "Connection closed", preserve_session=False, websocket=ws
+    )
+
+    ws.close.assert_called_once()
+    assert session.session_id not in server.connections
+    assert session.session_id not in server.session_to_player
+
+
 # ============================================================================
 # Game Lifecycle Tests
 # ============================================================================
