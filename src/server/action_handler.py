@@ -4,13 +4,7 @@ import logging
 from typing import Optional, Dict, Type
 
 from core.base.action import Action
-from core.actions.move_action import MoveAction
-from core.actions.attack_action import AttackAction
-from core.actions.mine_action import MineAction
-from core.actions.survey_action import SurveyAction
-from core.actions.descend_action import DescendAction
-from core.actions.craft_action import CraftAction
-from core.actions.equip_action import EquipAction
+from core.actions import ACTION_TYPES
 
 logger = logging.getLogger(__name__)
 
@@ -24,14 +18,15 @@ class ActionRegistry:
         self._register_standard_actions()
 
     def _register_standard_actions(self):
-        """Register standard game actions."""
-        self.register('MoveAction', MoveAction)
-        self.register('AttackAction', AttackAction)
-        self.register('MineAction', MineAction)
-        self.register('SurveyAction', SurveyAction)
-        self.register('DescendAction', DescendAction)
-        self.register('CraftAction', CraftAction)
-        self.register('EquipAction', EquipAction)
+        """Register standard game actions.
+
+        VB-21: sourced from core.actions.ACTION_TYPES, the single canonical
+        map, instead of a separately hand-maintained import list -- that
+        drift was exactly how PickupAction and WaitAction ended up silently
+        unusable in multiplayer.
+        """
+        for action_type, action_class in ACTION_TYPES.items():
+            self.register(action_type, action_class)
 
     def register(self, action_type: str, action_class: Type[Action]):
         """Register an action type.

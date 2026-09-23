@@ -467,20 +467,21 @@ state_delta.py compute_delta (98-104) sends new log lines only when len(new_mess
 ## TASK-VB-21 · Server and core action registries have drifted: Pickup and Lua actions don't work in multiplayer
 
 ```yaml
-status: backlog
+status: done
 priority: high
 effort: small
 tags: [multiplayer, bug, architecture]
 created: '2026-09-23T05:26:12Z'
-updated: '2026-09-23T05:26:12Z'
+updated: '2026-09-23T06:32:41Z'
 session: earthly-god-0922
+notes_next: 2
 ```
 
 server/action_handler.py's ActionRegistry (26-34) registers 7 actions. core/actions/action_factory.py's ActionFactory._register_standard_actions (145, 433-480) additionally has PickupAction and LuaAction. Result: pickup and every Lua-scripted action silently can't be used in multiplayer. Fix: keep a single type-to-class map in core; server deserializes actions through it instead of maintaining its own registry. Add a parity test that fails if the two registries diverge again.
 
 <!-- notes: append-only log; each has a stable #id (see CLI §5) -->
 ### Notes
-_(no notes yet)_
+- [#1 2026-09-23T06:32:41Z session:glowing-pulsar-0922] Fixed the Pickup half, plus a third self-discovered gap: WaitAction (used by the MP disconnected-player fallback) was ALSO missing from both registries -- same drift pattern, not in the original finding. Root cause: core/actions/__init__.py and server/action_handler.py each hand-maintained their own separate import list; new action files (pickup_action.py, wait_action.py) got added to action_factory.py (SP, verb-keyed) but not to either of those. Fix: core/actions/__init__.py now exports one canonical ACTION_TYPES: Dict[str, Type[Action]] map; server/action_handler.py's ActionRegistry._register_standard_actions() iterates it instead of hand-listing imports, so there's only one list to keep in sync. Added tests/unit/server/test_action_handler.py: an exact-match parity test plus one that walks Action.__subclasses__() and fails if any concrete action class exists outside ACTION_TYPES without an explicit, documented exclusion. NOT fixed: LuaAction. Its from_dict() can't reconstruct a bound LuaRuntime from wire data (raises NotImplementedError by design), and multiplayer doesn't construct a LuaRuntime anywhere at all yet -- confirmed via grep, only core/game.py (single-player) does. Lua-in-MP needs per-game routing through ActionFactory once VB-24 gives multiplayer a real Lua/EventBus-aware pipeline; tracked there, not re-opened as a separate ticket.
 
 
 ## TASK-VB-22 · Reconnect race can strand a player: inputs rejected, outputs dropped, no error
