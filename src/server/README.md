@@ -253,6 +253,10 @@ Or edit `src/server/config.py` for defaults.
 
 ## Testing
 
+### Automated (real websockets)
+
+`tests/integration/test_multiplayer_real_sockets.py` starts a `VeinbornServer` on an OS-assigned port and drives it with two real websocket clients (join, play, drop, reconnect). The other multiplayer tests use mock websockets and cannot catch protocol-level bugs (a handshake that failed on every real connection went unnoticed until this test existed).
+
 ### Manual Testing
 
 1. Start the server:
@@ -315,7 +319,7 @@ Or edit `src/server/config.py` for defaults.
 - Current design supports ~100 concurrent connections
 - Each game runs in its own async task
 - State broadcasting is O(n) per game (n = player count)
-- Consider delta compression for large state updates
+- Delta compression is implemented (`state_delta.py`); lobby→started and game-finished transitions are sent as full states because a delta cannot express them
 
 ## Security Notes
 
