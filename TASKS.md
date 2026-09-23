@@ -2,7 +2,7 @@
 project: veinborn
 schema_version: '1.0'
 id_prefix: VB
-next_id: 45
+next_id: 46
 archival: inline
 areas: {}
 ---
@@ -1007,6 +1007,27 @@ links:
 ```
 
 The first real two-client playtest (scripted, headless) worked after VB-39..43, but the only thing that can send move/attack/mine over the wire is the dev tool src/server/test_client.py. ui/multiplayer_client.MultiplayerClient has connect/chat/create/join/ready and delta merging but no send_action; ui/textual/app.py only wires chat. A human two-client playtest needs a multiplayer game view in the TUI (render players/monsters/map from the merged state, send MoveAction/AttackAction/... with the entity_id from state). Design question: reuse the single-player map widget with a state adapter, or a new read-only renderer.
+
+<!-- notes: append-only log; each has a stable #id (see CLI §5) -->
+### Notes
+_(no notes yet)_
+
+
+## TASK-VB-45 · Disconnected-player 'AI control' is never invoked (process_disconnected_player_action has no caller)
+
+```yaml
+status: backlog
+priority: low
+tags: [multiplayer]
+created: '2026-09-23T17:43:16Z'
+updated: '2026-09-23T17:43:16Z'
+session: crimson-jewel-0923
+links:
+  references:
+  - src/server/game_session/session.py
+```
+
+GameSession.process_disconnected_player_action (a defensive WaitAction) is called from nowhere in src, yet process_action tells rejected clients 'AI is controlling this character'. In a headless playtest a dropped player's character just stood still and died. Either wire it into a timer/round hook (what should the AI do beyond wait? retreat to stairs?) or delete it and fix the message. Product call.
 
 <!-- notes: append-only log; each has a stable #id (see CLI §5) -->
 ### Notes
