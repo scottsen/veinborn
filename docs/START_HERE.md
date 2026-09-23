@@ -12,7 +12,7 @@ This doc was rewritten as part of the 2026-04-17 trust-restore audit; test numbe
 
 The single-player roguelike is feature-complete and playable: mining, crafting, equipment, save/load, character classes, floor progression, Legacy Vault, Lua event system. Current test numbers:
 
-- **1176 tests passing / 0 failing / 0 skipped** (verified 2026-09-23, up from the 1065/0/2 baseline).
+- **1185 tests passing / 0 failing / 0 skipped** (verified 2026-09-23, up from the 1065/0/2 baseline).
 - MP async-cleanup and lock-reentrancy bugs closed in commit 33d72f7.
 
 **Polish work in flight:**

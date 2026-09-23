@@ -24,7 +24,7 @@ A terminal roguelike (NetHack-style) in Python with:
 |------|------|-------|
 | Game loop / turn engine | `src/core/game.py` | Owns event bus, Lua runtime, telemetry, floor manager, save-load; assembled by `GameBootstrapper` (`game_bootstrap.py`) and `GameLuaIntegration` (`game_lua_integration.py`) |
 | Post-action pipeline | `src/core/action_pipeline.py` | `process_action_outcome()` — log failures, publish events, react to `descend_floor`, record messages. Shared by single-player `Game` and multiplayer `GameSession` |
-| Turn processing | `src/core/turn_processor.py` | Single-player only today: HP regen, monster AI, cleanup, game over / high score |
+| Turn processing | `src/core/turn_processor.py` | Single-player: monster AI, cleanup, game over / high score. `apply_hp_regeneration()` is shared with multiplayer |
 | Floors | `src/core/floor_manager.py` + `EntitySpawner.spawn_all_for_floor` | Shared helpers (`generate_floor_map`, `get_victory_floor`, `GameState.clear_floor_entities`) are used by both modes |
 | Actions | `src/core/actions/` | `Action.validate(ctx) / execute(ctx) → ActionOutcome` — always passed a `GameContext`, not raw `GameState` |
 | Game state | `src/core/game_state.py` + `GameContext` facade | Actions see `GameContext`; `GameState` is the underlying store |
@@ -81,7 +81,7 @@ def handle_player_action(self, action_type, **kwargs) -> bool:
 
 Multiplayer (`src/server/game_session/session.py`) runs the same `process_action_outcome()` per action, but
 counts turn-taking actions toward a per-round quota and runs monsters once per round instead of after every
-action. HP regen and game-over/high-score handling are still single-player-only (see VB-24 in `TASKS.md`).
+action. HP regen is the shared `apply_hp_regeneration()`. Multiplayer game over differs on purpose: the party plays on while any player is alive, and each player is scored on the co-op leaderboard (`HighScoreManager.get_multiplayer_instance()`, `data/highscores_multiplayer.json`) at death, survivors at game end.
 
 **Key Characteristics:**
 - ✅ Simple and direct
