@@ -21,6 +21,7 @@ from .systems.ai_system import AISystem
 from .actions.action_factory import ActionFactory
 from .config import ConfigLoader
 from .spawning import EntitySpawner
+from .action_pipeline import process_action_outcome
 from .turn_processor import TurnProcessor
 from .floor_manager import FloorManager
 from .save_load import SaveSystem, SaveLoadError
@@ -161,38 +162,6 @@ class Game:
             f"{len(self.context.get_entities_by_type(EntityType.ORE_VEIN))} ore veins"
         )
 
-    def _process_action_outcome(self, outcome, action_type: str) -> None:
-        """
-        Process the outcome of an action (events, messages, floor transitions).
-
-        Args:
-            outcome: The ActionOutcome from action execution
-            action_type: The type of action for logging
-        """
-        # Log failures
-        if not outcome.is_success:
-            logger.info(
-                f"Action failed: {action_type}",
-                extra={
-                    'action_class': outcome.__class__.__name__,
-                    'failure_message': outcome.messages[0] if outcome.messages else 'No message',
-                }
-            )
-
-        # Publish events to EventBus
-        if outcome.events:
-            self.event_bus.publish_all(outcome.events)
-            logger.debug(f"Published {len(outcome.events)} events to EventBus")
-
-        # Check for floor transition event (special handling)
-        for event in outcome.events:
-            if event.get('type') == 'descend_floor':
-                self.descend_floor()
-
-        # Add messages to game state
-        for msg in outcome.messages:
-            self.state.add_message(msg)
-
     def handle_player_action(
         self,
         action_type: str,
@@ -236,10 +205,16 @@ class Game:
         outcome = action.execute(self.context)
 
         # Process outcome (events, messages, floor transitions)
-        self._process_action_outcome(outcome, action_type)
+        took_turn = process_action_outcome(
+            outcome,
+            action_type,
+            add_message=self.state.add_message,
+            on_descend_floor=self.descend_floor,
+            event_bus=self.event_bus,
+        )
 
         # Process turn if action consumed time
-        if outcome.took_turn:
+        if took_turn:
             self._process_turn()
             return True
 

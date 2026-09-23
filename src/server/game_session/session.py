@@ -5,9 +5,11 @@ import time
 import logging
 from typing import Dict, List, Optional
 
+from core.action_pipeline import process_action_outcome
 from core.actions.wait_action import WaitAction
 from core.base.action import Action
 from core.base.game_context import GameContext
+from core.events import EventBus
 from core.systems.ai_system import AISystem
 from server.multiplayer_game_state import MultiplayerGameState
 from server.state_delta import StateDelta
@@ -45,6 +47,7 @@ class GameSession:
         # Game context and systems (initialized when game starts)
         self.game_context: Optional[GameContext] = None
         self.ai_system: Optional[AISystem] = None
+        self.event_bus = EventBus()
 
         # Turn management
         self.actions_this_round = 0
@@ -304,15 +307,22 @@ class GameSession:
 
             return True
 
-    def _apply_floor_transitions(self, outcome) -> None:
-        """Advance to the next floor if the action's outcome triggered a descent.
+    def _apply_action_outcome(self, outcome, action_type: str) -> bool:
+        """Run a successful action's outcome through the pipeline shared with single-player.
 
-        VB-4: this was previously dropped entirely, so DescendAction succeeded
-        but current_floor never advanced and no new floor was ever generated.
+        VB-4: floor descent used to be dropped entirely. VB-24: messages and events
+        were dropped too, and free actions were counted against the round quota.
+
+        Returns:
+            True if the action consumed a turn (and so counts toward the round).
         """
-        for event in outcome.events:
-            if event.get('type') == 'descend_floor':
-                self.mp_game_state.descend_floor()
+        return process_action_outcome(
+            outcome,
+            action_type,
+            add_message=self.mp_game_state.add_message,
+            on_descend_floor=self.mp_game_state.descend_floor,
+            event_bus=self.event_bus,
+        )
 
     async def _advance_round_if_complete(self) -> None:
         """Run the monster turn and roll the round counter once the action quota is hit.
@@ -367,8 +377,8 @@ class GameSession:
                 if not outcome.is_success:
                     return False, "; ".join(outcome.messages) or "Action failed"
 
-                self._apply_floor_transitions(outcome)
-                self.mp_game_state.increment_actions()
+                if self._apply_action_outcome(outcome, action.get_action_type()):
+                    self.mp_game_state.increment_actions()
                 await self._advance_round_if_complete()
 
                 return True, None
@@ -418,8 +428,8 @@ class GameSession:
                     )
                     return False, message
 
-                # Increment action counter
-                self.mp_game_state.increment_actions()
+                if self._apply_action_outcome(outcome, "wait"):
+                    self.mp_game_state.increment_actions()
 
                 logger.debug(
                     f"AI executed wait action for disconnected player {player_info.player_name}"
