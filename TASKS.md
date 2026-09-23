@@ -2,7 +2,7 @@
 project: veinborn
 schema_version: '1.0'
 id_prefix: VB
-next_id: 33
+next_id: 35
 archival: inline
 areas: {}
 ---
@@ -538,9 +538,9 @@ priority: high
 effort: medium
 tags: [architecture, multiplayer]
 created: '2026-09-23T05:26:26Z'
-updated: '2026-09-23T06:44:18Z'
+updated: '2026-09-23T16:37:42Z'
 session: earthly-god-0922
-notes_next: 2
+notes_next: 3
 ```
 
 Single-player (core/game.py:160-242, turn_processor.py:54-91): publishes outcome.events to the EventBus, adds outcome.messages, respects took_turn, applies HP regen, AI, cleanup, game-over and high-score/Legacy hooks. Multiplayer (server/game_session/session.py:363-373, 317-330, 451-470): never publishes to the EventBus (Lua event handlers and telemetry never fire in MP), only reads messages on failure, calls increment_actions() without checking took_turn, and has no HP regen. It also builds a fresh GameContext per action (365, 410), so systems registered on self.game_context (296) aren't visible from inside actions. The server never references Lua, EventBus, TurnProcessor, FloorManager, or SaveSystem anywhere outside docstrings. This is the structural cause of VB-16 (dead-actor fallback), VB-21 (action registry drift), and VB-25 (duplicated floor progression) -- every new post-action rule has to be built twice and MP is the copy that gets forgotten. Fix: extract a core TurnEngine.apply(action, ctx) -> outcome that owns publish/messages/transitions/turn-processing with hooks for what legitimately differs (floor policy, end-of-run); have both Game and GameSession call it.
@@ -548,28 +548,32 @@ Single-player (core/game.py:160-242, turn_processor.py:54-91): publishes outcome
 <!-- notes: append-only log; each has a stable #id (see CLI §5) -->
 ### Notes
 - [#1 2026-09-23T06:44:18Z session:glowing-pulsar-0922] Investigated 2026-09-22 (session glowing-pulsar-0922), not started -- deferred pending a design decision, see below. TurnProcessor.process_turn() (core/turn_processor.py:54-91), the thing SP's Game calls after every action, is NOT a clean drop-in for MP: _apply_hp_regeneration (line 93) heals game_state.player specifically (one player), _check_game_over (line 132) checks 'not game_state.player.is_alive' (one player dying ends the game), cascading into _record_high_score/_save_legacy_ore/_record_defeat -- all single-player-shaped. MultiplayerGameState already has its OWN, different game-over rule (update_player_alive_status: ends only when ALL players are dead). A literal 'extract TurnEngine, have both Game and GameSession call it' requires actually deciding and implementing N-player HP regen and N-player game-over semantics, and whether high-score/Legacy Vault recording applies per-player in MP at all (it doesn't exist there today, so there's no existing behavior to preserve, only new behavior to design) -- a game-design decision, not a mechanical refactor. User chose to pause here rather than guess at those rules. Recommended split when resumed: (1) a smaller, safe-to-do-mechanically slice first -- extract shared EventBus-publish/took_turn/cleanup/floor-transition handling and wire MP into it (closes 'Lua event handlers and telemetry never fire in MP' with no game-design judgment calls needed), (2) HP-regen/game-over/high-score unification as a separate, explicitly-scoped follow-up once N-player rules are decided with the user. This session also closed VB-16/17/18/19 (prior session) plus VB-20/21/22/23 (this session, commits 246ec3b..9ff7965) -- VB-23 in particular removed the storage-model asymmetry that made VB-16's fallback necessary, so GameContext.get_entity/get_entity_at now work correctly for the host, which may simplify some of what TurnEngine needs to handle.
+- [#2 2026-09-23T16:37:42Z session:sultry-drizzle-0923] Slice 1 done (ca475b8): core/action_pipeline.py::process_action_outcome now shared by Game and GameSession. MP now records success messages in the shared log, publishes events to session.event_bus, and only counts took_turn actions toward the round quota. Still open: HP regen / game-over / high-score unification (needs N-player design decisions), and MP has no TurnProcessor-equivalent for floor policy. Spun off VB-33 (events fail to publish: schema mismatch).
 
 
 ## TASK-VB-25 · Floor progression logic duplicated between FloorManager and MultiplayerGameState
 
 ```yaml
-status: backlog
+status: done
 priority: medium
 effort: medium
 tags: [architecture, multiplayer]
 created: '2026-09-23T05:26:30Z'
-updated: '2026-09-23T05:26:30Z'
+updated: '2026-09-23T16:46:26Z'
 session: earthly-god-0922
 links:
   relates_to:
   - VB-24
+  commits:
+  - 437eaf4a52ba923fa8cc821c2e7f66185fac35b6
+notes_next: 2
 ```
 
 multiplayer_game_state.py:377-469 (descend_floor, _spawn_floor_entities, _get_victory_floor) duplicates core/floor_manager.py:54-273. Its own docstring (439-442) says this is because FloorManager assumes a single player. Fix: make FloorManager handle a whole party, with end-of-run hooks injected from outside; fold into the VB-24 TurnEngine extraction.
 
 <!-- notes: append-only log; each has a stable #id (see CLI §5) -->
 ### Notes
-_(no notes yet)_
+- [#1 2026-09-23T16:46:26Z session:sultry-drizzle-0923] Shared: spawn_all_for_floor, clear_floor_entities, generate_floor_map, get_victory_floor. Found+fixed 2 bugs: SP descent evicted the player from entities (VB-23 regression) and skipped special rooms after floor 1. Remaining legit differences left separate: player placement (1 vs N spawn positions) and end-of-run hooks (SP high score/Legacy Vault vs MP none) -- the latter belongs to VB-24's game-over slice.
 
 
 ## TASK-VB-26 · state_delta.apply_delta: highest-complexity function in repo, no sequencing, mutates shared dict state
@@ -580,126 +584,197 @@ priority: medium
 effort: medium
 tags: [multiplayer, architecture, quality]
 created: '2026-09-23T05:26:36Z'
-updated: '2026-09-23T05:26:36Z'
+updated: '2026-09-23T16:48:43Z'
 session: earthly-god-0922
+notes_next: 2
 ```
 
 state_delta.py:225 apply_delta has complexity 27 / nesting depth 6, the single worst production function in the codebase; compute_delta (16) is complexity 17. session.py:509-513 keeps one last_state per session shared by every client, and there's no sequence number or base-version in the delta protocol -- one dropped WS message leaves a client desynced until the next full-state broadcast. reset_state_tracking (session.py:533) is never called; reconnect instead broadcasts full state to everyone (websocket_server.py:383). Also apply_delta shallow-copies current_state (245) then mutates nested dicts in place (272-274, 304-306) -- a latent aliasing hazard for any future caller that retains a reference to a prior snapshot (replay/debug tooling). The client also depends directly on the server package for the protocol (ui/multiplayer_client.py:13-14), leaking a protocol dependency into the UI layer. Fix: move messages.py/state_delta.py into a shared protocol/ package; add seq/base_seq to deltas with a per-client baseline; have the client request a resync on a detected gap.
 
 <!-- notes: append-only log; each has a stable #id (see CLI §5) -->
 ### Notes
-_(no notes yet)_
+- [#1 2026-09-23T16:48:43Z session:sultry-drizzle-0923] Done (commit 7e871d2): apply_delta complexity 27->10, no longer mutates its input (aliasing hazard), 9 characterization tests. STILL OPEN from this ticket: seq/base_seq + per-client baseline, client resync on gap, moving messages.py/state_delta.py into a shared protocol/ package. Those are protocol-design changes; do them together.
 
 
 ## TASK-VB-27 · cleanup_task busy-loops with no backoff if cleanup raises every iteration
 
 ```yaml
-status: backlog
+status: done
 priority: medium
 effort: small
 tags: [bug, multiplayer]
 created: '2026-09-23T05:26:39Z'
-updated: '2026-09-23T05:26:39Z'
+updated: '2026-09-23T16:40:56Z'
 session: earthly-god-0922
+links:
+  commits:
+  - a46f39b0abaf2a1e05d7bd6a1c9b95272d3da6cd
+notes_next: 2
 ```
 
 websocket_server.py:599-640: await asyncio.sleep(10) (line 637) is only reached on the success path. except Exception (639-640) falls straight back to while self.is_running with no backoff -- if cleanup_expired_sessions/cleanup_expired_disconnections raises every iteration, this spins a CPU core and floods logs indefinitely. Fix: move the sleep into a finally, or add exponential backoff on repeated failures.
 
 <!-- notes: append-only log; each has a stable #id (see CLI §5) -->
 ### Notes
-_(no notes yet)_
+- [#1 2026-09-23T16:40:56Z session:sultry-drizzle-0923] cleanup_task split into _cleanup_once + loop that always sleeps; exponential backoff (10s base, 300s cap) resets on success; CancelledError re-raised; task handle held and cancelled in stop(). 6 tests in tests/unit/server/test_cleanup_task.py. The older test_server_cleanup_task_removes_expired_players re-implements the loop body rather than calling it; new tests call _cleanup_once directly.
 
 
 ## TASK-VB-28 · PickupAction has zero test coverage (highest-complexity single-player action untested)
 
 ```yaml
-status: backlog
+status: done
 priority: medium
 effort: small
 tags: [test-coverage]
 created: '2026-09-23T05:26:43Z'
-updated: '2026-09-23T05:26:43Z'
+updated: '2026-09-23T16:39:27Z'
 session: earthly-god-0922
+links:
+  commits:
+  - 9afac2041080f508ac6ed6873abd576bf1116b6c
+notes_next: 2
 ```
 
 core/actions/pickup_action.py:47 execute has complexity 14, the highest of any single-player action, and no unit or integration test references PickupAction anywhere in tests/. attack/mine/move/wait/action_factory all have dedicated unit tests; craft/equip are covered indirectly via test_equipment_system.py. Fix: add tests/unit/actions/test_pickup_action.py covering normal pickup, inventory-full, and stacking edge cases.
 
 <!-- notes: append-only log; each has a stable #id (see CLI §5) -->
 ### Notes
-_(no notes yet)_
+- [#1 2026-09-23T16:39:27Z session:sultry-drizzle-0923] 10 tests in tests/unit/actions/test_pickup_action.py. Stacking does not exist in PickupAction (only inventory-full handling). Bug found+fixed: pickup that took nothing still consumed a turn.
 
 
 ## TASK-VB-29 · Duplicate imports crept back in since VB-14 was closed
 
 ```yaml
-status: backlog
+status: done
 priority: low
 effort: small
 tags: [cleanup, quality]
 created: '2026-09-23T05:26:46Z'
-updated: '2026-09-23T05:26:46Z'
+updated: '2026-09-23T16:52:29Z'
 session: earthly-god-0922
+links:
+  commits:
+  - a7b1f9b51e975e933ace36365f3961bc8cf22df8
+notes_next: 2
 ```
 
 VB-14 (fixed, 1c4bb02) previously removed 33 dead/duplicate imports, but I005 duplicate-import instances have reappeared: attack_action.py:213, mine_action.py:221, move_action.py:200, game_context.py:87, game_context_api.py:695,728 -- all 'imported once at module scope, re-imported inside a function' pattern. Cheap cleanup pass. Separately, ~25 I006 import-inside-function instances scattered through core/actions/* and core/base/game_context.py look like deliberate circular-import avoidance (matches constants.py:56's TODO on factory-method phase-out) -- worth a pass to confirm which are load-bearing vs habit before touching.
 
 <!-- notes: append-only log; each has a stable #id (see CLI §5) -->
 ### Notes
-_(no notes yet)_
+- [#1 2026-09-23T16:52:29Z session:sultry-drizzle-0923] Hoisted Player/OreVein to module scope in attack/mine/move actions (import order verified from 6 entry points, suite green). The other I005 hits (game_context.py get_players/get_entities_at, game_context_api.py x2) are NOT duplicates: each is a function-local import in a different function, with a TYPE_CHECKING-only module import / documented circular-avoidance, so they are load-bearing and left alone.
 
 
 ## TASK-VB-30 · VeinbornServer self-subclasses itself as a dead deprecated alias
 
 ```yaml
-status: backlog
+status: done
 priority: low
 effort: small
 tags: [cleanup]
 created: '2026-09-23T05:26:49Z'
-updated: '2026-09-23T05:26:49Z'
+updated: '2026-09-23T16:52:28Z'
 session: earthly-god-0922
+links:
+  commits:
+  - a7b1f9b51e975e933ace36365f3961bc8cf22df8
+notes_next: 2
 ```
 
 websocket_server.py:667 defines class VeinbornServer(VeinbornServer), a 'deprecated alias' of itself, with a circular warning message ('VeinbornServer is deprecated, use VeinbornServer instead'). Leftover from a rename; shadows the real class name. Just delete it.
 
 <!-- notes: append-only log; each has a stable #id (see CLI §5) -->
 ### Notes
-_(no notes yet)_
+- [#1 2026-09-23T16:52:28Z session:sultry-drizzle-0923] Deleted the alias; also removes a DeprecationWarning emitted on every server construction (test warnings 78 -> 3).
 
 
 ## TASK-VB-31 · Architecture docs reference stale/nonexistent source paths
 
 ```yaml
-status: backlog
+status: done
 priority: low
 effort: small
 tags: [docs]
 created: '2026-09-23T05:26:53Z'
-updated: '2026-09-23T05:26:53Z'
+updated: '2026-09-23T16:53:23Z'
 session: earthly-god-0922
+links:
+  commits:
+  - d2ed03e657aa63847beda69399ad7c8a16ece4f0
+notes_next: 2
 ```
 
 docs/architecture/00_ARCHITECTURE_OVERVIEW.md:30-31 points to src/scripting/ and src/content/entity_loader.py, which don't exist -- real paths are src/core/scripting/ and src/core/entity_loader.py. Its 'Current Game Loop' section (59-86) shows a Game that owns self.ui; the real code (post VB-11 split into GameBootstrapper/GameLuaIntegration) is better than the doc describes -- the doc is just stale, not aspirational. BASE_CLASS_ARCHITECTURE.md also still labels GameContext 'Phase 2' (1279) though it's fully implemented (only outline-checked, medium confidence). Fix: update paths and the game-loop description to match current code.
 
 <!-- notes: append-only log; each has a stable #id (see CLI §5) -->
 ### Notes
-_(no notes yet)_
+- [#1 2026-09-23T16:53:23Z session:sultry-drizzle-0923] 00_ARCHITECTURE_OVERVIEW: fixed src/scripting + src/content paths, replaced the fictional Game.run() loop with the real handle_player_action -> process_action_outcome -> TurnProcessor flow (and MP's round-based variant), rewrote the project-structure tree, added rows for action_pipeline/turn_processor/floor_manager, refreshed test count. BASE_CLASS_ARCHITECTURE: GameContext and GameEvent no longer labelled Phase 2 (both implemented).
 
 
 ## TASK-VB-32 · Confirm and clean up suspected dead code: perception helpers, telemetry hooks
 
 ```yaml
-status: backlog
+status: held
 priority: low
 effort: small
 tags: [cleanup, quality]
 created: '2026-09-23T05:26:58Z'
-updated: '2026-09-23T05:26:58Z'
+updated: '2026-09-23T16:54:07Z'
 session: earthly-god-0922
+notes_next: 2
 ```
 
 Static-analysis heuristic flagged 33 uncalled functions; most (action_factory.py 8 _create_* methods, ai_system.py 5 _behavior_* methods) are almost certainly dict/registry-dispatched and not actually dead -- confirm via reveal 'calls://src?target=_create_move_action&depth=2' before touching. Genuinely worth investigating: telemetry.py:311/349 (log_combat, log_player_death -- hooks that may just not be wired up yet) and perception.py:205-268 (four get_visible_*/get_nearby_ore/get_entities_at_distance helpers, all uncalled -- possibly superseded by update_visibility's internal logic, or dead API surface left from a refactor). run_server.py flagged as 'not imported anywhere' is a false positive (CLI entry point) -- ignore.
 
 <!-- notes: append-only log; each has a stable #id (see CLI §5) -->
 ### Notes
-_(no notes yet)_
+- [#1 2026-09-23T16:54:07Z session:sultry-drizzle-0923] Investigated 2026-09-23, nothing deleted -- each remaining item needs a product call. (1) src/core/perception.py: FogOfWar/TileVisibility/PerceptionSystem have NO production caller (only referenced inside the file); tests/unit/test_perception.py (786 lines) tests it, and docs/development/BOT_* describe it, but the fuzz bots use their own tests/fuzz/services/perception_service.py. So get_visible_monsters/get_nearby_ore/get_entities_at_distance are dead as part of a wholly unwired module: decide wire-in (fog of war / bot API) vs delete module+tests. (2) telemetry.py GameTelemetry.log_combat/log_player_death: never called; Game builds game_telemetry but nothing writes to it. StatsTracker IS wired via EventBus subscribers, but see VB-33 -- most action events fail to publish, so even that is mostly silent. Decide alongside VB-33. (3) Action-factory _create_* and ai_system _behavior_* are registry-dispatched, not dead; run_server.py is a CLI entry point. Not dead.
+
+
+## TASK-VB-33 · Action events mostly fail to publish to EventBus: flat dicts lack 'data', some types not in GameEventType
+
+```yaml
+status: done
+priority: high
+tags: [events, lua, telemetry]
+created: '2026-09-23T16:37:36Z'
+updated: '2026-09-23T17:01:53Z'
+session: sultry-drizzle-0923
+links:
+  references:
+  - src/core/events/events.py
+  - src/core/action_pipeline.py
+  commits:
+  - d395c61c4bc98c008eebc07baf31df1a9c008d97
+notes_next: 2
+```
+
+Found during VB-24. logs/veinborn.log holds ~769 'Failed to publish event from dict' errors: 717 KeyError 'data' (actions emit flat dicts like {'type':'entity_moved','entity_id':..}, GameEvent.from_dict requires event_dict['data']), plus ValueErrors for types absent from GameEventType (mining_progress, loot_dropped, descend_floor, equipment_equipped, actor_waited). Net: Lua event handlers and telemetry subscribers miss most action events in single-player, and now MP too since VB-24 wired it to publish. Fix needs a decision on the event schema (normalise action dicts vs. tolerate flat dicts in from_dict) and a check that subscribers cope with events they have never received before. Also: publish_dict logs unknown types at ERROR with traceback per action - noisy.
+
+<!-- notes: append-only log; each has a stable #id (see CLI §5) -->
+### Notes
+- [#1 2026-09-23T17:01:53Z session:sultry-drizzle-0923] GameEvent.from_dict accepts flat action dicts; 7 action-emitted types added to GameEventType (Lua get_types() auto-exposes them). Live check: SP move/survey now deliver entity_moved/ore_surveyed, StatsTracker.ore_surveyed increments, 0 ERROR logs. Caveats: (1) Game.handle_player_action special-cases 'wait' without an Action, so SP wait emits no actor_waited event and no 'X waits.' message, unlike MP's WaitAction path -- another SP/MP drift for VB-24. (2) GameTelemetry.log_* still unwired, see VB-32. Lua event handlers under scripts/events now receive these events for the first time -- watch for surprises.
+
+
+## TASK-VB-34 · Flaky test: test_action_planner::test_get_smart_action_prioritizes_forced_combat
+
+```yaml
+status: done
+priority: low
+tags: [tests, flaky]
+created: '2026-09-23T16:37:36Z'
+updated: '2026-09-23T17:01:32Z'
+session: sultry-drizzle-0923
+links:
+  references:
+  - tests/unit/test_action_planner.py
+  commits:
+  - d165e3b4747f71abec6054a1f4d23276d683774e
+notes_next: 2
+```
+
+Failed once in a full-suite run (1137 passed/1 failed) during VB-24 work, then passed 3x in isolation and in a second full run. Probably RNG- or ordering-dependent; not touched by VB-24 changes.
+
+<!-- notes: append-only log; each has a stable #id (see CLI §5) -->
+### Notes
+- [#1 2026-09-23T17:01:32Z session:sultry-drizzle-0923] Root cause: start_new_game() unseeded + hard-coded entity coordinates on a random map (also test_flee_from_maximizes_distance). Measured 2 failures in 195 runs; now seed=42 everywhere in the file (13 calls). test_perception_service and test_tactical_decision_service: 660 runs, no flakes.
