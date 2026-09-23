@@ -100,13 +100,16 @@ class HighScoreEntry:
     victory_type: str = "pure"  # "pure" or "legacy"
 
     @classmethod
-    def from_game_state(cls, game_state: 'GameState', player_name: str) -> 'HighScoreEntry':
+    def from_game_state(cls, game_state: 'GameState', player_name: str,
+                        player=None) -> 'HighScoreEntry':
         """
         Create high score entry from game state.
 
         Args:
             game_state: Current game state
             player_name: Player's name for leaderboard
+            player: Player entity to score (default: game_state.player). Multiplayer
+                scores each party member separately against the shared game state.
 
         Returns:
             HighScoreEntry instance
@@ -117,10 +120,10 @@ class HighScoreEntry:
             15450
         """
         # Calculate score
-        score = cls.calculate_score(game_state)
+        score = cls.calculate_score(game_state, player)
 
         # Get stats from player (with safe defaults)
-        player = game_state.player
+        player = player if player is not None else game_state.player
         stats = player.stats if hasattr(player, 'stats') else {}
 
         return cls(
@@ -145,7 +148,7 @@ class HighScoreEntry:
         )
 
     @staticmethod
-    def calculate_score(game_state: 'GameState') -> int:
+    def calculate_score(game_state: 'GameState', player=None) -> int:
         """
         Calculate score from game state.
 
@@ -159,6 +162,7 @@ class HighScoreEntry:
 
         Args:
             game_state: Game state to score
+            player: Player entity to score (default: game_state.player)
 
         Returns:
             Calculated score (integer)
@@ -169,7 +173,7 @@ class HighScoreEntry:
         xp_multiplier = config.game_constants['highscore']['scoring']['xp_multiplier']
 
         score = 0
-        player = game_state.player
+        player = player if player is not None else game_state.player
         stats = player.stats if hasattr(player, 'stats') else {}
 
         # Depth progression (most important)
@@ -227,6 +231,7 @@ class HighScoreManager:
     """
 
     _instance: Optional['HighScoreManager'] = None
+    _multiplayer_instance: Optional['HighScoreManager'] = None
 
     def __init__(self, filepath: Optional[Path] = None):
         """
@@ -263,9 +268,28 @@ class HighScoreManager:
         return cls._instance
 
     @classmethod
+    def get_multiplayer_instance(cls, filepath: Optional[Path] = None) -> 'HighScoreManager':
+        """
+        Get the multiplayer leaderboard singleton.
+
+        Co-op runs are scored per player but ranked on their own leaderboard
+        (data/highscores_multiplayer.json), never mixed into the single-player one.
+
+        Args:
+            filepath: Path to high scores file (only used on first call)
+        """
+        if cls._multiplayer_instance is None:
+            if filepath is None:
+                project_root = Path(__file__).parent.parent.parent
+                filepath = project_root / "data" / "highscores_multiplayer.json"
+            cls._multiplayer_instance = cls(filepath)
+        return cls._multiplayer_instance
+
+    @classmethod
     def reset(cls):
-        """Reset singleton (for testing)."""
+        """Reset singletons (for testing)."""
         cls._instance = None
+        cls._multiplayer_instance = None
 
     def load(self) -> None:
         """Load high scores from JSON file."""

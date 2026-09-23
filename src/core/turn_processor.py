@@ -12,7 +12,7 @@ following Single Responsibility Principle.
 """
 
 import logging
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Iterable
 
 from .base.entity import EntityType
 from .highscore import HighScoreManager, HighScoreEntry
@@ -23,6 +23,27 @@ if TYPE_CHECKING:
     from .game_state import GameState
 
 logger = logging.getLogger(__name__)
+
+
+def apply_hp_regeneration(players: Iterable, turn_count: int,
+                          interval: int, amount: int) -> None:
+    """
+    Heal each living player by `amount` HP on every `interval`-th turn.
+
+    NetHack-style natural regeneration, shared by single-player (one player)
+    and multiplayer (every party member) so the rule can't drift between them.
+    """
+    if turn_count % interval != 0:
+        return
+
+    for player in players:
+        if player.is_alive and player.hp < player.max_hp:
+            healed = player.heal(amount)
+
+            if healed > 0:
+                logger.debug(
+                    f"{player.name} regenerated {healed} HP (turn {turn_count})"
+                )
 
 
 class TurnProcessor:
@@ -96,17 +117,12 @@ class TurnProcessor:
 
         NetHack-style: 1 HP every 10 turns (configurable)
         """
-        if self.game_state.turn_count % self.hp_regen_interval == 0:
-            player = self.game_state.player
-
-            if player.hp < player.max_hp:
-                healed = player.heal(self.hp_regen_amount)
-
-                if healed > 0:
-                    logger.debug(
-                        f"Player regenerated {healed} HP "
-                        f"(turn {self.game_state.turn_count})"
-                    )
+        apply_hp_regeneration(
+            [self.game_state.player],
+            self.game_state.turn_count,
+            self.hp_regen_interval,
+            self.hp_regen_amount,
+        )
 
     def _run_ai_systems(self) -> None:
         """Run all AI systems (monster turns)."""

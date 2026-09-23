@@ -414,6 +414,18 @@ def capture_messages(monkeypatch):
 # Pytest Configuration
 # ============================================================================
 
+@pytest.fixture(autouse=True)
+def isolated_multiplayer_highscores(tmp_path):
+    """Keep co-op runs that reach game over off the real data/highscores_multiplayer.json."""
+    from core.highscore import HighScoreManager
+
+    HighScoreManager._multiplayer_instance = HighScoreManager(
+        tmp_path / "highscores_multiplayer.json"
+    )
+    yield HighScoreManager._multiplayer_instance
+    HighScoreManager._multiplayer_instance = None
+
+
 def pytest_configure(config):
     """Configure pytest with custom markers."""
     config.addinivalue_line(

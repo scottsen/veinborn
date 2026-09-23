@@ -79,3 +79,6 @@ SESSION_SUMMARY_*.md
 # --- UV lock file (generated during testing) ---
 uv.lock
 
+
+# Co-op leaderboard: runtime data written by the multiplayer server
+data/highscores_multiplayer.json

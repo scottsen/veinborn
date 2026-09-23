@@ -10,6 +10,7 @@ from core.actions.wait_action import WaitAction
 from core.base.action import Action
 from core.base.game_context import GameContext
 from core.events import EventBus
+from core.highscore import HighScoreEntry, HighScoreManager
 from core.systems.ai_system import AISystem
 from server.multiplayer_game_state import MultiplayerGameState
 from server.state_delta import StateDelta
@@ -28,6 +29,7 @@ class GameSession:
         game_name: str,
         max_players: int = 4,
         actions_per_round: int = 4,
+        high_scores: Optional[HighScoreManager] = None,
     ):
         self.game_id = game_id
         self.game_name = game_name
@@ -56,6 +58,11 @@ class GameSession:
         # State tracking for delta compression
         self.last_state: Optional[Dict] = None
         self.use_delta_compression = True  # Enable/disable delta compression
+
+        # Co-op scores live on their own leaderboard, one entry per player
+        # (resolved lazily so tests and the server can inject a manager).
+        self._high_scores = high_scores
+        self._scored_player_ids: set = set()
 
         # Locks
         self._lock = asyncio.Lock()
@@ -334,10 +341,47 @@ class GameSession:
             await self._process_monster_turn()
             self.mp_game_state.increment_round()
 
-        self.mp_game_state.update_player_alive_status()
+        newly_dead = self.mp_game_state.update_player_alive_status()
+        self._record_scores(newly_dead)
 
         if self.mp_game_state.game_state.game_over:
             self.is_finished = True
+            # Survivors are scored when the run ends (victory or wipe)
+            self._record_scores(self.mp_game_state.player_slots.values())
+
+    def _record_scores(self, slots) -> None:
+        """Record each given player's run on the multiplayer leaderboard, once.
+
+        Players are scored the moment they die, survivors when the game ends.
+        Never raises: a leaderboard failure must not break the game.
+        """
+        game_state = self.mp_game_state.game_state
+        for slot in slots:
+            if slot.player_id in self._scored_player_ids or not slot.player_entity:
+                continue
+            self._scored_player_ids.add(slot.player_id)
+
+            try:
+                hsm = self._high_scores or HighScoreManager.get_multiplayer_instance()
+                entry = HighScoreEntry.from_game_state(
+                    game_state, slot.player_name, player=slot.player_entity
+                )
+                rank = hsm.add_score(entry)
+
+                if rank > 0:
+                    self.mp_game_state.add_message(
+                        f"{slot.player_name}'s final score: {entry.score} "
+                        f"(co-op rank #{rank})"
+                    )
+                logger.info(
+                    f"Co-op high score recorded: {slot.player_name} scored "
+                    f"{entry.score} (rank #{rank}) in game {self.game_id}"
+                )
+            except Exception as e:
+                logger.error(
+                    f"Failed to record co-op high score for {slot.player_name}: {e}",
+                    exc_info=True,
+                )
 
     async def process_action(
         self, player_id: str, action: Action
@@ -475,6 +519,9 @@ class GameSession:
 
         # Increment turn count
         self.mp_game_state.game_state.turn_count += 1
+
+        # Natural HP regeneration for every living player
+        self.mp_game_state.apply_hp_regeneration()
 
         # Clean up dead entities
         self.mp_game_state.game_state.cleanup_dead_entities()

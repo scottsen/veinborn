@@ -16,6 +16,7 @@ from core.config import ConfigLoader
 from core.entity_loader import EntityLoader
 from core.spawning import EntitySpawner
 from core.floor_manager import generate_floor_map, get_victory_floor
+from core.turn_processor import apply_hp_regeneration
 
 logger = logging.getLogger(__name__)
 
@@ -367,11 +368,22 @@ class MultiplayerGameState:
         self.actions_this_round += 1
         return self.actions_this_round
 
-    def update_player_alive_status(self) -> None:
-        """Update alive status for all players based on their entities."""
+    def update_player_alive_status(self) -> List[PlayerSlot]:
+        """Update alive status for all players based on their entities.
+
+        The party plays on while at least one player is alive; the game ends
+        only when every player is dead.
+
+        Returns:
+            Slots whose player died since the last call (for per-player scoring).
+        """
+        newly_dead = []
         for slot in self.player_slots.values():
             if slot.player_entity:
+                was_alive = slot.is_alive
                 slot.is_alive = slot.player_entity.is_alive
+                if was_alive and not slot.is_alive:
+                    newly_dead.append(slot)
 
         # Check if all players are dead
         if self.game_state and all(
@@ -379,6 +391,22 @@ class MultiplayerGameState:
         ):
             self.game_state.game_over = True
             self.add_message("All players have died. Game over!")
+
+        return newly_dead
+
+    def apply_hp_regeneration(self) -> None:
+        """Naturally heal every living player, using single-player's regen rule."""
+        if not self.game_state:
+            return
+
+        regen = self.config.game_constants['player']['health_regeneration']
+        apply_hp_regeneration(
+            [slot.player_entity for slot in self.player_slots.values()
+             if slot.is_alive and slot.player_entity],
+            self.game_state.turn_count,
+            regen['interval_turns'],
+            regen['amount'],
+        )
 
     def get_active_player_count(self) -> int:
         """Get count of active, alive players."""
