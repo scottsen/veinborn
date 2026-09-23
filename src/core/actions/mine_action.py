@@ -14,6 +14,7 @@ from dataclasses import dataclass
 from ..base.action import Action, ActionOutcome
 from ..base.game_context import GameContext
 from ..base.entity import EntityType
+from ..entities import OreVein
 from ..events import create_ore_mined_event, GameEventType
 
 logger = logging.getLogger(__name__)
@@ -151,7 +152,6 @@ class MineAction(Action):
         outcome.messages.append(f"Mined {ore_vein.name}!")
 
         # Extract and handle ore item
-        from ..entities import OreVein
         if isinstance(ore_vein, OreVein):
             ore_item = ore_vein.get_ore_item()
             self._handle_ore_item(context, actor, ore_item, outcome)
@@ -213,7 +213,6 @@ class MineAction(Action):
         )
 
         # Use event builder helper for type-safe ore mined event
-        from ..entities import OreVein
         if isinstance(ore_vein, OreVein):
             outcome.events.append(create_ore_mined_event(
                 ore_id=ore_item.entity_id,

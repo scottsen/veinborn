@@ -720,25 +720,5 @@ async def main():
         await server.stop()
 
 
-# Backward compatibility alias (deprecated)
-# TODO: Remove in v0.5.0
-import warnings
-
-
-class VeinbornServer(VeinbornServer):
-    """Deprecated: Use VeinbornServer instead.
-
-    This alias is provided for backward compatibility and will be removed in v0.5.0.
-    """
-    def __init__(self, *args, **kwargs):
-        warnings.warn(
-            "VeinbornServer is deprecated, use VeinbornServer instead. "
-            "This alias will be removed in v0.5.0.",
-            DeprecationWarning,
-            stacklevel=2
-        )
-        super().__init__(*args, **kwargs)
-
-
 if __name__ == "__main__":
     asyncio.run(main())

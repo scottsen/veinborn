@@ -12,6 +12,7 @@ from dataclasses import dataclass
 from ..base.action import Action, ActionOutcome
 from ..base.game_context import GameContext
 from ..base.entity import EntityType
+from ..entities import Player
 
 logger = logging.getLogger(__name__)
 
@@ -129,7 +130,6 @@ class MoveAction(Action):
         if target.entity_type == EntityType.ORE_VEIN:
             # Only players can mine ore veins via bump-to-mine
             # Monsters treat ore veins as blocking obstacles
-            from ..entities import Player
             if isinstance(actor, Player):
                 logger.info("MoveAction redirecting to mine (bump mining)",
                            extra={'actor_id': self.actor_id, 'actor_name': actor.name,
@@ -197,7 +197,6 @@ class MoveAction(Action):
     def _handle_autopickup(self, context, actor, x, y, outcome):
         """Handle automatic item pickup when walking over items."""
         # Only players autopickup
-        from ..entities import Player
         if not isinstance(actor, Player):
             return
 

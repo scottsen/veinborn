@@ -16,6 +16,7 @@ from simpleeval import simple_eval
 from ..base.action import Action, ActionOutcome
 from ..base.game_context import GameContext
 from ..base.entity import EntityType
+from ..entities import Player
 from ..loot import LootGenerator
 from ..events import create_attack_event, create_entity_died_event
 from ..config.config_loader import ConfigLoader
@@ -111,8 +112,6 @@ class AttackAction(Action):
 
     def _calculate_and_apply_damage(self, actor, target) -> int:
         """Calculate damage and apply to target using configured formula."""
-        # Import Player locally to avoid circular imports
-        from ..entities import Player
 
         # Get attack value (including equipment bonuses for Players)
         if isinstance(actor, Player):
@@ -216,7 +215,6 @@ class AttackAction(Action):
         if xp_reward <= 0:
             return
 
-        from ..entities import Player
         if not isinstance(actor, Player):
             return
 
