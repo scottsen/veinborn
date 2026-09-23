@@ -44,6 +44,7 @@ dev = [
 veinborn = "ui.textual.app:main"
 veinborn-server = "server.run_server:main"
 veinborn-test-client = "server.test_client:main"
+veinborn-scores = "core.scores_cli:main"
 
 [project.urls]
 Homepage = "https://github.com/scottsen/veinborn"
