@@ -27,6 +27,33 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 
+DEFAULT_VICTORY_FLOOR = 100  # Matches game_constants.yaml
+
+
+def get_victory_floor(config) -> int:
+    """Floor number that triggers victory (falls back to the default for mocked/partial configs)."""
+    try:
+        floor = config.game_constants['progression']['victory_floor']
+    except (AttributeError, KeyError, TypeError):
+        return DEFAULT_VICTORY_FLOOR
+    return floor if isinstance(floor, int) else DEFAULT_VICTORY_FLOOR
+
+
+def generate_floor_map(config, rng) -> Map:
+    """Generate a fresh dungeon map.
+
+    VB-18: takes the game's own RNG so descent keeps drawing from the same
+    stream instead of the process-global singleton, which a concurrent
+    multiplayer game could have re-seeded in the meantime.
+    """
+    return Map(
+        width=config.game_constants['map']['default_width'],
+        height=config.game_constants['map']['default_height'],
+        config=config,
+        rng=rng,
+    )
+
+
 class FloorManager:
     """
     Handles floor transitions and progression.
@@ -82,8 +109,8 @@ class FloorManager:
         # Place player at stairs up
         self._place_player_at_stairs()
 
-        # Clear old entities
-        self.game_state.entities.clear()
+        # Clear old entities (the player stays in the world)
+        self.game_state.clear_floor_entities()
 
         # Spawn new entities
         monsters, ore_veins, forges = self._spawn_floor_entities(new_floor)
@@ -110,13 +137,7 @@ class FloorManager:
         Returns:
             True if victory achieved, False otherwise
         """
-        try:
-            victory_floor = self.spawner.config.game_constants['progression']['victory_floor']
-            # Handle mocked config in tests (MagicMock returns MagicMock)
-            if not isinstance(victory_floor, int):
-                victory_floor = 100  # Default from game_constants.yaml
-        except (AttributeError, KeyError, TypeError):
-            victory_floor = 100  # Fallback for mocked spawner in tests
+        victory_floor = get_victory_floor(self.spawner.config)
 
         if floor >= victory_floor:
             self.game_state.victory = True
@@ -211,22 +232,10 @@ class FloorManager:
 
     def _generate_new_floor(self) -> None:
         """Generate a new dungeon floor."""
-        map_width = self.spawner.config.game_constants['map']['default_width']
-        map_height = self.spawner.config.game_constants['map']['default_height']
-
-        self.game_state.dungeon_map = Map(
-            width=map_width,
-            height=map_height,
-            config=self.spawner.config,  # Pass config from spawner
-            # VB-18: reuse this game's own RNG instance so floor descent
-            # keeps drawing from the same stream, not the process-global
-            # singleton (which a concurrent multiplayer game could have
-            # re-seeded in the meantime).
-            rng=self.game_state.rng,
+        self.game_state.dungeon_map = generate_floor_map(
+            self.spawner.config, self.game_state.rng
         )
-        logger.debug(
-            f"Generated new map: {map_width}x{map_height}"
-        )
+        logger.debug("Generated new map")
 
     def _place_player_at_stairs(self) -> None:
         """Place player at stairs up position."""
@@ -253,22 +262,13 @@ class FloorManager:
         Returns:
             Tuple of (monsters, ore_veins, forges)
         """
-        dungeon_map = self.game_state.dungeon_map
+        spawned = self.spawner.spawn_all_for_floor(floor, self.game_state.dungeon_map)
+        monsters = spawned['monsters']
+        ore_veins = spawned['ore_veins']
+        forges = spawned['forges']
 
-        # Spawn monsters
-        monsters = self.spawner.spawn_monsters_for_floor(floor, dungeon_map)
-        for monster in monsters:
-            self.context.add_entity(monster)
-
-        # Spawn ore veins
-        ore_veins = self.spawner.spawn_ore_veins_for_floor(floor, dungeon_map)
-        for ore_vein in ore_veins:
-            self.context.add_entity(ore_vein)
-
-        # Spawn forges (crafting stations)
-        forges = self.spawner.spawn_forges_for_floor(floor, dungeon_map)
-        for forge in forges:
-            self.context.add_entity(forge)
+        for entity in [*monsters, *ore_veins, *forges]:
+            self.context.add_entity(entity)
 
         logger.debug(
             f"Spawned entities for floor {floor}: "

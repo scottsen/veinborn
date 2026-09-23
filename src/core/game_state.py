@@ -108,6 +108,17 @@ class GameState:
         """Get most recent messages."""
         return self.messages[-count:]
 
+    def clear_floor_entities(self, keep_ids=()) -> None:
+        """Remove everything left over from the previous floor.
+
+        The player (and any ids in keep_ids, e.g. other multiplayer players)
+        survive; wiping the whole dict would evict them from the world.
+        """
+        keep = set(keep_ids)
+        keep.add(self.player.entity_id)
+        for entity_id in [eid for eid in self.entities if eid not in keep]:
+            del self.entities[entity_id]
+
     def cleanup_dead_entities(self) -> None:
         """Remove dead entities from the game."""
         dead_ids = [

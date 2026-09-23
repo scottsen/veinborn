@@ -15,6 +15,7 @@ from core.world import Map
 from core.config import ConfigLoader
 from core.entity_loader import EntityLoader
 from core.spawning import EntitySpawner
+from core.floor_manager import generate_floor_map, get_victory_floor
 
 logger = logging.getLogger(__name__)
 
@@ -393,15 +394,10 @@ class MultiplayerGameState:
         Args:
             floor: Floor number to spawn entities for
         """
-        dungeon_map = self.game_state.dungeon_map
-
-        monsters = self.spawner.spawn_monsters_for_floor(floor, dungeon_map)
-        ore_veins = self.spawner.spawn_ore_veins_for_floor(floor, dungeon_map)
-        forges = self.spawner.spawn_forges_for_floor(floor, dungeon_map)
-
-        special_entities = self.spawner.spawn_special_room_entities(floor, dungeon_map)
-        monsters.extend(special_entities['monsters'])
-        ore_veins.extend(special_entities['ores'])
+        spawned = self.spawner.spawn_all_for_floor(floor, self.game_state.dungeon_map)
+        monsters = spawned['monsters']
+        ore_veins = spawned['ore_veins']
+        forges = spawned['forges']
 
         for entity in [*monsters, *ore_veins, *forges]:
             self.game_state.entities[entity.entity_id] = entity
@@ -413,11 +409,7 @@ class MultiplayerGameState:
 
     def _get_victory_floor(self) -> int:
         """Get the floor number that triggers victory."""
-        try:
-            floor = self.config.game_constants['progression']['victory_floor']
-            return floor if isinstance(floor, int) else 100
-        except (AttributeError, KeyError, TypeError):
-            return 100
+        return get_victory_floor(self.config)
 
     def _clear_non_player_entities(self) -> None:
         """Remove monsters/ore veins/forges from the previous floor.
@@ -426,10 +418,7 @@ class MultiplayerGameState:
         MP stores non-host players in game_state.entities too, and wiping
         the whole dict would kick them from the game on every descent.
         """
-        player_entity_ids = set(self.entity_to_player.keys())
-        for entity_id in list(self.game_state.entities.keys()):
-            if entity_id not in player_entity_ids:
-                del self.game_state.entities[entity_id]
+        self.game_state.clear_floor_entities(keep_ids=self.entity_to_player.keys())
 
     def _reposition_players_at_new_floor(self) -> None:
         """Move every player to a spawn position on the newly generated floor."""
@@ -468,14 +457,7 @@ class MultiplayerGameState:
             return
 
         self.game_state.current_floor = new_floor
-        self.game_state.dungeon_map = Map(
-            width=self.config.game_constants['map']['default_width'],
-            height=self.config.game_constants['map']['default_height'],
-            config=self.config,
-            # VB-18: reuse this game's own RNG instance, not the
-            # process-global singleton.
-            rng=self.game_state.rng,
-        )
+        self.game_state.dungeon_map = generate_floor_map(self.config, self.game_state.rng)
 
         self._reposition_players_at_new_floor()
         self._clear_non_player_entities()

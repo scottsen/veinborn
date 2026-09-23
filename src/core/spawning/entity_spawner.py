@@ -206,6 +206,25 @@ class EntitySpawner:
 
         return rng.choice(items)
 
+    def spawn_all_for_floor(self, floor: int, dungeon_map: Map) -> Dict[str, List]:
+        """Spawn everything a floor gets: regular entities plus special-room extras.
+
+        Single entry point for game start, single-player descent and multiplayer
+        descent, so they can't drift apart on what a floor contains (VB-25).
+
+        Returns:
+            {'monsters': [...], 'ore_veins': [...], 'forges': [...]}
+        """
+        monsters = self.spawn_monsters_for_floor(floor, dungeon_map)
+        ore_veins = self.spawn_ore_veins_for_floor(floor, dungeon_map)
+        forges = self.spawn_forges_for_floor(floor, dungeon_map)
+
+        special_entities = self.spawn_special_room_entities(floor, dungeon_map)
+        monsters.extend(special_entities['monsters'])
+        ore_veins.extend(special_entities['ores'])
+
+        return {'monsters': monsters, 'ore_veins': ore_veins, 'forges': forges}
+
     def spawn_special_room_entities(self, floor: int, dungeon_map: Map):
         """
         Spawn special entities in special rooms.

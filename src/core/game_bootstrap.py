@@ -112,16 +112,7 @@ class GameBootstrapper:
         self, spawner: EntitySpawner, floor: int, dungeon_map: Map
     ) -> Dict[str, List]:
         """Spawn all initial entities for the floor."""
-        monsters = spawner.spawn_monsters_for_floor(floor, dungeon_map)
-        ore_veins = spawner.spawn_ore_veins_for_floor(floor, dungeon_map)
-        forges = spawner.spawn_forges_for_floor(floor, dungeon_map)
-
-        # Spawn special room entities
-        special_entities = spawner.spawn_special_room_entities(floor, dungeon_map)
-        monsters.extend(special_entities['monsters'])
-        ore_veins.extend(special_entities['ores'])
-
-        return {'monsters': monsters, 'ore_veins': ore_veins, 'forges': forges}
+        return spawner.spawn_all_for_floor(floor, dungeon_map)
 
     def display_welcome_messages(
         self, state: GameState, forges: list, withdrawn_ore: Optional['LegacyOre']
