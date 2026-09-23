@@ -155,12 +155,21 @@ class MineAction(Action):
         if isinstance(ore_vein, OreVein):
             ore_item = ore_vein.get_ore_item()
             self._handle_ore_item(context, actor, ore_item, outcome)
+            self._record_run_stats(actor, ore_vein)
             self._remove_ore_vein(context, ore_vein, ore_item, outcome)
 
         # Clear mining state
         actor.set_stat('mining_action', None)
 
         return outcome
+
+    def _record_run_stats(self, actor, ore_vein) -> None:
+        """Record the per-player run stats that high scores are computed from."""
+        from ..entities import Player
+        if isinstance(actor, Player):
+            actor.increment_stat('ore_mined')
+            actor.set_stat('best_ore_purity',
+                           max(actor.get_stat('best_ore_purity'), ore_vein.purity))
 
     def _handle_ore_item(self, context: GameContext, actor, ore_item, outcome: ActionOutcome):
         """Add ore to inventory or drop on ground if full."""

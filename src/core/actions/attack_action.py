@@ -72,6 +72,7 @@ class AttackAction(Action):
         # Calculate and apply damage
         actual_damage = self._calculate_and_apply_damage(actor, target)
         self._log_damage(actor, target, actual_damage)
+        self._record_run_stats(actor, target, actual_damage)
 
         # Build outcome with damage message
         outcome = self._build_combat_outcome(actor, target, actual_damage)
@@ -93,6 +94,18 @@ class AttackAction(Action):
         actor = self._get_actor(context)
         target = context.get_entity(self.target_id)
         return actor, target
+
+    def _record_run_stats(self, actor, target, actual_damage: int) -> None:
+        """Record the per-player run stats that high scores are computed from."""
+        if actor.entity_type == EntityType.PLAYER:
+            actor.increment_stat('damage_dealt', actual_damage)
+            if not target.is_alive and target.entity_type == EntityType.MONSTER:
+                actor.increment_stat('monsters_killed')
+
+        if target.entity_type == EntityType.PLAYER:
+            target.increment_stat('damage_taken', actual_damage)
+            if not target.is_alive:
+                target.set_stat('death_cause', f"Killed by {actor.name}")
 
     def _log_attack_start(self, actor, target):
         """Log attack initiation."""
@@ -137,15 +150,15 @@ class AttackAction(Action):
                 names={
                     'attacker_attack': actor_attack,
                     'defender_defense': target_defense,
-                    'max': max,
-                    'min': min,
-                }
+                },
+                # simpleeval resolves calls like max(...) through functions=, not names=
+                functions={'max': max, 'min': min},
             )
         except Exception as e:
             logger.error(f"Formula evaluation failed: {e}, using fallback")
-            damage = max(1, actor_attack - target_defense)
+            damage = actor_attack - target_defense
 
-        return target.take_damage(int(damage))
+        return target.take_damage(max(min_damage, int(damage)))
 
     def _log_damage(self, actor, target, actual_damage: int):
         """Log damage dealt."""

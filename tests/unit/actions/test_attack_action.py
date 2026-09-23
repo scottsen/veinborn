@@ -146,3 +146,35 @@ def test_attack_deals_damage_to_living_target(game_context, weak_goblin):
 
     outcome = action.execute(game_context)
     assert weak_goblin.hp < initial_hp, "Target should take damage"
+
+
+def test_configured_damage_formula_is_evaluated_not_the_fallback(
+        game_context, weak_goblin, monkeypatch, caplog):
+    """VB-37: max/min were passed as names, so every attack fell back silently."""
+    from core.config.config_loader import ConfigLoader
+
+    game_context.add_entity(weak_goblin)
+    player = game_context.get_player()
+    weak_goblin.hp = weak_goblin.max_hp = 500
+    weak_goblin.defense = 0
+    monkeypatch.setattr(ConfigLoader.get_config(), 'get_damage_formula',
+                        lambda: "attacker_attack * 2 - defender_defense")
+
+    with caplog.at_level("ERROR"):
+        AttackAction(actor_id=player.entity_id, target_id=weak_goblin.entity_id).execute(game_context)
+
+    assert "Formula evaluation failed" not in caplog.text
+    assert weak_goblin.max_hp - weak_goblin.hp == player.get_total_attack() * 2
+
+
+def test_default_damage_formula_uses_max_without_error(game_context, weak_goblin, caplog):
+    game_context.add_entity(weak_goblin)
+    player = game_context.get_player()
+    weak_goblin.hp = weak_goblin.max_hp = 500
+    weak_goblin.defense = 10_000  # would go negative without max(1, ...)
+
+    with caplog.at_level("ERROR"):
+        AttackAction(actor_id=player.entity_id, target_id=weak_goblin.entity_id).execute(game_context)
+
+    assert "Formula evaluation failed" not in caplog.text
+    assert weak_goblin.hp == 499

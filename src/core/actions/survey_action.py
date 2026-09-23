@@ -57,6 +57,10 @@ class SurveyAction(Action):
         actor = self._get_actor(context)
         ore_vein = context.get_entity(self.ore_vein_id)
 
+        # Count the first survey of each vein towards the player's run stats
+        if not ore_vein.get_stat('surveyed') and actor.entity_type == EntityType.PLAYER:
+            actor.increment_stat('ore_surveyed')
+
         # Mark as surveyed and get properties
         ore_vein.set_stat('surveyed', True)
         props = self._get_ore_properties(ore_vein)

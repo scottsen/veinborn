@@ -157,3 +157,21 @@ async def test_regen_only_on_the_configured_interval():
     await game._process_monster_turn()
 
     assert alice.hp == alice.max_hp - 5
+
+
+@pytest.mark.asyncio
+async def test_each_player_is_scored_on_their_own_run_stats():
+    game = await _started_session()
+    alice = game.mp_game_state.player_slots["player0"].player_entity
+    bob = game.mp_game_state.player_slots["player1"].player_entity
+    alice.set_stat('monsters_killed', 3)
+    bob.set_stat('monsters_killed', 7)
+    _kill(game, "player0")
+    await _wait(game, "player1")
+    _kill(game, "player1")
+    await game._advance_round_if_complete()
+
+    by_name = {s.player_name: s for s in _scores(names_only=False)}
+    assert by_name["Alice"].monsters_killed == 3
+    assert by_name["Bob"].monsters_killed == 7
+    assert by_name["Bob"].score - by_name["Alice"].score >= 40  # 4 more kills at 10 points

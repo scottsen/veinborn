@@ -138,6 +138,10 @@ class Entity:
         """Get a stat value with fallback."""
         return self.stats.get(stat_name, default)
 
+    def increment_stat(self, stat_name: str, amount: int = 1) -> None:
+        """Add to a numeric stat (starting from 0 if unset)."""
+        self.stats[stat_name] = self.stats.get(stat_name, 0) + amount
+
     def set_stat(self, stat_name: str, value: Any) -> None:
         """Set a stat value."""
         self.stats[stat_name] = value
