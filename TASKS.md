@@ -2,7 +2,7 @@
 project: veinborn
 schema_version: '1.0'
 id_prefix: VB
-next_id: 39
+next_id: 45
 archival: inline
 areas: {}
 ---
@@ -877,3 +877,136 @@ HighScoreEntry reads monsters_killed/damage_dealt/damage_taken/ore_mined/ore_sur
 <!-- notes: append-only log; each has a stable #id (see CLI §5) -->
 ### Notes
 - [#1 2026-09-23T17:29:03Z session:crimson-jewel-0923] Actions record run stats on the acting/targeted Player; 8 tests in tests/unit/actions/test_run_stats.py plus a co-op per-player score test.
+
+
+## TASK-VB-39 · MP server rejected every real websocket connection (websockets >= 13: handler has no 'path')
+
+```yaml
+status: done
+priority: urgent
+tags: [multiplayer, playtest]
+created: '2026-09-23T17:38:05Z'
+updated: '2026-09-23T17:38:05Z'
+session: crimson-jewel-0923
+links:
+  commits:
+  - f0d0d7d09c24ca8e3e967d41a65007a1dae5011c
+notes_next: 2
+```
+
+Found by the first real two-client playtest. handle_connection(websocket, path) raised TypeError on the installed websockets 15.0.1, closing every connection with 1011; only mock-websocket tests existed. Also VeinbornServer(port=0) fell back to config.port.
+
+<!-- notes: append-only log; each has a stable #id (see CLI §5) -->
+### Notes
+- [#1 2026-09-23T17:38:05Z session:crimson-jewel-0923] Fixed in f0d0d7d with regression tests; see tests/integration/test_multiplayer_real_sockets.py
+
+
+## TASK-VB-40 · Lobby->started transition sent as a delta: clients never got is_started/entity_id, could not act
+
+```yaml
+status: done
+priority: urgent
+tags: [multiplayer, playtest]
+created: '2026-09-23T17:38:05Z'
+updated: '2026-09-23T17:38:05Z'
+session: crimson-jewel-0923
+links:
+  commits:
+  - f0d0d7d09c24ca8e3e967d41a65007a1dae5011c
+notes_next: 2
+```
+
+compute_delta only diffs a fixed field set. The state after start was a delta, so clients never learned entity_id (every action rejected 'Action actor does not match player') or is_started/initialized. Now full state on is_started/is_finished/initialized/is_multiplayer changes.
+
+<!-- notes: append-only log; each has a stable #id (see CLI §5) -->
+### Notes
+- [#1 2026-09-23T17:38:05Z session:crimson-jewel-0923] Fixed in f0d0d7d with regression tests; see tests/integration/test_multiplayer_real_sockets.py
+
+
+## TASK-VB-41 · Monster-turn messages never reached MP deltas (GameContext.add_message skipped message_count)
+
+```yaml
+status: done
+priority: high
+tags: [multiplayer, playtest]
+created: '2026-09-23T17:38:05Z'
+updated: '2026-09-23T17:38:06Z'
+session: crimson-jewel-0923
+links:
+  commits:
+  - f0d0d7d09c24ca8e3e967d41a65007a1dae5011c
+notes_next: 2
+```
+
+GameContext.add_message appended to state.messages directly: message_count never advanced (deltas key off it) and the 100-message cap was bypassed. Now delegates to GameState.add_message.
+
+<!-- notes: append-only log; each has a stable #id (see CLI §5) -->
+### Notes
+- [#1 2026-09-23T17:38:06Z session:crimson-jewel-0923] Fixed in f0d0d7d with regression tests; see tests/integration/test_multiplayer_real_sockets.py
+
+
+## TASK-VB-42 · Dead players' actions hit 'Actor not found' at ERROR; wall bumps logged at ERROR
+
+```yaml
+status: done
+priority: low
+tags: [multiplayer, playtest]
+created: '2026-09-23T17:38:05Z'
+updated: '2026-09-23T17:38:06Z'
+session: crimson-jewel-0923
+links:
+  commits:
+  - f0d0d7d09c24ca8e3e967d41a65007a1dae5011c
+notes_next: 2
+```
+
+Dead players get an explicit 'You are dead' rejection in GameSession.process_action; action validation failures now log WARNING instead of ERROR so ops error counts mean something.
+
+<!-- notes: append-only log; each has a stable #id (see CLI §5) -->
+### Notes
+- [#1 2026-09-23T17:38:06Z session:crimson-jewel-0923] Fixed in f0d0d7d with regression tests; see tests/integration/test_multiplayer_real_sockets.py
+
+
+## TASK-VB-43 · disconnect_client raised AttributeError on every client drop (websockets asyncio API has no .closed)
+
+```yaml
+status: done
+priority: high
+tags: [multiplayer, playtest]
+created: '2026-09-23T17:40:59Z'
+updated: '2026-09-23T17:40:59Z'
+session: crimson-jewel-0923
+links:
+  commits:
+  - 9b504c187305eee767e8438521b89028b051fc1f
+notes_next: 2
+```
+
+Found by the reconnect playtest. Every abrupt drop hit 'ServerConnection object has no attribute closed' in disconnect_client's finally block, and a broadcast racing the drop logged an ERROR. Added WebSocketServer._is_closed (works for both websockets APIs) and treat ConnectionClosed on send as info.
+
+<!-- notes: append-only log; each has a stable #id (see CLI §5) -->
+### Notes
+- [#1 2026-09-23T17:40:59Z session:crimson-jewel-0923] Regression test: test_dropped_client_reconnects_with_a_full_state_and_no_server_errors
+
+
+## TASK-VB-44 · No gameplay client: MultiplayerClient can't send actions; the TUI only does chat/lobby
+
+```yaml
+status: backlog
+priority: high
+tags: [multiplayer, ui]
+created: '2026-09-23T17:41:24Z'
+updated: '2026-09-23T17:41:24Z'
+session: crimson-jewel-0923
+links:
+  references:
+  - src/ui/multiplayer_client.py
+  - src/ui/textual/app.py
+  - src/server/test_client.py
+```
+
+The first real two-client playtest (scripted, headless) worked after VB-39..43, but the only thing that can send move/attack/mine over the wire is the dev tool src/server/test_client.py. ui/multiplayer_client.MultiplayerClient has connect/chat/create/join/ready and delta merging but no send_action; ui/textual/app.py only wires chat. A human two-client playtest needs a multiplayer game view in the TUI (render players/monsters/map from the merged state, send MoveAction/AttackAction/... with the entity_id from state). Design question: reuse the single-player map widget with a state adapter, or a new read-only renderer.
+
+<!-- notes: append-only log; each has a stable #id (see CLI §5) -->
+### Notes
+_(no notes yet)_

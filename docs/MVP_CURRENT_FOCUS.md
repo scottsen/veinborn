@@ -3,7 +3,7 @@
 **Status:** Single-player MVP feature-complete; multiplayer experimental (see `docs/STATUS_DASHBOARD.md` for current status, `PROJECT_REVIEW_2026-04-17.md` for the last full audit)
 **Phase:** Trust-restore + MP stabilization + Polish
 **Last Updated:** 2026-09-23 (test numbers only; see `docs/STATUS_DASHBOARD.md` for the review findings)
-**Test Status:** 1196 collected, 1196 passing / 0 failing / 0 skipped
+**Test Status:** 1205 collected, 1205 passing / 0 failing / 0 skipped
 
 ---
 

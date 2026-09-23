@@ -12,7 +12,7 @@ This doc was rewritten as part of the 2026-04-17 trust-restore audit; test numbe
 
 The single-player roguelike is feature-complete and playable: mining, crafting, equipment, save/load, character classes, floor progression, Legacy Vault, Lua event system. Current test numbers:
 
-- **1196 tests passing / 0 failing / 0 skipped** (verified 2026-09-23, up from the 1065/0/2 baseline).
+- **1205 tests passing / 0 failing / 0 skipped** (verified 2026-09-23, up from the 1065/0/2 baseline).
 - MP async-cleanup and lock-reentrancy bugs closed in commit 33d72f7.
 
 **Polish work in flight:**
@@ -28,7 +28,8 @@ Earlier docs claimed "Phase 2 complete (2+ player co-op working)". That overstat
 - Core alignment between the MP server and the single-player action API was broken. `GameSession.process_action()` executed actions against a raw `GameState` instead of the `GameContext` the action API requires, the ActionOutcome API calls used old attribute names, and the disconnected-player fallback imported a `WaitAction` module that did not exist. **Repaired in commit 0449d66.**
 - Subsequent pass (commit 33d72f7) fixed a non-reentrant-lock deadlock in `cleanup_expired_disconnections`, contradictory leave-game semantics, and two stale tests. **All MP server tests now pass (server suite: clean).**
 - A 2026-09-22 code review found and fixed 4 more critical/urgent MP bugs: a dead player's action could silently move the host (`VB-16`), the Lua sandbox allowed arbitrary Python execution (`VB-17`), the RNG was a process-global singleton that concurrent games corrupted for each other (`VB-18`), and save/load dropped inventory/equipment/run_type (`VB-19`, single-player-affecting too). The same day, 4 more high-priority findings were also closed: chat/log delta desync after 20 messages (`VB-20`), Pickup/Wait actions unusable in MP (`VB-21`), a reconnect race that could strand a player (`VB-22`), and players being stored 3 different ways (`VB-23`, the root cause behind `VB-16`). On 2026-09-23 the shared post-action pipeline (`src/core/action_pipeline.py`) landed, floor population/clearing was unified across SP and MP (fixing two single-player descent bugs), and action events now actually reach the EventBus (`VB-24` first half, `VB-25`, `VB-33`). **The remaining high-priority finding is `VB-24`'s second half** (HP regen / game over / high scores are still single-player only) — pending an N-player design decision, see `docs/STATUS_DASHBOARD.md` and `tt show VB-24`.
-- Treat multiplayer as experimental until the remaining open findings are resolved and a 30+ min co-op session has been validated end-to-end.
+- 2026-09-23: co-op rules settled (`VB-24`: party plays on while anyone lives, shared HP regen, per-player scores on a separate co-op leaderboard), and the first scripted two-client playtest over **real websockets** found five bugs the mock-based tests could not see (`VB-39`–`VB-43`: every real connection rejected on websockets ≥ 13, clients never learning their entity id, monster-turn messages missing from deltas, crash on every client drop). `tests/integration/test_multiplayer_real_sockets.py` now covers the wire path.
+- Still open before calling it playable: nothing except the dev `src/server/test_client.py` can send actions over the wire (`VB-44`), so a *human* co-op session hasn't happened. Treat multiplayer as experimental until one has.
 
 **For multiplayer design:** See `docs/design/MULTIPLAYER_DESIGN_2025.md`
 
