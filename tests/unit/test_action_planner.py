@@ -27,7 +27,7 @@ class TestActionValidation:
     def test_validate_action_rejects_move_into_wall(self):
         """Should reject move action into non-walkable tile."""
         game = Game()
-        game.start_new_game()
+        game.start_new_game(seed=42)
 
         player = game.state.player
         player.x, player.y = 5, 5
@@ -54,7 +54,7 @@ class TestActionValidation:
     def test_validate_action_accepts_valid_move(self):
         """Should accept move action into walkable tile."""
         game = Game()
-        game.start_new_game()
+        game.start_new_game(seed=42)
 
         player = game.state.player
         player.x, player.y = 10, 10
@@ -81,7 +81,7 @@ class TestActionValidation:
     def test_validate_action_rejects_mine_when_not_adjacent(self):
         """Should reject mine action when not adjacent to ore."""
         game = Game()
-        game.start_new_game()
+        game.start_new_game(seed=42)
         game.state.entities.clear()
 
         player = game.state.player
@@ -102,7 +102,7 @@ class TestActionValidation:
     def test_validate_action_accepts_mine_when_adjacent(self):
         """Should accept mine action when adjacent to ore."""
         game = Game()
-        game.start_new_game()
+        game.start_new_game(seed=42)
         game.state.entities.clear()
 
         player = game.state.player
@@ -127,7 +127,7 @@ class TestMovementActions:
     def test_move_towards_uses_pathfinding(self):
         """Should use pathfinding to move towards target."""
         game = Game()
-        game.start_new_game()
+        game.start_new_game(seed=42)
         game.state.entities.clear()
 
         player = game.state.player
@@ -155,7 +155,7 @@ class TestMovementActions:
     def test_flee_from_maximizes_distance(self):
         """Should flee away from threat to maximize distance."""
         game = Game()
-        game.start_new_game()
+        game.start_new_game(seed=42)
         game.state.entities.clear()
 
         player = game.state.player
@@ -202,7 +202,7 @@ class TestRandomActions:
     def test_get_random_action_returns_valid_action(self):
         """Should return a valid action type."""
         game = Game()
-        game.start_new_game()
+        game.start_new_game(seed=42)
 
         perception = PerceptionService()
         decisions = TacticalDecisionService(perception)
@@ -216,7 +216,7 @@ class TestRandomActions:
     def test_get_random_action_includes_mining_when_adjacent(self):
         """Should allow mine/survey actions when adjacent to ore."""
         game = Game()
-        game.start_new_game()
+        game.start_new_game(seed=42)
         game.state.entities.clear()
 
         player = game.state.player
@@ -246,7 +246,7 @@ class TestSmartActionPlanning:
     def test_get_smart_action_prioritizes_forced_combat(self):
         """Should fight when monster is adjacent (forced combat)."""
         game = Game()
-        game.start_new_game()
+        game.start_new_game(seed=42)
         game.state.entities.clear()
 
         player = game.state.player
@@ -275,7 +275,7 @@ class TestSmartActionPlanning:
     def test_get_smart_action_descends_on_cleared_floor(self):
         """Should descend when on stairs and floor is cleared."""
         game = Game()
-        game.start_new_game()
+        game.start_new_game(seed=42)
         game.state.entities.clear()
 
         player = game.state.player
@@ -296,7 +296,7 @@ class TestSmartActionPlanning:
     def test_get_smart_action_mines_adjacent_jackpot_ore(self):
         """Should mine jackpot ore when adjacent."""
         game = Game()
-        game.start_new_game()
+        game.start_new_game(seed=42)
         game.state.entities.clear()
 
         player = game.state.player
@@ -329,7 +329,7 @@ class TestPlanNextAction:
     def test_plan_next_action_uses_strategic_mode(self):
         """Should use get_smart_action in strategic mode."""
         game = Game()
-        game.start_new_game()
+        game.start_new_game(seed=42)
 
         perception = PerceptionService()
         decisions = TacticalDecisionService(perception)
@@ -344,7 +344,7 @@ class TestPlanNextAction:
         """Should use get_random_action in random mode."""
 
         game = Game()
-        game.start_new_game()
+        game.start_new_game(seed=42)
 
         perception = PerceptionService()
         decisions = TacticalDecisionService(perception)
