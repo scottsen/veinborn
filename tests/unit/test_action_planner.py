@@ -16,6 +16,7 @@ sys.path.insert(0, str(src_path))
 
 from core.game import Game
 from core.entities import Monster, OreVein
+from core.world import Tile, TileType
 from tests.fuzz.services.perception_service import PerceptionService
 from tests.fuzz.services.tactical_decision_service import TacticalDecisionService
 from tests.fuzz.services.action_planner import ActionPlanner
@@ -251,6 +252,13 @@ class TestSmartActionPlanning:
 
         player = game.state.player
         player.x, player.y = 5, 5
+
+        # The seeded map is solid rock around (5,5): carve floor so the move is
+        # legal. Without it move_towards falls back to *unseeded* random
+        # exploration, which returned 'wait' ~1 run in 4.
+        for y in range(4, 8):
+            for x in range(4, 8):
+                game.state.dungeon_map.tiles[x][y] = Tile(TileType.FLOOR)
 
         # Add adjacent monster
         monster = Monster(
