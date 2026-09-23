@@ -87,6 +87,9 @@ class PickupAction(Action):
                 failed.append(item.name)
                 logger.debug(f"Pickup failed: inventory full for {item.name}")
 
+        # Nothing was taken (inventory full): a no-op shouldn't cost a turn
+        outcome.took_turn = bool(picked_up)
+
         # Generate messages
         if picked_up:
             if len(picked_up) == 1:
