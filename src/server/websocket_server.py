@@ -41,6 +41,7 @@ class VeinbornServer:
         # Server state
         self.is_running = False
         self.server = None
+        self._cleanup_task_handle = None
 
     async def start(self):
         """Start the WebSocket server."""
@@ -63,12 +64,16 @@ class VeinbornServer:
         logger.info("Server started successfully")
 
         # Start background tasks
-        asyncio.create_task(self.cleanup_task())
+        self._cleanup_task_handle = asyncio.create_task(self.cleanup_task())
 
     async def stop(self):
         """Stop the WebSocket server."""
         logger.info("Stopping server...")
         self.is_running = False
+
+        if self._cleanup_task_handle:
+            self._cleanup_task_handle.cancel()
+            self._cleanup_task_handle = None
 
         # Close all connections
         if self.connections:
@@ -625,48 +630,75 @@ class VeinbornServer:
             # Send full state message
             await self.broadcast_to_game(game_id, Message.state(state_dict))
 
+    CLEANUP_INTERVAL_SECONDS = 10  # Fast enough for reconnection timeouts
+    CLEANUP_MAX_BACKOFF_SECONDS = 300
+
+    @classmethod
+    def _cleanup_delay(cls, consecutive_failures: int) -> float:
+        """Seconds to wait before the next cleanup pass; backs off while it keeps failing."""
+        if consecutive_failures <= 0:
+            return cls.CLEANUP_INTERVAL_SECONDS
+        return min(
+            cls.CLEANUP_INTERVAL_SECONDS * 2 ** consecutive_failures,
+            cls.CLEANUP_MAX_BACKOFF_SECONDS,
+        )
+
     async def cleanup_task(self):
-        """Background task for cleanup operations."""
+        """Background task for cleanup operations.
+
+        Always sleeps between passes, even after a failed one, so a persistent
+        error can't turn this into a busy loop that floods the log (VB-27).
+        """
+        consecutive_failures = 0
         while self.is_running:
             try:
-                # Clean up expired sessions
-                expired = self.auth_manager.cleanup_expired_sessions(
-                    config.auth_token_expiry
-                )
-                if expired > 0:
-                    logger.info(f"Cleaned up {expired} expired sessions")
-
-                # Clean up players with expired reconnection timeouts
-                total_removed = 0
-                for game_id, game in list(self.game_manager._games.items()):
-                    removed_players = await game.cleanup_expired_disconnections()
-
-                    if removed_players:
-                        total_removed += len(removed_players)
-
-                        # Notify remaining players and update state
-                        for player_id in removed_players:
-                            # Try to get player info for notification
-                            session = self.auth_manager.get_session_by_player(player_id)
-                            if session:
-                                await self.broadcast_to_game(
-                                    game_id,
-                                    Message.system(
-                                        f"{session.player_name} was removed due to reconnection timeout",
-                                        "warning"
-                                    ),
-                                )
-
-                        # Update game state
-                        await self.broadcast_game_state(game_id)
-
-                if total_removed > 0:
-                    logger.info(f"Removed {total_removed} players due to reconnection timeout")
-
-                await asyncio.sleep(10)  # Run every 10 seconds for reconnection timeouts
-
+                await self._cleanup_once()
+                consecutive_failures = 0
+            except asyncio.CancelledError:
+                raise
             except Exception as e:
-                logger.error(f"Error in cleanup task: {e}", exc_info=True)
+                consecutive_failures += 1
+                logger.error(
+                    f"Error in cleanup task (failure #{consecutive_failures}): {e}",
+                    exc_info=True,
+                )
+            await asyncio.sleep(self._cleanup_delay(consecutive_failures))
+
+    async def _cleanup_once(self):
+        """One cleanup pass: expired auth sessions and expired reconnection windows."""
+        # Clean up expired sessions
+        expired = self.auth_manager.cleanup_expired_sessions(
+            config.auth_token_expiry
+        )
+        if expired > 0:
+            logger.info(f"Cleaned up {expired} expired sessions")
+
+        # Clean up players with expired reconnection timeouts
+        total_removed = 0
+        for game_id, game in list(self.game_manager._games.items()):
+            removed_players = await game.cleanup_expired_disconnections()
+
+            if removed_players:
+                total_removed += len(removed_players)
+
+                # Notify remaining players and update state
+                for player_id in removed_players:
+                    # Try to get player info for notification
+                    session = self.auth_manager.get_session_by_player(player_id)
+                    if session:
+                        await self.broadcast_to_game(
+                            game_id,
+                            Message.system(
+                                f"{session.player_name} was removed due to reconnection timeout",
+                                "warning"
+                            ),
+                        )
+
+                # Update game state
+                await self.broadcast_game_state(game_id)
+
+        if total_removed > 0:
+            logger.info(f"Removed {total_removed} players due to reconnection timeout")
 
 
 async def main():
