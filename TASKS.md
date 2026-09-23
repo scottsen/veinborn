@@ -2,7 +2,7 @@
 project: veinborn
 schema_version: '1.0'
 id_prefix: VB
-next_id: 35
+next_id: 38
 archival: inline
 areas: {}
 ---
@@ -533,14 +533,17 @@ Single-player: the player is in both state.player and entities. Multiplayer host
 ## TASK-VB-24 · Single-player and multiplayer run separate post-action pipelines -- root cause of repeated MP feature drift
 
 ```yaml
-status: backlog
+status: done
 priority: high
 effort: medium
 tags: [architecture, multiplayer]
 created: '2026-09-23T05:26:26Z'
-updated: '2026-09-23T16:37:42Z'
+updated: '2026-09-23T17:19:57Z'
 session: earthly-god-0922
-notes_next: 3
+links:
+  commits:
+  - c8ff2f8c6c1bfc504434a033761280e9f6a8f9e9
+notes_next: 4
 ```
 
 Single-player (core/game.py:160-242, turn_processor.py:54-91): publishes outcome.events to the EventBus, adds outcome.messages, respects took_turn, applies HP regen, AI, cleanup, game-over and high-score/Legacy hooks. Multiplayer (server/game_session/session.py:363-373, 317-330, 451-470): never publishes to the EventBus (Lua event handlers and telemetry never fire in MP), only reads messages on failure, calls increment_actions() without checking took_turn, and has no HP regen. It also builds a fresh GameContext per action (365, 410), so systems registered on self.game_context (296) aren't visible from inside actions. The server never references Lua, EventBus, TurnProcessor, FloorManager, or SaveSystem anywhere outside docstrings. This is the structural cause of VB-16 (dead-actor fallback), VB-21 (action registry drift), and VB-25 (duplicated floor progression) -- every new post-action rule has to be built twice and MP is the copy that gets forgotten. Fix: extract a core TurnEngine.apply(action, ctx) -> outcome that owns publish/messages/transitions/turn-processing with hooks for what legitimately differs (floor policy, end-of-run); have both Game and GameSession call it.
@@ -549,6 +552,7 @@ Single-player (core/game.py:160-242, turn_processor.py:54-91): publishes outcome
 ### Notes
 - [#1 2026-09-23T06:44:18Z session:glowing-pulsar-0922] Investigated 2026-09-22 (session glowing-pulsar-0922), not started -- deferred pending a design decision, see below. TurnProcessor.process_turn() (core/turn_processor.py:54-91), the thing SP's Game calls after every action, is NOT a clean drop-in for MP: _apply_hp_regeneration (line 93) heals game_state.player specifically (one player), _check_game_over (line 132) checks 'not game_state.player.is_alive' (one player dying ends the game), cascading into _record_high_score/_save_legacy_ore/_record_defeat -- all single-player-shaped. MultiplayerGameState already has its OWN, different game-over rule (update_player_alive_status: ends only when ALL players are dead). A literal 'extract TurnEngine, have both Game and GameSession call it' requires actually deciding and implementing N-player HP regen and N-player game-over semantics, and whether high-score/Legacy Vault recording applies per-player in MP at all (it doesn't exist there today, so there's no existing behavior to preserve, only new behavior to design) -- a game-design decision, not a mechanical refactor. User chose to pause here rather than guess at those rules. Recommended split when resumed: (1) a smaller, safe-to-do-mechanically slice first -- extract shared EventBus-publish/took_turn/cleanup/floor-transition handling and wire MP into it (closes 'Lua event handlers and telemetry never fire in MP' with no game-design judgment calls needed), (2) HP-regen/game-over/high-score unification as a separate, explicitly-scoped follow-up once N-player rules are decided with the user. This session also closed VB-16/17/18/19 (prior session) plus VB-20/21/22/23 (this session, commits 246ec3b..9ff7965) -- VB-23 in particular removed the storage-model asymmetry that made VB-16's fallback necessary, so GameContext.get_entity/get_entity_at now work correctly for the host, which may simplify some of what TurnEngine needs to handle.
 - [#2 2026-09-23T16:37:42Z session:sultry-drizzle-0923] Slice 1 done (ca475b8): core/action_pipeline.py::process_action_outcome now shared by Game and GameSession. MP now records success messages in the shared log, publishes events to session.event_bus, and only counts took_turn actions toward the round quota. Still open: HP regen / game-over / high-score unification (needs N-player design decisions), and MP has no TurnProcessor-equivalent for floor policy. Spun off VB-33 (events fail to publish: schema mismatch).
+- [#3 2026-09-23T17:19:57Z session:crimson-jewel-0923] Co-op rules decided with the user 2026-09-23: party plays on while any player is alive (already MP's rule); one shared HP regen (apply_hp_regeneration) applied to every living player at monster-turn cadence; co-op runs scored per player on a SEPARATE leaderboard (data/highscores_multiplayer.json via HighScoreManager.get_multiplayer_instance()) - each player at death, survivors at game end. Not done, filed separately: Legacy Vault in MP, viewing the co-op leaderboard, SP wait bypassing the pipeline.
 
 
 ## TASK-VB-25 · Floor progression logic duplicated between FloorManager and MultiplayerGameState
@@ -778,3 +782,70 @@ Failed once in a full-suite run (1137 passed/1 failed) during VB-24 work, then p
 <!-- notes: append-only log; each has a stable #id (see CLI §5) -->
 ### Notes
 - [#1 2026-09-23T17:01:32Z session:sultry-drizzle-0923] Root cause: start_new_game() unseeded + hard-coded entity coordinates on a random map (also test_flee_from_maximizes_distance). Measured 2 failures in 195 runs; now seed=42 everywhere in the file (13 calls). test_perception_service and test_tactical_decision_service: 660 runs, no flakes.
+
+
+## TASK-VB-35 · Co-op leaderboard has no viewer; Legacy Vault not wired for MP
+
+```yaml
+status: backlog
+priority: medium
+tags: [multiplayer, highscore]
+created: '2026-09-23T17:19:57Z'
+updated: '2026-09-23T17:19:57Z'
+session: crimson-jewel-0923
+links:
+  references:
+  - VB-24
+  - src/core/highscore.py
+```
+
+VB-24 writes per-player co-op scores to data/highscores_multiplayer.json but nothing displays them (no client message, CLI, or screen). Legacy Vault (rare-ore save on death) is still single-player only; get_vault() is a process-wide singleton, so wiring it into a server needs a per-player persistence decision first. Per-player stats (monsters_killed etc.) are also read from player.stats, which nothing appears to write in either mode - check before designing a co-op scoring UI.
+
+<!-- notes: append-only log; each has a stable #id (see CLI §5) -->
+### Notes
+_(no notes yet)_
+
+
+## TASK-VB-36 · Single-player 'wait' bypasses the action pipeline (no actor_waited event, no message)
+
+```yaml
+status: backlog
+priority: low
+tags: [events, singleplayer]
+created: '2026-09-23T17:19:57Z'
+updated: '2026-09-23T17:19:57Z'
+session: crimson-jewel-0923
+links:
+  references:
+  - VB-24
+  - VB-33
+  - src/core/game.py
+```
+
+Game.handle_player_action special-cases 'wait' (calls _process_turn directly), so SP wait emits no actor_waited event or 'X waits.' message unlike MP's WaitAction path. Routing it through WaitAction would add a message per rest keypress - decide whether that log spam is wanted.
+
+<!-- notes: append-only log; each has a stable #id (see CLI §5) -->
+### Notes
+_(no notes yet)_
+
+
+## TASK-VB-37 · Damage formula never evaluates: 'max' passed as a name, simpleeval needs functions=
+
+```yaml
+status: backlog
+priority: low
+tags: [combat, bug]
+created: '2026-09-23T17:19:57Z'
+updated: '2026-09-23T17:19:57Z'
+session: crimson-jewel-0923
+links:
+  references:
+  - src/core/actions/attack_action.py
+  - data/balance/formulas.yaml
+```
+
+attack_action._calculate_and_apply_damage passes max/min in simple_eval's names= so every attack raises 'Function max not defined' and uses the hardcoded fallback max(1, atk-def) (88 errors in logs/veinborn.log). Result is identical for the current default formula, but any balance change to the configured damage formula is silently ignored. Fix: functions={'max': max, 'min': min}. Also check min_damage is applied.
+
+<!-- notes: append-only log; each has a stable #id (see CLI §5) -->
+### Notes
+_(no notes yet)_
