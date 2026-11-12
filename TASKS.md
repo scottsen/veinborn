@@ -2,7 +2,7 @@
 project: veinborn
 schema_version: '1.0'
 id_prefix: VB
-next_id: 53
+next_id: 54
 archival: inline
 areas: {}
 ---
@@ -1127,49 +1127,77 @@ In 3000-turn runs bots reach floor 1-2 and kill ~3 monsters. Logs show up to ~19
 ## TASK-VB-50 · data/highscores.json is 300 test 'Anonymous' entries; decide whether to reset the shipped leaderboard
 
 ```yaml
-status: backlog
+status: done
 priority: low
 effort: 30m
 tags: [highscores]
 created: '2026-11-12T01:33:24Z'
-updated: '2026-11-12T01:33:24Z'
+updated: '2026-11-12T03:51:20Z'
 session: kinetic-fusion-1111
+links:
+  commits:
+  - a20bef8d5fd974eccea732d208be44585b5176fc
+notes_next: 2
 ```
 
 All 300 committed entries are 'Anonymous' (8 distinct names) dated 2025-10-25..11-07, written by tests through the real singleton. add_score trim crashed at 300 (fixed) and tests now isolate the single-player board in conftest. The file itself is still the junk board; clearing it is a product call.
 
 <!-- notes: append-only log; each has a stable #id (see CLI §5) -->
 ### Notes
-_(no notes yet)_
+- [#1 2026-11-12T03:51:20Z session:turquoise-mosaic-1111] Reset to []; loader verified; suite leaves it untouched.
 
 
 ## TASK-VB-51 · Class abilities and starting items are unimplemented: mage has no spells (fireball/teleport), rogue no backstab/dodge, healer no heal; starting_items commented out in create_player_from_class
 
 ```yaml
-status: backlog
+status: done
 priority: medium
 effort: 6h
 tags: [balance, classes]
 created: '2026-11-12T03:43:29Z'
-updated: '2026-11-12T03:43:29Z'
+updated: '2026-11-12T04:03:31Z'
 session: nebular-eclipse-1111
+links:
+  commits:
+  - f9c11e5c5fa6340389e092e9b503a695978286c9
+notes_next: 2
 ```
 
 <!-- notes: append-only log; each has a stable #id (see CLI §5) -->
 ### Notes
-_(no notes yet)_
+- [#1 2026-11-12T04:03:31Z session:turquoise-mosaic-1111] Shipped: force_bolt (z), heal (z), backstab (passive), warrior/rogue starting gear (stat-neutral), mage attack 4->3. sim_duels --start-distance models bolts. Unbuilt abilities filed as a follow-up. Wand/spellbook/staff/bandages/lockpick dropped (not in items.yaml).
 
 
 ## TASK-VB-52 · Monsters only spawn at floor creation: add NetHack-style ongoing spawns (small per-turn chance, difficulty from depth + player level) so XP isn't a fixed pool and slow play has a cost
 
 ```yaml
-status: backlog
+status: done
 priority: low
 effort: 3h
 tags: [balance, spawning]
 created: '2026-11-12T03:43:31Z'
-updated: '2026-11-12T03:43:31Z'
+updated: '2026-11-12T03:50:32Z'
 session: nebular-eclipse-1111
+links:
+  commits:
+  - 9f92a4148e1dc2bb0982920991eedee40bb51274
+notes_next: 2
+```
+
+<!-- notes: append-only log; each has a stable #id (see CLI §5) -->
+### Notes
+- [#1 2026-11-12T03:50:32Z session:turquoise-mosaic-1111] TurnProcessor._maybe_spawn_wanderer; config spawning.yaml ongoing_spawns; 8 tests. Bot re-run not done.
+
+
+## TASK-VB-53 · Remaining class abilities: fireball/teleport (mage), dodge (rogue), power_strike (warrior), protect/regeneration (healer); warrior has no ability
+
+```yaml
+status: backlog
+priority: low
+tags: [balance, classes]
+created: '2026-11-12T04:03:31Z'
+updated: '2026-11-12T04:03:31Z'
+session: turquoise-mosaic-1111
 ```
 
 <!-- notes: append-only log; each has a stable #id (see CLI §5) -->
