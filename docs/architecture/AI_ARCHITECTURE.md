@@ -223,8 +223,9 @@ were written before any of this ran and should be tuned when enabled.
 --abilities both --start-distance 4` fights each class against the monster with its abilities
 off and on through the real AISystem, and splits the player's damage into melee / ability /
 minion. `--set monster.ability.key=value` tries a number without editing YAML (VB-68).
-`--gear long_sword,chainmail` equips the player first; without it the player has starting
-gear only, which understates anyone past the first floors.
+`--gear long_sword,chainmail` (or crafted recipes, `--gear mithril_sword@80`) equips the
+player first; without it the player has starting gear only, which understates anyone past
+the first floors.
 
 **Spawn gap:** of the monsters above with built abilities, only the imp is in
 `data/balance/monster_spawns.yaml` (floors 11+). Wyvern, vampire, lich, demon, phoenix and

@@ -63,7 +63,8 @@ lost, rounds, and how much of the player's damage came from monster melee,
 monster abilities or summoned minions. `--abilities both` compares monster
 abilities off (as shipped) and on, and `--set lich.death_bolt.damage=8` tries a
 number before it goes into the YAML. `--json` writes the table. `--gear long_sword,chainmail`
-equips items through the real `EquipAction` first: gear moves the odds a lot (mage vs lich at
+(items.yaml ids) or `--gear mithril_sword@80,mithril_chestplate@80` (recipes, crafted by the
+real `RecipeManager` from ore of that quality) equips them through the real `EquipAction` first: gear moves the odds a lot (mage vs lich at
 level 8: 36% wins bare, 98% with a long sword and chainmail), so test a placement at the
 level and gear players actually have on those floors (`scripts/bot_progression.py`, from bot
 `floor_arrivals`). Shields cannot be equipped yet (VB-72).

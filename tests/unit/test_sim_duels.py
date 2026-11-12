@@ -85,3 +85,12 @@ def test_gear_is_equipped_through_equip_action_and_changes_the_odds(sim, loader)
 def test_unequippable_gear_is_refused(sim, loader):
     with pytest.raises(SystemExit, match='not equippable'):
         sim.duel(CharacterClass.WARRIOR, 1, 'goblin', loader, sim.open_arena(), gear=['shield'])
+
+
+def test_recipe_gear_is_crafted_at_the_given_quality(sim):
+    low = sim.make_gear('iron_sword@20')
+    high = sim.make_gear('iron_sword@90')
+    assert low.get_stat('equipment_slot') == 'weapon'
+    assert high.get_stat('attack_bonus') > low.get_stat('attack_bonus')
+    assert sim.make_gear('long_sword').get_stat('attack_bonus') == 5     # items.yaml id
+    assert sim.make_gear('no_such_thing@50') is None

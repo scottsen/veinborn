@@ -17,9 +17,11 @@ Monster abilities (VB-64): --abilities picks which ones are on.
 --set overrides one ability number, e.g. --set lich.death_bolt.damage=8
 (applies to every variant that has that ability on).
 
---gear equips items (data/entities/items.yaml weapon/armor ids) through the real
-EquipAction before each fight, e.g. --gear long_sword,chainmail. Without it the player
-has starting gear only, which understates a player who has been crafting and looting.
+--gear equips items through the real EquipAction before each fight: items.yaml
+weapon/armor ids (long_sword,chainmail) or recipes.yaml recipe ids, crafted by the real
+RecipeManager from ore whose properties all equal QUALITY (recipe@QUALITY, default 70),
+e.g. --gear mithril_sword@80,mithril_chestplate@80. Without it the player has starting
+gear only, which understates a player who has been crafting and looting.
 
 Usage:
     python3 scripts/sim_duels.py                              # early monsters, level 1, shipped
@@ -43,7 +45,9 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "src"))
 
 from core.actions.ability_action import AbilityAction  # noqa: E402
 from core.actions.attack_action import AttackAction  # noqa: E402
+from core.actions.craft_action import CraftAction  # noqa: E402
 from core.actions.equip_action import EquipAction  # noqa: E402
+from core.base.entity import Entity  # noqa: E402
 from core.actions.move_action import MoveAction  # noqa: E402
 from core.base.entity import EntityType  # noqa: E402
 from core.base.game_context import GameContext  # noqa: E402
@@ -185,10 +189,35 @@ class Fight:
     ability_uses: dict = field(default_factory=dict)
 
 
+ORE_PROPERTIES = ('hardness', 'conductivity', 'malleability', 'purity', 'density')
+DEFAULT_QUALITY = 70
+
+
+def make_gear(spec):
+    """An item from an items.yaml id, or crafted from a recipe id ('recipe@quality')."""
+    name, _, quality = spec.partition('@')
+    if LootGenerator.get_instance().get_item_info(name) is not None and not quality:
+        return LootGenerator.get_instance().create_item(name)
+    manager = CraftAction.get_recipe_manager()
+    recipe = manager.get_recipe(name)
+    if recipe is None:
+        return None
+    q = int(quality) if quality else DEFAULT_QUALITY
+    ore = []
+    for _ in range(recipe.get_required_ore_count()):
+        o = Entity(name="ore")
+        o.set_stat('ore_type', recipe.get_required_ore_type())
+        for prop in ORE_PROPERTIES:
+            o.set_stat(prop, q)
+        ore.append(o)
+    return manager.create_equipment(name, ore)
+
+
 def equip(ctx, player, gear):
-    """Put each item id on the player through the real EquipAction (later ids replace earlier ones)."""
-    for item_id in gear:
-        item = LootGenerator.get_instance().create_item(item_id)
+    """Put each gear spec on the player through the real EquipAction (later ones replace earlier)."""
+    for spec in gear:
+        item = make_gear(spec)
+        item_id = spec
         player.add_to_inventory(item)
         action = EquipAction(player.entity_id, item.entity_id)
         if not action.validate(ctx):
@@ -308,7 +337,8 @@ def main():
                     help="tiles between player and monster at the start (1 = adjacent); farther "
                          "gives ranged monsters and the mage's bolt free turns")
     ap.add_argument("--gear", default="",
-                    help="comma-separated weapon/armor item ids to equip, e.g. long_sword,chainmail")
+                    help="comma-separated items.yaml ids or recipe[@quality] to equip, "
+                         "e.g. long_sword,chainmail or mithril_sword@80")
     ap.add_argument("--json", help="also write every cell to this JSON file")
     args = ap.parse_args()
 
@@ -333,9 +363,9 @@ def main():
     classes = [CharacterClass(c) for c in args.classes.split(",")] if args.classes else list(CharacterClass)
     overrides = parse_overrides(args.set)
     gear = [g for g in args.gear.split(",") if g]
-    unknown_gear = [g for g in gear if LootGenerator.get_instance().get_item_info(g) is None]
+    unknown_gear = [g for g in gear if make_gear(g) is None]
     if unknown_gear:
-        raise SystemExit(f"unknown item(s) for --gear: {', '.join(unknown_gear)}")
+        raise SystemExit(f"unknown item or recipe for --gear: {', '.join(unknown_gear)}")
     game_map = open_arena()
 
     cells = []
