@@ -74,16 +74,20 @@ def test_clear_floor_entities_keeps_player_and_named_ids(game):
 
 
 def test_spawn_all_for_floor_includes_special_rooms(game):
+    from types import SimpleNamespace
     spawner = game.floor_manager.spawner
+    # Off-map positions so the same-tile de-duplication never drops them.
+    bonus_monster = SimpleNamespace(x=-1, y=-1)
+    bonus_ore = SimpleNamespace(x=-2, y=-2)
     with patch.object(
         spawner,
         "spawn_special_room_entities",
-        return_value={'monsters': ["bonus-monster"], 'ores': ["bonus-ore"], 'items': []},
+        return_value={'monsters': [bonus_monster], 'ores': [bonus_ore], 'items': []},
     ):
         spawned = spawner.spawn_all_for_floor(2, game.state.dungeon_map)
 
-    assert "bonus-monster" in spawned['monsters']
-    assert "bonus-ore" in spawned['ore_veins']
+    assert bonus_monster in spawned['monsters']
+    assert bonus_ore in spawned['ore_veins']
     assert set(spawned) == {'monsters', 'ore_veins', 'forges'}
 
 

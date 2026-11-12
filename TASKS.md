@@ -2,7 +2,7 @@
 project: veinborn
 schema_version: '1.0'
 id_prefix: VB
-next_id: 46
+next_id: 48
 archival: inline
 areas: {}
 ---
@@ -1028,6 +1028,44 @@ links:
 ```
 
 GameSession.process_disconnected_player_action (a defensive WaitAction) is called from nowhere in src, yet process_action tells rejected clients 'AI is controlling this character'. In a headless playtest a dropped player's character just stood still and died. Either wire it into a timer/round hook (what should the AI do beyond wait? retreat to stairs?) or delete it and fix the message. Product call.
+
+<!-- notes: append-only log; each has a stable #id (see CLI §5) -->
+### Notes
+_(no notes yet)_
+
+
+## TASK-VB-46 · Spawner stacks ore veins, forges and (rarely) monsters on one tile
+
+```yaml
+status: backlog
+priority: medium
+effort: 2h
+tags: [spawning, bug]
+created: '2026-11-11T23:02:13Z'
+updated: '2026-11-11T23:02:13Z'
+session: kinetic-fusion-1111
+```
+
+Found by scripts/sim_mob_movement.py + tests/unit/test_spawn_no_overlap.py. Across seeds 1-24 x floors 1/6/12, spawn_all_for_floor puts ore-on-ore (~27), forge-on-ore (6) and monster-on-ore (7) on the same tile. Monster-on-monster (den monsters) is fixed in spawn_all_for_floor; ore/forge/regular-monster overlaps are not. Dropping or relocating the later entity changes ore counts, so check balance first.
+
+<!-- notes: append-only log; each has a stable #id (see CLI §5) -->
+### Notes
+_(no notes yet)_
+
+
+## TASK-VB-47 · Wire up or remove the unused AI knobs: Lua AI behaviours, passive attack flag, aggro_range/move_speed, guard flee_threshold
+
+```yaml
+status: backlog
+priority: low
+effort: 4h
+tags: [ai, design]
+created: '2026-11-11T23:02:15Z'
+updated: '2026-11-11T23:02:15Z'
+session: kinetic-fusion-1111
+```
+
+Found while assigning mob AI styles. (1) AISystem is built without a lua_runtime in game.py and server session.py and nothing calls register_lua_behavior, so berserker/sniper/summoner never run; sniper only emits a message (no ranged attack action exists). (2) 'passive' relies on was_attacked_last_turn which nothing sets, and it never fights back, so no monster uses it. (3) monsters.yaml ai.aggro_range and ai.move_speed are never read; chase range comes from ai_behaviors.yaml. (4) guard config has flee_threshold 0.2 but _behavior_guard never flees. (5) default_ai_by_type in ai_behaviors.yaml names rat/dragon, which do not exist, and is unused. Chase range is Manhattan while movement is 8-directional.
 
 <!-- notes: append-only log; each has a stable #id (see CLI §5) -->
 ### Notes

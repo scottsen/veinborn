@@ -220,7 +220,16 @@ class EntitySpawner:
         forges = self.spawn_forges_for_floor(floor, dungeon_map)
 
         special_entities = self.spawn_special_room_entities(floor, dungeon_map)
-        monsters.extend(special_entities['monsters'])
+
+        # Den monsters are placed at random room tiles that know nothing about
+        # the regular spawns, so two could land on one tile. Drop the later one
+        # (after generation, so the RNG sequence and seeded floors don't change).
+        occupied = {(e.x, e.y) for e in monsters + ore_veins + forges}
+        for den_monster in special_entities['monsters']:
+            if (den_monster.x, den_monster.y) in occupied:
+                continue
+            occupied.add((den_monster.x, den_monster.y))
+            monsters.append(den_monster)
         ore_veins.extend(special_entities['ores'])
 
         return {'monsters': monsters, 'ore_veins': ore_veins, 'forges': forges}

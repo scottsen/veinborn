@@ -284,6 +284,77 @@ class TestGuardBehavior:
         assert player.hp < initial_hp
 
 
+class TestGuardLeash:
+    """Guard AI must stay on its leash (spawn point recorded on first update)."""
+
+    def test_spawn_point_recorded_on_first_update(self, game_context_with_monster):
+        context = game_context_with_monster
+        monster = list(context.get_entities_by_type(EntityType.MONSTER))[0]
+        monster.x, monster.y = 8, 8
+        monster.set_stat('ai_type', 'guard')
+        assert 'spawn_x' not in monster.stats
+
+        AISystem(context).update()
+
+        assert (monster.get_stat('spawn_x'), monster.get_stat('spawn_y')) == (8, 8)
+
+    def test_guard_does_not_chase_past_leash(self, game_context_with_monster):
+        """Player 6 tiles away (inside chase range, outside radius 4): hold the line."""
+        context = game_context_with_monster
+        monster = list(context.get_entities_by_type(EntityType.MONSTER))[0]
+        player = context.get_player()
+        player.x, player.y = 15, 15
+        monster.x, monster.y = 9, 15          # 6 tiles west of the player
+        monster.set_stat('ai_type', 'guard')
+
+        ai = AISystem(context)
+        # Keep the wander roll out of it: only look at ticks where chase applies.
+        for _ in range(30):
+            ai.update()
+            assert abs(monster.x - 9) + abs(monster.y - 15) <= 5   # radius 4 + one wander step
+        assert not monster.is_adjacent(player)
+
+
+class TestFleeDirection:
+    """Fleeing monsters never step toward the threat."""
+
+    def test_flee_never_reduces_distance(self, game_context_with_monster):
+        context = game_context_with_monster
+        monster = list(context.get_entities_by_type(EntityType.MONSTER))[0]
+        player = context.get_player()
+        ai = AISystem(context)
+
+        # Pin the monster against a wall corner so the direct flee step is blocked.
+        for start in [(5, 5), (5, 15), (24, 24), (15, 5)]:
+            monster.x, monster.y = start
+            player.x, player.y = start[0] + (1 if start[0] < 15 else -1) * 2, start[1] + (1 if start[1] < 15 else -1) * 2
+            before = (monster.x - player.x) ** 2 + (monster.y - player.y) ** 2
+            ai._flee_from(monster, player)
+            after = (monster.x - player.x) ** 2 + (monster.y - player.y) ** 2
+            assert after >= before, f"fled toward player from {start}"
+
+    def test_cornered_monster_fights_back(self, game_context_with_monster):
+        context = game_context_with_monster
+        monster = list(context.get_entities_by_type(EntityType.MONSTER))[0]
+        player = context.get_player()
+        # Corner (5,5): walls to the west and north, player diagonal-adjacent on the
+        # open side, so no neighbouring tile is farther from the player.
+        dungeon_map = context.game_state.dungeon_map
+        for x in range(3, 9):
+            for y in range(3, 9):
+                if x < 5 or y < 5:
+                    dungeon_map.tiles[x][y] = Tile(tile_type=TileType.WALL)
+        monster.x, monster.y = 5, 5
+        player.x, player.y = 6, 6
+        player.hp = player.max_hp
+        hp = player.hp
+
+        AISystem(context)._flee_from(monster, player)
+
+        assert (monster.x, monster.y) == (5, 5)
+        assert player.hp < hp
+
+
 class TestAIConfiguration:
     """Test AI configuration loading."""
 

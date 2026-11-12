@@ -82,6 +82,11 @@ class AISystem(System):
             if not monster.is_alive:
                 continue
 
+            # Remember where the monster started (guards leash to this point)
+            if 'spawn_x' not in monster.stats:
+                monster.set_stat('spawn_x', monster.x)
+                monster.set_stat('spawn_y', monster.y)
+
             # Get AI type (from monster or default)
             ai_type = monster.get_stat('ai_type', 'aggressive')
 
@@ -297,7 +302,8 @@ class AISystem(System):
 
         chase_range = config.get('chase_range', 6)
         if distance_to_player <= chase_range and distance_from_spawn <= guard_radius:
-            self._move_towards(monster, player)
+            # Hold the line rather than step out of the leash (no border flip-flop)
+            self._move_towards(monster, player, leash=(spawn_x, spawn_y, guard_radius))
             return
 
         self._wander(monster)
@@ -317,54 +323,69 @@ class AISystem(System):
         )
 
     def _flee_from(self, monster, target) -> None:
-        """Move away from target."""
-        # Get direction away from target
-        dx = monster.x - target.x
-        dy = monster.y - target.y
+        """
+        Move to the neighbouring tile that is farthest from target.
 
-        # Normalize to -1, 0, 1
-        if dx != 0:
-            dx = dx // abs(dx)
-        if dy != 0:
-            dy = dy // abs(dy)
-
-        new_x = monster.x + dx
-        new_y = monster.y + dy
-
-        # Check if valid move
+        Only steps that increase the distance are taken. A cornered monster
+        (no such step) fights back if the target is adjacent, else holds still.
+        """
         game_map = self.context.get_map()
-        if game_map.is_walkable(new_x, new_y):
-            action = MoveAction(monster.entity_id, dx, dy)
-            if action.validate(self.context):
-                action.execute(self.context)
-                return
 
-        # If can't flee directly, try perpendicular movements
-        perpendicular_moves = []
-        if dy != 0:
-            perpendicular_moves.extend([(1, 0), (-1, 0)])
-        if dx != 0:
-            perpendicular_moves.extend([(0, 1), (0, -1)])
+        def dist2(x, y):
+            return (x - target.x) ** 2 + (y - target.y) ** 2
 
-        for move_dx, move_dy in perpendicular_moves:
-            if game_map.is_walkable(monster.x + move_dx, monster.y + move_dy):
-                action = MoveAction(monster.entity_id, move_dx, move_dy)
-                if action.validate(self.context):
-                    action.execute(self.context)
-                    return
+        best, best_d = None, dist2(monster.x, monster.y)
+        for dx in (-1, 0, 1):
+            for dy in (-1, 0, 1):
+                if dx == 0 and dy == 0:
+                    continue
+                nx, ny = monster.x + dx, monster.y + dy
+                if not game_map.is_walkable(nx, ny) or self.context.get_entity_at(nx, ny):
+                    continue
+                d = dist2(nx, ny)
+                if d > best_d:
+                    action = MoveAction(monster.entity_id, dx, dy)
+                    if action.validate(self.context):
+                        best, best_d = action, d
 
-    def _move_towards(self, monster, target) -> None:
-        """Move toward target using pathfinding."""
+        if best:
+            best.execute(self.context)
+        elif monster.is_adjacent(target):
+            self._attack_target(monster, target)  # cornered: bite back
+
+    def _obstacle_tiles(self):
+        """Tiles blocked by ore veins and forges (walkable terrain, solid entity)."""
+        return {
+            (e.x, e.y)
+            for entity_type in (EntityType.ORE_VEIN, EntityType.FORGE)
+            for e in self.context.get_entities_by_type(entity_type)
+        }
+
+    def _move_towards(self, monster, target, leash=None) -> None:
+        """
+        Move toward target using pathfinding, routing around ore veins and forges.
+
+        Args:
+            leash: Optional (x, y, radius). The monster will not step to a tile
+                farther than `radius` (Manhattan) from (x, y).
+        """
         game_map = self.context.get_map()
         direction = get_direction(
             game_map,
             start=(monster.x, monster.y),
             goal=(target.x, target.y),
-            allow_diagonals=True
+            allow_diagonals=True,
+            blocked=self._obstacle_tiles(),
         )
 
         if direction:
             dx, dy = direction
+
+            if leash is not None:
+                lx, ly, radius = leash
+                if abs(monster.x + dx - lx) + abs(monster.y + dy - ly) > radius:
+                    return  # Next step leaves the leash: hold position
+
             action = MoveAction(monster.entity_id, dx, dy)
 
             if action.validate(self.context):

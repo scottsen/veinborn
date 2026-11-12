@@ -148,10 +148,10 @@ monsters:
 
     # AI behavior
     ai:
-      type: "aggressive"
+      type: "coward"
       move_speed: 1.5  # Faster than player (future feature)
       aggro_range: 12
-      description: "Fast, erratic movement"
+      description: "Fast, erratic flyer; keeps its distance and flees from the player"
 
     # Gameplay tags
     tags:
@@ -218,10 +218,10 @@ monsters:
 
     # AI behavior
     ai:
-      type: "aggressive"
+      type: "defensive"
       move_speed: 0.7  # Slower than player (future feature)
       aggro_range: 8
-      description: "Slow, heavy hitter"
+      description: "Slow, heavy hitter; patrols and fights when you come close"
 
     # Gameplay tags
     tags:
@@ -289,10 +289,10 @@ monsters:
 
     # AI behavior
     ai:
-      type: "aggressive"
+      type: "guard"
       move_speed: 1.0
       aggro_range: 8
-      description: "Web-based ambush predator"
+      description: "Web-based ambush predator; lurks near its spawn and attacks intruders"
 
     # Special abilities (future feature)
     abilities:
@@ -332,10 +332,10 @@ monsters:
 
     # AI behavior
     ai:
-      type: "aggressive"
+      type: "defensive"
       move_speed: 1.0
       aggro_range: 10
-      description: "Teleports away when hit"
+      description: "Mischievous; fights when you come close, flees when hurt"
 
     # Special abilities (future feature)
     abilities:
@@ -430,10 +430,10 @@ monsters:
 
     # AI behavior
     ai:
-      type: "aggressive"
+      type: "guard"
       move_speed: 0.6
       aggro_range: 6
-      description: "Slow, heavily armored tank"
+      description: "Slow, heavily armored tank; guards its post and does not roam"
 
     # Gameplay tags
     tags:
@@ -515,10 +515,10 @@ monsters:
 
     # AI behavior
     ai:
-      type: "aggressive"
+      type: "guard"
       move_speed: 1.0
       aggro_range: 1  # Only attacks when player is adjacent
-      description: "Ambush predator, looks like loot"
+      description: "Ambush predator, looks like loot; only attacks what comes close"
 
     # Special abilities (future feature)
     abilities:
@@ -610,10 +610,10 @@ monsters:
 
     # AI behavior
     ai:
-      type: "aggressive"
+      type: "defensive"
       move_speed: 0.9
       aggro_range: 12
-      description: "Powerful spellcaster, summons undead"
+      description: "Powerful spellcaster; holds its ground, flees when badly hurt"
 
     # Special abilities (future feature)
     abilities:
@@ -721,10 +721,10 @@ monsters:
 
     # AI behavior
     ai:
-      type: "aggressive"
+      type: "guard"
       move_speed: 0.8
       aggro_range: 8
-      description: "Slow but deadly gaze attack"
+      description: "Slow but deadly gaze attack; lurks near its spawn"
 
     # Special abilities (future feature)
     abilities:

@@ -47,6 +47,9 @@ class AStarContext:
     heuristic: Callable[[Tuple[int, int], Tuple[int, int]], float]
     allow_diagonals: bool
     max_iterations: int
+    # Extra impassable tiles (e.g. ore veins, forges): walkable terrain that an
+    # entity physically blocks. The goal tile is never treated as blocked.
+    blocked: Optional[Set[Tuple[int, int]]] = None
     # A* algorithm state
     open_set: list = field(default_factory=list)
     closed_set: Set[Tuple[int, int]] = field(default_factory=set)
@@ -186,7 +189,12 @@ def find_closest_adjacent_position(
     return min(valid_positions, key=distance_to_source)
 
 
-def _line_of_sight(game_map, start: Tuple[int, int], goal: Tuple[int, int]) -> Optional[List[Tuple[int, int]]]:
+def _line_of_sight(
+    game_map,
+    start: Tuple[int, int],
+    goal: Tuple[int, int],
+    blocked: Optional[Set[Tuple[int, int]]] = None,
+) -> Optional[List[Tuple[int, int]]]:
     """
     Check if there's a clear straight line from start to goal (Bresenham's line algorithm).
 
@@ -197,6 +205,7 @@ def _line_of_sight(game_map, start: Tuple[int, int], goal: Tuple[int, int]) -> O
         game_map: Map object with is_walkable() method
         start: Starting position
         goal: Goal position
+        blocked: Extra impassable tiles (the goal tile is exempt)
 
     Returns:
         List of positions if clear line exists, None otherwise
@@ -205,6 +214,8 @@ def _line_of_sight(game_map, start: Tuple[int, int], goal: Tuple[int, int]) -> O
     for x, y in bresenham_line(start[0], start[1], goal[0], goal[1]):
         if not game_map.is_walkable(x, y):
             return None  # Path blocked
+        if blocked and (x, y) in blocked and (x, y) != goal:
+            return None  # Entity in the way
         path.append((x, y))
 
     return path  # Clear line of sight!
@@ -217,6 +228,7 @@ def find_path(
     heuristic: Callable[[Tuple[int, int], Tuple[int, int]], float] = Heuristic.diagonal,
     allow_diagonals: bool = True,
     max_iterations: int = 10000,
+    blocked: Optional[Set[Tuple[int, int]]] = None,
 ) -> Optional[List[Tuple[int, int]]]:
     """
     Find shortest path from start to goal using A*.
@@ -228,6 +240,8 @@ def find_path(
         heuristic: Heuristic function (default: diagonal distance)
         allow_diagonals: Allow diagonal movement (default: True)
         max_iterations: Maximum search iterations (prevents infinite loops)
+        blocked: Extra impassable tiles (walkable terrain blocked by an entity,
+            e.g. ore veins). The goal tile is never treated as blocked.
 
     Returns:
         List of positions from start to goal (inclusive), or None if no path exists
@@ -249,7 +263,7 @@ def find_path(
     # Straight lines are common in open dungeons
     # Skip line-of-sight if diagonals disabled (LOS uses Bresenham which allows diagonals)
     if allow_diagonals:
-        los_path = _line_of_sight(game_map, start, goal)
+        los_path = _line_of_sight(game_map, start, goal, blocked)
         if los_path:
             return los_path
 
@@ -260,7 +274,8 @@ def find_path(
         goal=goal,
         heuristic=heuristic,
         allow_diagonals=allow_diagonals,
-        max_iterations=max_iterations
+        max_iterations=max_iterations,
+        blocked=blocked,
     )
 
     # Initialize A* data structures
@@ -333,7 +348,7 @@ def _reconstruct_path(goal_node: Node) -> List[Tuple[int, int]]:
 def _process_neighbors(ctx: AStarContext, current: Node):
     """Process all neighbors of current node using context object."""
     for neighbor_pos in get_neighbors(current.position, ctx.allow_diagonals):
-        if not _is_valid_neighbor(ctx.game_map, neighbor_pos, ctx.closed_set):
+        if not _is_valid_neighbor(ctx.game_map, neighbor_pos, ctx.closed_set, ctx.blocked, ctx.goal):
             continue
 
         tentative_g = current.g_score + _calculate_move_cost(current.position, neighbor_pos)
@@ -354,11 +369,19 @@ def _process_neighbors(ctx: AStarContext, current: Node):
         heapq.heappush(ctx.open_set, neighbor_node)
 
 
-def _is_valid_neighbor(game_map, neighbor_pos: Tuple[int, int], closed_set: set) -> bool:
-    """Check if neighbor is valid (in bounds, walkable, not processed)."""
+def _is_valid_neighbor(
+    game_map,
+    neighbor_pos: Tuple[int, int],
+    closed_set: set,
+    blocked: Optional[Set[Tuple[int, int]]] = None,
+    goal: Optional[Tuple[int, int]] = None,
+) -> bool:
+    """Check if neighbor is valid (in bounds, walkable, unblocked, not processed)."""
     if not game_map.in_bounds(*neighbor_pos):
         return False
     if not game_map.is_walkable(*neighbor_pos):
+        return False
+    if blocked and neighbor_pos in blocked and neighbor_pos != goal:
         return False
     if neighbor_pos in closed_set:
         return False
