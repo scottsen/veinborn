@@ -2,7 +2,7 @@
 project: veinborn
 schema_version: '1.0'
 id_prefix: VB
-next_id: 51
+next_id: 53
 archival: inline
 areas: {}
 ---
@@ -1137,6 +1137,40 @@ session: kinetic-fusion-1111
 ```
 
 All 300 committed entries are 'Anonymous' (8 distinct names) dated 2025-10-25..11-07, written by tests through the real singleton. add_score trim crashed at 300 (fixed) and tests now isolate the single-player board in conftest. The file itself is still the junk board; clearing it is a product call.
+
+<!-- notes: append-only log; each has a stable #id (see CLI §5) -->
+### Notes
+_(no notes yet)_
+
+
+## TASK-VB-51 · Class abilities and starting items are unimplemented: mage has no spells (fireball/teleport), rogue no backstab/dodge, healer no heal; starting_items commented out in create_player_from_class
+
+```yaml
+status: backlog
+priority: medium
+effort: 6h
+tags: [balance, classes]
+created: '2026-11-12T03:43:29Z'
+updated: '2026-11-12T03:43:29Z'
+session: nebular-eclipse-1111
+```
+
+<!-- notes: append-only log; each has a stable #id (see CLI §5) -->
+### Notes
+_(no notes yet)_
+
+
+## TASK-VB-52 · Monsters only spawn at floor creation: add NetHack-style ongoing spawns (small per-turn chance, difficulty from depth + player level) so XP isn't a fixed pool and slow play has a cost
+
+```yaml
+status: backlog
+priority: low
+effort: 3h
+tags: [balance, spawning]
+created: '2026-11-12T03:43:31Z'
+updated: '2026-11-12T03:43:31Z'
+session: nebular-eclipse-1111
+```
 
 <!-- notes: append-only log; each has a stable #id (see CLI §5) -->
 ### Notes
