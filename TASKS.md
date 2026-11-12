@@ -1581,7 +1581,7 @@ priority: medium
 effort: 8-12h total (steps 1+2 ~half day)
 tags: [fuzz, bots, balance, ai, tests]
 created: '2026-11-12T19:21:49Z'
-updated: '2026-11-12T21:21:45Z'
+updated: '2026-11-12T21:41:41Z'
 session: warming-squall-1112
 parent: VB-47
 links:
@@ -1596,7 +1596,7 @@ links:
   - VB-64
   - VB-57
   - VB-32
-notes_next: 6
+notes_next: 7
 ```
 
 Goal: turn most of 'play-test' into measurement so VB-64 (and later VB-65/67) become data decisions, and Scott's play-test shrinks to feel questions (fun, fairness feel, message readability, boss feel) on monsters the numbers already call balanced.
@@ -1626,6 +1626,7 @@ Steps 1+2 are the high-value half: do them before asking Scott for VB-64 numbers
 - [#3 2026-11-12T20:13:52Z session:warming-squall-1112] Step 2 done (3e8ef58, f378a49, 76222a4): --seed-base/--jobs/--output, scripts/compare_bot_runs.py (paired by class+seed, 95% CI). Found and fixed a core bug on the way: kill loot rolled on a fresh unseeded GameRNG(), so no seeded game replayed past the first kill (test_seeded_replay). Bot high scores now go to logs/, not data/highscores.json. Step 3 (part): potions/food were unusable by anyone -> UseItemAction + @item_effect + key e (52eb525); bots drink at <=40% HP and collect consumables within 6 tiles (38ce94d). Step 4 (part, d4a2505): per-monster damage, killer type, burst deaths, potions used; invariants for overlap/walls/carried-on-map/minion caps. Remaining: fight model (to-hit, speed, abilities), ranged-threat response, VB-57; A/B of potion use running (seeds 1000-1031, 3000 turns).
 - [#4 2026-11-12T20:41:40Z session:warming-squall-1112] A/B results (seeds 1000-1031, 3000 turns, 4 classes = 128 pairs, scripts/compare_bot_runs.py). base 76222a4 -> potions d4a2505: deaths unchanged overall but MAGE deaths 7->14/32; rogue +1.3 floors. potions -> fight model (9480506): 125/128 games identical (fights start adjacent, verdict rarely flips with current monsters). Mage ablation: drink-only 6/32 deaths, collect-only 15/32 -> item detours into monsters were the killer; also stuck detection counted melee as stuck (1-HP bot took random 'wait'). Fixed in 15c0fba. base -> fixed 15c0fba: floor 8.44->9.12 (+0.68, CI +0.05..+1.31), deaths 10->7 (mage 7->6, rogue 3->1), rogue +1.31 floors, 0 crashes/errors, 0 burst deaths, 0.91 potions/game. Balance signal: warrior and healer 0/64 deaths in 3000 turns; mage ~20%; orcs deal the most damage (4689 of ~12.7k). Run copies with results JSON: /var/tmp/vb68_base_76222a4, /var/tmp/vb68_fixed_15c0fba (logs/*.json).
 - [#5 2026-11-12T21:21:45Z session:serene-cyclone-1112] serene-cyclone-1112: per-monster breakdown in compare report done (paired damage taken per monster type with CI, bd1e44e). Deep starts (--start-floor/--start-level, tests/fuzz/scenario.py) for floors bots never reach; default runs unchanged (6/6 identical seeded games vs 1b5c10d). Remaining: bot response to ranged monsters, which matters once a ranged ability is enabled (VB-64).
+- [#6 2026-11-12T21:41:41Z session:serene-cyclone-1112] Floor-stall fix 69c59c0, paired A/B (seeds 1000-1031, 3000 turns, 128 pairs, before 07667a7): floor 9.12 -> 11.70 (+2.59 [+2.16, +3.01]*), level 6.66 -> 7.41*, every class significant (mage +2.12, rogue +3.00, warrior +2.53, healer +2.69); deaths 6 -> 9 of 128 (+0.02 [-0.03, +0.06], mage 6 -> 9 of 32 as it reaches deeper floors), 0 crashes, 0 errors. All earlier floor numbers (incl. 'bots reach ~floor 10') were stall-limited. Results /var/tmp/vb68_stall_{before_07667a7,after_69c59c0}/logs/, compare.json in the after dir. New baseline for future A/Bs: the after_* files.
 
 
 ## TASK-VB-69 · Spawn tables: 10 of 19 monsters never spawn (wyvern, vampire, lich, demon, phoenix, ancient_horror, wraith, mimic, golem, basilisk)
