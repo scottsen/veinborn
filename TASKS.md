@@ -1580,7 +1580,7 @@ priority: medium
 effort: 8-12h total (steps 1+2 ~half day)
 tags: [fuzz, bots, balance, ai, tests]
 created: '2026-11-12T19:21:49Z'
-updated: '2026-11-12T20:13:52Z'
+updated: '2026-11-12T20:41:40Z'
 session: warming-squall-1112
 parent: VB-47
 links:
@@ -1595,7 +1595,7 @@ links:
   - VB-64
   - VB-57
   - VB-32
-notes_next: 4
+notes_next: 5
 ```
 
 Goal: turn most of 'play-test' into measurement so VB-64 (and later VB-65/67) become data decisions, and Scott's play-test shrinks to feel questions (fun, fairness feel, message readability, boss feel) on monsters the numbers already call balanced.
@@ -1623,6 +1623,7 @@ Steps 1+2 are the high-value half: do them before asking Scott for VB-64 numbers
 - [#1 2026-11-12T19:31:29Z session:warming-squall-1112] Step 1 done a982c4f: scripts/sim_duels.py now runs monster turns via AISystem (TrackedAI subclass records damage melee/ability/minion and uses per ability, minion uses prefixed 'minion:'); --abilities off|on|both|m.a, --set m.a.k=v, --json. tests/unit/test_sim_duels.py (5), mutation (drop ctx.register_system('ai')) fails the summon test. Suite 1280. Found VB-69: only imp of the ability monsters is in any spawn table. Steps 2-4 open.
 - [#2 2026-11-12T20:13:52Z session:warming-squall-1112] Correction (2026-11-12): bots are NOT more omniscient than humans. The TUI map (map_widget._render_cell) and sidebar show every monster on the floor; players have no fog of war (core/perception.py FogOfWar is unused, VB-32). So 'restrict bot perception to LOS' would make bots less human-like; dropped from step 3. The asymmetry is a design question for Scott: monsters need LOS (ADR-019) but players see all.
 - [#3 2026-11-12T20:13:52Z session:warming-squall-1112] Step 2 done (3e8ef58, f378a49, 76222a4): --seed-base/--jobs/--output, scripts/compare_bot_runs.py (paired by class+seed, 95% CI). Found and fixed a core bug on the way: kill loot rolled on a fresh unseeded GameRNG(), so no seeded game replayed past the first kill (test_seeded_replay). Bot high scores now go to logs/, not data/highscores.json. Step 3 (part): potions/food were unusable by anyone -> UseItemAction + @item_effect + key e (52eb525); bots drink at <=40% HP and collect consumables within 6 tiles (38ce94d). Step 4 (part, d4a2505): per-monster damage, killer type, burst deaths, potions used; invariants for overlap/walls/carried-on-map/minion caps. Remaining: fight model (to-hit, speed, abilities), ranged-threat response, VB-57; A/B of potion use running (seeds 1000-1031, 3000 turns).
+- [#4 2026-11-12T20:41:40Z session:warming-squall-1112] A/B results (seeds 1000-1031, 3000 turns, 4 classes = 128 pairs, scripts/compare_bot_runs.py). base 76222a4 -> potions d4a2505: deaths unchanged overall but MAGE deaths 7->14/32; rogue +1.3 floors. potions -> fight model (9480506): 125/128 games identical (fights start adjacent, verdict rarely flips with current monsters). Mage ablation: drink-only 6/32 deaths, collect-only 15/32 -> item detours into monsters were the killer; also stuck detection counted melee as stuck (1-HP bot took random 'wait'). Fixed in 15c0fba. base -> fixed 15c0fba: floor 8.44->9.12 (+0.68, CI +0.05..+1.31), deaths 10->7 (mage 7->6, rogue 3->1), rogue +1.31 floors, 0 crashes/errors, 0 burst deaths, 0.91 potions/game. Balance signal: warrior and healer 0/64 deaths in 3000 turns; mage ~20%; orcs deal the most damage (4689 of ~12.7k). Run copies with results JSON: /var/tmp/vb68_base_76222a4, /var/tmp/vb68_fixed_15c0fba (logs/*.json).
 
 
 ## TASK-VB-69 · Spawn tables: 10 of 19 monsters never spawn (wyvern, vampire, lich, demon, phoenix, ancient_horror, wraith, mimic, golem, basilisk)
