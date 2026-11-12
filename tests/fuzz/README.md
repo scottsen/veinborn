@@ -42,6 +42,14 @@ turns) stop it stalling. Stepping on the stairs early does not skip the sweep
 no monsters left", which never happened once wandering spawns (VB-52) kept the
 floor stocked.
 
+Once the sweep is done (every room, or the floor budget spent) the optional detours
+(ore, surveys, potion pickups, pursuing monsters) stop, so nothing can pull the bot back
+from the stairs. Before this, two goals that disagreed by one tile could trade turns
+forever: ore was sought only at Euclidean distance above 2, so from 2.0 away the sweep
+stepped back and the ore seek stepped forward again, and three warrior seeds spent up to
+18,000 of 20,000 turns on one floor (`tests/unit/test_planner_ore.py`). Ore is now
+sought by 8-way steps with a 20-turn limit per vein, and never mined with a full pack.
+
 The planner also uses class abilities (`ActionPlanner.ability_action`): a mage bolts any
 monster in range 6 and line of sight whenever force bolt is ready, a healer heals at or below
 60% HP. Measured on 8 games x 3000 turns: mage avg floor 4.9 -> 6.2, level 3.8 -> 5.8, deaths
