@@ -15,7 +15,7 @@ beth_topics:
 
 **Status:** Accepted, in progress (ADR-019 in [DECISIONS.md](DECISIONS.md)), 2026-11-12.
 Built: range metric (VB-58), parameters and validation (VB-59), perception and provocation (VB-60),
-morale (VB-61), speed (VB-62).
+morale (VB-61), speed (VB-62), abilities for any actor (VB-63).
 Everything else below is the plan.
 **Tasks:** umbrella `VB-47`; children `VB-58` to `VB-65`, plus `VB-66` (`tt list --children-of VB-47`).
 **Read with:** [../EXTENDING.md](../EXTENDING.md) (the content contract this changes),
@@ -160,30 +160,38 @@ unknown `ai.type`, an unknown key in a monster's `ai:` block, or an `enabled: tr
 no registered `@ability`. Today a typo in `ai.type` silently becomes `aggressive` with a runtime
 warning. `enabled: false` stays the honest marker for planned abilities.
 
-## Tactics
+## Tactics (built)
 
-After the engine work a behaviour is only movement and positioning:
-`(ai, monster, params)`, using `ai.perceive`, `ai.move_towards`, `ai.flee_from`, `ai.wander`,
-`ai.attack` (melee) and `ai.distance`. The classic five stay (with `passive` becoming neutral);
-`sniper` becomes kiting (hold `ideal_range_min..max`) and `summoner` keep-away, with their attacks
-moved into abilities. `berserker` keeps enrage as a tactics concern (it changes ranges), or
-becomes a passive ability if more monsters need it.
+A behaviour is only movement and positioning: `(ai, monster, params)`, using `ai.perceive`,
+`ai.provoked_by`, `ai.move_towards`, `ai.flee_from`, `ai.wander`, `ai.attack` (melee) and
+`ai.distance`. The classic five stay (`passive` became `neutral`). `sniper` is kiting (hold
+`ideal_range_min..max`, back off when closer) and `summoner` keep-away; their shot and their
+summoning are now the `ranged_attack` and `summon` abilities, which the behaviour brings
+(`abilities:` in its `ai_behaviors.yaml` section). `berserker` keeps enrage as a tactics concern
+(it raises its `aggro_range`), or becomes a passive ability if more monsters need it.
 
-## Abilities for any actor (VB-63)
+## Abilities for any actor (VB-63, built)
 
-Player abilities are already nearly actor-agnostic: `AbilityAction` reads the actor's
-`abilities` and `cooldowns` stats. The player-only part is targeting (`force_bolt` picks "the
-nearest monster"). The change:
+- **Hostility:** `GameContext.is_hostile(a, b)` (players vs monsters, never their own kind) and
+  `hostiles_of(actor)`. `move_action._handle_collision` uses it: only hostiles bump-attack, so a
+  monster blocked by a monster waits and co-op players never hit each other. Allies or charmed
+  monsters later change only `is_hostile`.
+- **Contract:** `@ability(name, should_use=fn)`, `fn(context, actor, config, target=None)`.
+  `core/targeting.py` (`aim`, `valid_target`, `nearest_hostile_in_sight`) chooses among the
+  actor's hostiles in range and sight. `should_use(context, actor, config, target)` is the AI's
+  hint; without one an ability is player-only. `force_bolt` and `heal` are actor-agnostic;
+  `ranged_attack` and `summon` are new.
+- **Config resolution** (`AISystem.abilities_for`, live like parameters): `formulas.yaml
+  abilities.<name>` (shared tuning) <- what the behaviour brings <- the monster's own
+  `abilities.<name>`, where `enabled: false` removes one and `enabled: true` adds one.
+  `AbilityAction(actor_id, ability, target_id, config)`: a given config stands for "the AI
+  resolved that this monster has it"; players' abilities still read `formulas.yaml`.
+- **Engine step** (`AISystem._use_ability`), after morale and before tactics: the first ready
+  ability whose `should_use` is true against the perceived player is used; its messages and
+  events go through the same path as monster attacks (`_apply_outcome`).
 
-- `context.hostiles_of(actor)`: players are hostile to monsters and the reverse. This also turns
-  the special case in `move_action._handle_collision` (monsters don't bump-attack monsters) into
-  a rule, and leaves room for charmed or allied monsters later.
-- `@ability` gains target selection over `hostiles_of`, and a `should_use(context, actor, target)`
-  hint. The fuzz bot's `ActionPlanner.ability_action` already follows the same shape for players.
-- Engine step: a perceiving monster uses a ready, enabled ability before its tactics.
-- Monster ability config comes from its `abilities:` block in `monsters.yaml`.
-
-This ships with every monster ability still disabled, so it changes no gameplay by itself.
+It shipped with every monster ability still disabled (a test asserts no shipped monster has an
+ability), so it changed no gameplay by itself; sniper and summoner behave as before.
 
 ## Monster ability inventory
 

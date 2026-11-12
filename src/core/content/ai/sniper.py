@@ -1,4 +1,8 @@
-"""Sniper: keeps its distance and shoots when the player is in its ideal range."""
+"""Sniper tactics: hold at ideal range. The shot itself is the ranged_attack ability.
+
+ai_behaviors.yaml `sniper.abilities` gives every sniper ranged_attack; the engine
+uses it (before these tactics) whenever there is a clear shot.
+"""
 
 from ...extensions import ai_behavior
 
@@ -15,10 +19,6 @@ def sniper(ai, monster, config):
 
     if distance < low:
         ai.flee_from(monster, player)  # a cornered sniper bites back in melee
-    elif distance <= high:
-        if ai.in_sight(monster, player):
-            ai.attack(monster, player, ranged=True)
-        else:
-            ai.move_towards(monster, player)  # no clear shot: reposition
-    else:
-        ai.move_towards(monster, player)
+    elif distance > high or not ai.in_sight(monster, player):
+        ai.move_towards(monster, player)  # no clear shot: reposition
+    # else: in ideal range with a clear shot; hold (the engine shoots when ready)

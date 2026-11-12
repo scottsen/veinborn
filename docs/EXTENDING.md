@@ -27,7 +27,7 @@ game. See `docs/architecture/DECISIONS.md`, ADR-018.)
 |---|---|---|
 | A monster, item, ore, recipe, loot table | Data (YAML) | `data/entities/`, `data/balance/`; see [CONTENT_CREATION.md](CONTENT_CREATION.md) |
 | A monster AI behaviour | `@ai_behavior("name")` | `src/core/content/ai/` |
-| A class ability you press a key for | `@ability("name")` | `src/core/content/abilities/` |
+| An ability (a player presses z for it; monsters use it too) | `@ability("name", should_use=...)` | `src/core/content/abilities/` |
 | A passive combat effect (like backstab) | `@damage_modifier("name")` | `src/core/content/abilities/` |
 | Something that reacts to game events (achievements, quests, ...) | `@event_handler` class with `@on(...)` methods | `src/core/content/events/` |
 
@@ -51,7 +51,7 @@ public methods are the toolkit:
 - `provoked_by(monster, config)`: whoever attacked it within `memory_turns`, or `None`.
 - `distance` (8-way steps, Chebyshev), `in_sight`, `attack(monster, target, ranged=False)`,
   `move_towards(monster, target, leash=None)`, `flee_from`, `wander`,
-  `summon(monster, monster_id)`.
+  `summon(monster, monster_id)`, `abilities_for(monster)`.
 - `nearest_player` ignores perception; behaviours should not use it.
 
 Ranges in a behaviour's own section are engagement policy (when to fight what it
@@ -67,10 +67,11 @@ key that is neither universal (the keys of `defaults`) nor a key of the behaviou
 section, or an `enabled: true` ability with no `@ability` stops the game with a
 `ContentValidationError`.
 
-> **Planned change (ADR-019, [architecture/AI_ARCHITECTURE.md](architecture/AI_ARCHITECTURE.md)):**
-> ranged attacks and summons move into abilities usable by monsters (VB-63). Range metric,
-> parameters, perception, morale and speed are done (VB-58 to VB-62). A behaviour runs
-> once per *action*, and a monster takes `move_speed` actions per round on average.
+> **Design (ADR-019, [architecture/AI_ARCHITECTURE.md](architecture/AI_ARCHITECTURE.md)):**
+> a behaviour is tactics only: where to stand. The engine owns perception, morale, speed
+> and ability use; ranged attacks and summons are abilities (see "Add an ability"). A
+> behaviour runs once per *action*, and a monster takes `move_speed` actions per round on
+> average.
 
 ```python
 # src/core/content/ai/sentry.py
@@ -94,14 +95,23 @@ def sentry(ai, monster, config):
 
 Then give a monster `ai: type: "sentry"` in `data/entities/monsters.yaml`. Look at
 `content/ai/classic.py`, `berserker.py`, `sniper.py` and `summoner.py` for worked
-examples (the summoner keeps per-monster state in `monster.set_stat(...)`).
+examples. Keep per-monster state in `monster.set_stat(...)` (stats are saved). A sentry
+that shoots is better written as tactics plus the `ranged_attack` ability, as the sniper
+is: then any monster can be given the shot without a new behaviour.
 
 ## Add an ability
 
-An ability function does only the effect: `(context, actor, config) -> ActionOutcome`.
-`AbilityAction` checks the actor knows it and that it is off cooldown, runs your
-function, and starts the cooldown if you returned a success. Return
+Any actor can use an ability: a player (key **z**) or a monster (the AI). An ability
+function does only the effect: `(context, actor, config, target=None) -> ActionOutcome`.
+`target` is who the user aims at, or `None` to let the ability choose; the helpers in
+`core/targeting.py` (`aim`, `valid_target`, `nearest_hostile_in_sight`) pick among the
+actor's hostiles (`context.hostiles_of`) using the game's range metric and line of sight.
+`AbilityAction` checks the actor has it and that it is off cooldown, runs your function,
+and starts the cooldown (`config['cooldown']`) if you returned a success. Return
 `ActionOutcome.failure("reason")` to refuse without spending a turn.
+
+`should_use(context, actor, config, target) -> bool` tells the monster AI when using it
+is worthwhile. An ability without one is never used by monsters.
 
 ```python
 # src/core/content/abilities/second_wind.py
@@ -109,8 +119,12 @@ from ...base.action import ActionOutcome
 from ...extensions import ability
 
 
-@ability("second_wind")
-def second_wind(context, actor, config) -> ActionOutcome:
+def _winded(context, actor, config, target):
+    return actor.hp < actor.max_hp // 2
+
+
+@ability("second_wind", should_use=_winded)
+def second_wind(context, actor, config, target=None) -> ActionOutcome:
     if actor.hp >= actor.max_hp // 2:
         return ActionOutcome.failure("You still have wind left.")
     healed = actor.heal(config['amount'])
@@ -119,12 +133,33 @@ def second_wind(context, actor, config) -> ActionOutcome:
     return outcome
 ```
 
-Then:
+For a **player class**:
 1. Add its numbers to `data/balance/formulas.yaml` under `abilities:` (`second_wind: {amount: 8, cooldown: 30}`).
 2. Add `"second_wind"` to a class's `abilities` list in `src/core/character_class.py`.
 3. Players press **z** to use their first active ability (`handle_player_action('ability')`, or `ability='second_wind'` to pick one).
 
-`content/abilities/force_bolt.py` and `heal.py` are the worked examples.
+For a **monster**, enable it in its `abilities:` block in `monsters.yaml`; keys there
+override the shared `formulas.yaml` numbers:
+
+```yaml
+  troll:
+    abilities:
+      second_wind:
+        enabled: true
+        amount: 12
+        cooldown: 20
+```
+
+A **behaviour** can also bring abilities to every monster that uses it (`abilities:` in
+its `ai_behaviors.yaml` section, e.g. the sniper's `ranged_attack`, the summoner's
+`summon`); a monster can disable one with `enabled: false`. Each action, after morale,
+the engine uses the first ready ability whose `should_use` says yes against the player
+the monster perceives, and only otherwise runs its behaviour (`AISystem.abilities_for`,
+`_use_ability`). Monster AI validation fails the game at start if an enabled or brought
+ability has no `@ability`.
+
+`content/abilities/force_bolt.py`, `heal.py`, `ranged_attack.py` and `summon.py` are the
+worked examples.
 
 ## Add a passive combat effect
 

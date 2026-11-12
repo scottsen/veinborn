@@ -302,7 +302,7 @@
 
 ### ADR-019: Monster AI in Three Layers (Engine, Tactics, Abilities)
 **Date**: 2026-11-12
-**Status**: 🚧 In progress (tasks VB-47, VB-58 to VB-65; VB-58 to VB-62 done)
+**Status**: 🚧 In progress (tasks VB-47, VB-58 to VB-65; VB-58 to VB-63 done; next VB-64)
 **Decision**: The AI engine (`AISystem`, core) owns parameter resolution, speed, perception (aggro range, line of sight, provocation), morale and the one range metric (Chebyshev). `@ai_behavior` content is tactics only (where to stand). `@ability` content works for any actor, so monsters use the abilities already declared in `monsters.yaml`. Per-monster parameters are resolved at runtime from `content_id` and validated at load.
 **Rationale**:
 - Monster YAML declares `aggro_range` and `move_speed` for every monster, and the engine reads neither; guard `flee_threshold`, `passive` and `default_ai_by_type` are dead. They drifted because each behaviour does its own sensing and fleeing.

@@ -179,6 +179,29 @@ class GameContext:
         return results[0] if results else None
 
     # Entity manipulation
+    @staticmethod
+    def is_hostile(a: 'Entity', b: 'Entity') -> bool:
+        """Whether a and b fight each other: players and monsters, never their own kind (ADR-019).
+
+        The one place hostility is decided, so allies, charmed or tamed
+        monsters later change only this rule.
+        """
+        from .entity import EntityType
+        actors = (EntityType.PLAYER, EntityType.MONSTER)
+        return (
+            a is not b
+            and a.entity_type in actors
+            and b.entity_type in actors
+            and a.entity_type != b.entity_type
+        )
+
+    def hostiles_of(self, actor: 'Entity') -> List['Entity']:
+        """Living, placed entities hostile to actor."""
+        return [
+            e for e in self.game_state.entities.values()
+            if e.is_alive and e.x is not None and self.is_hostile(actor, e)
+        ]
+
     def add_entity(self, entity: 'Entity') -> None:
         """Add entity to game."""
         self.game_state.entities[entity.entity_id] = entity

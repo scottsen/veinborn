@@ -70,11 +70,21 @@ def test_every_ability_in_a_class_template_is_registered_or_a_modifier():
         assert set(template.abilities) <= known, template.name
 
 
-def test_every_ability_has_tuning_in_formulas_yaml():
+def test_every_ability_has_tuning_somewhere():
+    """Class abilities are tuned in formulas.yaml; monster-only ones by the behaviour that brings them."""
+    from core.character_class import CLASS_TEMPLATES
     from core.config.config_loader import ConfigLoader
     config = ConfigLoader.get_config()
-    for name in set(abilities.names()) | set(damage_modifiers.names()):
+    class_abilities = {a for t in CLASS_TEMPLATES.values() for a in t.abilities}
+    for name in class_abilities:
         assert config.get_ability_config(name) is not None
+    brought = {
+        name
+        for section in config.ai_behaviors['behaviors'].values()
+        for name in (section.get('abilities') or {})
+    }
+    for name in set(abilities.names()) | set(damage_modifiers.names()):
+        assert name in config.formulas.get('abilities', {}) or name in brought, name
 
 
 # --- event handler lifecycle ----------------------------------------------------

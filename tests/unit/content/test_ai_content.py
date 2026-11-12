@@ -157,7 +157,7 @@ def test_summoner_calls_a_minion_and_announces_it(game):
 
 def test_summoner_respects_cooldown_and_minion_cap(game):
     mon = spawn(game, "summoner", 6)
-    cap = game.config.get_ai_behavior_config('summoner')['max_minions']
+    cap = game.context.get_system('ai').abilities_for(mon)['summon']['max_minions']
     monsters = lambda: [e for e in game.state.entities.values() if e.entity_type == EntityType.MONSTER]
     run_ai(game)
     assert len(monsters()) == 2  # no second summon next turn: cooldown
@@ -175,8 +175,8 @@ def test_summoner_replaces_dead_minions(game):
     run_ai(game)
     minion = game.context.get_entity(mon.get_stat('minion_ids')[0])
     minion.is_alive = False
-    from core.content.ai.summoner import _living_minions
-    assert _living_minions(game.context.get_system('ai'), mon) == []
+    from core.content.abilities.summon import living_minions
+    assert living_minions(game.context, mon) == []
 
 
 # --- range metric (VB-58) --------------------------------------------------------

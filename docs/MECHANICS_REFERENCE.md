@@ -113,6 +113,12 @@ healer start with nothing.
 
 Unbuilt: fireball, teleport, dodge, protect, regeneration, power strike (VB-53).
 
+**Monsters use abilities too** (VB-63): a monster's abilities come from its behaviour (the
+sniper's `ranged_attack`: a normal attack from 4-6 tiles; the summoner's `summon`: a goblin
+every 10 turns, at most 3 alive) and from `enabled: true` entries in its `abilities:` block in
+`monsters.yaml` (all disabled today; VB-64 turns them on). Each action, after morale, it uses the
+first ready one that is worthwhile against the player it perceives.
+
 ### Monster Perception
 
 What a monster knows about you (`AISystem.perceive`, VB-60):

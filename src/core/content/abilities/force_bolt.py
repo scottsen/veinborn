@@ -1,40 +1,32 @@
-"""Mage force bolt: ranged, never misses, ignores defense. Config: formulas.yaml abilities.force_bolt."""
+"""Force bolt: ranged, never misses, ignores defense. Config: formulas.yaml abilities.force_bolt.
+
+Any actor can cast it (the mage on z; a monster given it in monsters.yaml).
+"""
 
 import logging
 
 from ...actions.attack_action import AttackAction
 from ...base.action import ActionOutcome
-from ...base.entity import EntityType
 from ...events import create_attack_event
 from ...extensions import ability
-from ...geometry import chebyshev, has_line_of_sight
+from ...targeting import aim, valid_target
 
 logger = logging.getLogger(__name__)
 
 
-def _nearest_visible_monster(context, actor, max_range: int):
-    game_map = context.get_map()
-    best, best_dist = None, None
-    for monster in context.get_entities_by_type(EntityType.MONSTER):
-        if not monster.is_alive or monster.x is None:
-            continue
-        dist = chebyshev(monster.x, monster.y, actor.x, actor.y)
-        if dist > max_range or (best_dist is not None and dist >= best_dist):
-            continue
-        if has_line_of_sight(actor.x, actor.y, monster.x, monster.y, game_map.is_transparent):
-            best, best_dist = monster, dist
-    return best
+def _worth_casting(context, actor, config, target):
+    return valid_target(context, actor, target, config['range'])
 
 
-@ability("force_bolt")
-def force_bolt(context, actor, config) -> ActionOutcome:
-    target = _nearest_visible_monster(context, actor, config['range'])
+@ability("force_bolt", should_use=_worth_casting)
+def force_bolt(context, actor, config, target=None) -> ActionOutcome:
+    target = aim(context, actor, target, config['range'])
     if target is None:
         return ActionOutcome.failure("No target in sight for a force bolt.")
 
     level = actor.get_stat('level', 1)
     damage = context.get_rng().randint(config['damage_min'], config['damage_max'])
-    damage += int(config['damage_per_level'] * (level - 1))
+    damage += int(config.get('damage_per_level', 0) * (level - 1))
     dealt = target.take_damage(damage)
 
     outcome = ActionOutcome.success(took_turn=True)
@@ -46,7 +38,7 @@ def force_bolt(context, actor, config) -> ActionOutcome:
         killed=not target.is_alive,
     ))
     if not target.is_alive:
-        # Same death handling as melee: message, died event, XP, loot
+        # Same death handling as melee: message, died event, XP (players), loot (monsters)
         AttackAction(actor.entity_id, target.entity_id)._handle_target_death(
             context, actor, target, outcome
         )

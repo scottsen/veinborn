@@ -35,6 +35,7 @@ from ..base.system import System
 from ..base.entity import EntityType
 from ..actions.move_action import MoveAction
 from ..actions.attack_action import AttackAction
+from ..actions.ability_action import AbilityAction
 from ..pathfinding import get_direction
 from ..config.config_loader import ConfigLoader
 from ..exceptions import ContentValidationError
@@ -47,6 +48,8 @@ logger = logging.getLogger(__name__)
 
 # ai: keys that describe the monster rather than tune its behaviour
 _NOT_PARAMS = frozenset({'type', 'description'})
+# ability config keys that are bookkeeping, not tuning
+_NOT_ABILITY_CONFIG = frozenset({'enabled', 'description'})
 
 
 def validate_monster_ai(
@@ -62,7 +65,8 @@ def validate_monster_ai(
     - ai.type names a registered @ai_behavior
     - every ai key is type/description, a universal key (ai_behaviors.yaml
       `defaults`), or a key of that behaviour's section
-    - an ability with enabled: true has a registered @ability
+    - an ability with enabled: true, or one a behaviour brings
+      (`abilities` in its section), has a registered @ability
     """
     behavior_names, ability_names = set(behavior_names), set(ability_names)
     universal = _NOT_PARAMS | set(universal_keys)
@@ -72,12 +76,16 @@ def validate_monster_ai(
         ai_type = ai.get('type', 'aggressive')
         if ai_type not in behavior_names:
             problems.append(f"{monster_id}: ai.type '{ai_type}' is not a registered AI behaviour")
-        allowed = universal | set(behavior_configs.get(ai_type, {}))
+        allowed = (universal | set(behavior_configs.get(ai_type, {}))) - {'abilities'}
         for key in sorted(set(ai) - allowed):
             problems.append(f"{monster_id}: ai.{key} is not a parameter of '{ai_type}' or a universal AI key")
         for name, config in (definition.get('abilities') or {}).items():
             if isinstance(config, dict) and config.get('enabled') and name not in ability_names:
                 problems.append(f"{monster_id}: ability '{name}' is enabled but no @ability('{name}') exists")
+    for ai_type, section in behavior_configs.items():
+        for name in (section or {}).get('abilities') or {}:
+            if name not in ability_names:
+                problems.append(f"behaviour '{ai_type}' brings ability '{name}' but no @ability('{name}') exists")
     return problems
 
 
@@ -203,6 +211,7 @@ class AISystem(System):
         params = dict(self.config.ai_behaviors.get('defaults', {}))
         params.update(self.config.get_ai_behavior_config(ai_type))
         params.pop('description', None)
+        params.pop('abilities', None)  # see abilities_for
         definition = self.entity_loader.monsters.get(getattr(monster, 'content_id', None)) or {}
         for key, value in (definition.get('ai') or {}).items():
             if key not in _NOT_PARAMS:
@@ -242,10 +251,62 @@ class AISystem(System):
             monster.set_stat('energy', round(energy, 6))  # no float drift across many rounds
 
     def _act(self, monster, params: Dict[str, Any]) -> None:
-        """One action: morale first, else the monster's behaviour."""
+        """One action: morale, else a ready and worthwhile ability, else the behaviour."""
         if self._morale_breaks(monster, params):
             return
+        if self._use_ability(monster, params):
+            return
         self._execute_behavior(monster, monster.get_stat('ai_type', 'aggressive'), params)
+
+    def abilities_for(self, monster) -> Dict[str, Dict[str, Any]]:
+        """This monster's usable abilities and their config, resolved live (ADR-019).
+
+        Per ability: formulas.yaml `abilities.<name>` (shared tuning, e.g. force_bolt)
+        <- what its behaviour brings (`abilities` in its ai_behaviors.yaml section)
+        <- its own monsters.yaml `abilities.<name>`. A monsters.yaml entry with
+        enabled: false removes one; enabled: true adds one.
+        """
+        ai_type = monster.get_stat('ai_type', 'aggressive')
+        brought = (self.config.get_ai_behavior_config(ai_type) or {}).get('abilities') or {}
+        definition = self.entity_loader.monsters.get(getattr(monster, 'content_id', None)) or {}
+        own = definition.get('abilities') or {}
+        shared = self.config.formulas.get('abilities', {})
+
+        resolved = {}
+        for name in list(brought) + [n for n in own if n not in brought]:
+            mine = own.get(name)
+            if isinstance(mine, dict) and 'enabled' in mine and not mine['enabled']:
+                continue
+            if name not in brought and not (isinstance(mine, dict) and mine.get('enabled')):
+                continue
+            config = dict(shared.get(name, {}))
+            config.update(brought.get(name) or {})
+            config.update({k: v for k, v in (mine or {}).items() if k not in _NOT_ABILITY_CONFIG})
+            resolved[name] = config
+        return resolved
+
+    def _use_ability(self, monster, params: Dict[str, Any]) -> bool:
+        """Use the first ready ability whose should_use says yes against what it perceives."""
+        usable = self.abilities_for(monster)
+        if not usable:
+            return False
+        target = self.perceive(monster, params)
+        if target is None:
+            return False
+        turn = self.context.get_turn_count()
+        cooldowns = monster.get_stat('cooldowns', {}) or {}
+        for name, config in usable.items():
+            effect = abilities.get(name)
+            should_use = getattr(effect, 'should_use', None)
+            if effect is None or should_use is None or cooldowns.get(name, 0) > turn:
+                continue
+            if not should_use(self.context, monster, config, target):
+                continue
+            outcome = AbilityAction(monster.entity_id, name, target.entity_id, config).execute(self.context)
+            if outcome.is_success:
+                self._apply_outcome(outcome)
+                return True
+        return False
 
     def _morale_breaks(self, monster, params: Dict[str, Any]) -> bool:
         """Morale, for every behaviour: below flee_threshold of max HP, flee what it perceives.
@@ -330,20 +391,20 @@ class AISystem(System):
         """Attack a target (adjacent, or from range when ranged=True)."""
         action = AttackAction(monster.entity_id, target.entity_id, ranged=ranged)
         outcome = action.execute(self.context)
-
-        # Add messages to game log
-        for msg in outcome.messages:
-            self.context.add_message(msg)
-
-        # Publish the attack's events (ATTACK_RESOLVED, ENTITY_DIED) like a player
-        # action's, so telemetry and content see monster attacks too (VB-66)
-        if self._event_bus is not None and outcome.events:
-            self._event_bus.publish_all(outcome.events)
+        self._apply_outcome(outcome)
 
         logger.debug(
             f"Monster {monster.name} attacked {target.name}",
             extra={'damage': outcome.events}
         )
+
+    def _apply_outcome(self, outcome) -> None:
+        """Log a monster action's messages and publish its events (ATTACK_RESOLVED,
+        ENTITY_DIED), like a player action's, so telemetry and content see them (VB-66)."""
+        for msg in outcome.messages:
+            self.context.add_message(msg)
+        if self._event_bus is not None and outcome.events:
+            self._event_bus.publish_all(outcome.events)
 
     def flee_from(self, monster, target) -> None:
         """

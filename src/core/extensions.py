@@ -113,15 +113,25 @@ def ai_behavior(name: str, *, replace: bool = False) -> Callable:
     return decorator
 
 
-def ability(name: str, *, replace: bool = False) -> Callable:
-    """Register ``fn(context, actor, config) -> ActionOutcome`` as ability ``name``.
+def ability(name: str, *, replace: bool = False, should_use: Optional[Callable] = None) -> Callable:
+    """Register ``fn(context, actor, config, target=None) -> ActionOutcome`` as ability ``name``.
+
+    Any actor can use an ability: players (key z; config from formulas.yaml
+    ``abilities.<name>``) and monsters (the AI; config resolved from the
+    monster's behaviour and ``abilities:`` block). ``target`` is who the user
+    aims at, or None to let the ability choose (``core.targeting``).
 
     The function only produces the effect. AbilityAction handles who may use
-    it, the cooldown (``cooldown`` in formulas.yaml ``abilities.<name>``) and
-    starting that cooldown when the outcome succeeds. Return
-    ``ActionOutcome.failure(msg)`` to refuse without spending a turn.
+    it, the cooldown (``config['cooldown']``) and starting that cooldown when
+    the outcome succeeds. Return ``ActionOutcome.failure(msg)`` to refuse
+    without spending a turn.
+
+    ``should_use(context, actor, config, target) -> bool`` tells the monster
+    AI when using it is worthwhile; an ability without one is never used by
+    monsters.
     """
     def decorator(fn: Callable) -> Callable:
+        fn.should_use = should_use
         abilities.register(name, fn, replace=replace)
         return fn
     return decorator

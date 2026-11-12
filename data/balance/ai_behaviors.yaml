@@ -59,15 +59,23 @@ behaviors:
     ideal_range_min: 4
     ideal_range_max: 6
     flee_threshold: 0.3
+    abilities:            # abilities this behaviour brings (monsters.yaml can override or disable)
+      ranged_attack:
+        range: 6          # shoots up to ideal_range_max
+        min_range: 4      # too close to shoot: backs off instead
+        cooldown: 0
 
   # Summoner: Summons allies, avoids combat
   summoner:
     description: "Summons allies, avoids direct combat"
-    summon_distance: 8
-    flee_distance: 4
-    summon_cooldown: 10
-    minion_type: goblin   # monsters.yaml id of what it summons
-    max_minions: 3        # living minions at once
+    summon_distance: 8    # keeps away from players closer than this (tactics)
+    abilities:
+      summon:
+        minion_type: goblin   # monsters.yaml id of what it summons
+        max_minions: 3        # living minions at once
+        range: 8              # summons when a perceived player is this close...
+        min_distance: 4       # ...but not closer than this (it flees instead)
+        cooldown: 10
 
 # Monster AI assignments live in data/entities/monsters.yaml (`ai: type:`).
 # A monster's ai: block may also override any parameter of its behaviour above,
