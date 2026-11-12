@@ -42,6 +42,11 @@ turns) stop it stalling. Stepping on the stairs early does not skip the sweep
 no monsters left", which never happened once wandering spawns (VB-52) kept the
 floor stocked.
 
+The planner also uses class abilities (`ActionPlanner.ability_action`): a mage bolts any
+monster in range 6 and line of sight whenever force bolt is ready, a healer heals at or below
+60% HP. Measured on 8 games x 3000 turns: mage avg floor 4.9 -> 6.2, level 3.8 -> 5.8, deaths
+6 -> 2; healer unchanged (floor 9.4, 1 death).
+
 Note: the `get_smart_action` methods in `warrior_bot.py`, `rogue_bot.py`,
 `mage_bot.py` and `healer_bot.py` are not called by the bot loop (VB-57); all four
 class bots run the shared planner and differ only in their `CombatConfig`.

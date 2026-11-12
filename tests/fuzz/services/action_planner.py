@@ -16,6 +16,10 @@ import random
 from .room_sweeper import RoomSweeper
 
 
+# Use heal at or below this fraction of max HP
+HEAL_BELOW = 0.6
+
+
 class ActionPlanner:
     """Plans and creates validated actions."""
 
@@ -106,6 +110,7 @@ class ActionPlanner:
         1. If unequipped gear → EQUIP IT! (instant, no turn cost)
         2. If craftable ore + near forge → CRAFT EQUIPMENT!
         3. If on stairs and floor cleared → DESCEND
+        3b. If an active class ability is ready and useful → USE IT (force bolt, heal)
         4. If monster adjacent → FIGHT (forced combat)
         5. If jackpot ore nearby and safe → MINE IT!
         6. If low health and monster nearby → FLEE TO STAIRS
@@ -149,6 +154,11 @@ class ActionPlanner:
         # Priority 3: Descend if ready
         if self.decisions.should_descend(game):
             return ('descend', {})
+
+        # Priority 3b: Class abilities (bolt a visible monster, heal when hurt)
+        ability = self.ability_action(game)
+        if ability:
+            return ability
 
         # Priority 4: Forced combat (monster adjacent)
         adjacent = self.perception.is_adjacent_to_monster(game)
@@ -246,6 +256,40 @@ class ActionPlanner:
         # Priority 11: Random exploration
         self.log("🗺️  Exploring randomly...")
         return self.get_random_action(game)
+
+    def ability_ready(self, game, name: str) -> bool:
+        """True if the player knows the ability and it is off cooldown."""
+        player = game.state.player
+        if name not in player.get_stat('abilities', []):
+            return False
+        return player.get_stat('cooldowns', {}).get(name, 0) <= game.state.turn_count
+
+    def ability_action(self, game) -> Optional[Tuple[str, dict]]:
+        """Use a ready active ability when it helps: heal when hurt, bolt a monster in sight.
+
+        Config comes from the game's ability config so the bot follows balance changes.
+        """
+        from core.config.config_loader import ConfigLoader
+        from core.geometry import has_line_of_sight
+
+        player = game.state.player
+        abilities = ConfigLoader.get_config()
+
+        if self.ability_ready(game, 'heal') and player.hp <= player.max_hp * HEAL_BELOW:
+            self.log(f"💚 Healing (HP: {player.hp}/{player.max_hp})")
+            return ('ability', {'ability': 'heal'})
+
+        if self.ability_ready(game, 'force_bolt'):
+            reach = abilities.get_ability_config('force_bolt')['range']
+            game_map = game.state.dungeon_map
+            for monster in self.perception.find_monsters(game):
+                dist = max(abs(monster.x - player.x), abs(monster.y - player.y))
+                if dist <= reach and has_line_of_sight(
+                    player.x, player.y, monster.x, monster.y, game_map.is_transparent
+                ):
+                    self.log(f"⚡ Force bolt at {monster.name} (distance {dist})")
+                    return ('ability', {'ability': 'force_bolt'})
+        return None
 
     def get_random_action(self, game) -> Tuple[str, dict]:
         """
@@ -527,7 +571,7 @@ class ActionPlanner:
                 return True
             return False
 
-        elif action_type in ('wait', 'descend', 'equip', 'craft'):
+        elif action_type in ('wait', 'descend', 'equip', 'craft', 'ability'):
             # These are always valid (game engine will reject if not)
             return True
 
