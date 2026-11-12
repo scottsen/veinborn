@@ -290,6 +290,12 @@ CombatConfig(flee_hp_threshold=0.5, aggression_level='passive', risk_tolerance='
 - `tests/fuzz/rogue_bot.py` - Balanced
 - `tests/fuzz/healer_bot.py` - Survival-focused
 
+Each class bot is a `CombatConfig` (flee threshold, safety margin, engagement range)
+on top of the shared planner in `tests/fuzz/services/` (decision tree, abilities,
+potions, room sweep); the per-class decision trees were dead code and were removed
+(VB-57). To change how a bot plays, change the planner or the config, then measure
+with paired seeds (`tests/fuzz/README.md`, "Before/after comparisons").
+
 **Copy one of these, rename it, tune it, and make it yours!**
 
 ---
