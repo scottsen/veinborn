@@ -31,6 +31,21 @@ The bot chooses random valid actions with realistic weights:
 - **10%** Mine ore
 - **10%** Wait
 
+### 1b. Strategic Mode: Sweep, Then Descend
+In `strategic` mode (what the class bots use) the bot plays a decision tree
+(`services/action_planner.py`, `get_smart_action`), and its exploration goal is a
+**room sweep** (`services/room_sweeper.py`): visit each room on the floor, fight
+what it judges winnable in that room, mark the room done, and when every room is
+done head for the stairs. A floor turn budget (1500) and a per-room give-up (60
+turns) stop it stalling. Stepping on the stairs early does not skip the sweep
+(`TacticalDecisionService.descend_gate`). This replaced "go down when the floor has
+no monsters left", which never happened once wandering spawns (VB-52) kept the
+floor stocked.
+
+Note: the `get_smart_action` methods in `warrior_bot.py`, `rogue_bot.py`,
+`mage_bot.py` and `healer_bot.py` are not called by the bot loop (VB-57); all four
+class bots run the shared planner and differ only in their `CombatConfig`.
+
 ### 2. Game State Validation
 After each turn, validates invariants:
 - ✅ Player HP never negative

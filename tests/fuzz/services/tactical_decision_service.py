@@ -284,6 +284,11 @@ class TacticalDecisionService:
         if not self.perception.on_stairs(game):
             return False
 
+        # A planner with a RoomSweeper sets descend_gate: don't skip unvisited rooms
+        gate = getattr(self, 'descend_gate', None)
+        if gate is not None and not gate(game):
+            return False
+
         # Check if floor is cleared
         monsters_alive = len(self.perception.find_monsters(game))
         player = game.state.player

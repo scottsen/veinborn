@@ -13,6 +13,8 @@ Phase 2 Service Extraction - Step 3
 from typing import Tuple, Optional
 import random
 
+from .room_sweeper import RoomSweeper
+
 
 class ActionPlanner:
     """Plans and creates validated actions."""
@@ -34,6 +36,9 @@ class ActionPlanner:
         self.perception = perception
         self.decisions = decisions
         self.verbose = verbose
+        # Clear rooms, then go down; stops the bot from skipping rooms by stepping on the stairs
+        self.sweeper = RoomSweeper(perception)
+        self.decisions.descend_gate = self.sweeper.ready_to_leave
 
     def log(self, message: str) -> None:
         """Log message if verbose enabled."""
@@ -70,6 +75,28 @@ class ActionPlanner:
             else:
                 return self.get_random_action(game)
 
+    def sweep_or_leave(self, game, fight=None) -> Optional[Tuple[str, dict]]:
+        """Next action of the room sweep: fight in the room, walk to the next room, or go down.
+
+        Args:
+            fight: predicate(monster) -> bool, the bot's temperament; None never fights.
+
+        Returns:
+            An action, or None when there is nothing to walk toward.
+        """
+        step = self.sweeper.next_step(game, fight=fight)
+        if step is None:
+            return None
+        kind, target = step
+        if kind == 'monster':
+            self.log(f"🧹 Clearing room: {target.name}")
+            return self.move_towards(game, target)
+        from core.base.entity import Entity, EntityType
+        x, y = target
+        waypoint = Entity(entity_type=EntityType.PLAYER, name=kind.title(), x=x, y=y)
+        self.log("🚪 Room swept, heading for the stairs" if kind == 'stairs' else f"🗺️  Sweeping on to room at ({x}, {y})")
+        return self.move_towards(game, waypoint)
+
     def get_smart_action(self, game) -> Tuple[str, dict]:
         """
         Choose action strategically to try to win.
@@ -85,7 +112,7 @@ class ActionPlanner:
         7. If high-quality ore nearby (70+) and safe → MINE IT
         8. If unsurveyed ore nearby → SURVEY IT
         9. If monster in view and we can win → PURSUE
-        10. If floor cleared → SEEK STAIRS
+        10. Sweep room by room, clearing monsters, then → SEEK STAIRS
         11. Otherwise → random exploration
 
         Returns:
@@ -137,7 +164,7 @@ class ActionPlanner:
             dist = game.state.player.distance_to(jackpot)
             if game.state.player.is_adjacent(jackpot):
                 self.log(f"💎 Mining JACKPOT ore! {jackpot.ore_type}")
-                return ('mine', {})
+                return ('mine', {'ore_vein_id': jackpot.entity_id})
             elif dist > 2 and dist <= 5:
                 # Seek adjacent tile to ore (ore blocks movement)
                 self.log(f"💎 Seeking JACKPOT ore! Distance: {dist:.1f}")
@@ -186,11 +213,11 @@ class ActionPlanner:
                     if self.decisions.should_mine_strategically(game, valuable_ore):
                         purity = valuable_ore.get_stat('purity', 0)
                         self.log(f"⛏️  Mining high-quality {valuable_ore.ore_type} ore (purity: {purity})!")
-                        return ('mine', {})
+                        return ('mine', {'ore_vein_id': valuable_ore.entity_id})
                 else:
                     # Not surveyed - survey it first
                     self.log(f"🔍 Surveying {valuable_ore.ore_type} ore...")
-                    return ('survey', {})
+                    return ('survey', {'ore_vein_id': valuable_ore.entity_id})
             elif dist > 2 and dist <= 4 and valuable_ore.get_stat('purity', 0) >= 80:
                 # Seek adjacent tile to Legacy Vault quality ore (ore blocks movement)
                 self.log(f"⛏️  Seeking Legacy Vault ore! Distance: {dist:.1f}")
@@ -202,7 +229,7 @@ class ActionPlanner:
             dist = game.state.player.distance_to(unsurveyed_ore)
             if game.state.player.is_adjacent(unsurveyed_ore):
                 self.log(f"🔍 Surveying nearby {unsurveyed_ore.ore_type} ore...")
-                return ('survey', {})
+                return ('survey', {'ore_vein_id': unsurveyed_ore.entity_id})
 
         # Priority 9: Pursue monsters if we can win
         if self.decisions.should_fight(game):
@@ -211,20 +238,10 @@ class ActionPlanner:
                 self.log(f"⚔️  Pursuing {nearby.name}!")
                 return self.move_towards(game, nearby)
 
-        # Priority 10: Seek stairs if floor cleared
-        monsters_alive = len(self.perception.find_monsters(game))
-        if monsters_alive == 0:
-            stairs_pos = self.perception.find_level_exit(game)
-            if stairs_pos:
-                self.log("🎯 Floor cleared! Seeking stairs...")
-                from core.base.entity import Entity, EntityType
-                stairs_entity = Entity(
-                    entity_type=EntityType.PLAYER,
-                    name="Stairs",
-                    x=stairs_pos[0],
-                    y=stairs_pos[1],
-                )
-                return self.move_towards(game, stairs_entity)
+        # Priority 10: Sweep rooms (clearing what we can win against), then take the stairs
+        sweep = self.sweep_or_leave(game, fight=lambda m: self.decisions.should_fight(game))
+        if sweep:
+            return sweep
 
         # Priority 11: Random exploration
         self.log("🗺️  Exploring randomly...")

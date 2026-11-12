@@ -234,11 +234,13 @@ class ActionFactory:
         """
         Create a survey action.
 
-        Requires adjacent ore vein.
+        Requires adjacent ore vein. With several adjacent, surveys one that has
+        not been surveyed yet (otherwise pressing survey again would hit the
+        same vein forever and the others could never be surveyed).
 
         Args:
             context: Game context
-            kwargs: Not used
+            kwargs: Optional 'ore_vein_id' to survey a specific adjacent vein
 
         Returns:
             SurveyAction or None if no adjacent ore vein
@@ -246,7 +248,11 @@ class ActionFactory:
         actor_id = context.get_player().entity_id
 
         # Find adjacent ore vein
-        ore_vein = self._find_adjacent_ore_vein(context)
+        ore_vein = self._find_adjacent_ore_vein(
+            context,
+            ore_vein_id=kwargs.get('ore_vein_id'),
+            prefer=lambda vein: not vein.get_stat('surveyed'),
+        )
 
         if not ore_vein:
             logger.debug(
@@ -270,7 +276,7 @@ class ActionFactory:
 
         Args:
             context: Game context
-            kwargs: Not used
+            kwargs: Optional 'ore_vein_id' to mine a specific adjacent vein
 
         Returns:
             MineAction or None if no adjacent ore vein
@@ -293,7 +299,7 @@ class ActionFactory:
             player.set_stat('mining_action', None)
 
         # Find adjacent ore vein
-        ore_vein = self._find_adjacent_ore_vein(context)
+        ore_vein = self._find_adjacent_ore_vein(context, ore_vein_id=kwargs.get('ore_vein_id'))
 
         if not ore_vein:
             logger.debug(
@@ -447,7 +453,7 @@ class ActionFactory:
     # Helper Methods
     # ============================================================================
 
-    def _find_adjacent_ore_vein(self, context: GameContext):
+    def _find_adjacent_ore_vein(self, context: GameContext, ore_vein_id=None, prefer=None):
         """
         Find ore vein adjacent to player.
 
@@ -455,15 +461,27 @@ class ActionFactory:
 
         Args:
             context: Game context
+            ore_vein_id: If given and that vein is adjacent, return exactly it
+            prefer: Optional predicate; the first adjacent vein satisfying it wins,
+                falling back to the first adjacent vein
 
         Returns:
             OreVein entity or None
         """
         player = context.get_player()
-        ore_veins = context.get_entities_by_type(EntityType.ORE_VEIN)
+        adjacent = [
+            ore_vein for ore_vein in context.get_entities_by_type(EntityType.ORE_VEIN)
+            if player.is_adjacent(ore_vein)
+        ]
 
-        for ore_vein in ore_veins:
-            if player.is_adjacent(ore_vein):
-                return ore_vein
+        if ore_vein_id is not None:
+            for ore_vein in adjacent:
+                if ore_vein.entity_id == ore_vein_id:
+                    return ore_vein
 
-        return None
+        if prefer is not None:
+            for ore_vein in adjacent:
+                if prefer(ore_vein):
+                    return ore_vein
+
+        return adjacent[0] if adjacent else None
