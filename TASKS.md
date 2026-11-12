@@ -2,7 +2,7 @@
 project: veinborn
 schema_version: '1.0'
 id_prefix: VB
-next_id: 54
+next_id: 57
 archival: inline
 areas: {}
 ---
@@ -1058,7 +1058,7 @@ Found by scripts/sim_mob_movement.py + tests/unit/test_spawn_no_overlap.py. Acro
 - [#2 2026-11-12T02:39:01Z session:kinetic-fusion-1111] Fix is in the working tree (spawn_all_for_floor relocation + test_spawn_no_overlap.py); close with --commit after the commit
 
 
-## TASK-VB-47 · Wire up or remove the unused AI knobs: Lua AI behaviours, passive attack flag, aggro_range/move_speed, guard flee_threshold
+## TASK-VB-47 · Remaining AI knobs: passive never triggers, aggro_range/move_speed unread, guard flee_threshold unused, default_ai_by_type names missing monsters; assign berserker/sniper/summoner to monsters
 
 ```yaml
 status: backlog
@@ -1066,15 +1066,16 @@ priority: low
 effort: 4h
 tags: [ai, design]
 created: '2026-11-11T23:02:15Z'
-updated: '2026-11-11T23:02:15Z'
+updated: '2026-11-12T05:11:44Z'
 session: kinetic-fusion-1111
+notes_next: 2
 ```
 
 Found while assigning mob AI styles. (1) AISystem is built without a lua_runtime in game.py and server session.py and nothing calls register_lua_behavior, so berserker/sniper/summoner never run; sniper only emits a message (no ranged attack action exists). (2) 'passive' relies on was_attacked_last_turn which nothing sets, and it never fights back, so no monster uses it. (3) monsters.yaml ai.aggro_range and ai.move_speed are never read; chase range comes from ai_behaviors.yaml. (4) guard config has flee_threshold 0.2 but _behavior_guard never flees. (5) default_ai_by_type in ai_behaviors.yaml names rat/dragon, which do not exist, and is unused. Chase range is Manhattan while movement is 8-directional.
 
 <!-- notes: append-only log; each has a stable #id (see CLI §5) -->
 ### Notes
-_(no notes yet)_
+- [#1 2026-11-12T05:11:44Z session:turquoise-mosaic-1111] Lua half resolved 2026-11-11: Lua removed (ADR-018); berserker/sniper/summoner ported to Python content (src/core/content/ai/) with a real ranged attack (AttackAction ranged=True) and real summoning (AISystem.summon). No shipped monster uses them yet: assigning them changes balance, so it needs a play-test first (sniper in particular is deadly: random-walk bots died in ~30 turns when every monster got one). Still open: items 2-5 of the description (passive, aggro_range/move_speed, guard flee_threshold, default_ai_by_type).
 
 
 ## TASK-VB-48 · Early balance: mage loses to a goblin; 100 XP/level vs 5 XP goblin means nobody levels
@@ -1197,6 +1198,54 @@ priority: low
 tags: [balance, classes]
 created: '2026-11-12T04:03:31Z'
 updated: '2026-11-12T04:03:31Z'
+session: turquoise-mosaic-1111
+```
+
+<!-- notes: append-only log; each has a stable #id (see CLI §5) -->
+### Notes
+_(no notes yet)_
+
+
+## TASK-VB-54 · Persist achievement/quest/kill-streak state in save files (content event handlers reset on load_game)
+
+```yaml
+status: backlog
+priority: low
+tags: [content, save]
+created: '2026-11-12T05:11:47Z'
+updated: '2026-11-12T05:11:47Z'
+session: turquoise-mosaic-1111
+```
+
+<!-- notes: append-only log; each has a stable #id (see CLI §5) -->
+### Notes
+_(no notes yet)_
+
+
+## TASK-VB-55 · Multiplayer server does not install content event handlers or publish turn_ended/floor_changed/game_started: achievements/quests are single-player only
+
+```yaml
+status: backlog
+priority: low
+tags: [content, multiplayer]
+created: '2026-11-12T05:11:48Z'
+updated: '2026-11-12T05:11:48Z'
+session: turquoise-mosaic-1111
+```
+
+<!-- notes: append-only log; each has a stable #id (see CLI §5) -->
+### Notes
+_(no notes yet)_
+
+
+## TASK-VB-56 · Kill streaks announce but grant nothing: decide whether streaks (and quests) should give real rewards, e.g. an extra LootGenerator roll at the kill
+
+```yaml
+status: backlog
+priority: low
+tags: [content, balance]
+created: '2026-11-12T05:11:49Z'
+updated: '2026-11-12T05:11:49Z'
 session: turquoise-mosaic-1111
 ```
 
