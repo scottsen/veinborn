@@ -84,3 +84,24 @@ def test_does_not_collect_with_a_full_pack():
         player.add_to_inventory(potion('scroll_mapping'))
     drop_beside_player(game, potion())
     assert planner.collect_action(game) is None
+
+
+def test_no_detour_for_an_item_with_a_monster_near():
+    game, planner = warrior()
+    item = drop_beside_player(game, potion())
+    orc = game.entity_loader.create_monster("orc", item.x, item.y + 1)
+    game.context.add_entity(orc)
+    assert planner.collect_action(game) is None
+
+
+def test_a_low_mage_drinks_before_bolting():
+    from tests.unit.test_planner_abilities import add_monster_in_sight
+    game, planner = make("mage")
+    player = game.state.player
+    bottle = potion()
+    player.add_to_inventory(bottle)
+    add_monster_in_sight(game)
+    player.hp = int(player.max_hp * planner_module.DRINK_BELOW)
+    assert planner.get_smart_action(game) == ('use', {'item_id': bottle.entity_id})
+    player.hp = player.max_hp
+    assert planner.get_smart_action(game) == ('ability', {'ability': 'force_bolt'})

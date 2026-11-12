@@ -457,7 +457,12 @@ class VeinbornBot:
                 # Check if stuck (same position for multiple turns)
                 current_position = (game.state.player.x, game.state.player.y)
                 is_stuck = False
-                if current_position == last_position:
+                # Standing still is not stuck while meleeing (a bump attack doesn't move)
+                # or mining; counting those made a 1-HP bot 'unstick' with a random wait
+                # next to an orc instead of drinking (VB-68)
+                busy = (self.perception.is_adjacent_to_monster(game) is not None
+                        or (game.state.player.get_stat('mining_action') or {}).get('turns_remaining', 0) > 0)
+                if current_position == last_position and not busy:
                     stuck_counter += 1
                     if stuck_counter >= stuck_threshold:
                         is_stuck = True

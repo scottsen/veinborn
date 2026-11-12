@@ -22,6 +22,8 @@ HEAL_BELOW = 0.6
 DRINK_BELOW = 0.4
 # Detour at most this far (Chebyshev) to collect a potion or food
 ITEM_REACH = 6
+# ...and only when no monster is this close to the bot or the item
+ITEM_SAFE_RADIUS = 8
 INVENTORY_MAX = 20
 
 
@@ -162,15 +164,18 @@ class ActionPlanner:
         if self.decisions.should_descend(game):
             return ('descend', {})
 
-        # Priority 3b: Class abilities (bolt a visible monster, heal when hurt)
-        ability = self.ability_action(game)
-        if ability:
-            return ability
-
-        # Priority 3c: Drink a potion / eat when low (after the heal ability)
+        # Priority 3b: Heal: the heal ability (free, on a cooldown), else a potion/food when low
+        heal = self.ability_action(game, kinds=('heal',))
+        if heal:
+            return heal
         drink = self.drink_action(game)
         if drink:
             return drink
+
+        # Priority 3c: Offensive abilities (bolt a visible monster)
+        ability = self.ability_action(game, kinds=('force_bolt',))
+        if ability:
+            return ability
 
         # Priority 4: Forced combat (monster adjacent)
         adjacent = self.perception.is_adjacent_to_monster(game)
@@ -281,9 +286,10 @@ class ActionPlanner:
             return False
         return player.get_stat('cooldowns', {}).get(name, 0) <= game.state.turn_count
 
-    def ability_action(self, game) -> Optional[Tuple[str, dict]]:
+    def ability_action(self, game, kinds=('heal', 'force_bolt')) -> Optional[Tuple[str, dict]]:
         """Use a ready active ability when it helps: heal when hurt, bolt a monster in sight.
 
+        kinds limits which are considered (the planner puts drinking between the two).
         Config comes from the game's ability config so the bot follows balance changes.
         """
         from core.config.config_loader import ConfigLoader
@@ -292,11 +298,11 @@ class ActionPlanner:
         player = game.state.player
         abilities = ConfigLoader.get_config()
 
-        if self.ability_ready(game, 'heal') and player.hp <= player.max_hp * HEAL_BELOW:
+        if 'heal' in kinds and self.ability_ready(game, 'heal') and player.hp <= player.max_hp * HEAL_BELOW:
             self.log(f"💚 Healing (HP: {player.hp}/{player.max_hp})")
             return ('ability', {'ability': 'heal'})
 
-        if self.ability_ready(game, 'force_bolt'):
+        if 'force_bolt' in kinds and self.ability_ready(game, 'force_bolt'):
             reach = abilities.get_ability_config('force_bolt')['range']
             game_map = game.state.dungeon_map
             for monster in self.perception.find_monsters(game):
@@ -332,11 +338,15 @@ class ActionPlanner:
         if any(i.x == player.x and i.y == player.y for i in items):
             self.log("🎒 Picking up items")
             return ('pickup', {})
-        if self.perception.is_adjacent_to_monster(game):
-            return None
         nearest = min(items, key=lambda i: max(abs(i.x - player.x), abs(i.y - player.y)))
         if max(abs(nearest.x - player.x), abs(nearest.y - player.y)) > ITEM_REACH:
             return None
+        # Only a safe detour: loot lies where monsters fought, and walking into them for
+        # a potion doubled mage deaths (VB-68 ablation, 7 -> 15 of 32)
+        for m in self.perception.find_monsters(game):
+            for x, y in ((player.x, player.y), (nearest.x, nearest.y)):
+                if max(abs(m.x - x), abs(m.y - y)) <= ITEM_SAFE_RADIUS:
+                    return None
         self.log(f"🎒 Going for {nearest.name} at ({nearest.x},{nearest.y})")
         return self.move_towards(game, nearest)
 
