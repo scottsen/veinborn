@@ -145,13 +145,15 @@ class LootGenerator:
         Args:
             monster_type: Type of monster (goblin, orc, troll)
             floor_number: Dungeon floor (for future scaling)
-            rng: Random number generator (uses default if None)
+            rng: The game's RNG (context.get_rng()); None falls back to the
+                process-wide seeded instance. Never a fresh unseeded GameRNG():
+                that made every loot drop differ between replays of one seed.
 
         Returns:
             List of item entities to drop
         """
         if rng is None:
-            rng = GameRNG()
+            rng = GameRNG.get_instance()
 
         # Get loot table for this monster
         loot_table = self.loot_tables.get(monster_type)

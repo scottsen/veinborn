@@ -27,7 +27,7 @@ def mock_loot_generator():
     """Mock loot generator that returns predictable items."""
     generator = Mock(spec=LootGenerator)
 
-    def generate_mock_loot(monster_type, floor_number=1):
+    def generate_mock_loot(monster_type, floor_number=1, rng=None):
         """Generate mock loot - returns a simple item."""
         item = Entity(
             entity_type=EntityType.ITEM,
@@ -147,7 +147,7 @@ def test_multiplayer_each_player_gets_own_roll(multiplayer_context, weak_goblin_
     # Create a loot generator that returns different items each time
     call_count = [0]
 
-    def generate_unique_loot(monster_type, floor_number=1):
+    def generate_unique_loot(monster_type, floor_number=1, rng=None):
         call_count[0] += 1
         item = Entity(
             entity_type=EntityType.ITEM,

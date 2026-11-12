@@ -358,7 +358,8 @@ class AttackAction(Action):
 
         for player in alive_players:
             # Generate loot for this specific player
-            items = self.loot_generator.generate_loot(monster_type, floor_number=floor_number)
+            items = self.loot_generator.generate_loot(monster_type, floor_number=floor_number,
+                                                      rng=context.get_rng())
 
             if not items:
                 continue
@@ -408,7 +409,8 @@ class AttackAction(Action):
         floor_number = context.get_floor()
 
         # Generate loot items
-        dropped_items = self.loot_generator.generate_loot(monster_type, floor_number=floor_number)
+        dropped_items = self.loot_generator.generate_loot(monster_type, floor_number=floor_number,
+                                                          rng=context.get_rng())
         if not dropped_items:
             logger.debug(f"No loot dropped from {target.name}", extra={'monster_type': monster_type})
             return
