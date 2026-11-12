@@ -1637,7 +1637,7 @@ priority: medium
 owner: scott
 tags: [balance, content, spawning]
 created: '2026-11-12T19:31:16Z'
-updated: '2026-11-12T21:21:40Z'
+updated: '2026-11-12T22:12:00Z'
 session: warming-squall-1112
 links:
   references:
@@ -1648,7 +1648,7 @@ links:
   - VB-64
   - VB-47
   - VB-68
-notes_next: 2
+notes_next: 3
 ```
 
 Found 2026-11-12 (VB-68) while measuring monster abilities: data/balance/monster_spawns.yaml spawn_weights only names goblin, bat, orc, skeleton, wolf, spider, troll, ogre, imp. The other 10 monsters (all defined in monsters.yaml, several with ADR-019 abilities built) appear in no spawn table and no other data/balance file except recipe flavour (recipes.yaml 'requires lich/phoenix/ancient_horror kill'). So of the 9 built VB-64 abilities only imp fire_bolt (floors 11+) can affect a real game. Design call for Scott: which floors each monster belongs to, boss placement (ancient_horror as final boss?), weights. Measure each placement with scripts/sim_duels.py at the player level expected on that floor, plus seeded bot runs (VB-68 step 2).
@@ -1656,6 +1656,7 @@ Found 2026-11-12 (VB-68) while measuring monster abilities: data/balance/monster
 <!-- notes: append-only log; each has a stable #id (see CLI §5) -->
 ### Notes
 - [#1 2026-11-12T21:21:40Z session:serene-cyclone-1112] Prep done (serene-cyclone-1112): spawn bands are keyed by floor range (floor_N/floors_A_B/floors_A_plus, core/config/floor_bands.py), validated at load (cover every floor once, ids defined), so placing monsters is YAML only (28f9d9e). Bots can start deep: --start-floor/--start-level (bd1e44e). Baseline at floors 16+ (seeds 2000-2015, 1500 turns, start floor 16 level 8, starting gear only, 64 games): 2 deaths (mage, both troll), 0 crashes/errors; damage mostly troll then ogre; bots descend 0-4 floors. Results /var/tmp/vb69_deep_bd1e44e/logs/deep16_*.json. sim_duels (abilities off, level 7 / 10 win%): mimic/wraith/golem 98-100 at L7; wyvern/vampire 52-100 at L7, ~100 at L10; basilisk/lich 16-96 at L7; phoenix/demon 0-29 at L7, 20-89 at L10; ancient_horror 0 at both. Note wandering monsters use the band for (floor+level)//2, so deep-floor wanderers come from shallower bands.
+- [#2 2026-11-12T22:12:00Z session:serene-cyclone-1112] Level/gear-by-floor curve, bots at a336011 (stall + inventory fixed), 24 games x 4 classes, 20000 turns, seeds 3000-3023 (bot_progression; /var/tmp/vb73_inv_a336011/logs/curve.json). Median on arrival: floor 5 L5 atk16/def7; floor 8 L6 26/18; floor 12 L7 36/33; floor 20 L9 38/33; floor 30 L10 39/33; floor 50 L11 40/33; floor 70 (turn ~18.5k) L11. Gear plateaus by floor 12, level ~11 from floor 50 (doubling XP curve). Reached floors: median 75, max 80, of 100. Deaths: 3 of 96, all rogues on floor 2 (orc); none past floor 3 in 1.8M bot turns. Use for placements: sim_duels --levels <curve level> --gear adamantite_greatsword@80,adamantite_plate@80 for floors 12+ (and see VB-75: at that gear every shipped monster is harmless, so placement alone cannot add danger).
 
 
 ## TASK-VB-70 · Loot tables: only goblin, orc, troll drop anything; 16 of 19 monsters (bat, skeleton, ogre, wolf, spider, imp, ...) have no loot table
@@ -1777,15 +1778,16 @@ priority: medium
 effort: '-'
 tags: [balance, crafting, design]
 created: '2026-11-12T21:53:20Z'
-updated: '2026-11-12T21:54:35Z'
+updated: '2026-11-12T22:12:00Z'
 session: serene-cyclone-1112
 links:
   relates_to:
   - VB-69
-notes_next: 3
+notes_next: 4
 ```
 
 <!-- notes: append-only log; each has a stable #id (see CLI §5) -->
 ### Notes
 - [#1 2026-11-12T21:53:33Z session:serene-cyclone-1112] Measured 2026-11-12 (serene-cyclone-1112) after VB-73 let bots wear loot and craft upgrades: warrior/mage seed 3001 reach total attack 36-38 / defense 33 by floor 12 and plateau there (adamantite chestplate/weapon). Strongest shipped monster: ancient_horror attack 18 / defense 8; demon 13/6. With defense 33 most monsters hit for the minimum. Crafted stats come from recipes.yaml formulas on ore properties (hardness, purity, ...), so this is tunable in YAML. Design call: scale crafted gear down, scale monsters by floor, or gate high-tier recipes. Measure a change with paired bot runs. Limitation: sim_duels --gear takes items.yaml ids only, and crafted gear is not in items.yaml, so duels at crafted-gear strength need a --gear option for recipes (craft from synthetic ore of a given purity).
 - [#2 2026-11-12T21:54:29Z session:serene-cyclone-1112] sim_duels --gear now crafts recipes (recipe@quality, 83f767f). Level 10, adamantite_greatsword@80 + adamantite_plate@80, start distance 4, 200 fights: warrior and mage beat demon and ancient_horror 100% with 0% HP lost (gearless at level 10: ancient_horror 0% win, demon 20-88%). So with top crafted gear the final boss is harmless.
+- [#3 2026-11-12T22:12:00Z session:serene-cyclone-1112] Long runs (a336011, 96 games x 20000 turns) confirm: gear plateaus at median attack 38-40 / defense 33 from floor 12; 0 deaths past floor 3 in 96 games reaching median floor 75. The only real danger is floors 1-3 (3 rogue deaths to orcs on floor 2). Before VB-73 (pack locked, ebb2eb3 run) warriors had defense 3 for the whole game and 5/24 died deep, so the bot's gear loop, not monsters, was the difficulty.
