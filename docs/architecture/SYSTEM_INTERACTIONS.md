@@ -418,26 +418,21 @@ LootSystem
 
 2. FloorManager.generate_new_floor(7)
 
-3. EntitySpawner.spawn_monsters()
-   ├─> Calculate count: 2 + (7 // 3) = 2 + 2 = 4 monsters
-   ├─> Load monster_spawns.yaml for floor 7
-   │   floor_7_9:
-   │     orc: 30%
-   │     ogre: 30%
-   │     troll: 25%
-   │     skeleton: 15%
-   └─> Roll RNG for each monster:
-       Spawn: orc, troll, ogre, orc
+3. EntitySpawner.spawn_monsters_for_floor(7)
+   ├─> Count from the monster_counts band floors_7_20: 5 + (7 // 3) = 7 monsters
+   ├─> Weights from the spawn_weights band covering floor 7 (floors_6_10):
+   │     goblin 15, bat 10, skeleton 20, orc 20, wolf 15, spider 10, troll 5, ogre 5
+   └─> Weighted choice on the game's seeded RNG for each monster
 
 4. Each monster loaded from monsters.yaml
    └─> Orc: HP=12, Attack=5, Defense=2
-       Troll: HP=30, Attack=12, Defense=5
-       Ogre: HP=25, Attack=10, Defense=4
+       Troll: HP=20, Attack=7, Defense=3
+       Ogre: HP=18, Attack=8, Defense=3
 
 5. Monsters placed on map
 
-6. Player encounters troll (12 attack vs player's 5+12=17)
-   └─> Challenging but winnable with crafted gear
+6. Player encounters a troll
+   └─> Challenging at low level; scripts/sim_duels.py gives the odds per class and level
 ```
 
 ### Example 3: RNG Seed → Reproducible Gameplay

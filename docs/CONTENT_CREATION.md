@@ -108,72 +108,60 @@ Floor 10+ (Expert):  HP: 80-200, Attack: 20-40, Defense: 10-20
 
 ### Step 3: Add to Spawn Table
 
-Open `data/balance/monster_spawns.yaml`:
+Open `data/balance/monster_spawns.yaml` and add the monster to the `spawn_weights` band(s)
+for the floors it belongs on. Each key names its floors (`floor_1`, `floors_6_10`,
+`floors_16_plus`); weights are relative and need not sum to 100.
 
 ```yaml
-floors:
-  # Find or create appropriate floor range
-  floor_7_9:
-    floor_range: [7, 9]
-    description: "Mid-game challenge"
-
-    monster_weights:
-      orc: 20        # Reduce existing spawns to make room
-      ogre: 20
-      troll: 15
-      skeleton: 5
-      wyvern: 30     # NEW: Wyvern is common on these floors
-      imp: 10
-
-    total_weight: 100  # Must sum to 100
+spawn_weights:
+  floors_16_plus:
+    orc: 10
+    spider: 10
+    troll: 30
+    ogre: 25
+    imp: 25
+    wyvern: 20     # NEW
 ```
+
+To give it floors of its own, split a band (`floors_16_plus` into `floors_16_30` and
+`floors_31_plus`); the game checks at load that the bands still cover every floor once.
+See [DATA_FILES_GUIDE.md](DATA_FILES_GUIDE.md#-monster_spawnsyaml).
 
 ### Step 4: Create Loot Table
 
-Open `data/balance/loot_tables.yaml`:
+Either point the monster at a shared table in `monsters.yaml` (`loot_table: beast`) or add
+one keyed by its id to `data/balance/loot_tables.yaml`. Item ids must exist in
+`data/entities/items.yaml` (checked at load):
 
 ```yaml
 wyvern:
   description: "Elite enemy - generous loot"
 
-  # Gold (90% drop chance)
   gold:
     drop_chance: 0.90
     items:
       - id: gold_pile_large
-        weight: 60
-        amount_range: [50, 100]
-      - id: gold_pile_huge
-        weight: 40
-        amount_range: [100, 200]
+        weight: 100
+        amount_range: [50, 150]
 
-  # Weapons (40% drop chance)
   weapons:
     drop_chance: 0.40
     items:
-      - id: mithril_sword
-        weight: 40
+      - id: long_sword
+        weight: 50
       - id: battle_axe
-        weight: 30
-      - id: enchanted_bow
-        weight: 30
-
-  # Armor (30% drop chance)
-  armor:
-    drop_chance: 0.30
-    items:
-      - id: mithril_armor
-        weight: 50
-      - id: dragon_shield
         weight: 50
 
-  # Special (10% chance for rare drop)
-  special:
-    drop_chance: 0.10
+  potions:
+    drop_chance: 0.50
     items:
-      - id: legendary_recipe_fragment
-        weight: 100
+      - id: potion_extra_healing
+        weight: 70
+      - id: potion_full_healing
+        weight: 30
 ```
+
+A monster that should drop nothing gets a table with only a `description`.
 
 ### Step 5: Test
 
@@ -533,7 +521,7 @@ player:
 ### Template
 
 ```yaml
-monster_id:  # Must match monster in monsters.yaml
+monster_id:  # a monster id, or a shared table named by monsters.yaml `loot_table:`
   description: "Drop table description"
 
   # Each category rolls independently
@@ -550,7 +538,7 @@ monster_id:  # Must match monster in monsters.yaml
   weapons:
     drop_chance: 0.25
     items:
-      - id: iron_sword
+      - id: short_sword   # item ids must exist in data/entities/items.yaml
         weight: 50
       - id: battle_axe
         weight: 50
@@ -560,9 +548,13 @@ monster_id:  # Must match monster in monsters.yaml
     items:
       - id: leather_armor
         weight: 70
-      - id: chain_mail
+      - id: chainmail
         weight: 30
 ```
+
+Several monsters can share a table: set `loot_table: <table>` on each in `monsters.yaml`.
+A table with only a `description` drops nothing on purpose. Unknown table names and item
+ids fail at load; see [DATA_FILES_GUIDE.md](DATA_FILES_GUIDE.md#-loot_tablesyaml).
 
 ### Loot Balance Guidelines
 
@@ -685,10 +677,10 @@ python3 -c "import yaml; yaml.safe_load(open('data/entities/monsters.yaml'))"
 
 ### Monster Not Spawning
 
-1. Check `monster_spawns.yaml` - Is monster in spawn table for that floor?
-2. Check weights sum to 100
-3. Check floor_range includes your current floor
-4. Playtest multiple floors to verify spawn rate
+1. Check `monster_spawns.yaml` - Is monster in the `spawn_weights` band for that floor?
+2. Check the band key covers your floor (`floors_11_15` is 11 to 15)
+3. Weights are relative: a weight of 5 among bands totalling 100 is rare
+4. Bots reach about floor 10; for deeper floors run them with `--start-floor` (`tests/fuzz/README.md`)
 
 ### Recipe Not Crafting
 

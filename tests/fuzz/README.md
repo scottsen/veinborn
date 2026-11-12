@@ -146,6 +146,8 @@ Options:
   --seed-base N     Game i plays seed N+i (dungeon, dice and the bot's own choices)
   --jobs N          Play N games at once in worker processes (results keep game order)
   --output PATH     Per-game results JSON (default: logs/bot_results_<class>_<time>.json)
+  --start-floor N   Begin each game on floor N (deep placements; see below)
+  --start-level L   Begin each game at player level L
   -v, --verbose     Show detailed output (turn-by-turn)
   -h, --help        Show help message
 ```
@@ -169,11 +171,33 @@ python3 scripts/compare_bot_runs.py --before logs/before_*.json --after logs/aft
 
 The comparison prints, per class and overall, mean before/after and the mean paired
 difference with a 95% interval for floor, turns, level, kills, damage taken, deaths,
-crashes and errors (`*` = the interval excludes 0), plus how many games came out identical.
+crashes and errors (`*` = the interval excludes 0), the same for damage taken from each
+monster type (so a change to one monster shows up where it acts), which monster types
+killed the bot, and how many games came out identical.
 Bot high scores go to `logs/bot_highscores.json` (gitignored), never the shipped
 `data/highscores.json`. Each results file records the commit it ran and whether `src/`, `data/` or `tests/fuzz/`
 had uncommitted changes. To compare two commits without touching your tree, play the
 "before" side from a copy: `git archive <commit> | tar -x -C /tmp/vb_before`.
+
+### Deep starts (floors bots never reach)
+
+In 3000 turns the bots reach about floor 10 at level 7; the game is won on floor 100. A
+monster placed on floor 16+ never shows up in an ordinary run. `--start-floor 16
+--start-level 8` begins each game there (`fuzz/scenario.py advance_to`): XP through the
+real `gain_xp` (level-up HP rolls included) and every floor through `Game.descend_floor`,
+on the game's seeded RNG, so a seed still fixes the whole game.
+
+The player arrives with starting gear only (no crafted gear, no loot from skipped floors),
+so absolute numbers are pessimistic. Use deep starts for paired before/after runs on the
+same seeds and start point, where that bias cancels; `compare_bot_runs.py` warns if the
+two sides started differently.
+
+```bash
+for c in warrior rogue mage healer; do
+  python3 tests/fuzz/${c}_bot.py --games 16 --max-turns 1500 --seed-base 2000 --jobs 3 \
+      --start-floor 16 --start-level 8 --output logs/deep16_${c}.json
+done
+```
 
 ---
 

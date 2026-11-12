@@ -441,17 +441,11 @@ if random.random() < 0.05:  # 5% chance
 
 ### Monster Scaling
 
-**Monster Count by Floor:**
+**Monster Count by Floor** (`monster_spawns.yaml monster_counts`, floor bands):
 ```python
-base_monsters = 2
-scaling = floor // 3
-monster_count = base_monsters + scaling
-
-Floor 1: 2 + (1 // 3) = 2 monsters
-Floor 3: 2 + (3 // 3) = 3 monsters
-Floor 6: 2 + (6 // 3) = 4 monsters
-Floor 9: 2 + (9 // 3) = 5 monsters
-Floor 12: 2 + (12 // 3) = 6 monsters
+floors 1-6:   3 + floor // 2           # floor 1: 3, floor 6: 6
+floors 7-20:  5 + floor // 3           # floor 7: 7, floor 20: 11
+floors 21+:   min(12, 8 + floor // 10)
 ```
 
 **Ongoing spawns (VB-52):** after the floor is made, every turn has a 2%
@@ -462,32 +456,11 @@ the floor. Its type is drawn from the spawn weights of tier
 costs you and a high-level player draws tougher wanderers. Code:
 `TurnProcessor._maybe_spawn_wanderer`, `EntitySpawner.spawn_wandering_monster`.
 
-**Monster Type Selection:**
-```yaml
-# From monster_spawns.yaml
-floor_1_3:
-  goblin: 60%
-  rat: 30%
-  bat: 10%
-
-floor_4_6:
-  goblin: 30%
-  orc: 40%
-  skeleton: 20%
-  spider: 10%
-```
-
-**Selection Process:**
-```python
-roll = random.randint(1, 100)
-
-if roll <= 60:    # 1-60
-    spawn("goblin")
-elif roll <= 90:  # 61-90
-    spawn("rat")
-else:             # 91-100
-    spawn("bat")
-```
+**Monster Type Selection:** each floor's monsters are drawn from the `spawn_weights` band
+covering that floor (`floor_1`, `floor_2`, `floors_3_5`, `floors_6_10`, `floors_11_15`,
+`floors_16_plus`; keys name their floors, `src/core/config/floor_bands.py`). Weights are
+relative, e.g. floor 1 is goblin 80 / bat 20. Selection is a weighted choice on the game's
+seeded RNG (`EntitySpawner._weighted_random_choice`).
 
 ### Difficulty Curve
 

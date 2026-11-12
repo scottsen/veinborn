@@ -227,7 +227,11 @@ minion. `--set monster.ability.key=value` tries a number without editing YAML (V
 **Spawn gap:** of the monsters above with built abilities, only the imp is in
 `data/balance/monster_spawns.yaml` (floors 11+). Wyvern, vampire, lich, demon, phoenix and
 ancient_horror (and wraith, mimic, golem, basilisk) are in no spawn table, so enabling their
-abilities changes nothing in a real game until they are placed (VB-69).
+abilities changes nothing in a real game until they are placed (VB-69). Placing one is a YAML edit
+(spawn bands are keyed by their floors, `floors_16_30`; see
+[../DATA_FILES_GUIDE.md](../DATA_FILES_GUIDE.md#-monster_spawnsyaml)), and bots can start
+on the floor in question (`--start-floor/--start-level`,
+[../../tests/fuzz/README.md](../../tests/fuzz/README.md)) to measure it.
 
 Goblin, orc, bat, skeleton, ogre, wolf and golem declare none. Wolf "pack tactics" appears only in
 flavour text; it would be a tactic, and is not planned.

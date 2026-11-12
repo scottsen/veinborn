@@ -447,107 +447,113 @@ player:
 ## 📄 loot_tables.yaml
 
 **Path:** `data/balance/loot_tables.yaml`
-**Purpose:** Define what monsters drop when killed
+**Purpose:** Define what monsters drop when killed (`src/core/loot.py`)
 
 ### Schema
 
 ```yaml
-monster_id:  # Must match monster ID in monsters.yaml
+table_id:  # a monster id, or a shared name like "beast"
   description: "Drop table description"
 
   # Each category is rolled independently
   gold:
     drop_chance: 0.70  # 70% chance
     items:
-      - id: gold_pile_small
-        weight: 80  # 80% of gold drops
+      - id: gold_pile_small   # must be an item id in data/entities/items.yaml
+        weight: 80            # 80% of gold drops
         amount_range: [5, 15]
       - id: gold_pile_medium
         weight: 20
         amount_range: [15, 30]
 
-  weapons:
-    drop_chance: 0.20  # 20% chance
+  food:
+    drop_chance: 0.40
     items:
-      - id: dagger
-        weight: 60  # 60% of weapon drops
-      - id: short_sword
-        weight: 40
-```
-
-### Example: Adding Loot Table
-
-```yaml
-wyvern:
-  description: "Elite enemy - great loot!"
-
-  gold:
-    drop_chance: 0.90  # Almost always drops gold
-    items:
-      - id: gold_pile_large
-        weight: 50
-        amount_range: [50, 100]
-      - id: gold_pile_huge
-        weight: 50
-        amount_range: [100, 200]
-
-  weapons:
-    drop_chance: 0.40  # Good weapon drop rate
-    items:
-      - id: mithril_sword
-        weight: 30
-      - id: battle_axe
-        weight: 40
-      - id: enchanted_bow
-        weight: 30
-
-  special:
-    drop_chance: 0.10  # 10% chance for rare item
-    items:
-      - id: legendary_recipe
+      - id: meat
         weight: 100
 ```
+
+### Which table a monster uses
+
+A monster's `loot_table` in `monsters.yaml` names its table; `null` (the default) means
+the table keyed by the monster's own id. Several monsters can share one table:
+
+```yaml
+# monsters.yaml
+wolf:
+  loot_table: beast
+spider:
+  loot_table: beast
+
+# loot_tables.yaml
+beast:
+  description: "Animals: meat, no gear"
+  food:
+    drop_chance: 0.5
+    items:
+      - id: meat
+        weight: 100
+```
+
+- A table with only a `description` drops nothing on purpose, and logs nothing.
+- A monster with no table at all logs `No loot table found for monster type: X` on every
+  kill: that warning means a content gap.
+- Checked at load (`ContentValidationError`): a `loot_table` naming an undefined table, and
+  any table item that is not in `items.yaml`.
 
 ---
 
 ## 📄 monster_spawns.yaml
 
 **Path:** `data/balance/monster_spawns.yaml`
-**Purpose:** Control which monsters spawn on which floors
+**Purpose:** How many monsters spawn per floor, and which ones
 
 ### Schema
 
-```yaml
-floors:
-  floor_1_3:  # Floor range ID
-    floor_range: [1, 3]
-    description: "Early game"
+Both sections are **floor bands**: each key names its floor range
+(`src/core/config/floor_bands.py`).
 
-    monster_weights:
-      goblin: 60   # 60% spawn chance
-      rat: 30      # 30% spawn chance
-      bat: 10      # 10% spawn chance
-
-    total_weight: 100  # Must sum to 100
-```
-
-### Example
+| Key | Floors |
+|---|---|
+| `floor_1` | 1 only |
+| `floors_3_5` | 3 to 5 |
+| `floors_16_plus` | 16 and deeper |
 
 ```yaml
-floors:
-  floor_7_9:
-    floor_range: [7, 9]
-    description: "Mid-game challenge"
+monster_counts:          # base + floor // divisor, capped by optional max
+  floors_1_6:  {base: 3, divisor: 2}
+  floors_7_20: {base: 5, divisor: 3}
+  floors_21_plus: {base: 8, divisor: 10, max: 12}
 
-    monster_weights:
-      orc: 25
-      ogre: 25
-      wyvern: 30  # New monster!
-      troll: 15
-      skeleton: 5
-
-    total_weight: 100
+spawn_weights:           # relative weights, need not sum to 100
+  floor_1:
+    goblin: 80
+    bat: 20
+    description: "Tutorial floor"   # non-numeric entries are ignored
+  floors_11_15:
+    skeleton: 20
+    troll: 15
+    imp: 10
+  floors_16_plus:
+    troll: 30
+    ogre: 25
 ```
+
+Add or split a band by adding a key; no code change. At load the game checks that each
+section's bands start at floor 1, leave no gaps, do not overlap and end with a `_plus` band
+(the game is won on floor 100, `game_constants.yaml progression.victory_floor`), and that
+every monster named is defined in `monsters.yaml`. `ore_veins.yaml spawn_weights` uses the
+same bands.
+
+Wandering monsters (`spawning.yaml ongoing_spawns`) use the band for
+`(floor + player level) // 2`, NetHack's difficulty formula, so on deep floors they come
+from shallower bands than the floor's own monsters.
+
+### Measuring a placement
+
+Bots reach about floor 10 in 3000 turns. To see a deep band at all, start the bots there
+(`--start-floor 16 --start-level 8`, `tests/fuzz/README.md`) and compare before/after with
+`scripts/compare_bot_runs.py`; `scripts/sim_duels.py` gives the one-on-one numbers.
 
 ---
 
@@ -630,21 +636,23 @@ loot_table: "wyvern"
 # ✅ CORRECT - Add wyvern entry to loot_tables.yaml
 ```
 
-### 4. Invalid Weights
+### 4. Floor bands with gaps
 
 ```yaml
-# ❌ WRONG - Weights don't sum to 100
-monster_weights:
-  goblin: 60
-  orc: 30
-# Total: 90 (missing 10)
+# ❌ WRONG - floor 6 is in no band (fails at load)
+spawn_weights:
+  floors_3_5: {goblin: 30}
+  floors_7_10: {orc: 20}
 
-# ✅ CORRECT
-monster_weights:
-  goblin: 60
-  orc: 30
-  bat: 10
+# ✅ CORRECT - bands meet, and the last one is open-ended
+spawn_weights:
+  floors_3_5: {goblin: 30}
+  floors_6_10: {orc: 20}
+  floors_11_plus: {troll: 15}
 ```
+
+Weights are relative (they need not sum to 100); entries that are not numbers, like
+`description`, are ignored.
 
 ---
 
