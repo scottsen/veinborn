@@ -13,6 +13,13 @@
 #   - Percentage (0.0 to 1.0)
 #   - Each roll is independent
 #   - 0.7 = 70% chance to drop this category
+#
+# Which table a monster uses: its `loot_table` in data/entities/monsters.yaml,
+# else the table named after the monster. So a table here can be shared (name it
+# from several monsters) or per-monster (key it by the monster id).
+# A table with only a `description` drops nothing on purpose (no warning); a
+# monster with no table at all logs "No loot table found" (a content gap).
+# Every item id must be defined in data/entities/items.yaml (checked at load).
 
 schema_version: 1.0
 

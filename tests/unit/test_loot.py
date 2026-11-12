@@ -397,3 +397,74 @@ class TestLootEdgeCases:
         # Will have no items/tables since tmp_path is empty
         assert len(generator.items) == 0
         assert len(generator.loot_tables) == 0
+
+
+def _write_data(root, monsters, tables, items=None):
+    """A minimal data dir: entities/monsters.yaml, entities/items.yaml, balance/loot_tables.yaml."""
+    import yaml
+    (root / "entities").mkdir(parents=True, exist_ok=True)
+    (root / "balance").mkdir(parents=True, exist_ok=True)
+    (root / "entities" / "monsters.yaml").write_text(yaml.safe_dump({'monsters': monsters}))
+    (root / "entities" / "items.yaml").write_text(yaml.safe_dump(items or {
+        'food': {'meat': {'name': 'Meat', 'value': 10, 'effect': 'eat'}}}))
+    (root / "balance" / "loot_tables.yaml").write_text(yaml.safe_dump({'schema_version': 1.0, **tables}))
+
+
+class TestSharedLootTables:
+    """A monster's `loot_table` in monsters.yaml names the table it drops from."""
+
+    MEAT = {'food': {'drop_chance': 1.0, 'items': [{'id': 'meat', 'weight': 1}]}}
+
+    @pytest.mark.unit
+    def test_named_table_is_shared(self, tmp_path):
+        _write_data(tmp_path, {'wolf': {'loot_table': 'beast'}, 'bat': {'loot_table': 'beast'}},
+                    {'beast': self.MEAT})
+        gen = LootGenerator(data_dir=tmp_path)
+        for monster in ('wolf', 'bat'):
+            drops = gen.generate_loot(monster, rng=GameRNG(seed=1))
+            assert [d.content_id for d in drops] == ['meat']
+
+    @pytest.mark.unit
+    def test_null_loot_table_uses_own_id(self, tmp_path):
+        _write_data(tmp_path, {'goblin': {'loot_table': None}}, {'goblin': self.MEAT})
+        gen = LootGenerator(data_dir=tmp_path)
+        assert gen.table_id_for('goblin') == 'goblin'
+        assert len(gen.generate_loot('goblin', rng=GameRNG(seed=1))) == 1
+
+    @pytest.mark.unit
+    def test_description_only_table_drops_nothing_silently(self, tmp_path, caplog):
+        _write_data(tmp_path, {'golem': {'loot_table': 'nothing'}},
+                    {'nothing': {'description': 'constructs carry nothing'}})
+        gen = LootGenerator(data_dir=tmp_path)
+        with caplog.at_level('WARNING'):
+            assert gen.generate_loot('golem', rng=GameRNG(seed=1)) == []
+        assert 'No loot table' not in caplog.text
+
+    @pytest.mark.unit
+    def test_missing_table_still_warns(self, tmp_path, caplog):
+        _write_data(tmp_path, {'imp': {}}, {})
+        gen = LootGenerator(data_dir=tmp_path)
+        with caplog.at_level('WARNING'):
+            assert gen.generate_loot('imp', rng=GameRNG(seed=1)) == []
+        assert 'No loot table found for monster type: imp' in caplog.text
+
+    @pytest.mark.unit
+    def test_undefined_table_name_rejected_at_load(self, tmp_path):
+        from core.exceptions import ContentValidationError
+        _write_data(tmp_path, {'wolf': {'loot_table': 'beasts'}}, {'beast': self.MEAT})
+        with pytest.raises(ContentValidationError, match="undefined table 'beasts'"):
+            LootGenerator(data_dir=tmp_path)
+
+    @pytest.mark.unit
+    def test_undefined_item_rejected_at_load(self, tmp_path):
+        from core.exceptions import ContentValidationError
+        _write_data(tmp_path, {'wolf': {}},
+                    {'wolf': {'food': {'drop_chance': 1.0, 'items': [{'id': 'steak', 'weight': 1}]}}})
+        with pytest.raises(ContentValidationError, match="undefined item 'steak'"):
+            LootGenerator(data_dir=tmp_path)
+
+    @pytest.mark.unit
+    def test_shipped_data_loads(self):
+        gen = LootGenerator()
+        assert set(gen.table_for_monster) >= {'goblin', 'orc', 'troll', 'ancient_horror'}
+        assert gen.table_id_for('orc') == 'orc'

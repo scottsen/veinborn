@@ -8,6 +8,10 @@
 # - Easy modding (add new monsters by editing YAML)
 # - Designer-friendly (no code changes needed)
 # - Support future features (loot tables, abilities, resistances)
+#
+# loot_table: id of a table in data/balance/loot_tables.yaml. null (or absent)
+# means the table named after the monster itself; naming a shared table lets
+# several monsters drop alike. Checked at load (core/loot.py).
 
 # Schema version (for future migrations)
 schema_version: 1.0
@@ -41,7 +45,7 @@ monsters:
       - "tutorial"
       - "common"
 
-    # Loot (future feature)
+    # Loot: a table id in data/balance/loot_tables.yaml (null = the table named after this monster)
     loot_table: null
 
     # Design notes
@@ -77,7 +81,7 @@ monsters:
       - "warrior"
       - "common"
 
-    # Loot (future feature)
+    # Loot: a table id in data/balance/loot_tables.yaml (null = the table named after this monster)
     loot_table: null
 
     # Design notes
@@ -122,7 +126,7 @@ monsters:
       - "boss-tier"
       - "requires-power-progression"
 
-    # Loot (future feature)
+    # Loot: a table id in data/balance/loot_tables.yaml (null = the table named after this monster)
     loot_table: null
 
     # Design notes

@@ -20,6 +20,7 @@ from pathlib import Path
 from typing import List, Dict, Any, Optional
 
 from .base.entity import Entity, EntityType
+from .exceptions import ContentValidationError
 from .rng import GameRNG
 
 logger = logging.getLogger(__name__)
@@ -60,6 +61,8 @@ class LootGenerator:
         # Now: Singleton pattern - load once, reuse forever
         self.items = self._load_items()
         self.loot_tables = self._load_loot_tables()
+        self.table_for_monster = self._load_monster_table_ids()
+        self._validate()
 
         logger.info(
             f"LootGenerator initialized",
@@ -129,6 +132,44 @@ class LootGenerator:
         logger.info(f"Loaded {len(tables)} loot tables")
         return tables
 
+    def _load_monster_table_ids(self) -> Dict[str, str]:
+        """monster id -> loot table id, from each monster's `loot_table` in monsters.yaml.
+
+        A monster with no `loot_table` (or null) uses the table named after itself,
+        so several monsters can share one table (beasts, undead) by naming it.
+        """
+        monsters_file = self.data_dir / "entities" / "monsters.yaml"
+        if not monsters_file.exists():
+            return {}
+        with open(monsters_file, 'r') as f:
+            monsters = (yaml.safe_load(f) or {}).get('monsters', {})
+        return {mid: (m or {}).get('loot_table') or mid for mid, m in monsters.items()}
+
+    def _validate(self) -> None:
+        """Every named table exists and every table item is a defined item."""
+        for monster_id, table_id in self.table_for_monster.items():
+            if table_id != monster_id and table_id not in self.loot_tables:
+                raise ContentValidationError(
+                    f"monsters.yaml {monster_id}.loot_table names undefined table '{table_id}'",
+                    monster_id=monster_id, loot_table=table_id,
+                )
+        if not self.items:
+            return  # partial data dir (tests): nothing to check items against
+        for table_id, table in self.loot_tables.items():
+            for category, data in (table or {}).items():
+                if not isinstance(data, dict):
+                    continue
+                for entry in data.get('items', []):
+                    if entry.get('id') not in self.items:
+                        raise ContentValidationError(
+                            f"loot_tables.yaml {table_id}.{category} names undefined item '{entry.get('id')}'",
+                            loot_table=table_id, item_id=entry.get('id'),
+                        )
+
+    def table_id_for(self, monster_type: str) -> str:
+        """Loot table a monster drops from (its `loot_table`, else its own id)."""
+        return self.table_for_monster.get(monster_type) or monster_type
+
     def _count_items(self) -> int:
         """Count total items across all categories."""
         return len(self.items)
@@ -143,7 +184,7 @@ class LootGenerator:
         Generate loot drops for a killed monster.
 
         Args:
-            monster_type: Type of monster (goblin, orc, troll)
+            monster_type: Monster content id; its loot table comes from table_id_for
             floor_number: Dungeon floor (for future scaling)
             rng: The game's RNG (context.get_rng()); None falls back to the
                 process-wide seeded instance. Never a fresh unseeded GameRNG():
@@ -155,9 +196,10 @@ class LootGenerator:
         if rng is None:
             rng = GameRNG.get_instance()
 
-        # Get loot table for this monster
-        loot_table = self.loot_tables.get(monster_type)
-        if not loot_table:
+        # Get loot table for this monster. A table with only a description is an
+        # intentional "drops nothing" and stays silent; a missing one is a gap.
+        loot_table = self.loot_tables.get(self.table_id_for(monster_type))
+        if loot_table is None:
             logger.warning(
                 f"No loot table found for monster type: {monster_type}",
                 extra={'monster_type': monster_type}
@@ -335,5 +377,5 @@ class LootGenerator:
         return self.items.get(item_id)
 
     def get_loot_table(self, monster_type: str) -> Optional[Dict[str, Any]]:
-        """Get loot table for monster type (for debugging/testing)."""
-        return self.loot_tables.get(monster_type)
+        """Get the loot table a monster drops from (for debugging/testing)."""
+        return self.loot_tables.get(self.table_id_for(monster_type))
