@@ -1729,19 +1729,23 @@ notes_next: 3
 ## TASK-VB-73 · No way to drop items: the 20-slot pack fills with unusable things (gold piles, shields, scrolls, rings, worse weapons) and then mined ore is lost and crafting stops for the rest of the game
 
 ```yaml
-status: backlog
+status: done
 priority: high
 effort: 3h
 tags: [bug, items, inventory, core, bots]
 created: '2026-11-12T21:47:23Z'
-updated: '2026-11-12T21:53:33Z'
+updated: '2026-11-12T21:55:52Z'
 session: serene-cyclone-1112
-notes_next: 2
+links:
+  commits:
+  - a3360116e3225e62f10a52067e54d4e2469b92d7
+notes_next: 3
 ```
 
 <!-- notes: append-only log; each has a stable #id (see CLI §5) -->
 ### Notes
 - [#1 2026-11-12T21:53:33Z session:serene-cyclone-1112] Fixed d06ac7d (core: DropAction 'drop', least_useful_item, TUI d, autopickup skips own drops, RecipeManager.preview_stats) and a336011 (bots: wear looted gear via gear_slot, drop junk/worse gear then healing beyond 6 when full, craft only real upgrades). Cause: no drop action existed; pack filled by floor 4 (gold, unworn loot, scrolls, food) and mining/crafting stopped. Bot side made it worse: looted gear never worn (equipment_slot-only check), crafted non-upgrades endlessly once room existed. Warrior seed 3001 floor 12: atk 18/def 16 before, 36/33 after. Paired A/B and long runs running (a336011).
+- [#2 2026-11-12T21:55:52Z session:serene-cyclone-1112] Paired A/B a336011 vs 69c59c0 (seeds 1000-1031, 3000 turns, 128 pairs): damage taken 134.3 -> 35.6 (-98.7 [-110.5, -86.9]*), deaths 9 -> 1 (mage 9 -> 1 of 32, -0.25*), potions used 1.39 -> 0.20*, floor 11.70 -> 11.19 (-0.52 [-0.95, -0.08]*: turns now go to forge trips and crafting), 0 crashes/errors. New A/B baseline: /var/tmp/vb73_inv_a336011/logs/inv_*.json.
 
 
 ## TASK-VB-74 · Gold has no use: gold piles drop from every loot table and fill inventory slots, but nothing reads gold_amount (no purse, not in score, nothing to buy)
