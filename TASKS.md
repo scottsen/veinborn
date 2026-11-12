@@ -1773,7 +1773,7 @@ priority: medium
 effort: '-'
 tags: [balance, crafting, design]
 created: '2026-11-12T21:53:20Z'
-updated: '2026-11-12T21:53:33Z'
+updated: '2026-11-12T21:53:40Z'
 session: serene-cyclone-1112
 links:
   relates_to:
@@ -1783,4 +1783,4 @@ notes_next: 2
 
 <!-- notes: append-only log; each has a stable #id (see CLI §5) -->
 ### Notes
-- [#1 2026-11-12T21:53:33Z session:serene-cyclone-1112] Measured 2026-11-12 (serene-cyclone-1112) after VB-73 let bots wear loot and craft upgrades: warrior/mage seed 3001 reach total attack 36-38 / defense 33 by floor 12 and plateau there (adamantite chestplate/weapon). Strongest shipped monster: ancient_horror attack 18 / defense 8; demon 13/6. With defense 33 most monsters hit for the minimum. Crafted stats come from recipes.yaml formulas on ore properties (hardness/purity ...), so this is tunable in YAML. Design call: scale crafted gear down, scale monsters by floor, or gate high-tier recipes. Measure any change with paired bot runs and sim_duels --gear (e.g. --gear adamantite gear ids aren't in items.yaml; use a crafted-item hook or add a sim option if needed).
+- [#1 2026-11-12T21:53:33Z session:serene-cyclone-1112] Measured 2026-11-12 (serene-cyclone-1112) after VB-73 let bots wear loot and craft upgrades: warrior/mage seed 3001 reach total attack 36-38 / defense 33 by floor 12 and plateau there (adamantite chestplate/weapon). Strongest shipped monster: ancient_horror attack 18 / defense 8; demon 13/6. With defense 33 most monsters hit for the minimum. Crafted stats come from recipes.yaml formulas on ore properties (hardness, purity, ...), so this is tunable in YAML. Design call: scale crafted gear down, scale monsters by floor, or gate high-tier recipes. Measure a change with paired bot runs. Limitation: sim_duels --gear takes items.yaml ids only, and crafted gear is not in items.yaml, so duels at crafted-gear strength need a --gear option for recipes (craft from synthetic ore of a given purity).
