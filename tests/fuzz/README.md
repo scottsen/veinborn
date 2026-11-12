@@ -80,7 +80,9 @@ Catches and logs:
 ### 4. Statistical Analysis
 Per game (results JSON): seed, floor, turns, level, kills, damage taken (total and by
 monster type), the monster type that killed it, whether the death was a burst (above
-half HP two turns before), potions used, errors.
+half HP two turns before), potions used, errors. Also the turn and level on arrival at each floor
+(`floor_arrivals`); `python3 scripts/bot_progression.py logs/*.json` turns those into the
+level-by-floor curve (median and 25th-75th percentile level per floor, per class).
 
 Tracks:
 - Games played / completed

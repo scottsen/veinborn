@@ -109,6 +109,8 @@ class GameResult:
     # Deep start (--start-floor/--start-level, fuzz/scenario.py); floor_reached counts from here
     start_floor: int = 1
     start_level: int = 1
+    # floor -> [turn, level] when the bot first stood on it (JSON keys are strings)
+    floor_arrivals: Dict[int, List[int]] = None
 
 
 BURST_TURNS = 2
@@ -450,6 +452,8 @@ class VeinbornBot:
                 'monsters_killed': 0,
                 'completed': False,
                 'death_reason': None,
+                # floor -> [turn, level] on arrival: the real level-by-floor curve (VB-69)
+                'floor_arrivals': {game.state.current_floor: [0, game.state.player.get_stat('level', 1)]},
             }
 
             # Stuck detection
@@ -666,6 +670,7 @@ class VeinbornBot:
                 if current_floor > game_stats.get('floor', 1):
                     self.log(f"⬇️  Descended to floor {current_floor}!")
                     game_stats['floor'] = current_floor
+                    game_stats['floor_arrivals'][current_floor] = [turn, current_level]
 
                 if turn % 10 == 0:
                     monster_count = len(self.perception.find_monsters(game))
@@ -816,6 +821,7 @@ class VeinbornBot:
                 potions_used=game_stats.get('potions_used', 0),
                 start_floor=self.start_floor,
                 start_level=self.start_level,
+                floor_arrivals=game_stats.get('floor_arrivals') or {},
             )
             self.stats.game_results.append(game_result)
             if output:
