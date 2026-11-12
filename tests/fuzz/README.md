@@ -47,9 +47,17 @@ monster in range 6 and line of sight whenever force bolt is ready, a healer heal
 60% HP. Measured on 8 games x 3000 turns: mage avg floor 4.9 -> 6.2, level 3.8 -> 5.8, deaths
 6 -> 2; healer unchanged (floor 9.4, 1 death).
 
-Note: the `get_smart_action` methods in `warrior_bot.py`, `rogue_bot.py`,
-`mage_bot.py` and `healer_bot.py` are not called by the bot loop (VB-57); all four
-class bots run the shared planner and differ only in their `CombatConfig`.
+It drinks a potion or eats at or below 40% HP (`ActionPlanner.drink_action`, using core's
+`best_healing_item`, after the heal ability) and picks up usable potions and food within 6
+tiles (`collect_action`; autopickup skips potions). Whether a fight is winnable
+(`TacticalDecisionService.can_win_fight`) comes from the game's own dice:
+`AttackAction.expected_damage` both ways, the monster's side scaled by its `move_speed`.
+
+All four class bots run this shared planner and differ only in their `CombatConfig`
+(the old per-class decision trees were never called and were removed, VB-57).
+
+The bot sees every monster on the floor, as a human does: the TUI draws the whole floor
+and players have no fog of war.
 
 ### 2. Game State Validation
 After each turn, validates invariants:
@@ -59,7 +67,9 @@ After each turn, validates invariants:
 - ✅ HP > 0 → is_alive = True
 - ✅ All entity HP valid
 - ✅ Player position in bounds
-- ✅ Inventory size ≤ 20
+- ✅ Inventory size ≤ 20, and nothing carried also lies on the map
+- ✅ At most one living player/monster per tile, none inside a wall
+- ✅ Summoners stay within their ability's `max_minions`
 
 ### 3. Error Detection
 Catches and logs:
@@ -68,6 +78,10 @@ Catches and logs:
 - **Action failures** - Actions that raise exceptions
 
 ### 4. Statistical Analysis
+Per game (results JSON): seed, floor, turns, level, kills, damage taken (total and by
+monster type), the monster type that killed it, whether the death was a burst (above
+half HP two turns before), potions used, errors.
+
 Tracks:
 - Games played / completed
 - Crash rate
