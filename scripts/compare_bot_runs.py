@@ -31,7 +31,11 @@ METRICS = [
     ('died', 'died (0/1)', lambda g: int(not g['completed'] and g['death_cause'] != 'crash')),
     ('crashed', 'crashed (0/1)', lambda g: int(g['death_cause'] == 'crash')),
     ('errors', 'errors', lambda g: g.get('errors', 0)),
+    ('burst', 'burst death 0/1', lambda g: int(bool(g['burst_death']))),
+    ('potions', 'potions used', lambda g: g['potions_used']),
 ]
+# Fields added after the first results files: a metric is skipped unless every game has it
+_NEEDS = {'burst': 'burst_death', 'potions': 'potions_used'}
 
 # Two-sided 95% t critical values by degrees of freedom (normal beyond 30)
 _T95 = {1: 12.71, 2: 4.30, 3: 3.18, 4: 2.78, 5: 2.57, 6: 2.45, 7: 2.36, 8: 2.31, 9: 2.26,
@@ -70,6 +74,20 @@ def paired(before, after, keys, read):
     return {'n': n, 'before': mean_b, 'after': mean_a, 'diff': mean_d,
             'ci_low': mean_d - half, 'ci_high': mean_d + half,
             'significant': n > 1 and (mean_d - half > 0 or mean_d + half < 0)}
+
+
+def print_killers(before, after, keys):
+    """Which monster types killed the bot, before vs after (when recorded)."""
+    if not all('killed_by_type' in before[k] and 'killed_by_type' in after[k] for k in keys):
+        return
+    counts = defaultdict(lambda: [0, 0])
+    for k in keys:
+        for side, g in ((0, before[k]), (1, after[k])):
+            if g['killed_by_type']:
+                counts[g['killed_by_type']][side] += 1
+    if counts:
+        print("  killed by: " + ", ".join(
+            f"{m} {b}->{a}" for m, (b, a) in sorted(counts.items(), key=lambda kv: -sum(kv[1]))))
 
 
 def main():
@@ -112,13 +130,18 @@ def main():
         print(f"  {'metric':16} {'before':>8} {'after':>8} {'diff':>8}   95% CI")
         report[cls] = {}
         for name, label, read in METRICS:
+            field = _NEEDS.get(name)
+            if field and not all(field in g for k in keys for g in (before[k], after[k])):
+                print(f"  {label:16} (not in both runs)")
+                continue
             r = paired(before, after, keys, read)
             report[cls][name] = r
             mark = '*' if r['significant'] else ' '
             print(f"  {label:16} {r['before']:8.2f} {r['after']:8.2f} {r['diff']:+8.2f}{mark}  "
                   f"[{r['ci_low']:+.2f}, {r['ci_high']:+.2f}]")
-        identical = sum(
-            all(read(before[k]) == read(after[k]) for _, _, read in METRICS) for k in keys)
+        shared = [read for name, _, read in METRICS if name in report[cls]]
+        identical = sum(all(read(before[k]) == read(after[k]) for read in shared) for k in keys)
+        print_killers(before, after, keys)
         print(f"  identical games: {identical}/{len(keys)}")
 
     if args.json:

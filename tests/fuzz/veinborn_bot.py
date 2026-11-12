@@ -99,6 +99,44 @@ class GameResult:
     timestamp: str
     seed: Optional[int] = None   # same seed + same code = same game (VB-68)
     errors: int = 0              # invariant violations + failed actions this game
+    # Who hurt the player, by monster content id (VB-68): balance data per monster type
+    damage_taken_by: Dict[str, int] = None
+    killed_by_type: Optional[str] = None
+    # Died within BURST_TURNS turns of being above half HP: the "that felt cheap" proxy
+    burst_death: bool = False
+    potions_used: int = 0
+
+
+BURST_TURNS = 2
+
+
+class CombatRecorder:
+    """Listens to one game's events: damage to the player by monster type, items used."""
+
+    def __init__(self, game):
+        from core.events import GameEventType
+        self.game = game
+        self.damage_by = {}
+        self.last_attacker = None
+        self.items_used = 0
+        game.event_bus.subscribe(GameEventType.ATTACK_RESOLVED, self._on_attack, 'bot.recorder')
+        game.event_bus.subscribe(GameEventType.ITEM_USED, self._on_item, 'bot.recorder.items')
+
+    def _on_attack(self, event):
+        data = event.data
+        player = self.game.state.player
+        if data.get('defender_id') != player.entity_id:
+            return
+        attacker = self.game.context.get_entity(data.get('attacker_id'))
+        kind = (getattr(attacker, 'content_id', None) or getattr(attacker, 'name', None)
+                or 'unknown')
+        self.damage_by[kind] = self.damage_by.get(kind, 0) + data.get('damage', 0)
+        if data.get('damage', 0) > 0:
+            self.last_attacker = kind
+
+    def _on_item(self, event):
+        if event.data.get('actor_id') == self.game.state.player.entity_id:
+            self.items_used += 1
 
 
 @dataclass
@@ -263,6 +301,38 @@ class VeinbornBot:
         if hasattr(game.state.player, 'inventory'):
             if len(game.state.player.inventory) > 20:
                 violations.append(f"Inventory exceeds max: {len(game.state.player.inventory)}")
+            for item in game.state.player.inventory:
+                if item.x is not None:
+                    violations.append(f"Carried {item.name} also lies on the map at ({item.x},{item.y})")
+
+        # Actors: at most one living blocker per tile, never inside rock
+        game_map = game.state.dungeon_map
+        seen = {}
+        for entity in game.state.entities.values():
+            if entity.entity_type not in (EntityType.PLAYER, EntityType.MONSTER) or not entity.is_alive:
+                continue
+            if entity.x is None:
+                continue
+            pos = (entity.x, entity.y)
+            if pos in seen:
+                violations.append(f"{entity.name} and {seen[pos]} share tile {pos}")
+            seen[pos] = entity.name
+            if game_map.in_bounds(*pos) and not game_map.is_walkable(*pos):
+                violations.append(f"{entity.name} stands in a wall at {pos}")
+
+        # Summoners stay within their ability's max_minions
+        ai = getattr(game, 'ai_system', None)
+        if ai is not None:
+            for monster in game.context.get_entities_by_type(EntityType.MONSTER):
+                minion_ids = monster.get_stat('minion_ids') or []
+                if not minion_ids or not monster.is_alive:
+                    continue
+                alive = sum(1 for mid in minion_ids
+                            if (m := game.context.get_entity(mid)) is not None and m.is_alive)
+                caps = [c.get('max_minions') for c in ai.abilities_for(monster).values()
+                        if c.get('max_minions') is not None]
+                if caps and alive > max(caps):
+                    violations.append(f"{monster.name} has {alive} minions > max {max(caps)}")
 
         return violations
 
@@ -360,6 +430,8 @@ class VeinbornBot:
             character_class = getattr(self, 'character_class', None)
             game.start_new_game(player_name=self.player_name, character_class=character_class,
                                 seed=seed)
+            recorder = CombatRecorder(game)
+            hp_history = []  # player HP at the start of each turn
 
             turn = 0
             game_stats = {
@@ -394,6 +466,8 @@ class VeinbornBot:
                     if stuck_counter > 0:
                         stuck_counter = 0  # Reset when position changes
                 last_position = current_position
+
+                hp_history.append(game.state.player.hp)
 
                 # Validate state before action
                 violations = self.validate_game_state(game)
@@ -615,6 +689,12 @@ class VeinbornBot:
                 self.log(f"Reached max turns ({max_turns})")
 
             game_stats['errors'] = self.stats.errors - errors_before
+            game_stats['damage_taken_by'] = dict(sorted(recorder.damage_by.items()))
+            game_stats['potions_used'] = recorder.items_used
+            if game.state.game_over:
+                game_stats['killed_by_type'] = recorder.last_attacker
+                earlier = hp_history[-(BURST_TURNS + 1)] if len(hp_history) > BURST_TURNS else hp_history[0]
+                game_stats['burst_death'] = earlier > game.state.player.max_hp / 2
             return game_stats
 
         except Exception as e:
@@ -668,7 +748,8 @@ class VeinbornBot:
 
         for i, (seed, game_stats) in enumerate(self._play_games(seeds, max_turns_per_game, jobs)):
             print(f"\n[Game {i+1}/{num_games}] seed={seed} floor={game_stats.get('floor', 1)} "
-                  f"turns={game_stats['turns']} {game_stats.get('death_reason') or 'survived'}")
+                  f"turns={game_stats['turns']} {game_stats.get('death_reason') or 'survived'}",
+                  flush=True)  # progress shows up even when stdout is a log file
 
             # Update overall stats
             self.stats.games_played += 1
@@ -713,6 +794,10 @@ class VeinbornBot:
                 timestamp=datetime.now().isoformat(),
                 seed=seed,
                 errors=game_stats.get('errors', 0),
+                damage_taken_by=game_stats.get('damage_taken_by') or {},
+                killed_by_type=game_stats.get('killed_by_type'),
+                burst_death=game_stats.get('burst_death', False),
+                potions_used=game_stats.get('potions_used', 0),
             )
             self.stats.game_results.append(game_result)
 

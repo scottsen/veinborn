@@ -20,7 +20,8 @@ def game(seed, floor, cls="mage", died=False, crash=False):
     return {'game_number': seed, 'character_class': cls, 'seed': seed, 'floor_reached': floor,
             'turns_survived': 100, 'player_level': 1, 'monsters_killed': 0, 'damage_taken': 0,
             'completed': not (died or crash),
-            'death_cause': 'crash' if crash else ('Killed by Orc' if died else None), 'errors': 0}
+            'death_cause': 'crash' if crash else ('Killed by Orc' if died else None), 'errors': 0,
+            'burst_death': False, 'potions_used': 0, 'killed_by_type': 'orc' if died else None}
 
 
 def write(tmp_path, name, games):
