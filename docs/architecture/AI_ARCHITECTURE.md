@@ -251,14 +251,17 @@ Player abilities (VB-53) can use the same system.
 | 5 | VB-62 speed | Yes | Bot before/after | Done |
 | 6 | VB-63 abilities for any actor | No | Tests | Done |
 | — | VB-66 monster attack events + telemetry attribution | No (telemetry only) | Tests | Done |
-| 7 | VB-64 enable monster abilities | Yes, per ability | Bots + play-test | 9 active abilities built, disabled; blocked on Scott's choices |
+| 7 | VB-64 enable monster abilities | Yes, per ability | sim_duels + paired bots + play-test | 9 active abilities built, disabled; blocked on Scott's choices; only imp spawns today (VB-69) |
 | later | VB-67 passive triggers (regen, auras, drain, rebirth, teleport) | Enables 13 more | — | Open |
 | later | VB-65 status effects | Enables poison/stun/root | — | Open |
 
 Per-phase bot numbers are in the task notes (`tt show VB-58`, `VB-60`, `VB-62`).
 
-Bot runs: `tests/fuzz/<class>_bot.py --games 8 --max-turns 3000` from a tree copy in tmux, all
-four classes; see [../../tests/fuzz/README.md](../../tests/fuzz/README.md).
+Bot runs: `tests/fuzz/<class>_bot.py --games 32 --max-turns 3000 --seed-base 1000 --jobs 3` from
+a tree copy in tmux, all four classes, both sides on the same seeds, then
+`scripts/compare_bot_runs.py` (paired differences, 95% CI); see
+[../../tests/fuzz/README.md](../../tests/fuzz/README.md). 8 unseeded games could not resolve
+speed or morale effects.
 
 ## Rejected alternatives
 

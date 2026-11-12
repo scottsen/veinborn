@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added — Consumables, seeded replay, paired bot A/B (VB-68, 2026-11-12)
+- Potions and food can be used (key `e`; `UseItemAction` + `@item_effect` content); they dropped as loot before but nothing could consume them. Kill loot now rolls on the game's seeded RNG, so a seed replays the same game (`test_seeded_replay`).
+- Balance tooling: `scripts/sim_duels.py` drives monsters through the real AISystem with abilities on/off; bot runs take `--seed-base`/`--jobs` and `scripts/compare_bot_runs.py` reports paired differences with 95% CIs. Bots run 18x faster. See `tests/fuzz/README.md`.
+
 ### Changed — Monster AI in three layers (ADR-019, 2026-11-12)
 - The AI engine now owns perception (per-monster `aggro_range` + line of sight + memory, provocation from attacks), morale, speed (`move_speed`) and ability use; behaviours are tactics only and abilities work for any actor. Monster AI data is validated at start. Design: `docs/architecture/AI_ARCHITECTURE.md`; tasks `VB-47` and children.
 

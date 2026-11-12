@@ -1495,7 +1495,7 @@ priority: low
 effort: 1d
 tags: [architecture, abilities, content]
 created: '2026-11-12T17:40:22Z'
-updated: '2026-11-12T17:40:22Z'
+updated: '2026-11-12T20:47:40Z'
 session: vevine-1112
 parent: VB-47
 links:
@@ -1504,13 +1504,14 @@ links:
   relates_to:
   - VB-64
   - VB-53
+notes_next: 2
 ```
 
 About 6 declared monster abilities need timed effects on the target: spider poison, wyvern poison_sting, basilisk petrifying_gaze + poison_bite, mimic adhesive. No status-effect primitive exists. Shape: per-entity effects list (name, turns_left, magnitude) ticked by the turn loop in single-player and multiplayer, an @status_effect registry, effects that gate actions (stun/root) checked in the action pipeline, persisted in saves via entity stats. See AI_ARCHITECTURE.md 'Later: status effects'.
 
 <!-- notes: append-only log; each has a stable #id (see CLI §5) -->
 ### Notes
-_(no notes yet)_
+- [#1 2026-11-12T20:47:40Z session:warming-squall-1112] Consumables (52eb525): potion_strength (buff_attack), potion_speed (buff_speed), potion_invisibility have no @item_effect yet; they wait on this system. Add them in src/core/content/items/ (see docs/EXTENDING.md 'Add an item effect'); UseItemAction keeps an item whose effect is unregistered.
 
 
 ## TASK-VB-66 · AISystem.attack drops the monster attack's outcome.events: monster attacks never reach the event bus
