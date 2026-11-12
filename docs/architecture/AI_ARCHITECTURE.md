@@ -195,27 +195,32 @@ ability), so it changed no gameplay by itself; sniper and summoner behave as bef
 
 ## Monster ability inventory
 
-Declared in `monsters.yaml` today, all `enabled: false`. **Wave 1** abilities need no status
-effects and are the suggested first ones to enable (VB-64, a design and balance call for Scott).
+All 27 abilities declared in `monsters.yaml` are still `enabled: false`; a test asserts no
+shipped monster has one. Turning one on is a one-line YAML change (`enabled: true`) once it is
+**built**; which to turn on, and at what numbers, is VB-64 (Scott's balance and play-test call).
 
-| Monster | Declared abilities | Wave 1 candidates |
-|---|---|---|
-| troll | regeneration | regeneration |
-| spider | poison | — (needs status effects) |
-| imp | teleport, fire_bolt | fire_bolt |
-| wyvern | poison_sting, aerial_dive | aerial_dive |
-| wraith | phase_shift, life_drain | life_drain |
-| mimic | disguise, adhesive | — |
-| vampire | life_drain, bat_swarm | life_drain, bat_swarm |
-| lich | death_bolt, summon_undead, phylactery | death_bolt, summon_undead |
-| demon | hellfire, teleport, fire_aura | fire_aura |
-| basilisk | petrifying_gaze, poison_bite | — (needs status effects) |
-| phoenix | rebirth, flame_aura, dive_bomb | flame_aura, dive_bomb |
-| ancient_horror | reality_warp, summon_horrors, regeneration, phase_two | summon_horrors, regeneration, phase_two |
+| Monster | Built, ready to enable (VB-64) | Needs passive triggers (VB-67) | Needs status effects (VB-65) |
+|---|---|---|---|
+| troll | — | regeneration | — |
+| spider | — | — | poison |
+| imp | fire_bolt (4, range 5, no cooldown) | teleport | — |
+| wyvern | aerial_dive (12, adjacent, cd 3) | — | poison_sting |
+| wraith | — | life_drain, phase_shift | — |
+| mimic | — | disguise | adhesive |
+| vampire | bat_swarm (3 bats, max 3, cd 5) | life_drain | — |
+| lich | death_bolt (15, range 6, cd 2), summon_undead (2 of skeleton/wraith, max 4, cd 4) | phylactery | — |
+| demon | hellfire (8, radius 2 around the target, cd 3) | teleport, fire_aura | — |
+| basilisk | — | — | petrifying_gaze, poison_bite |
+| phoenix | dive_bomb (20, adjacent, cd 4) | rebirth, flame_aura | — |
+| ancient_horror | reality_warp (25, radius 3, cd 5), summon_horrors (3 of wraith/demon/imp, max 3, cd 6) | regeneration, phase_two | — |
 
-Goblin, orc, bat, skeleton, ogre, wolf and golem declare none. Wolf "pack tactics" and wraith
-"phases through walls" appear only in flavour text; they would be a tactic and a movement rule
-respectively, and are not planned.
+Built abilities: bolts and strikes in `content/abilities/force_bolt.py` (auto-hit, ignore
+defense, like force bolt), blasts in `blast.py`, summons in `summon.py`. Several declared numbers
+are large next to a level-1 player's 20 HP (death_bolt 15, dive_bomb 20, reality_warp 25); they
+were written before any of this ran and should be tuned when enabled.
+
+Goblin, orc, bat, skeleton, ogre, wolf and golem declare none. Wolf "pack tactics" appears only in
+flavour text; it would be a tactic, and is not planned.
 
 ## Later: status effects (VB-65)
 

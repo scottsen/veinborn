@@ -574,7 +574,9 @@ monsters:
         description: "Heals for 50% of damage dealt"
       bat_swarm:
         enabled: false
-        summon_count: 3
+        minion_types: ["bat"]
+        count: 3
+        max_minions: 3
         cooldown: 5
         description: "Summons 3 bats"
 
@@ -625,8 +627,9 @@ monsters:
         description: "Ranged death magic attack"
       summon_undead:
         enabled: false
-        summon_types: ["skeleton", "wraith"]
+        minion_types: ["skeleton", "wraith"]
         count: 2
+        max_minions: 4
         cooldown: 4
         description: "Summons skeleton and wraith minions"
       phylactery:
@@ -841,8 +844,9 @@ monsters:
         description: "Devastating area attack"
       summon_horrors:
         enabled: false
-        summon_count: 3
-        types: ["wraith", "demon", "imp"]
+        minion_types: ["wraith", "demon", "imp"]
+        count: 3
+        max_minions: 3
         cooldown: 6
         description: "Summons lesser horrors"
       regeneration:

@@ -2,7 +2,7 @@
 project: veinborn
 schema_version: '1.0'
 id_prefix: VB
-next_id: 67
+next_id: 68
 archival: inline
 areas: {}
 ---
@@ -1338,7 +1338,7 @@ priority: medium
 effort: 3-4h
 tags: [ai, architecture]
 created: '2026-11-12T17:39:53Z'
-updated: '2026-11-12T17:57:57Z'
+updated: '2026-11-12T18:18:05Z'
 session: vevine-1112
 depends_on: [VB-58, VB-59]
 parent: VB-47
@@ -1350,7 +1350,7 @@ links:
   - VB-55
   commits:
   - acd5cdaac935eb1aea9327fa652e6eb02b972473
-notes_next: 2
+notes_next: 3
 ```
 
 Classic behaviours chase by distance only (no line of sight), via nearest_player. Add ai.perceive(monster, params) -> target or None: a player within aggro_range AND in sight, or the monster's provoker. Provocation: AISystem (core, not content: the MP server installs no content handlers, VB-55) subscribes to ATTACK_RESOLVED and records last_attacker_id + provoked_turn on the defender, with a decay window. Needs the event bus passed to AISystem in Game and in server session.py. Behaviours switch nearest_player -> perceive (multiplayer: prefer the provoker). passive -> 'neutral': wanders, fights back when provoked. A parametrized contract test runs every registered @ai_behavior and asserts an unperceived player is neither attacked nor approached. Update EXTENDING.md toolkit list. Bot before/after. See AI_ARCHITECTURE.md 'Perception' and 'Provocation'.
@@ -1358,6 +1358,7 @@ Classic behaviours chase by distance only (no line of sight), via nearest_player
 <!-- notes: append-only log; each has a stable #id (see CLI §5) -->
 ### Notes
 - [#1 2026-11-12T17:57:57Z session:vevine-1112] perceive/provoked_by/_on_attack in AISystem; defaults block (aggro_range 8, memory_turns 10, move_speed 1.0, flee_threshold 0). Contract test (8 behaviours x positive/negative) + 2 mutation checks (no LOS, perceive=nearest_player) caught. Side fix: wander stepped onto the player's tile = bump attack. Bot comparison in a note.
+- [#2 2026-11-12T18:18:05Z session:vevine-1112] Bots 8x3000 at acd5cda (incl. VB-58), vs the VB-58-only run: warrior floor 6.4->9.4 deaths 2->0; rogue 8.2->8.8 deaths 0->0; mage 6.1->7.0 deaths 5->0; healer 8.4->8.6 deaths 1->0. 0 bugs. Line of sight + per-monster aggro ranges make monsters notice less through walls; game got easier for bots.
 
 
 ## TASK-VB-61 · AI: engine morale step (flee_threshold) runs before every behaviour; drop per-behaviour flee checks; guards hold (0)
@@ -1448,12 +1449,12 @@ notes_next: 2
 ## TASK-VB-64 · Turn on monster abilities one at a time (bolts, summons, drains, regeneration) with bot runs + Scott's play-test
 
 ```yaml
-status: backlog
+status: in_progress
 priority: low
 effort: per ability ~1h + play-test
 tags: [ai, balance, content, design]
 created: '2026-11-12T17:40:20Z'
-updated: '2026-11-12T17:40:20Z'
+updated: '2026-11-12T18:18:34Z'
 session: vevine-1112
 depends_on: [VB-63]
 parent: VB-47
@@ -1524,3 +1525,32 @@ AISystem.attack executes AttackAction and adds outcome.messages to the log but d
 <!-- notes: append-only log; each has a stable #id (see CLI §5) -->
 ### Notes
 - [#1 2026-11-12T18:08:59Z session:vevine-1112] Also fixed: StatsTracker counted every attack as the player's and recorded deaths only for entity_id == 'player' (real ids are UUIDs), so deaths/damage_taken were never tracked.
+
+
+## TASK-VB-67 · Passive ability triggers for monsters and players: per-turn (regeneration, auras, enrage), on-hit (life drain, poison), on-death (rebirth, phylactery); plus teleport, phase_shift, disguise
+
+```yaml
+status: backlog
+priority: low
+effort: 1d
+tags: [ai, architecture, abilities, content]
+created: '2026-11-12T18:21:49Z'
+updated: '2026-11-12T18:21:49Z'
+session: vevine-1112
+depends_on: [VB-63]
+parent: VB-47
+links:
+  references:
+  - docs/architecture/AI_ARCHITECTURE.md
+  - data/entities/monsters.yaml
+  relates_to:
+  - VB-64
+  - VB-65
+  - VB-53
+```
+
+13 of the 27 abilities declared in monsters.yaml are not actions, so the VB-63 engine ability step cannot express them: per-turn (troll/ancient_horror regeneration, demon fire_aura, phoenix flame_aura, ancient_horror phase_two enrage), on-hit (wraith/vampire life_drain; spider poison, wyvern poison_sting, basilisk poison_bite/petrifying_gaze, mimic adhesive need VB-65 too), on-death intercept before removal (phoenix rebirth, lich phylactery), movement (imp/demon teleport, wraith phase_shift through walls) and mimic disguise. Today only @damage_modifier exists (attacker-side, player-only via the abilities stat). Design one trigger mechanism (e.g. @passive(name, on='turn'|'hit'|'death') run by the engine for any actor whose resolved abilities include it, in core so MP gets it), keep it data-driven like abilities_for. Player regeneration/teleport (VB-53) should reuse it. See AI_ARCHITECTURE.md 'Monster ability inventory'.
+
+<!-- notes: append-only log; each has a stable #id (see CLI §5) -->
+### Notes
+_(no notes yet)_

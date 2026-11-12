@@ -71,10 +71,13 @@ def test_every_ability_in_a_class_template_is_registered_or_a_modifier():
 
 
 def test_every_ability_has_tuning_somewhere():
-    """Class abilities are tuned in formulas.yaml; monster-only ones by the behaviour that brings them."""
+    """Class abilities are tuned in formulas.yaml; monster-only ones by the behaviour that
+    brings them or in the monsters.yaml abilities block of a monster that has them."""
     from core.character_class import CLASS_TEMPLATES
     from core.config.config_loader import ConfigLoader
+    from core.entity_loader import EntityLoader
     config = ConfigLoader.get_config()
+    declared = {n for m in EntityLoader().monsters.values() for n in (m.get('abilities') or {})}
     class_abilities = {a for t in CLASS_TEMPLATES.values() for a in t.abilities}
     for name in class_abilities:
         assert config.get_ability_config(name) is not None
@@ -84,7 +87,7 @@ def test_every_ability_has_tuning_somewhere():
         for name in (section.get('abilities') or {})
     }
     for name in set(abilities.names()) | set(damage_modifiers.names()):
-        assert name in config.formulas.get('abilities', {}) or name in brought, name
+        assert name in config.formulas.get('abilities', {}) or name in brought or name in declared, name
 
 
 # --- event handler lifecycle ----------------------------------------------------
