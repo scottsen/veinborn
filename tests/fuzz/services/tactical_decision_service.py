@@ -100,15 +100,18 @@ class TacticalDecisionService:
         Returns:
             True if estimated to win fight
         """
+        from core.actions.attack_action import AttackAction
+
         player = game.state.player
 
-        # Calculate effective power (attack - enemy defense)
-        player_power = max(1, player.attack - monster.defense)
-        monster_power = max(1, monster.attack - player.defense)
+        # Average damage per swing from the game's own dice (to-hit x rolled damage,
+        # equipment included); the monster's swings per player turn follow its speed.
+        player_power = max(0.01, AttackAction.expected_damage(player, monster))
+        monster_power = AttackAction.expected_damage(monster, player) * self._speed_of(game, monster)
 
         # Estimate turns to kill each other
         turns_to_kill_monster = max(1, monster.hp / player_power)
-        turns_to_die = max(1, player.hp / monster_power)
+        turns_to_die = max(1, player.hp / max(0.01, monster_power))
 
         # Can win if we kill them before they kill us (with safety margin)
         can_win = turns_to_kill_monster < (turns_to_die * self.combat_config.safety_margin)
@@ -118,6 +121,14 @@ class TacticalDecisionService:
                   f"(kill={turns_to_kill_monster:.1f} vs die={turns_to_die:.1f}*{self.combat_config.safety_margin})")
 
         return can_win
+
+    @staticmethod
+    def _speed_of(game, monster) -> float:
+        """Actions per round (AISystem move_speed: bat 1.5, golem 0.6); 1.0 without an AI."""
+        ai = getattr(game, 'ai_system', None)
+        if ai is None:
+            return 1.0
+        return max(0.0, ai.params_for(monster).get('move_speed', 1.0))
 
     def should_fight(self, game) -> bool:
         """
