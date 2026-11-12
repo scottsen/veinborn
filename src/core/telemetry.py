@@ -89,8 +89,15 @@ class StatsTracker:
                 event_type, handler, subscriber_name=f"StatsTracker.{handler.__name__}"
             )
 
-    def __init__(self):
-        """Initialize empty statistics."""
+    def __init__(self, is_player=None):
+        """Initialize empty statistics.
+
+        Args:
+            is_player: callable(entity_id) -> bool telling player ids from the
+                rest; the game sets it (Game._is_player_id). Without it only the
+                literal id 'player' counts as the player (direct-call use and tests).
+        """
+        self.is_player = is_player
         # Combat stats
         self.total_damage_dealt = 0
         self.total_damage_taken = 0
@@ -131,14 +138,16 @@ class StatsTracker:
         data = event.data
         damage = data.get('damage', 0)
         killed = data.get('killed', False)
-        attacker_id = data.get('attacker_id')
 
-        self.attacks_made += 1
-        self.total_damage_dealt += damage
-
-        if killed:
-            self.monsters_killed += 1
-            self._check_achievement_centurion()
+        if self._is_player(data.get('attacker_id')):
+            self.attacks_made += 1
+            self.total_damage_dealt += damage
+            if killed:
+                self.monsters_killed += 1
+                self._check_achievement_centurion()
+        elif self._is_player(data.get('defender_id')):
+            self.attacks_received += 1
+            self.total_damage_taken += damage
 
         logger.debug(
             "Combat stats updated",
@@ -160,7 +169,7 @@ class StatsTracker:
         cause = data.get('cause', 'unknown')
 
         # Track player death specifically
-        if data.get('entity_id') == 'player':
+        if self._is_player(data.get('entity_id')):
             death_record = {
                 'turn': event.turn,
                 'cause': cause,
@@ -172,6 +181,11 @@ class StatsTracker:
                 "Player death recorded",
                 extra=death_record
             )
+
+    def _is_player(self, entity_id) -> bool:
+        if self.is_player is not None:
+            return bool(self.is_player(entity_id))
+        return entity_id == 'player'
 
     def on_ore_mined(self, event: GameEvent) -> None:
         """

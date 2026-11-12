@@ -284,6 +284,7 @@ class Game:
         )
 
         # Subscribe telemetry to the event bus (EventBus de-duplicates re-subscription)
+        self.stats_tracker.is_player = self._is_player_id
         self.stats_tracker.subscribe_to(self.event_bus)
 
         # Content event handlers (core/content/events/): fresh instances per
@@ -292,6 +293,11 @@ class Game:
         self.event_handlers = install_event_handlers(self.context, self.event_bus)
 
         logger.debug("Subsystems initialized successfully")
+
+    def _is_player_id(self, entity_id) -> bool:
+        """True if entity_id is a player in the current game (telemetry attribution)."""
+        entity = self.context.get_entity(entity_id) if self.context and entity_id else None
+        return entity is not None and entity.entity_type == EntityType.PLAYER
 
     def _register_ai_system(self) -> None:
         """(Re)create the AI system for the current context, listening to this game's events.

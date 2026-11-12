@@ -174,3 +174,36 @@ def test_reinitialising_does_not_double_deliver(game):
     game.event_bus.publish(GameEvent(GameEventType.EQUIPMENT_CRAFTED, {}))
     assert ach.stats["items_crafted"] == 1
     assert len([h for h in game.event_handlers if isinstance(h, AchievementTracker)]) == 1
+
+
+# --- monster attacks reach the event bus (VB-66) ---------------------------------
+
+def test_monster_attacks_are_published_and_counted_as_damage_taken(game):
+    from core.base.entity import EntityType
+    from core.events.events import GameEventType
+    p = game.state.player
+    for e in list(game.state.entities.values()):
+        if e.entity_type == EntityType.MONSTER:
+            game.context.remove_entity(e.entity_id)
+    mon = game.entity_loader.create_monster("orc", p.x + 1, p.y)
+    if not game.state.dungeon_map.is_walkable(p.x + 1, p.y):
+        mon.x, mon.y = p.x - 1, p.y
+    game.context.add_entity(mon)
+    game.event_bus.enable_history = True
+    stats = game.stats_tracker
+    dealt_before = stats.total_damage_dealt
+    for _ in range(10):
+        game.context.get_system('ai').attack(mon, p)
+    attacks = [ev for ev in game.event_bus.get_events_by_type(GameEventType.ATTACK_RESOLVED)
+               if ev.data['attacker_id'] == mon.entity_id]
+    assert len(attacks) == 10
+    assert stats.attacks_received == 10
+    assert stats.total_damage_taken == p.max_hp - p.hp
+    assert stats.total_damage_dealt == dealt_before  # not credited to the player
+
+
+def test_player_death_is_recorded_by_real_entity_id(game):
+    from core.events import create_entity_died_event
+    p = game.state.player
+    game.event_bus.publish_dict(create_entity_died_event(p.entity_id, p.name, killer_id="x"))
+    assert len(game.stats_tracker.deaths) == 1

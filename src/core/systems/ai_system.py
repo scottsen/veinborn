@@ -335,6 +335,11 @@ class AISystem(System):
         for msg in outcome.messages:
             self.context.add_message(msg)
 
+        # Publish the attack's events (ATTACK_RESOLVED, ENTITY_DIED) like a player
+        # action's, so telemetry and content see monster attacks too (VB-66)
+        if self._event_bus is not None and outcome.events:
+            self._event_bus.publish_all(outcome.events)
+
         logger.debug(
             f"Monster {monster.name} attacked {target.name}",
             extra={'damage': outcome.events}
