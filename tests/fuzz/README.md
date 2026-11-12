@@ -156,7 +156,8 @@ python3 scripts/compare_bot_runs.py --before logs/before_*.json --after logs/aft
 The comparison prints, per class and overall, mean before/after and the mean paired
 difference with a 95% interval for floor, turns, level, kills, damage taken, deaths,
 crashes and errors (`*` = the interval excludes 0), plus how many games came out identical.
-Each results file records the commit it ran and whether `src/`, `data/` or `tests/fuzz/`
+Bot high scores go to `logs/bot_highscores.json` (gitignored), never the shipped
+`data/highscores.json`. Each results file records the commit it ran and whether `src/`, `data/` or `tests/fuzz/`
 had uncommitted changes. To compare two commits without touching your tree, play the
 "before" side from a copy: `git archive <commit> | tar -x -C /tmp/vb_before`.
 

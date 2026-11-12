@@ -650,6 +650,7 @@ class VeinbornBot:
         """
         self.seed_base = seed_base
         self.max_turns_per_game = max_turns_per_game
+        _keep_bot_scores_off_the_leaderboard()
         print(f"\n{'='*60}")
         print(f"Veinborn Automated Testing Bot")
         print(f"{'='*60}")
@@ -865,6 +866,19 @@ def _play_in_worker(work):
     bot.error_log = []
     game_stats = bot.play_one_game(max_turns=max_turns, seed=seed)
     return seed, game_stats, bot.stats, bot.error_log
+
+
+def _keep_bot_scores_off_the_leaderboard() -> None:
+    """Bot deaths go to logs/bot_highscores.json, not the shipped data/highscores.json.
+
+    Every bot game that ends records a high score; from a working tree that used to
+    rewrite the tracked leaderboard with bot names. Tests do the same through the
+    isolated_singleplayer_highscores fixture.
+    """
+    from core.highscore import HighScoreManager
+    logs_dir = Path(__file__).resolve().parent.parent.parent / "logs"
+    logs_dir.mkdir(exist_ok=True)
+    HighScoreManager._instance = HighScoreManager(logs_dir / "bot_highscores.json")
 
 
 def _code_version() -> Dict:
