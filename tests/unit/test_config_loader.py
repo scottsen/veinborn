@@ -101,8 +101,8 @@ class TestAIBehaviorConfiguration:
         coward = config.get_ai_behavior_config('coward')
 
         assert coward is not None
-        assert 'flee_threshold' in coward
-        assert coward['flee_threshold'] == 1.0
+        # Fleeing is its tactic (flee_range), not morale: no flee_threshold of its own
+        assert 'flee_threshold' not in coward
         assert 'flee_range' in coward
         assert coward['flee_range'] == 8
 

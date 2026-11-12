@@ -124,6 +124,10 @@ What a monster knows about you (`AISystem.perceive`, VB-60):
 - **Provocation:** attacking a monster (melee or force bolt) makes it remember you as its
   target, however far away you are; a `neutral` monster only fights back when attacked.
 
+**Morale:** a monster below its `flee_threshold` of max HP (defensive 0.3, neutral 0.5,
+sniper 0.3; aggressive monsters and guards never) flees from what it perceives instead of
+acting.
+
 What it does about it is its behaviour (`ai: type:`): aggressive monsters close in on
 anything they perceive; defensive ones only engage within their `chase_range` (5) unless
 attacked; guards engage within `chase_range` (6) without leaving `guard_radius`; cowards

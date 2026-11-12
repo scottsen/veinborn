@@ -55,7 +55,9 @@ public methods are the toolkit:
 - `nearest_player` ignores perception; behaviours should not use it.
 
 Ranges in a behaviour's own section are engagement policy (when to fight what it
-perceives), not perception.
+perceives), not perception. Don't write "flee when hurt" in a behaviour: the engine's
+morale step does it for every behaviour, from the `flee_threshold` parameter, before the
+behaviour runs.
 
 `config` is the monster's resolved parameters (`AISystem.params_for`): the universal
 `defaults` and the behaviour's section of `data/balance/ai_behaviors.yaml`, overridden
@@ -66,9 +68,9 @@ section, or an `enabled: true` ability with no `@ability` stops the game with a
 `ContentValidationError`.
 
 > **Planned change (ADR-019, [architecture/AI_ARCHITECTURE.md](architecture/AI_ARCHITECTURE.md)):**
-> the engine will also own morale and speed, and ranged attacks and summons move into
-> abilities usable by monsters. Tasks: `VB-47` and children (range metric, parameters
-> and perception are done: VB-58, VB-59, VB-60).
+> the engine will also own speed, and ranged attacks and summons move into abilities
+> usable by monsters. Tasks: `VB-47` and children (range metric, parameters, perception
+> and morale are done: VB-58 to VB-61).
 
 ```python
 # src/core/content/ai/sentry.py

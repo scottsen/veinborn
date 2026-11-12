@@ -13,7 +13,7 @@ defaults:
   aggro_range: 8      # Perception: notices a player this many 8-way steps away, with line of sight
   memory_turns: 10    # Perception: keeps chasing a player it saw or was hit by, this many turns after
   move_speed: 1.0     # Speed (VB-62, not used yet)
-  flee_threshold: 0.0 # Morale: flee below this fraction of max HP (0 = never)
+  flee_threshold: 0.0 # Morale (engine, before every behaviour): flee below this fraction of max HP; 0 = never
 
 # AI Behavior Types. Ranges here are engagement policy: perception (aggro_range,
 # line of sight, memory, being attacked) decides what a monster knows about; the
@@ -39,7 +39,6 @@ behaviors:
   # Coward - Always flee from player
   coward:
     description: "Run away from any player it perceives within flee_range"
-    flee_threshold: 1.0  # Always flee
     flee_range: 8  # Start fleeing when a perceived player is within 8 tiles
 
   # Guard - Stay near spawn point, defend area
@@ -72,7 +71,7 @@ behaviors:
 
 # Monster AI assignments live in data/entities/monsters.yaml (`ai: type:`).
 # A monster's ai: block may also override any parameter of its behaviour above,
-# plus the universal keys aggro_range, move_speed and flee_threshold; unknown
+# plus the universal keys in `defaults` (aggro_range, memory_turns, move_speed, flee_threshold); unknown
 # keys fail validation at game start. See docs/architecture/AI_ARCHITECTURE.md.
 
 # Configuration Versioning

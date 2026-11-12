@@ -13,7 +13,7 @@ def sniper(ai, monster, config):
     distance = ai.distance(monster, player)
     low, high = config.get('ideal_range_min', 4), config.get('ideal_range_max', 6)
 
-    if monster.hp / monster.max_hp < config.get('flee_threshold', 0.3) or distance < low:
+    if distance < low:
         ai.flee_from(monster, player)  # a cornered sniper bites back in melee
     elif distance <= high:
         if ai.in_sight(monster, player):

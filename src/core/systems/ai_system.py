@@ -17,6 +17,9 @@ monster's `ai:` block in monsters.yaml (looked up by content_id, so YAML tuning
 reaches saved games), overridden by an optional per-instance `ai_params` stat.
 Monster AI data is validated when the system is built (validate_monster_ai).
 
+Morale runs before every behaviour: below its flee_threshold of max HP, a
+monster flees whatever it perceives instead of acting (0 = never flees).
+
 Perception (perceive) decides which player a monster knows about: one it can see
 within aggro_range, or one it saw or was attacked by within memory_turns.
 Being attacked is recorded from ATTACK_RESOLVED events on the event bus, in core
@@ -226,7 +229,25 @@ class AISystem(System):
                 monster.set_stat('spawn_y', monster.y)
 
             ai_type = monster.get_stat('ai_type', 'aggressive')
-            self._execute_behavior(monster, ai_type, self.params_for(monster))
+            params = self.params_for(monster)
+            if self._morale_breaks(monster, params):
+                continue
+            self._execute_behavior(monster, ai_type, params)
+
+    def _morale_breaks(self, monster, params: Dict[str, Any]) -> bool:
+        """Morale, for every behaviour: below flee_threshold of max HP, flee what it perceives.
+
+        Returns True if the monster fled (its behaviour does not run this turn).
+        flee_threshold 0 (the default) never flees.
+        """
+        threshold = params.get('flee_threshold', 0.0)
+        if threshold <= 0 or monster.hp / monster.max_hp >= threshold:
+            return False
+        target = self.perceive(monster, params)
+        if target is None:
+            return False
+        self.flee_from(monster, target)
+        return True
 
     @staticmethod
     def distance(a, b) -> int:

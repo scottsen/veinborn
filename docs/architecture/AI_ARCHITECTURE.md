@@ -14,7 +14,8 @@ beth_topics:
 # Veinborn AI Architecture
 
 **Status:** Accepted, in progress (ADR-019 in [DECISIONS.md](DECISIONS.md)), 2026-11-12.
-Built: range metric (VB-58), parameters and validation (VB-59), perception and provocation (VB-60).
+Built: range metric (VB-58), parameters and validation (VB-59), perception and provocation (VB-60),
+morale (VB-61).
 Everything else below is the plan.
 **Tasks:** umbrella `VB-47`; children `VB-58` to `VB-65`, plus `VB-66` (`tt list --children-of VB-47`).
 **Read with:** [../EXTENDING.md](../EXTENDING.md) (the content contract this changes),
@@ -127,12 +128,16 @@ This is what makes a real `aggro_range` safe: a mage bolting a mimic (`aggro_ran
 tiles is now its target. It also made `passive` a useful **neutral** type: it wanders, and
 fights back when attacked.
 
-### Morale (VB-61)
+### Morale (VB-61, built)
 
-Before tactics run: if a target is perceived and `hp / max_hp < flee_threshold`, the monster
-flees. `flee_threshold: 0` opts out (aggressive, guard). This replaces the per-behaviour checks.
-Morale is the one step the engine forces, because every behaviour wants it and forgetting it was
-the bug.
+Before a monster's behaviour runs (`AISystem._morale_breaks`): if it perceives a player and
+`hp / max_hp < flee_threshold`, it flees instead and the behaviour is skipped that turn.
+`flee_threshold` is a universal parameter (default 0 = never), set per behaviour (defensive 0.3,
+neutral 0.5, sniper 0.3) or per monster. This replaced the copies in defensive, passive/neutral
+and the sniper; guards and aggressive monsters hold (0); the coward's fleeing is its tactic
+(`flee_range`), not morale. Morale is the one step the engine forces, because every behaviour
+wants it and forgetting it was the bug: a test registers a new behaviour that never flees and
+shows the engine makes it flee anyway.
 
 ### Speed (VB-62)
 

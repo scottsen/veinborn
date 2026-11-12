@@ -2,7 +2,8 @@
 
 Each behaviour asks the engine what the monster knows (ai.perceive: sight within
 aggro_range, memory, being attacked) and decides what to do about it. Ranges in
-a behaviour's section are engagement policy, not perception.
+a behaviour's section are engagement policy, not perception. Fleeing when hurt
+(flee_threshold) is the engine's morale step, which runs before the behaviour.
 """
 
 from ...extensions import ai_behavior
@@ -28,15 +29,13 @@ def aggressive(ai, monster, config):
 
 @ai_behavior("defensive")
 def defensive(ai, monster, config):
-    """Engage players that come within chase_range or attack it; flee when low on HP."""
+    """Engage players that come within chase_range or attack it (flees via morale)."""
     target = ai.perceive(monster, config)
     if not target:
         ai.wander(monster)
         return
 
-    if monster.hp / monster.max_hp < config.get('flee_threshold', 0.3):
-        ai.flee_from(monster, target)
-    elif ai.provoked_by(monster, config) is target or ai.distance(monster, target) <= config.get('chase_range', 5):
+    if ai.provoked_by(monster, config) is target or ai.distance(monster, target) <= config.get('chase_range', 5):
         _engage(ai, monster, target)
     else:
         ai.wander(monster)
@@ -44,14 +43,12 @@ def defensive(ai, monster, config):
 
 @ai_behavior("neutral")
 def neutral(ai, monster, config):
-    """Wander peacefully; fight back against whoever attacked it (flee when badly hurt)."""
+    """Wander peacefully; fight back against whoever attacked it (flees via morale)."""
     attacker = ai.provoked_by(monster, config)
-    if not attacker:
-        ai.wander(monster)
-    elif monster.hp / monster.max_hp < config.get('flee_threshold', 0.5):
-        ai.flee_from(monster, attacker)
-    else:
+    if attacker:
         _engage(ai, monster, attacker)
+    else:
+        ai.wander(monster)
 
 
 @ai_behavior("coward")
