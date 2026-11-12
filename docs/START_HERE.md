@@ -10,7 +10,7 @@ This doc was rewritten as part of the 2026-04-17 trust-restore audit; test numbe
 
 ### Track A: Single-Player (playable, healthy)
 
-The single-player roguelike is feature-complete and playable: mining, crafting, equipment, save/load, character classes, floor progression, Legacy Vault, Lua event system. Current test numbers:
+The single-player roguelike is feature-complete and playable: mining, crafting, equipment, save/load, character classes with abilities, floor progression, Legacy Vault, achievements/quests (Python content modules). Current test numbers:
 
 - **1207 tests passing / 0 failing / 0 skipped** (verified 2026-09-23, up from the 1065/0/2 baseline).
 - MP async-cleanup and lock-reentrancy bugs closed in commit 33d72f7.
@@ -19,7 +19,7 @@ The single-player roguelike is feature-complete and playable: mining, crafting, 
 - Playtesting and balance tuning
 - Content expansion (more monsters, recipes)
 - Tutorial system
-- Lua advanced features (AI behaviors, actions)
+- More class abilities (VB-53) and assigning the new AI behaviours to monsters
 
 ### Track B: Multiplayer (experimental)
 
@@ -135,7 +135,7 @@ def generate_dungeon():
 **What exists:**
 - ✅ Core game code (114+ Python files)
 - ✅ Test suite: 1065 passing (full suite green)
-- ✅ Lua Event System
+- ✅ Python content system (`docs/EXTENDING.md`)
 - 🟡 Multiplayer: unit + integration tests pass; needs real two-client playtest
 
 **What's been built (MVP Phase 1 - COMPLETE):**
@@ -222,11 +222,11 @@ def generate_dungeon():
 
 ### If you're implementing MVP systems:
 👉 **`docs/architecture/BASE_CLASS_ARCHITECTURE.md`** - Core design patterns (45 min)
-👉 **`docs/architecture/LUA_INTEGRATION_STRATEGY.md`** - Future-proofing decisions (30 min)
+👉 **`docs/EXTENDING.md`** - How content plugs into the engine (10 min)
 
 **Why read these?**
 - Week 1-2 (mining) is ideal time to implement base classes
-- Lua-ready decisions cost nothing now, save weeks later
+- Registry-based extension points let content grow without touching the engine
 - Clean architecture makes testing easier
 
 ### If you want to implement a feature:

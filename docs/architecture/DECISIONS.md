@@ -74,7 +74,7 @@
 
 ### ADR-005: Lua-Ready Architecture
 **Date**: 2025-10-23
-**Status**: 📋 Planned (implement during MVP Weeks 1-4)
+**Status**: ⛔ Superseded by ADR-018 (Lua was built, then removed 2026-11-11). The patterns it asked for (YAML data, system classes, event bus, GameContext) stay; they are what the Python content registries build on.
 **Decision**: Design 5 architectural patterns now for future Lua integration
 **Rationale**:
 - Zero cost now (good design regardless)
@@ -284,6 +284,24 @@
 
 ---
 
+### ADR-018: Python Content Registries; Drop Lua
+**Date**: 2026-11-11
+**Status**: ✅ Implemented
+**Decision**: Remove the Lua scripting layer (runtime, bridge, wrappers, scripts, `lupa`). Extend the game in Python through decorator registries (`src/core/extensions.py`) and auto-discovered modules in `src/core/content/` (AI behaviours, abilities, damage modifiers, event handlers). See `docs/EXTENDING.md`.
+**Rationale**:
+- The Lua AI path had never run: it called a method that didn't exist, every script defined the same global `update`, it looked for a context monsters don't have, and entities reached Lua as Python dicts so reading an unset stat raised `KeyError`.
+- The Lua event scripts subscribed to events the game never published (`turn_ended`, `floor_changed`, `game_started`, `item_crafted`) and tested the killer against a hard-coded `"player_1"` (real ids are UUIDs), so almost nothing fired.
+- The sniper and summoner had no actions to perform (no ranged attack, no spawn); "bonus loot" and quest "gold" were messages only.
+- One author, one language: the sandbox, hot reload and modding story Lua offers did not outweigh a bridge to maintain and test, and Python content is as easy to add (one file, no core edits).
+**Consequences**:
+- No player-authored mods (a Python plugin can't be sandboxed). Revisit only if sharing content with strangers becomes a goal.
+- The engine now publishes `turn_ended`, `floor_changed` and `game_started`; achievements, quests and kill streaks are ported and work; berserker/sniper/summoner are ported with a real ranged attack (`AttackAction(ranged=True)`) and real summoning (`AISystem.summon`).
+- Monsters no longer bump-attack other monsters (found while testing summoned minions).
+**Docs**: `docs/EXTENDING.md`
+**Impact**: Adding content is one file; errors in content are logged and isolated.
+
+---
+
 ## Rejected Decisions
 
 ### ADR-R01: Emotional Story Progression
@@ -357,7 +375,7 @@
 
 ### Phase 1 (MVP) - 10 Decisions
 - **Implemented/Accepted**: 2 (Textual UI, Podman)
-- **Planned**: 8 (Entity, Action, System, Lua-ready, YAML, Events, Context, Containers)
+- **Planned**: 8 (Entity, Action, System, Lua-ready (superseded by ADR-018), YAML, Events, Context, Containers)
 
 ### Phase 2 (Multiplayer) - 7 Decisions
 - **Designed**: 7 (NATS, Server-authoritative, PostgreSQL, Pydantic, Instances, Turns, WebSocket)

@@ -94,11 +94,9 @@
    - Implementation recommendations for future seeding system
    - **Useful for understanding RNG design decisions**
 
-### 9. [LUA_INTEGRATION_STRATEGY.md](LUA_INTEGRATION_STRATEGY.md) (30 min)
-   - **Future planning only** (Phase 3)
-   - Decisions to make during MVP (YAML content, clean interfaces)
-   - Zero cost now, saves time later
-   - **Don't implement Lua yet**, just be aware
+### 9. [../EXTENDING.md](../EXTENDING.md) (10 min)
+   - How content plugs into the engine: decorator registries and `src/core/content/`
+   - Replaces the old Lua integration plan (removed 2026-11-11, ADR-018 in DECISIONS.md)
 
 ### 10. [USING_TIA_AST.md](USING_TIA_AST.md) (30 min)
    - **Practical guide** for using TIA AST tools during development
@@ -174,7 +172,6 @@ shipped as a simpler in-process WebSocket server instead (`src/server/`). The
 | CONTENT_SYSTEM.md | MVP | ✅ Active | YES - YAML content |
 | ARCHITECTURAL_ASSESSMENT.md | All | ⚠️ Optional | Reference - architectural analysis |
 | RANDOMNESS_ANALYSIS.md | All | ⚠️ Optional | Reference - RNG design |
-| LUA_INTEGRATION_STRATEGY.md | Phase 3 | 📋 Planning | Awareness only |
 | USING_TIA_AST.md | MVP | ✅ Active | YES - Code quality tools |
 | DECISIONS.md | Mixed | ⚠️ Caution | Mix of phases |
 | ~~OPERATIONAL_EXCELLENCE_GUIDELINES.md~~ | MVP | ➡️ Consolidated | Merged into MVP_DEVELOPMENT_GUIDELINES.md |
@@ -225,66 +222,12 @@ shipped as a simpler in-process WebSocket server instead (`src/server/`). The
 **For MVP:** Use simpler version:
 - Simple base classes (Entity, maybe Action)
 - Direct function calls (not events)
-- No NATS, no event bus, no Lua
+- No NATS, no scripting language
 
 **When to use full version:** Phase 2 refactor (8-12 weeks out)
 
-### ❌ DON'T: Spend too much time on LUA_INTEGRATION_STRATEGY.md
-
-**Problem:** It's 25KB of Phase 3 planning.
-
-**For MVP:** Just be aware:
-1. Use YAML for content (not hardcoded)
-2. Keep interfaces clean (makes Lua easier later)
-
-**When to implement Lua:** Phase 3 (after multiplayer)
-
-### ❌ DON'T: Implement Phase 2 infrastructure
-
-**Problem:** Phase 2 docs (now in `/docs/future-multiplayer/`) describe NATS, PostgreSQL, Prometheus, Grafana. *(archived, not in this repo — see `docs/design/MULTIPLAYER_DESIGN_2025.md`)*
-
-**For MVP:** Use simple approaches from `MVP_DEVELOPMENT_GUIDELINES.md`:
-```python
-# Simple logging
-import logging
-logger = logging.getLogger(__name__)
-logger.info("Player mined ore: %s", ore.ore_type)
-```
-
-**When to add infrastructure:** Phase 2 (distributed systems)
-
-### ❌ DON'T: Read docs in `/docs/future-multiplayer/` too much *(archived, not in this repo — see `docs/design/MULTIPLAYER_DESIGN_2025.md`)*
-
-**Problem:** Tempting to implement Phase 2 architecture.
-
-**For MVP:** Stay focused on simple game loop.
-
-**When to read:** After MVP is complete and fun
-
----
-
-## Questions?
-
-### "Which docs should I read for MVP?"
-
-**Essential (must read):**
-1. `00_ARCHITECTURE_OVERVIEW.md` - How MVP works
-2. `MVP_DEVELOPMENT_GUIDELINES.md` - Code style, standards, and advanced practices
-3. `MVP_TESTING_GUIDE.md` - Testing approach
-4. **`EVENTS_ASYNC_OBSERVABILITY_GUIDE.md` - Events, async/await, telemetry (READ BEFORE CODING!)**
-5. `/docs/MVP_ROADMAP.md` - What to build
-6. `/docs/MVP_CURRENT_FOCUS.md` - Implementation hub
-
-**Optional (read if interested):**
-- `BASE_CLASS_ARCHITECTURE.md` - Clean patterns (MVP sections only)
-- `CONTENT_SYSTEM.md` - YAML content
-- `USING_TIA_AST.md` - Code quality automation
-- `ARCHITECTURAL_ASSESSMENT.md` - Architectural analysis and design decisions
-- `RANDOMNESS_ANALYSIS.md` - RNG design (no seeding system currently)
-
 **Skip for now:**
 - Everything in `/docs/future-multiplayer/` (Phase 2) *(archived, not in this repo — see `docs/design/MULTIPLAYER_DESIGN_2025.md`)*
-- Most of `LUA_INTEGRATION_STRATEGY.md` (Phase 3)
 
 ### "Should I implement Entity base class?"
 

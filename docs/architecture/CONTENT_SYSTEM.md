@@ -1,5 +1,7 @@
 # Veinborn Content System: Data-Driven Design & Scripting
 
+> **Historical note (2026-11-11):** this document was written when a Lua scripting layer was planned. Lua was built and then removed (ADR-018 in `DECISIONS.md`); content is now extended in Python via registries (see [../EXTENDING.md](../EXTENDING.md)). References to Lua below describe the old plan and are kept for history.
+
 **Document Type:** Content Architecture
 **Audience:** Content Designers, Gameplay Programmers
 **Status:** Active

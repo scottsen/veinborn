@@ -63,8 +63,7 @@ python3 run_textual.py
 - **[docs/MECHANICS_REFERENCE.md](docs/MECHANICS_REFERENCE.md)** - Game mechanics
 
 ### For Modders
-- **[docs/LUA_API.md](docs/LUA_API.md)** - Lua modding API
-- **[docs/LUA_EVENT_MODDING_GUIDE.md](docs/LUA_EVENT_MODDING_GUIDE.md)** - Event system modding
+- **[docs/EXTENDING.md](docs/EXTENDING.md)** - Add AI behaviours, abilities and event handlers (Python)
 - **[docs/CONTENT_CREATION.md](docs/CONTENT_CREATION.md)** - Add monsters/items
 
 ### For Developers

@@ -1,5 +1,7 @@
 # Veinborn Architectural Assessment
 
+> **Historical note (2026-11-11):** this document was written when a Lua scripting layer was planned. Lua was built and then removed (ADR-018 in `DECISIONS.md`); content is now extended in Python via registries (see [../EXTENDING.md](../EXTENDING.md)). References to Lua below describe the old plan and are kept for history.
+
 **Document Type:** Architectural Analysis
 **Audience:** Architects, Lead Developers
 **Status:** Active
@@ -19,7 +21,7 @@ This document provides architectural assessment of the Veinborn codebase, coveri
 
 **Companion documents:**
 - `BASE_CLASS_ARCHITECTURE.md` - Core design patterns
-- `LUA_INTEGRATION_STRATEGY.md` - Scripting integration plans
+- ~~`LUA_INTEGRATION_STRATEGY.md`~~ (removed with Lua; see ADR-018)
 - `00_ARCHITECTURE_OVERVIEW.md` - High-level architecture
 
 ---
@@ -396,7 +398,7 @@ context.register_system('custom_system', my_system)
 ## References
 
 - [BASE_CLASS_ARCHITECTURE.md](./BASE_CLASS_ARCHITECTURE.md) - Core patterns
-- [LUA_INTEGRATION_STRATEGY.md](./LUA_INTEGRATION_STRATEGY.md) - Scripting plans
+- [../EXTENDING.md](../EXTENDING.md) - How content is extended in Python today
 - [EVENT_SYSTEM.md](./EVENT_SYSTEM.md) - Event architecture
 - [00_ARCHITECTURE_OVERVIEW.md](./00_ARCHITECTURE_OVERVIEW.md) - High-level overview
 - [RANDOMNESS_ANALYSIS.md](./RANDOMNESS_ANALYSIS.md) - RNG and seeding analysis

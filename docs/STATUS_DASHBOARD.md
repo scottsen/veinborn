@@ -11,7 +11,7 @@
 |----------|--------|---------|
 | **Single-Player core** | 🟢 Healthy | All tests pass |
 | **Multiplayer** | 🟡 8 critical/urgent/high bugs fixed 2026-09-22, playtest still pending | `VB-16`–`VB-23` all fixed and test-covered this session (dead-actor redirect, Lua sandbox RCE, process-global RNG cross-contamination, save/load data loss, chat delta desync after 20 messages, Pickup/Wait actions unusable in MP, reconnect race, 3-way player storage). A scripted headless two-client playtest over real websockets (2026-09-23) then found and fixed 5 more bugs that mock-based tests could not see — the server rejected every real connection on websockets ≥ 13, clients never learned their entity id or that the game started, monster-turn messages never reached deltas, and every client drop raised (`VB-39`–`VB-43`); it now runs join → play → death → drop/reconnect → victory cleanly (`tests/integration/test_multiplayer_real_sockets.py`). Still no *human* playtest: nothing but the dev `test_client.py` can send actions (`VB-44`). `VB-24` (SP/MP separate post-action pipelines) is done as of 2026-09-23: MP shares the outcome pipeline (messages, events, took_turn) and HP regen, the party plays on while any player is alive, and co-op runs are scored per player on their own leaderboard (`data/highscores_multiplayer.json`, view with `veinborn-scores --coop`; no in-game screen yet — see `tt list --project veinborn`). |
-| **Test Health** | ✅ Green | 1302 collected: 1302 passing / 0 failing / 0 skipped (verified 2026-11-11) — up from 1067/1065/0/2 baseline; the 2 previously-skipped Lua timeout tests now genuinely pass (see `VB-17`), and the flaky planner tests are seeded (`VB-34`) / given a walkable arena (`test_get_smart_action_prioritizes_forced_combat` still failed ~25% of runs after seeding) |
+| **Test Health** | ✅ Green | 1145 collected: 1145 passing / 0 failing / 0 skipped (verified 2026-11-11). The count dropped from 1302 when the Lua layer and its ~250 tests were removed (the same day); the flaky planner tests are seeded (`VB-34`) / given a walkable arena |
 | **Current Phase** | 🎮 MP hardening + playtest | No open high-priority findings; the next milestone is the first real two-client playtest |
 | **Playability** | ✅ SP playable / 🟡 MP no longer has known exploitable bugs, still unplaytested | |
 
@@ -58,7 +58,7 @@ See `docs/PROJECT_REVIEW_2026-04-17.md` for the last full architecture audit, an
 - ✅ Legacy Vault (meta-progression)
 - ✅ Combat system (turn-based tactical)
 - ✅ Monster AI (pathfinding, aggression)
-- ✅ Lua Event System (Phase 3 complete)
+- ✅ Python content system: registered AI behaviours, abilities and event handlers (`docs/EXTENDING.md`); achievements, quests and kill streaks run from it
 
 ### Multiplayer (Phase 2 Complete - 2025-11-14)
 - ✅ WebSocket server infrastructure
@@ -162,7 +162,7 @@ python3 src/server/test_client.py
 **Quality Metrics:**
 - **100% test pass rate**
 - **5/5 architectural improvements complete**
-- **5/5 Lua integration readiness**
+- **Extension points**: AI behaviours, abilities, damage modifiers, event handlers (`src/core/content/`)
 - **4.8/5 architecture quality**
 
 **Content:**
@@ -216,7 +216,9 @@ python3 src/server/test_client.py
 | ~~Forge, ore veins and monsters spawned on the same tile~~ | ~~🟡 Medium~~ | ✅ Fixed 2026-11-11 — `VB-46` (relocated to nearest free tile) |
 | ~~Nobody levels in early play (goblin 5 XP vs 100 XP/level); mage loses to goblins; combat fully deterministic~~ | ~~🟡 Medium~~ | ✅ Fixed 2026-11-11 — `VB-48`: d20 to-hit + damage roll, NetHack doubling XP curve (20/40/80…), per-class growth (no defense from levels), mage attack 2→4; odds via `scripts/sim_duels.py` |
 | ~~Classes were bare stat lines; monsters only spawned at floor creation~~ | ~~🟡 Medium~~ | ✅ Fixed 2026-11-11 — `VB-51`: mage force bolt (`z`), healer heal, rogue backstab, warrior/rogue start equipped (stat-neutral), mage attack 4→3; `VB-52`: 2%/turn wandering spawns. Remaining abilities: `VB-53` |
-| Lua AI styles, `passive`, `aggro_range`/`move_speed` are not wired | 🟢 Low | Open — `VB-47` |
+| ~~Lua scripting layer never ran end to end (four bugs on the AI path; event scripts subscribed to events nobody published)~~ | ~~🟡 Medium~~ | ✅ Removed 2026-11-11 — replaced by Python content modules (`docs/EXTENDING.md`, ADR-018); berserker/sniper/summoner ported (with a real ranged attack and real summoning); achievements/quests/kill streaks ported and now fire (the engine now publishes `turn_ended`, `floor_changed`, `game_started`) |
+| ~~Monsters bump-attacked other monsters (packs queueing in a corridor killed each other)~~ | ~~🟡 Medium~~ | ✅ Fixed 2026-11-11 — monsters treat other monsters as blocking |
+| `passive` AI never triggers, `aggro_range`/`move_speed` are never read, guard `flee_threshold` unused, new behaviours not assigned to any monster | 🟢 Low | Open — `VB-47` |
 | No gameplay client: `MultiplayerClient` can't send actions, TUI only does chat/lobby | 🟠 High | Open — `VB-44` |
 | Dead-code candidates (`perception.py` module, `GameTelemetry.log_*`) | 🟢 Low | Held — `VB-32`: need a wire-in-or-delete decision |
 | No tutorial for new players | 🟢 Low | Planned for Phase 3 |

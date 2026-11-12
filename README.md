@@ -76,7 +76,7 @@ Both paths are valid! Use the vault to learn or overcome bad luck.
 **Choose your path:**
 - 🎮 **Player?** → [QUICKSTART.md](QUICKSTART.md) - Start playing now
 - 🎨 **Content creator?** → [docs/CONTENT_CREATION.md](docs/CONTENT_CREATION.md) - Add monsters/items
-- 🔧 **Modder?** → [docs/LUA_API.md](docs/LUA_API.md) - Lua modding API
+- 🔧 **Extending the game?** → [docs/EXTENDING.md](docs/EXTENDING.md) - Add AI behaviours, abilities and event handlers in Python
 - 👨‍💻 **Developer?** → [docs/START_HERE.md](docs/START_HERE.md) - Contributing guide
 
 **Full documentation hub:** [docs/README.md](docs/README.md)
@@ -118,11 +118,11 @@ Both paths are valid! Use the vault to learn or overcome bad luck.
 - Bot equipment intelligence (stat-based upgrade detection)
 
 **📊 Project Health (verified 2026-04-17):**
-- **Test suite**: 1065 passing / 0 failing / 2 skipped in ~25s (Lua signal-timeout skips are expected)
+- **Test suite**: 1065 passing / 0 failing / 2 skipped in ~25s 
 - **Single-player**: all tests pass; playable end-to-end
 - **Multiplayer**: server unit + integration tests pass (commits 0449d66 + 33d72f7 closed MP contract, lock deadlock, and leave-game semantics). Needs real two-client playtest.
 - **5 of 5 architectural improvements complete**
-- **Lua-ready architecture** (5/5 extensibility score)
+- **Python extension points**: AI behaviours, abilities and event handlers are registered content modules ([docs/EXTENDING.md](docs/EXTENDING.md))
 
 **✅ Legacy Vault System (Complete):**
 - Meta-progression system (preserves purity 80+ ore across runs)

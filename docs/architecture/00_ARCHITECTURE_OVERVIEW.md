@@ -13,7 +13,7 @@ A terminal roguelike (NetHack-style) in Python with:
 - **Single-player core** — mining, crafting, dungeon exploration (working, playable)
 - **Textual UI** — the live client (`src/ui/textual/app.py`)
 - **Multiplayer (in-progress)** — WebSocket-based server (`src/server/`) with `GameSession`, reconnection, chat; design in `docs/design/MULTIPLAYER_DESIGN_2025.md`
-- **Lua scripting** — event-driven modding (`src/core/scripting/`, `src/core/events/`)
+- **Python content system** — AI behaviours, abilities and event handlers registered from `src/core/content/` (`src/core/extensions.py`); see `docs/EXTENDING.md`
 - **YAML-driven content** — recipes, monsters, ores
 
 **Verified test state (2026-09-23):** 1170 passing / 0 failing / 0 skipped (`python3 -m pytest tests/ -q`).
@@ -22,7 +22,7 @@ A terminal roguelike (NetHack-style) in Python with:
 
 | Area | Home | Notes |
 |------|------|-------|
-| Game loop / turn engine | `src/core/game.py` | Owns event bus, Lua runtime, telemetry, floor manager, save-load; assembled by `GameBootstrapper` (`game_bootstrap.py`) and `GameLuaIntegration` (`game_lua_integration.py`) |
+| Game loop / turn engine | `src/core/game.py` | Owns event bus, content event handlers, telemetry, floor manager, save-load; assembled by `GameBootstrapper` (`game_bootstrap.py`) and the content registries (`extensions.py`) |
 | Post-action pipeline | `src/core/action_pipeline.py` | `process_action_outcome()` — log failures, publish events, react to `descend_floor`, record messages. Shared by single-player `Game` and multiplayer `GameSession` |
 | Turn processing | `src/core/turn_processor.py` | Single-player: monster AI, cleanup, game over / high score. `apply_hp_regeneration()` is shared with multiplayer |
 | Floors | `src/core/floor_manager.py` + `EntitySpawner.spawn_all_for_floor` | Shared helpers (`generate_floor_map`, `get_victory_floor`, `GameState.clear_floor_entities`) are used by both modes |
@@ -30,7 +30,7 @@ A terminal roguelike (NetHack-style) in Python with:
 | Game state | `src/core/game_state.py` + `GameContext` facade | Actions see `GameContext`; `GameState` is the underlying store |
 | UI | `src/ui/textual/` | Bindings live in `app.py` — source of truth for keybinds |
 | Multiplayer server | `src/server/` | `GameSession`, `WebSocketServer`, reconnection, chat |
-| Scripting | `src/core/scripting/` | Lua runtime and context API; event handlers in `src/core/events/` |
+| Content / extension points | `src/core/extensions.py` + `src/core/content/` | Decorator registries for AI behaviours, abilities, damage modifiers and event handlers; content modules are auto-imported. See `docs/EXTENDING.md` |
 | Content | `data/` + `src/core/entity_loader.py` | Monsters, ores, recipes |
 
 ## Canonical Design Docs
@@ -51,7 +51,6 @@ Earlier phases framed this as "MVP single-player only, multiplayer is future wor
 - Python 3.10+ (type hints, dataclasses)
 - Textual (terminal UI framework)
 - websockets (multiplayer transport)
-- lupa (Lua scripting)
 - PyYAML (content loading)
 - pytest + pytest-asyncio (testing)
 
@@ -107,8 +106,9 @@ projects/veinborn/
 │   │   ├── entities.py        # Player, monsters, ore veins, forges
 │   │   ├── world.py           # Map generation (BSP algorithm)
 │   │   ├── actions/           # Move, mine, attack, craft, pickup, ...
-│   │   ├── events/            # EventBus + Lua event handlers
-│   │   ├── scripting/         # Lua runtime and context API
+│   │   ├── events/            # EventBus and event types
+│   │   ├── extensions.py      # Registries + decorators for content
+│   │   ├── content/           # ai/, abilities/, events/ content modules
 │   │   ├── spawning/          # EntitySpawner
 │   │   ├── systems/           # AI system and behaviours
 │   │   ├── crafting.py, loot.py, legacy.py, highscore.py, save_load.py
@@ -516,7 +516,7 @@ python3 -m pytest --cov=src tests/
 2. **Extract game logic** → GameStateService (microservice)
 3. **Add network layer** → ConnectionService (WebSocket gateway)
 4. **Add persistence** → PersistenceService (PostgreSQL)
-5. **Add Lua scripting** → For entity behaviors
+5. **Extend via content modules** → `src/core/content/` (already in place; see `docs/EXTENDING.md`)
 
 **But for MVP:** Keep it simple! Direct function calls work perfectly for single-player.
 
@@ -536,7 +536,6 @@ python3 -m pytest --cov=src tests/
 
 ### For Future Planning (Don't Build Yet)
 - `docs/design/MULTIPLAYER_DESIGN_2025.md` - Multiplayer architecture (Phase 2 complete; the original `future-multiplayer/` directory is archived, not in this repo)
-- `LUA_INTEGRATION_STRATEGY.md` - Phase 3 scripting
 - `LOGGING_OBSERVABILITY.md` - Phase 2 monitoring
 
 ---
@@ -570,16 +569,13 @@ See `BASE_CLASS_ARCHITECTURE.md` for complete design. Main benefits:
 **Time cost:** 2-3 hours to refactor
 **Benefit:** Cleaner code, easier mining implementation
 
-### Q: What about Lua scripting?
+### Q: What about scripting (Lua)?
 
-**A:** Not for MVP!
+**A:** Tried and removed (2026-11-11, ADR-018 in `DECISIONS.md`).
 
-Lua scripting is Phase 3 (after multiplayer). For MVP:
-- All game logic in Python
-- All content in YAML
-- No scripting needed
-
-See `LUA_INTEGRATION_STRATEGY.md` for future planning, but don't implement yet.
+All game logic is Python and content is YAML plus small Python content modules
+registered with decorators (`docs/EXTENDING.md`). That gives hot-spot extensibility
+without a second language to bridge, test and sandbox.
 
 ---
 

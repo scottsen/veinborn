@@ -31,7 +31,7 @@ The single-player MVP is **feature-complete** with all core systems working:
 10. ✅ **Combat System** - Turn-based tactical combat (DONE - 40+ tests passing)
 11. ✅ **Monster AI** - Pathfinding, aggression (DONE - 40+ tests passing)
 12. ✅ **Legacy Vault System** - Meta-progression (DONE - 47 tests passing)
-13. ✅ **Lua Event System** - Phase 3 complete (event handlers, achievements, quests)
+13. ✅ **Content system** - Python registries for AI behaviours, abilities and event handlers (achievements, quests, kill streaks); replaced the Lua layer 2026-11-11, see `EXTENDING.md`
 
 **Test Evidence (2026-04-17):** 1067 collected, 1065 passing / 0 failing / 2 skipped
 
@@ -44,7 +44,7 @@ The single-player MVP is **feature-complete** with all core systems working:
 The core game is complete and playable. Focus now shifts to:
 - Playtesting and balance tuning
 - Content expansion (more monsters, recipes)
-- Lua advanced features (AI behaviors, custom actions)
+- More class abilities (VB-53); assign berserker/sniper/summoner to monsters after a playtest
 - Fix remaining 3 test failures
 - Polish and user experience improvements
 
@@ -147,13 +147,7 @@ python3 run_textual.py
 **Current Status:**
 - 1065 passing
 - 0 failing (MP async-cleanup + lock deadlock bugs fixed in commit 33d72f7)
-- 2 correctly skipped (Lua timeout tests — C-level execution limitation)
 - ✅ All functional tests passing
-
-**Note:** The 2 skipped tests (`test_infinite_loop_timeout` and `test_long_computation_timeout`)
-cannot pass with the current signal-based timeout mechanism because lupa's C-level Lua
-execution doesn't respond to Python signals. These would require a multiprocessing-based
-timeout implementation, which is not worth the complexity for edge-case timeout protection.
 
 #### 3. Content Status ✅ EXCEEDS GOALS
 
@@ -294,7 +288,7 @@ timeout implementation, which is not worth the complexity for edge-case timeout 
 ### 🔨 Phase 2: Polish (CURRENT - November 2025)
 - [ ] Playtest and balance pass
 - [x] Complete Legacy Vault (100% done - 47 tests passing!)
-- [x] Lua Event System (100% done - Phase 3 complete!)
+- [x] Content system (Python registries; Lua removed 2026-11-11)
 - [ ] Fix remaining 3 test failures (857/860 → 860/860)
 - [ ] Content expansion (more monsters, recipes)
 - [ ] Tutorial system
@@ -412,7 +406,7 @@ python3 -m pytest tests/ -v
 
 ### For Future Work:
 - **design/MULTIPLAYER_DESIGN_2025.md** - Current MP design
-- **architecture/LUA_INTEGRATION_STRATEGY.md** - Phase 3 planning
+- **EXTENDING.md** - How to add behaviours, abilities and event handlers
 
 ---
 
@@ -424,7 +418,7 @@ python3 -m pytest tests/ -v
 ### "What's actually missing?"
 Very little! Main gaps:
 - Fix remaining 3 test failures (99.7% → 100%)
-- Lua advanced features (AI behaviors, custom actions)
+- More class abilities (VB-53)
 - More monster types (have 19, excellent coverage!)
 - Tutorial system (new player UX)
 - Special room types (content variety)
@@ -470,7 +464,7 @@ Very little! Main gaps:
 - NATS message bus
 - WebSocket server
 - Multiplayer lobby
-- Lua scripting
+- A scripting language (Lua was tried and removed; see ADR-018)
 - Microservices
 - Docker/Podman orchestration
 

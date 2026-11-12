@@ -29,16 +29,14 @@
 
 ---
 
-## 🔧 I Want to Mod with Lua
+## 🔧 I Want to Extend the Game
 
-**Extend the game with Lua scripts:**
+**Add AI behaviours, abilities and event handlers in Python:**
 
-→ **[LUA_API.md](LUA_API.md)** - Complete Lua API reference 📚
-→ **[LUA_EVENT_MODDING_GUIDE.md](LUA_EVENT_MODDING_GUIDE.md)** - Event system modding
-→ **[LUA_AI_MODDING_GUIDE.md](LUA_AI_MODDING_GUIDE.md)** - AI behavior modding
-→ **[Example scripts](../scripts/)** - Working examples
+→ **[EXTENDING.md](EXTENDING.md)** - One file per piece of content, registered with a decorator
+→ **[Shipped content](../src/core/content/)** - Working examples to copy
 
-**Path:** Read LUA_API → Copy example → Modify → Test → Share!
+**Path:** Read EXTENDING → Copy a content module → Modify → Test
 
 ---
 
@@ -103,7 +101,7 @@
 | **What's implemented?** | [PROJECT_REVIEW_2026-04-17.md](PROJECT_REVIEW_2026-04-17.md) — audited; SP clean, MP experimental |
 | **What's next?** | [MVP_CURRENT_FOCUS.md](MVP_CURRENT_FOCUS.md) |
 | **How do I add monsters?** | [CONTENT_CREATION.md](CONTENT_CREATION.md) |
-| **How do I mod with Lua?** | [LUA_API.md](LUA_API.md) |
+| **How do I add behaviours, abilities, events?** | [EXTENDING.md](EXTENDING.md) |
 | **How do I contribute?** | [START_HERE.md](START_HERE.md) |
 | **Where's the code?** | `src/core/` - well-structured Python |
 
@@ -114,7 +112,7 @@
 | **Game code** | `src/core/` |
 | **Tests** | `tests/` (1065 passing / 0 failing / 2 skipped) |
 | **Data files** | `data/balance/`, `data/entities/` |
-| **Lua scripts** | `scripts/actions/`, `scripts/events/`, `scripts/ai/` |
+| **Content modules** | `src/core/content/` (`ai/`, `abilities/`, `events/`) |
 | **Documentation** | `docs/` (you are here) |
 
 ---
