@@ -2,7 +2,7 @@
 project: veinborn
 schema_version: '1.0'
 id_prefix: VB
-next_id: 57
+next_id: 58
 archival: inline
 areas: {}
 ---
@@ -1246,6 +1246,22 @@ priority: low
 tags: [content, balance]
 created: '2026-11-12T05:11:49Z'
 updated: '2026-11-12T05:11:49Z'
+session: turquoise-mosaic-1111
+```
+
+<!-- notes: append-only log; each has a stable #id (see CLI §5) -->
+### Notes
+_(no notes yet)_
+
+
+## TASK-VB-57 · Fuzz class bots: the per-class get_smart_action trees in tests/fuzz/{warrior,rogue,mage,healer}_bot.py are never called (veinborn_bot calls planner.plan_next_action), so all four bots run the shared planner and differ only by CombatConfig. Either wire the class trees in (e.g. planner delegates to a bot hook) or delete them
+
+```yaml
+status: backlog
+priority: low
+tags: [fuzz, bots]
+created: '2026-11-12T06:56:00Z'
+updated: '2026-11-12T06:56:00Z'
 session: turquoise-mosaic-1111
 ```
 
