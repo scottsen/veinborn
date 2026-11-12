@@ -2,7 +2,7 @@
 project: veinborn
 schema_version: '1.0'
 id_prefix: VB
-next_id: 69
+next_id: 70
 archival: inline
 areas: {}
 ---
@@ -1460,7 +1460,7 @@ owner: scott
 effort: per ability ~1h + play-test
 tags: [ai, balance, content, design]
 created: '2026-11-12T17:40:20Z'
-updated: '2026-11-12T19:21:53Z'
+updated: '2026-11-12T19:31:29Z'
 session: vevine-1112
 depends_on: [VB-63]
 parent: VB-47
@@ -1470,7 +1470,7 @@ links:
   - data/entities/monsters.yaml
   commits:
   - 294cf9aa9dc4ffa7535b95109dfa328748d80420
-notes_next: 3
+notes_next: 4
 ```
 
 Design/balance work, needs Scott: which abilities, in what order, at what numbers. Suggested first wave (no status effects needed): lich death_bolt + summon_undead, imp fire_bolt, vampire bat_swarm + life_drain, wraith life_drain, troll regeneration, ancient_horror summon_horrors + phase_two (enrage). Each: implement as @ability content, set enabled: true, rewrite that monster's ai.description to match, bot before/after, play-test. Also decides whether any monster keeps berserker/sniper/summoner tactics. See AI_ARCHITECTURE.md 'Monster ability inventory'.
@@ -1479,6 +1479,7 @@ Design/balance work, needs Scott: which abilities, in what order, at what number
 ### Notes
 - [#1 2026-11-12T18:22:07Z session:vevine-1112] Built (disabled) at 294cf9a: the 9 active abilities in AI_ARCHITECTURE.md 'Monster ability inventory'. Waiting on Scott: which to enable and at what numbers (declared values like death_bolt 15 / dive_bomb 20 / reality_warp 25 vs 20 HP players look too high), then bot runs + play-test per ability. Passive ones are VB-67, status effects VB-65.
 - [#2 2026-11-12T19:21:53Z session:warming-squall-1112] Data path: VB-68 steps 1+2 (duel sim through AISystem, seeded paired bot runs) can turn the 'which abilities, what numbers' choice into a table with proposed values for Scott to approve.
+- [#3 2026-11-12T19:31:29Z session:warming-squall-1112] sim_duels data (a982c4f), imp fire_bolt, start distance 4, 500 fights/cell, HP lost on a win (% max), off -> on at declared damage 4 -> damage 3: L2 warrior 3->42->31, rogue 5->57->44, mage 1->37->28, healer 5->50->41 (rogue/healer win 97% at dmg 4, 100% at 3); L4 2-3 -> 14-43 -> 11-33; L6 1-2 -> 0-35 -> 0-26. Imp spawns floors 11+ only. Fire_bolt does ~99% of an imp's damage once on (it shoots instead of closing). Other 8 abilities' monsters never spawn (VB-69), so imp is the only one that changes a real game now.
 
 
 ## TASK-VB-65 · Status effect system (poison, stun, root/adhesive, petrify) for monster and player abilities
@@ -1569,12 +1570,12 @@ _(no notes yet)_
 ## TASK-VB-68 · Automated play-testing: duel sim through AISystem, seeded paired bot runs, fog-of-war bots, fairness metrics
 
 ```yaml
-status: backlog
+status: in_progress
 priority: medium
 effort: 8-12h total (steps 1+2 ~half day)
 tags: [fuzz, bots, balance, ai, tests]
 created: '2026-11-12T19:21:49Z'
-updated: '2026-11-12T19:21:49Z'
+updated: '2026-11-12T19:31:29Z'
 session: warming-squall-1112
 parent: VB-47
 links:
@@ -1589,6 +1590,7 @@ links:
   - VB-64
   - VB-57
   - VB-32
+notes_next: 2
 ```
 
 Goal: turn most of 'play-test' into measurement so VB-64 (and later VB-65/67) become data decisions, and Scott's play-test shrinks to feel questions (fun, fairness feel, message readability, boss feel) on monsters the numbers already call balanced.
@@ -1610,6 +1612,34 @@ Path, in order:
 4. (~2-3h) Fairness metrics + deeper invariants from the ATTACK_RESOLVED events (VB-66): burst deaths (>50% HP to dead within 2 turns), damage from attackers outside player sight, summon counts vs max_minions, disabled ability firing, cooldowns, actor overlap, actor in wall, monsters that fled and never returned. Per-monster breakdown in GameResult.
 
 Steps 1+2 are the high-value half: do them before asking Scott for VB-64 numbers.
+
+<!-- notes: append-only log; each has a stable #id (see CLI §5) -->
+### Notes
+- [#1 2026-11-12T19:31:29Z session:warming-squall-1112] Step 1 done a982c4f: scripts/sim_duels.py now runs monster turns via AISystem (TrackedAI subclass records damage melee/ability/minion and uses per ability, minion uses prefixed 'minion:'); --abilities off|on|both|m.a, --set m.a.k=v, --json. tests/unit/test_sim_duels.py (5), mutation (drop ctx.register_system('ai')) fails the summon test. Suite 1280. Found VB-69: only imp of the ability monsters is in any spawn table. Steps 2-4 open.
+
+
+## TASK-VB-69 · Spawn tables: 10 of 19 monsters never spawn (wyvern, vampire, lich, demon, phoenix, ancient_horror, wraith, mimic, golem, basilisk)
+
+```yaml
+status: backlog
+priority: medium
+owner: scott
+tags: [balance, content, spawning]
+created: '2026-11-12T19:31:16Z'
+updated: '2026-11-12T19:31:16Z'
+session: warming-squall-1112
+links:
+  references:
+  - data/balance/monster_spawns.yaml
+  - data/entities/monsters.yaml
+  - docs/architecture/AI_ARCHITECTURE.md
+  relates_to:
+  - VB-64
+  - VB-47
+  - VB-68
+```
+
+Found 2026-11-12 (VB-68) while measuring monster abilities: data/balance/monster_spawns.yaml spawn_weights only names goblin, bat, orc, skeleton, wolf, spider, troll, ogre, imp. The other 10 monsters (all defined in monsters.yaml, several with ADR-019 abilities built) appear in no spawn table and no other data/balance file except recipe flavour (recipes.yaml 'requires lich/phoenix/ancient_horror kill'). So of the 9 built VB-64 abilities only imp fire_bolt (floors 11+) can affect a real game. Design call for Scott: which floors each monster belongs to, boss placement (ancient_horror as final boss?), weights. Measure each placement with scripts/sim_duels.py at the player level expected on that floor, plus seeded bot runs (VB-68 step 2).
 
 <!-- notes: append-only log; each has a stable #id (see CLI §5) -->
 ### Notes
