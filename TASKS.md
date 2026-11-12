@@ -2,7 +2,7 @@
 project: veinborn
 schema_version: '1.0'
 id_prefix: VB
-next_id: 68
+next_id: 69
 archival: inline
 areas: {}
 ---
@@ -1460,7 +1460,7 @@ owner: scott
 effort: per ability ~1h + play-test
 tags: [ai, balance, content, design]
 created: '2026-11-12T17:40:20Z'
-updated: '2026-11-12T18:22:07Z'
+updated: '2026-11-12T19:21:53Z'
 session: vevine-1112
 depends_on: [VB-63]
 parent: VB-47
@@ -1470,7 +1470,7 @@ links:
   - data/entities/monsters.yaml
   commits:
   - 294cf9aa9dc4ffa7535b95109dfa328748d80420
-notes_next: 2
+notes_next: 3
 ```
 
 Design/balance work, needs Scott: which abilities, in what order, at what numbers. Suggested first wave (no status effects needed): lich death_bolt + summon_undead, imp fire_bolt, vampire bat_swarm + life_drain, wraith life_drain, troll regeneration, ancient_horror summon_horrors + phase_two (enrage). Each: implement as @ability content, set enabled: true, rewrite that monster's ai.description to match, bot before/after, play-test. Also decides whether any monster keeps berserker/sniper/summoner tactics. See AI_ARCHITECTURE.md 'Monster ability inventory'.
@@ -1478,6 +1478,7 @@ Design/balance work, needs Scott: which abilities, in what order, at what number
 <!-- notes: append-only log; each has a stable #id (see CLI §5) -->
 ### Notes
 - [#1 2026-11-12T18:22:07Z session:vevine-1112] Built (disabled) at 294cf9a: the 9 active abilities in AI_ARCHITECTURE.md 'Monster ability inventory'. Waiting on Scott: which to enable and at what numbers (declared values like death_bolt 15 / dive_bomb 20 / reality_warp 25 vs 20 HP players look too high), then bot runs + play-test per ability. Passive ones are VB-67, status effects VB-65.
+- [#2 2026-11-12T19:21:53Z session:warming-squall-1112] Data path: VB-68 steps 1+2 (duel sim through AISystem, seeded paired bot runs) can turn the 'which abilities, what numbers' choice into a table with proposed values for Scott to approve.
 
 
 ## TASK-VB-65 · Status effect system (poison, stun, root/adhesive, petrify) for monster and player abilities
@@ -1559,6 +1560,56 @@ links:
 ```
 
 13 of the 27 abilities declared in monsters.yaml are not actions, so the VB-63 engine ability step cannot express them: per-turn (troll/ancient_horror regeneration, demon fire_aura, phoenix flame_aura, ancient_horror phase_two enrage), on-hit (wraith/vampire life_drain; spider poison, wyvern poison_sting, basilisk poison_bite/petrifying_gaze, mimic adhesive need VB-65 too), on-death intercept before removal (phoenix rebirth, lich phylactery), movement (imp/demon teleport, wraith phase_shift through walls) and mimic disguise. Today only @damage_modifier exists (attacker-side, player-only via the abilities stat). Design one trigger mechanism (e.g. @passive(name, on='turn'|'hit'|'death') run by the engine for any actor whose resolved abilities include it, in core so MP gets it), keep it data-driven like abilities_for. Player regeneration/teleport (VB-53) should reuse it. See AI_ARCHITECTURE.md 'Monster ability inventory'.
+
+<!-- notes: append-only log; each has a stable #id (see CLI §5) -->
+### Notes
+_(no notes yet)_
+
+
+## TASK-VB-68 · Automated play-testing: duel sim through AISystem, seeded paired bot runs, fog-of-war bots, fairness metrics
+
+```yaml
+status: backlog
+priority: medium
+effort: 8-12h total (steps 1+2 ~half day)
+tags: [fuzz, bots, balance, ai, tests]
+created: '2026-11-12T19:21:49Z'
+updated: '2026-11-12T19:21:49Z'
+session: warming-squall-1112
+parent: VB-47
+links:
+  references:
+  - scripts/sim_duels.py
+  - tests/fuzz/veinborn_bot.py
+  - tests/fuzz/services/perception_service.py
+  - tests/fuzz/services/tactical_decision_service.py
+  - tests/fuzz/services/action_planner.py
+  - docs/architecture/AI_ARCHITECTURE.md
+  relates_to:
+  - VB-64
+  - VB-57
+  - VB-32
+```
+
+Goal: turn most of 'play-test' into measurement so VB-64 (and later VB-65/67) become data decisions, and Scott's play-test shrinks to feel questions (fun, fairness feel, message readability, boss feel) on monsters the numbers already call balanced.
+
+Gaps found 2026-11-12 (warming-squall-1112):
+- scripts/sim_duels.py duel() hand-rolls the monster turn (step closer, bump AttackAction). It never calls AISystem, so perception, speed (energy), morale and monster abilities are invisible to it: it cannot measure VB-64 at all.
+- veinborn_bot.py play_one_game calls game.start_new_game() with no seed (the game supports one), so before/after runs play different dungeons; 8 games x 3000 turns could not resolve speed or morale effects (vevine-1112).
+- validate_game_state checks only HP range, bounds, inventory size.
+- PerceptionService.find_monsters returns every living monster on the floor: bots are omniscient while monsters now have LOS + memory, so bot runs make the game look easier than it is for humans.
+- TacticalDecisionService.can_win_fight is deterministic atk-def; ignores d20 to-hit, damage spread, monster speed, ranged/summon abilities, morale.
+- Bots never drink potions (loot drops them), never break LOS vs ranged monsters or use corridors vs packs.
+- Per-class bots are one planner differing by CombatConfig (VB-57).
+- GameResult has one death_cause; no per-monster breakdown or ability-damage share.
+
+Path, in order:
+1. (~2-3h) Duel/arena sim drives monster turns through AISystem.update (real perception, energy, morale, abilities via abilities_for/_use_ability). Matrix class x level x monster, each monster ability on/off: win%, HP lost, turns-to-kill, share of damage from abilities. Output a table TIA can propose VB-64 numbers from.
+2. (~1-2h) --seed-base for bot runs; paired before/after on identical seeds (common random numbers), 32-64 games, report CIs on floor/deaths/turns.
+3. (~3-4h) Bot realism: restrict perception to LOS + memory (core.geometry.has_line_of_sight), fight model with to-hit/speed/abilities, potion use, break-LOS vs ranged. Resolve VB-57 here (wire class trees as planner hooks or delete them).
+4. (~2-3h) Fairness metrics + deeper invariants from the ATTACK_RESOLVED events (VB-66): burst deaths (>50% HP to dead within 2 turns), damage from attackers outside player sight, summon counts vs max_minions, disabled ability firing, cooldowns, actor overlap, actor in wall, monsters that fled and never returned. Per-monster breakdown in GameResult.
+
+Steps 1+2 are the high-value half: do them before asking Scott for VB-64 numbers.
 
 <!-- notes: append-only log; each has a stable #id (see CLI §5) -->
 ### Notes
