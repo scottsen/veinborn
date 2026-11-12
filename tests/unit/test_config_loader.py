@@ -61,10 +61,8 @@ class TestAIBehaviorConfiguration:
         aggressive = config.get_ai_behavior_config('aggressive')
 
         assert aggressive is not None
-        assert 'chase_range' in aggressive
-        assert aggressive['chase_range'] == 10
-        assert 'attack_on_sight' in aggressive
-        assert aggressive['attack_on_sight'] is True
+        # Perception (aggro_range) decides what it chases; no separate chase range
+        assert 'chase_range' not in aggressive
         assert 'flee_threshold' in aggressive
         assert aggressive['flee_threshold'] == 0.0
 
@@ -80,17 +78,21 @@ class TestAIBehaviorConfiguration:
         assert 'flee_threshold' in defensive
         assert defensive['flee_threshold'] == 0.3
 
-    def test_passive_behavior_config(self):
-        """Passive AI behavior has correct configuration."""
+    def test_neutral_behavior_config(self):
+        """Neutral AI behavior has correct configuration."""
         config = ConfigLoader.get_config()
 
-        passive = config.get_ai_behavior_config('passive')
+        neutral = config.get_ai_behavior_config('neutral')
 
-        assert passive is not None
-        assert 'chase_range' in passive
-        assert passive['chase_range'] == 0
-        assert 'flee_threshold' in passive
-        assert passive['flee_threshold'] == 0.5
+        assert neutral is not None
+        assert neutral['flee_threshold'] == 0.5
+
+    def test_universal_defaults(self):
+        """Every monster's universal AI parameters have defaults."""
+        config = ConfigLoader.get_config()
+
+        defaults = config.ai_behaviors['defaults']
+        assert {'aggro_range', 'memory_turns', 'move_speed', 'flee_threshold'} <= set(defaults)
 
     def test_coward_behavior_config(self):
         """Coward AI behavior has correct configuration."""
@@ -123,9 +125,7 @@ class TestAIBehaviorConfiguration:
         unknown = config.get_ai_behavior_config('unknown_type')
 
         # Should fall back to aggressive
-        assert unknown is not None
-        assert 'chase_range' in unknown
-        assert unknown['chase_range'] == 10  # Aggressive's chase range
+        assert unknown == config.get_ai_behavior_config('aggressive')
 
 
 class TestFormulaConfiguration:

@@ -183,11 +183,11 @@ class TestDefensiveBehavior:
         assert player.hp < initial_hp
 
 
-class TestPassiveBehavior:
-    """Test passive AI behavior."""
+class TestNeutralBehavior:
+    """Test neutral AI behavior."""
 
-    def test_passive_wanders_peacefully(self, game_context_with_monster):
-        """Passive AI wanders when not threatened."""
+    def test_neutral_wanders_peacefully(self, game_context_with_monster):
+        """Neutral AI wanders when not attacked."""
         context = game_context_with_monster
         monster = list(context.get_entities_by_type(EntityType.MONSTER))[0]
         player = context.get_player()
@@ -197,7 +197,7 @@ class TestPassiveBehavior:
         monster.y = 10
         player.x = 20
         player.y = 20
-        monster.set_stat('ai_type', 'passive')
+        monster.set_stat('ai_type', 'neutral')
 
         ai_system = AISystem(context)
 
@@ -363,9 +363,8 @@ class TestAIConfiguration:
         ai_system = AISystem(game_context)
 
         # Test getting aggressive config
-        aggressive_config = ai_system.config.get_ai_behavior_config('aggressive')
-        assert 'chase_range' in aggressive_config
-        assert aggressive_config['chase_range'] == 10
+        defensive_config = ai_system.config.get_ai_behavior_config('defensive')
+        assert defensive_config['chase_range'] == 5
 
     def test_unknown_ai_type_falls_back(self, game_context_with_monster):
         """Unknown AI type falls back to aggressive."""

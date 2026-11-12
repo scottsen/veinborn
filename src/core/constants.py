@@ -35,16 +35,8 @@ class OreType(Enum):
     ADAMANTITE = "adamantite"
 
 
-class AIType(Enum):
-    """AI behavior types."""
-    PASSIVE = "passive"      # Doesn't attack unless attacked
-    AGGRESSIVE = "aggressive"  # Moves toward and attacks player
-    DEFENSIVE = "defensive"  # Only attacks if player is adjacent
-    FLEEING = "fleeing"      # Runs away from player
-
-
-# Default AI
-DEFAULT_AI_TYPE = AIType.AGGRESSIVE
+# AI behaviour names live in the @ai_behavior registry (core/content/ai/) and are
+# assigned in data/entities/monsters.yaml; see docs/architecture/AI_ARCHITECTURE.md.
 
 
 # ============================================================================

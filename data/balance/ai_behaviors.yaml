@@ -2,55 +2,57 @@
 #
 # Defines different monster AI types and their decision-making parameters.
 # Each AI type controls how monsters react to the player and environment.
+#
+# A monster's parameters are: `defaults` below <- its behaviour's section <- its
+# `ai:` block in monsters.yaml <- an `ai_params` stat on the monster (AISystem.params_for).
+# Design: docs/architecture/AI_ARCHITECTURE.md (ADR-019).
 
-# AI Behavior Types
+# Universal parameters: every monster has them; any behaviour or monster may override.
+# These keys are also the "universal" ai: keys monster validation accepts.
+defaults:
+  aggro_range: 8      # Perception: notices a player this many 8-way steps away, with line of sight
+  memory_turns: 10    # Perception: keeps chasing a player it saw or was hit by, this many turns after
+  move_speed: 1.0     # Speed (VB-62, not used yet)
+  flee_threshold: 0.0 # Morale: flee below this fraction of max HP (0 = never)
+
+# AI Behavior Types. Ranges here are engagement policy: perception (aggro_range,
+# line of sight, memory, being attacked) decides what a monster knows about; the
+# behaviour decides what it does about it.
 behaviors:
   # Aggressive - Chase and attack player on sight
   aggressive:
-    description: "Chase and attack player relentlessly"
-    chase_range: 10  # Tiles - how far monster will pursue player
-    attack_on_sight: true
+    description: "Chase and attack any player it perceives"
     flee_threshold: 0.0  # Never flee
 
   # Defensive - Attack when threatened, otherwise patrol
   defensive:
-    description: "Attack when player gets close, otherwise patrol area"
-    chase_range: 5  # Shorter pursuit range
-    attack_on_sight: true
+    description: "Engage a perceived player within chase_range (or anyone who attacked it), otherwise patrol"
+    chase_range: 5  # Engages only players this close, unless attacked
     flee_threshold: 0.3  # Flee when HP < 30%
     patrol_enabled: true
 
-  # Passive - Wander randomly, only attack if attacked first
-  passive:
-    description: "Wander peacefully unless provoked"
-    chase_range: 0  # Don't chase
-    attack_on_sight: false
+  # Neutral - Wander; fight back against whoever attacks it
+  neutral:
+    description: "Wander peacefully; fights back when attacked"
     flee_threshold: 0.5  # Flee when HP < 50%
-    wander_enabled: true
 
   # Coward - Always flee from player
   coward:
-    description: "Always run away from player"
-    chase_range: 0
-    attack_on_sight: false
+    description: "Run away from any player it perceives within flee_range"
     flee_threshold: 1.0  # Always flee
-    flee_range: 8  # Start fleeing when player within 8 tiles
+    flee_range: 8  # Start fleeing when a perceived player is within 8 tiles
 
   # Guard - Stay near spawn point, defend area
   guard:
     description: "Guard a specific location, attack intruders"
-    chase_range: 6
-    attack_on_sight: true
-    flee_threshold: 0.2
+    chase_range: 6  # Engages perceived players this close (never leaves guard_radius)
     guard_radius: 4  # Don't stray more than 4 tiles from spawn
 
   # Berserker: Aggressive, enrages when wounded
   berserker:
-    description: "Aggressive fighter, enraged when wounded"
-    chase_range: 8
-    enraged_chase_range: 15
+    description: "Aggressive fighter, enraged (sees farther) when wounded"
+    enraged_aggro_range: 15  # Perception range while enraged
     enrage_threshold: 0.7  # Enrage when HP < 70%
-    attack_on_sight: true
 
   # Sniper: Ranged attacker, maintains distance
   sniper:

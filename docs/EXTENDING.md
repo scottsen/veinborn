@@ -41,22 +41,34 @@ override on purpose).
 ## Add an AI behaviour
 
 A behaviour is a function `(ai, monster, config)`. `ai` is the `AISystem`; its
-public methods are the toolkit: `nearest_player`, `distance`, `in_sight`,
-`attack(monster, target, ranged=False)`, `move_towards`, `flee_from`, `wander`,
-`summon(monster, monster_id)`. `config` is the monster's resolved parameters: the
-behaviour's section of `data/balance/ai_behaviors.yaml`, overridden by the monster's
-`ai:` block in `monsters.yaml`, overridden by an `ai_params` stat on that monster
-(`AISystem.params_for`). Distances are 8-way steps (`ai.distance`, Chebyshev).
-Monster AI data is validated at game start: an unknown `ai.type`, an `ai:` key that
-is neither universal (`aggro_range`, `move_speed`, `flee_threshold`) nor a key of the
-behaviour's defaults, or an `enabled: true` ability with no `@ability` stops the game
-with a `ContentValidationError`.
+public methods are the toolkit:
+
+- `perceive(monster, config)`: the player this monster knows about, or `None`: one it
+  can see (within `aggro_range`, line of sight), or one it saw or was attacked by in
+  the last `memory_turns` turns. **Start every behaviour here**; the contract test in
+  `tests/unit/systems/test_ai_perception.py` runs every registered behaviour and fails
+  one that attacks or approaches a player it cannot perceive.
+- `provoked_by(monster, config)`: whoever attacked it within `memory_turns`, or `None`.
+- `distance` (8-way steps, Chebyshev), `in_sight`, `attack(monster, target, ranged=False)`,
+  `move_towards(monster, target, leash=None)`, `flee_from`, `wander`,
+  `summon(monster, monster_id)`.
+- `nearest_player` ignores perception; behaviours should not use it.
+
+Ranges in a behaviour's own section are engagement policy (when to fight what it
+perceives), not perception.
+
+`config` is the monster's resolved parameters (`AISystem.params_for`): the universal
+`defaults` and the behaviour's section of `data/balance/ai_behaviors.yaml`, overridden
+by the monster's `ai:` block in `monsters.yaml`, overridden by an `ai_params` stat on
+that monster. Monster AI data is validated at game start: an unknown `ai.type`, an `ai:`
+key that is neither universal (the keys of `defaults`) nor a key of the behaviour's
+section, or an `enabled: true` ability with no `@ability` stops the game with a
+`ContentValidationError`.
 
 > **Planned change (ADR-019, [architecture/AI_ARCHITECTURE.md](architecture/AI_ARCHITECTURE.md)):**
-> the engine will own perception, morale and speed, and behaviours become tactics only.
-> Behaviours will call `ai.perceive(monster, params)` instead of `nearest_player`.
-> Ranged attacks and summons move into abilities usable by monsters. Tasks: `VB-47` and
-> children (parameters and the range metric are done: VB-58, VB-59).
+> the engine will also own morale and speed, and ranged attacks and summons move into
+> abilities usable by monsters. Tasks: `VB-47` and children (range metric, parameters
+> and perception are done: VB-58, VB-59, VB-60).
 
 ```python
 # src/core/content/ai/sentry.py
@@ -66,7 +78,7 @@ from ...extensions import ai_behavior
 @ai_behavior("sentry")
 def sentry(ai, monster, config):
     """Stands still; shoots anything that comes into view."""
-    player = ai.nearest_player(monster)
+    player = ai.perceive(monster, config)
     if player and ai.distance(monster, player) <= config.get('range', 6) and ai.in_sight(monster, player):
         ai.attack(monster, player, ranged=True)
 ```

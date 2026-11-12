@@ -71,6 +71,7 @@ class Game:
         self.perf_telemetry = PerformanceTelemetry()
 
         self.event_handlers = []  # content event handlers, one instance each, per game
+        self.ai_system: Optional[AISystem] = None
 
         self.bootstrapper = GameBootstrapper(self.config, self.entity_loader)
         logger.debug("Game initialized with configuration, entity loader, and event system")
@@ -126,8 +127,7 @@ class Game:
         self._initialize_subsystems()
 
         # Register AI system
-        ai_system = AISystem(self.context, entity_loader=self.entity_loader)
-        self.context.register_system('ai', ai_system)
+        self._register_ai_system()
 
         # Spawn entities
         entities = self.bootstrapper.spawn_entities(
@@ -293,6 +293,19 @@ class Game:
 
         logger.debug("Subsystems initialized successfully")
 
+    def _register_ai_system(self) -> None:
+        """(Re)create the AI system for the current context, listening to this game's events.
+
+        The previous one (an earlier game or a loaded save) is detached first, so
+        stale monsters never receive provocation events.
+        """
+        if self.ai_system is not None:
+            self.ai_system.detach()
+        self.ai_system = AISystem(
+            self.context, entity_loader=self.entity_loader, event_bus=self.event_bus
+        )
+        self.context.register_system('ai', self.ai_system)
+
     def load_game(self, slot_name: str = "quicksave") -> bool:
         """
         Load game state from save.
@@ -317,8 +330,7 @@ class Game:
             self._initialize_subsystems()
 
             # Re-register AI system
-            ai_system = AISystem(self.context, entity_loader=self.entity_loader)
-            self.context.register_system('ai', ai_system)
+            self._register_ai_system()
 
             self.running = True
             logger.info(f"Game loaded successfully: {slot_name}")

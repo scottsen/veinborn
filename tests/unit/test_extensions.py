@@ -44,7 +44,7 @@ def test_names_must_be_non_empty_strings(bad):
 # --- content discovery --------------------------------------------------------
 
 def test_all_shipped_content_is_discovered():
-    assert {"aggressive", "defensive", "passive", "coward", "guard",
+    assert {"aggressive", "defensive", "neutral", "coward", "guard",
             "berserker", "sniper", "summoner"} <= set(ai_behaviors.names())
     assert {"force_bolt", "heal"} <= set(abilities.names())
     assert "backstab" in damage_modifiers

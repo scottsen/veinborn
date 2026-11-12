@@ -113,6 +113,23 @@ healer start with nothing.
 
 Unbuilt: fireball, teleport, dodge, protect, regeneration, power strike (VB-53).
 
+### Monster Perception
+
+What a monster knows about you (`AISystem.perceive`, VB-60):
+
+- **Sight:** it notices a player within its `aggro_range` (`monsters.yaml`, default 8)
+  counted in 8-way steps, if no wall blocks the line between you.
+- **Memory:** once it has seen you it keeps after you for `memory_turns` (default 10)
+  after losing sight, pathing around walls.
+- **Provocation:** attacking a monster (melee or force bolt) makes it remember you as its
+  target, however far away you are; a `neutral` monster only fights back when attacked.
+
+What it does about it is its behaviour (`ai: type:`): aggressive monsters close in on
+anything they perceive; defensive ones only engage within their `chase_range` (5) unless
+attacked; guards engage within `chase_range` (6) without leaving `guard_radius`; cowards
+flee. Parameters: `data/balance/ai_behaviors.yaml` (`defaults` and per behaviour).
+Design: [architecture/AI_ARCHITECTURE.md](architecture/AI_ARCHITECTURE.md).
+
 ### Death and XP
 
 **Death Detection:**

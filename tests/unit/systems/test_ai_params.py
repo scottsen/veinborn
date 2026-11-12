@@ -36,11 +36,15 @@ def make(game, monster_id="goblin"):
 
 # --- params_for ---------------------------------------------------------------
 
-def test_params_start_from_the_behaviour_defaults(game, ai):
+def test_params_start_from_universal_then_behaviour_defaults(game, ai):
     mon = make(game, "goblin")
-    defaults = game.config.get_ai_behavior_config('aggressive')
+    mon.content_id = None  # no monsters.yaml layer
+    mon.set_stat('ai_type', 'defensive')
     params = ai.params_for(mon)
-    assert params['chase_range'] == defaults['chase_range']
+    assert params['memory_turns'] == game.config.ai_behaviors['defaults']['memory_turns']
+    assert params['chase_range'] == game.config.get_ai_behavior_config('defensive')['chase_range']
+    # the behaviour's section beats the universal defaults
+    assert params['flee_threshold'] == game.config.get_ai_behavior_config('defensive')['flee_threshold']
 
 
 def test_monster_ai_block_overrides_and_extends_defaults(game, ai):
@@ -72,12 +76,10 @@ def test_params_are_looked_up_live_so_yaml_tuning_reaches_existing_monsters(game
         game.entity_loader.monsters['goblin'] = saved
 
 
-def test_monster_without_content_id_gets_behaviour_defaults(game, ai):
-    mon = make(game, "goblin")
+def test_monster_without_content_id_gets_the_defaults(game, ai):
+    mon = make(game, "troll")  # troll's own aggro_range is 6
     mon.content_id = None
-    params = ai.params_for(mon)
-    assert 'aggro_range' not in params
-    assert params['chase_range'] == game.config.get_ai_behavior_config('aggressive')['chase_range']
+    assert ai.params_for(mon)['aggro_range'] == game.config.ai_behaviors['defaults']['aggro_range']
 
 
 def test_update_hands_behaviours_the_resolved_params(game):
@@ -103,8 +105,11 @@ def test_update_hands_behaviours_the_resolved_params(game):
 BEHAVIORS = {'aggressive': {'chase_range': 10, 'description': 'x'}, 'guard': {'guard_radius': 4}}
 
 
+UNIVERSAL = {'aggro_range': 8, 'memory_turns': 10, 'move_speed': 1.0, 'flee_threshold': 0.0}
+
+
 def check(monsters, abilities_known=()):
-    return validate_monster_ai(monsters, BEHAVIORS, BEHAVIORS.keys(), abilities_known)
+    return validate_monster_ai(monsters, BEHAVIORS, BEHAVIORS.keys(), abilities_known, UNIVERSAL)
 
 
 def test_shipped_monster_data_is_valid(game):
@@ -113,6 +118,7 @@ def test_shipped_monster_data_is_valid(game):
         game.config.ai_behaviors['behaviors'],
         ai_behaviors.names(),
         abilities.names(),
+        game.config.ai_behaviors['defaults'],
     ) == []
 
 

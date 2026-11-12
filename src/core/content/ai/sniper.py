@@ -5,7 +5,7 @@ from ...extensions import ai_behavior
 
 @ai_behavior("sniper")
 def sniper(ai, monster, config):
-    player = ai.nearest_player(monster)
+    player = ai.perceive(monster, config)
     if not player:
         ai.wander(monster)
         return

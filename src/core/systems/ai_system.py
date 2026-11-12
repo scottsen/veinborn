@@ -11,11 +11,16 @@ with @ai_behavior (see core.extensions, docs/EXTENDING.md). The public methods
 below (nearest_player, distance, in_sight, attack, move_towards, flee_from,
 wander, summon) are the toolkit a behaviour calls.
 
-Each monster's parameters are resolved per turn (params_for): the behaviour's
-defaults from ai_behaviors.yaml, overridden by the monster's `ai:` block in
-monsters.yaml (looked up by content_id, so YAML tuning reaches saved games),
-overridden by an optional per-instance `ai_params` stat. Monster AI data is
-validated when the system is built (validate_monster_ai). Design:
+Each monster's parameters are resolved per turn (params_for): the universal
+`defaults` and the behaviour's section of ai_behaviors.yaml, overridden by the
+monster's `ai:` block in monsters.yaml (looked up by content_id, so YAML tuning
+reaches saved games), overridden by an optional per-instance `ai_params` stat.
+Monster AI data is validated when the system is built (validate_monster_ai).
+
+Perception (perceive) decides which player a monster knows about: one it can see
+within aggro_range, or one it saw or was attacked by within memory_turns.
+Being attacked is recorded from ATTACK_RESOLVED events on the event bus, in core
+so it works in single-player and multiplayer alike. Design:
 docs/architecture/AI_ARCHITECTURE.md (ADR-019).
 """
 
@@ -29,14 +34,13 @@ from ..actions.attack_action import AttackAction
 from ..pathfinding import get_direction
 from ..config.config_loader import ConfigLoader
 from ..exceptions import ContentValidationError
+from ..events import GameEventType
 from ..extensions import abilities, ai_behaviors
 from ..geometry import chebyshev, has_line_of_sight
 from .ai_behavior_registry import AIBehaviorRegistry
 
 logger = logging.getLogger(__name__)
 
-# ai: keys any monster may set, whatever its behaviour (ADR-019)
-UNIVERSAL_AI_KEYS = frozenset({'type', 'description', 'aggro_range', 'move_speed', 'flee_threshold'})
 # ai: keys that describe the monster rather than tune its behaviour
 _NOT_PARAMS = frozenset({'type', 'description'})
 
@@ -46,22 +50,25 @@ def validate_monster_ai(
     behavior_configs: Dict[str, Dict[str, Any]],
     behavior_names: Iterable[str],
     ability_names: Iterable[str],
+    universal_keys: Iterable[str] = (),
 ) -> List[str]:
     """Problems in monster AI data, as readable strings (empty list = valid).
 
     Checks every monster's `ai:` block and `abilities:` block:
     - ai.type names a registered @ai_behavior
-    - every ai key is universal or a key of that behaviour's defaults
+    - every ai key is type/description, a universal key (ai_behaviors.yaml
+      `defaults`), or a key of that behaviour's section
     - an ability with enabled: true has a registered @ability
     """
     behavior_names, ability_names = set(behavior_names), set(ability_names)
+    universal = _NOT_PARAMS | set(universal_keys)
     problems = []
     for monster_id, definition in monsters.items():
         ai = definition.get('ai') or {}
         ai_type = ai.get('type', 'aggressive')
         if ai_type not in behavior_names:
             problems.append(f"{monster_id}: ai.type '{ai_type}' is not a registered AI behaviour")
-        allowed = UNIVERSAL_AI_KEYS | set(behavior_configs.get(ai_type, {}))
+        allowed = universal | set(behavior_configs.get(ai_type, {}))
         for key in sorted(set(ai) - allowed):
             problems.append(f"{monster_id}: ai.{key} is not a parameter of '{ai_type}' or a universal AI key")
         for name, config in (definition.get('abilities') or {}).items():
@@ -72,24 +79,23 @@ def validate_monster_ai(
 
 class AISystem(System):
     """
-    AI system with multiple behavior types.
+    AI system: runs each monster's behaviour and provides the toolkit.
 
-    Behaviors:
-    - aggressive: Chase and attack player
-    - defensive: Attack when close, flee when low HP
-    - passive: Wander unless attacked
-    - coward: Always flee from player
-    - guard: Defend spawn area
+    Behaviours (core/content/ai/): aggressive, defensive, neutral, coward,
+    guard, berserker, sniper, summoner.
     """
 
-    def __init__(self, context, entity_loader=None):
+    def __init__(self, context, entity_loader=None, event_bus=None):
         """
         Initialize AI system with config and behavior registry.
 
         Args:
             context: GameContext instance
-            entity_loader: EntityLoader used by summon(); created on first use
-                if not given
+            entity_loader: Monster definitions (params, summon); created on
+                first use if not given
+            event_bus: The game's EventBus; monsters learn who attacked them
+                from its ATTACK_RESOLVED events. Call detach() before
+                replacing this system.
         """
         super().__init__(context)
         self.config = ConfigLoader.get_config()
@@ -97,6 +103,73 @@ class AISystem(System):
         self._entity_loader = entity_loader
         self._register_behaviors()
         self._validate_monster_data()
+        self._event_bus = event_bus
+        if event_bus is not None:
+            event_bus.subscribe(GameEventType.ATTACK_RESOLVED, self._on_attack, 'AISystem.provocation')
+
+    def detach(self) -> None:
+        """Stop listening to the event bus (before this system is replaced)."""
+        if self._event_bus is not None:
+            self._event_bus.unsubscribe(GameEventType.ATTACK_RESOLVED, self._on_attack)
+            self._event_bus = None
+
+    def _on_attack(self, event) -> None:
+        """Provocation: a monster that is attacked remembers its attacker as its target."""
+        defender = self.context.get_entity(event.data.get('defender_id'))
+        attacker_id = event.data.get('attacker_id')
+        if defender is None or defender.entity_type != EntityType.MONSTER or attacker_id == defender.entity_id:
+            return
+        defender.set_stat('provoked_by', attacker_id)
+        defender.set_stat('provoked_turn', self.context.get_turn_count())
+        self._remember(defender, attacker_id)
+
+    def _remember(self, monster, target_id: str) -> None:
+        monster.set_stat('target_id', target_id)
+        monster.set_stat('target_seen_turn', self.context.get_turn_count())
+
+    def _forget(self, monster) -> None:
+        monster.set_stat('target_id', None)
+
+    def perceive(self, monster, params: Dict[str, Any]) -> Optional['Entity']:
+        """The player this monster knows about, or None.
+
+        Sees: a living player within params['aggro_range'] and in line of sight
+        (the current target wins ties, else the nearest). Remembers: the player
+        it last saw or was attacked by, for params['memory_turns'] turns, even
+        out of sight (it pathfinds to them). Behaviours use this, not
+        nearest_player, so ranges, walls and being attacked all count.
+        """
+        current = monster.get_stat('target_id', None)
+        reach = params.get('aggro_range', 8)
+        visible = [
+            p for p in self.context.get_alive_players()
+            if p.x is not None and self.distance(monster, p) <= reach and self.in_sight(monster, p)
+        ]
+        if visible:
+            target = min(visible, key=lambda p: (p.entity_id != current, self.distance(monster, p)))
+            self._remember(monster, target.entity_id)
+            return target
+
+        if current is not None:
+            target = self.context.get_entity(current)
+            since = self.context.get_turn_count() - monster.get_stat('target_seen_turn', 0)
+            if target is not None and target.is_alive and target.x is not None \
+                    and since <= params.get('memory_turns', 10):
+                return target
+            self._forget(monster)
+        return None
+
+    def provoked_by(self, monster, params: Dict[str, Any]) -> Optional['Entity']:
+        """Whoever attacked this monster within memory_turns and is still alive, or None."""
+        attacker_id = monster.get_stat('provoked_by', None)
+        if attacker_id is None:
+            return None
+        if self.context.get_turn_count() - monster.get_stat('provoked_turn', 0) > params.get('memory_turns', 10):
+            return None
+        attacker = self.context.get_entity(attacker_id)
+        if attacker is None or not attacker.is_alive or attacker.x is None:
+            return None
+        return attacker
 
     @property
     def entity_loader(self):
@@ -113,6 +186,7 @@ class AISystem(System):
             self.config.ai_behaviors.get('behaviors', {}),
             self.registry.list_behaviors(),
             abilities.names(),
+            universal_keys=self.config.ai_behaviors.get('defaults', {}),
         )
         if problems:
             raise ContentValidationError(
@@ -120,9 +194,10 @@ class AISystem(System):
             )
 
     def params_for(self, monster) -> Dict[str, Any]:
-        """This monster's AI parameters: behaviour defaults <- its ai: block <- ai_params stat."""
+        """This monster's AI parameters: defaults <- behaviour <- its ai: block <- ai_params stat."""
         ai_type = monster.get_stat('ai_type', 'aggressive')
-        params = dict(self.config.get_ai_behavior_config(ai_type))
+        params = dict(self.config.ai_behaviors.get('defaults', {}))
+        params.update(self.config.get_ai_behavior_config(ai_type))
         params.pop('description', None)
         definition = self.entity_loader.monsters.get(getattr(monster, 'content_id', None)) or {}
         for key, value in (definition.get('ai') or {}).items():
@@ -165,7 +240,8 @@ class AISystem(System):
 
     def nearest_player(self, monster) -> Optional['Entity']:
         """
-        Get the nearest alive player to a monster (for multiplayer support).
+        Get the nearest alive player to a monster, ignoring perception (range,
+        walls, memory). Behaviours should use perceive() instead.
 
         Args:
             monster: Monster entity
@@ -307,7 +383,7 @@ class AISystem(System):
                     )
 
     def wander(self, monster) -> None:
-        """Random movement."""
+        """Random movement onto a free tile (never a bump attack on whoever stands there)."""
         rng = self.context.get_rng()
 
         # 50% chance to stand still (monsters don't always move)
@@ -323,7 +399,7 @@ class AISystem(System):
             new_x = monster.x + dx
             new_y = monster.y + dy
 
-            if game_map.is_walkable(new_x, new_y):
+            if game_map.is_walkable(new_x, new_y) and not self.context.get_entity_at(new_x, new_y):
                 action = MoveAction(monster.entity_id, dx, dy)
                 if action.validate(self.context):
                     action.execute(self.context)

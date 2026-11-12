@@ -304,7 +304,7 @@ class GameSession:
             # Initialize game context and AI system
             if self.mp_game_state.game_state:
                 self.game_context = GameContext(self.mp_game_state.game_state)
-                self.ai_system = AISystem(self.game_context)
+                self.ai_system = AISystem(self.game_context, event_bus=self.event_bus)
                 logger.info("Initialized GameContext and AISystem for multiplayer game")
             else:
                 logger.error("Failed to initialize game state for multiplayer game")

@@ -14,7 +14,8 @@ beth_topics:
 # Veinborn AI Architecture
 
 **Status:** Accepted, in progress (ADR-019 in [DECISIONS.md](DECISIONS.md)), 2026-11-12.
-Built: range metric (VB-58), parameters and validation (VB-59). Everything else below is the plan.
+Built: range metric (VB-58), parameters and validation (VB-59), perception and provocation (VB-60).
+Everything else below is the plan.
 **Tasks:** umbrella `VB-47`; children `VB-58` to `VB-65`, plus `VB-66` (`tt list --children-of VB-47`).
 **Read with:** [../EXTENDING.md](../EXTENDING.md) (the content contract this changes),
 `data/entities/monsters.yaml`, `data/balance/ai_behaviors.yaml`.
@@ -75,41 +76,56 @@ AISystem.update():                      # called once per round by TurnProcessor
       energy -= 1
 ```
 
-### Parameters (VB-59)
+### Parameters (VB-59, built)
 
-`params = behaviour defaults (ai_behaviors.yaml) <- monster ai: block (monsters.yaml) <- per-instance stat override`.
+`params = defaults <- behaviour section (both ai_behaviors.yaml) <- monster ai: block (monsters.yaml) <- ai_params stat`
+(`AISystem.params_for`).
 
 - Resolved at runtime from `monster.content_id`, **not copied into stats**. Saves store the whole
   stats dict, so copying would freeze today's numbers into every save; a lookup lets YAML tuning
   reach existing games.
-- The per-instance override exists for elites, summoned minions and tests.
-- Universal keys every monster may set: `type`, `aggro_range`, `move_speed`, `flee_threshold`,
-  `description`. Anything else must be a key of the chosen behaviour's defaults.
+- The `ai_params` per-instance override exists for elites, summoned minions and tests.
+- Universal keys are the keys of the `defaults` block (`aggro_range`, `memory_turns`,
+  `move_speed`, `flee_threshold`), plus `type` and `description`. Any other key in a monster's
+  `ai:` block must be a key of its behaviour's section.
 
-### Perception (VB-60)
+### Perception (VB-60, built)
 
-`ai.perceive(monster, params) -> target | None`. It returns a player who is within `aggro_range` **and**
-in line of sight, or the monster's provoker. In multiplayer it prefers the provoker, then the
-nearest. Tactics call it instead of `nearest_player`.
+`ai.perceive(monster, params) -> player | None` is what the monster *knows*:
 
-It is a toolkit call, not something the engine forces on tactics: the berserker widens its range
-when enraged, the guard leashes to its spawn point, the coward reacts at its own range. What
-keeps every behaviour honest is a **contract test** parametrized over every registered
-`@ai_behavior`: with a player out of range and out of sight, the monster neither attacks nor
-moves closer.
+- **Sight:** a living player within `aggro_range` (8-way steps) with line of sight. If several
+  are visible, the current target wins, then the nearest.
+- **Memory:** the player it last saw or was attacked by stays its target for `memory_turns`
+  after losing sight (stats `target_id`, `target_seen_turn`), so it paths around walls after you.
+- `ai.provoked_by(monster, params)` is the attacker within `memory_turns` (stats `provoked_by`,
+  `provoked_turn`), for behaviours that treat being attacked specially.
 
-### Provocation (VB-60)
+What the monster *does* about it is the behaviour's engagement policy, using its own ranges:
+aggressive and berserker engage anything perceived (aggressive no longer has a `chase_range`;
+the berserker's enrage raises its `aggro_range` to `enraged_aggro_range`), defensive engages
+within `chase_range` unless provoked, guard within `chase_range` without leaving `guard_radius`,
+coward flees within `flee_range`, neutral engages only its attacker.
 
-`AISystem` subscribes to `ATTACK_RESOLVED` and, when the defender is a monster, records
-`last_attacker_id` and `provoked_turn` on it. Provocation decays after a configurable number of
-turns. Player melee and `force_bolt` both emit this event (published by `process_action_outcome`
-in both single-player and the server), so one subscription covers every present and future
-damage source that follows the event convention. `AISystem` needs the event bus passed in by
-`Game` and by the server's `session.py`.
+It is a toolkit call, not something the engine forces on tactics. What keeps every behaviour
+honest is a **contract test** (`tests/unit/systems/test_ai_perception.py`) parametrized over
+every registered `@ai_behavior`: with a player out of sight range, the monster neither attacks,
+approaches nor flees from them; with an adjacent attacker it reacts (positive control).
 
-This is what makes a real `aggro_range` safe: without it a mage could bolt a mimic (range 1)
-from six tiles and it would never react. It also turns `passive` into a useful **neutral** type:
-it wanders, and fights back when provoked.
+Found while building it: `wander` could step onto the player's tile, which is a bump attack, so
+"peaceful" wanderers hit adjacent players. It now only steps onto free tiles.
+
+### Provocation (VB-60, built)
+
+`AISystem` subscribes to `ATTACK_RESOLVED` on the game's event bus and, when the defender is a
+monster, records the attacker as above. Player melee and `force_bolt` both emit this event
+(published by `process_action_outcome` in both single-player and the server), so one
+subscription covers every damage source that follows the event convention. `Game` passes its bus
+(and detaches the previous `AISystem` on a new or loaded game); the server's `session.py`
+passes its own.
+
+This is what makes a real `aggro_range` safe: a mage bolting a mimic (`aggro_range` 1) from six
+tiles is now its target. It also made `passive` a useful **neutral** type: it wanders, and
+fights back when attacked.
 
 ### Morale (VB-61)
 
@@ -125,13 +141,13 @@ Each update a monster gains `move_speed` energy and acts while it has at least 1
 once per round, so this needs no new turn loop. Player speed (haste, slow) is out of scope; when
 it comes it should use the same rule in a shared scheduler.
 
-### Distance (VB-58)
+### Distance (VB-58, built)
 
 One range metric, `geometry.chebyshev(a, b) = max(|dx|, |dy|)`, for AI ranges, ability ranges,
 the guard leash and the spawn distance. It matches 8-way movement and what the player sees.
 Euclidean `dist2` stays only where it picks the best escape tile in `flee_from`.
 
-### Validation (VB-59)
+### Validation (VB-59, built)
 
 At load, raise `ContentValidationError` (as `create_monster` already does for unknown ids) for an
 unknown `ai.type`, an unknown key in a monster's `ai:` block, or an `enabled: true` ability with

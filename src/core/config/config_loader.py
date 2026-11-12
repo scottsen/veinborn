@@ -219,7 +219,7 @@ class GameConfig:
         Get configuration for an AI behavior type.
 
         Args:
-            ai_type: Type of AI behavior (aggressive, defensive, passive, etc.)
+            ai_type: Type of AI behavior (aggressive, defensive, neutral, etc.)
 
         Returns:
             Dictionary containing behavior parameters

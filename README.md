@@ -112,7 +112,7 @@ Both paths are valid! Use the vault to learn or overcome bad luck.
 
 **✅ Architecture Improvements (Nov 2025):**
 - EventBus system (pub/sub pattern, Phase 2/3 ready)
-- AI behavior system (5 behavior types: aggressive, defensive, passive, coward, guard)
+- AI behavior system (8 behaviours: aggressive, defensive, neutral, coward, guard, berserker, sniper, summoner); monsters perceive by sight range, walls and memory, and turn on whoever attacks them
 - Data-driven spawning (YAML configuration)
 - Centralized formula system (damage, mining, crafting balance)
 - Bot equipment intelligence (stat-based upgrade detection)
