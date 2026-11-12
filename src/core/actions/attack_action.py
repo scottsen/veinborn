@@ -24,6 +24,9 @@ from ..extensions import damage_modifiers
 
 logger = logging.getLogger(__name__)
 
+# expected_damage results by (attack, defense, formulas): pure, and asked every bot turn
+_EXPECTED_DAMAGE = {}
+
 
 @dataclass
 class AttackAction(Action):
@@ -151,8 +154,11 @@ class AttackAction(Action):
         to_hit = ConfigLoader.get_config().get_to_hit_config()
         if not to_hit:
             return True
+        return AttackAction._hits_on(rng.randint(1, to_hit['die']), actor_attack, target_defense, to_hit)
 
-        roll = rng.randint(1, to_hit['die'])
+    @staticmethod
+    def _hits_on(roll: int, actor_attack: int, target_defense: int, to_hit: dict) -> bool:
+        """Whether die face `roll` hits (natural faces first, then the formula)."""
         if roll <= to_hit.get('natural_miss', 0):
             return False
         if roll >= to_hit.get('natural_hit', to_hit['die'] + 1):
@@ -172,6 +178,43 @@ class AttackAction(Action):
             return True
 
     @staticmethod
+    def hit_chance(actor_attack: int, target_defense: int) -> float:
+        """Probability that one swing hits, from the same to-hit rule as the roll."""
+        to_hit = ConfigLoader.get_config().get_to_hit_config()
+        if not to_hit:
+            return 1.0
+        die = to_hit['die']
+        return sum(AttackAction._hits_on(r, actor_attack, target_defense, to_hit)
+                   for r in range(1, die + 1)) / die
+
+    @classmethod
+    def expected_damage(cls, actor, target) -> float:
+        """Average damage of one swing by actor at target: hit chance x mean rolled damage.
+
+        Uses the same formulas.yaml rules as a real swing (to-hit, damage roll, damage
+        formula, minimum), so planners (the fuzz bots, a future player AI) agree with
+        the dice. Class damage modifiers (backstab) are not included.
+        """
+        actor_attack, target_defense = cls._effective_stats(actor, target)
+        config = ConfigLoader.get_config()
+        spread = config.get_damage_spread()
+        key = (actor_attack, target_defense, spread, config.get_damage_formula(),
+               config.get_min_damage(), repr(config.get_to_hit_config()))
+        cached = _EXPECTED_DAMAGE.get(key)
+        if cached is not None:
+            return cached
+        if spread <= 0 or actor_attack <= 0:
+            rolls = [actor_attack]
+        else:
+            low = max(0, -int(-actor_attack * (1 - spread) // 1))
+            high = max(low, int(actor_attack * (1 + spread)))
+            rolls = list(range(low, high + 1))
+        mean = sum(cls._damage_from(r, actor_attack, target_defense) for r in rolls) / len(rolls)
+        value = cls.hit_chance(actor_attack, target_defense) * mean
+        _EXPECTED_DAMAGE[key] = value
+        return value
+
+    @staticmethod
     def _roll_damage(actor_attack: int, spread: float, rng) -> int:
         """Damage roll: uniform in [ceil(atk*(1-spread)), floor(atk*(1+spread))]."""
         if spread <= 0 or actor_attack <= 0:
@@ -185,17 +228,21 @@ class AttackAction(Action):
         actor_attack, target_defense = self._effective_stats(actor, target)
 
         config = ConfigLoader.get_config()
-        formula = config.get_damage_formula()
-        min_damage = config.get_min_damage()
         damage_roll = (
             self._roll_damage(actor_attack, config.get_damage_spread(), rng)
             if rng is not None else actor_attack
         )
+        damage = self._damage_from(damage_roll, actor_attack, target_defense)
+        damage = self._apply_damage_modifiers(actor, target, damage)
+        return target.take_damage(damage)
 
-        # Evaluate formula
+    @staticmethod
+    def _damage_from(damage_roll: int, actor_attack: int, target_defense: int) -> int:
+        """The configured damage formula for one rolled value, clamped to min_damage."""
+        config = ConfigLoader.get_config()
         try:
             damage = simple_eval(
-                formula,
+                config.get_damage_formula(),
                 names={
                     'damage_roll': damage_roll,
                     'attacker_attack': actor_attack,
@@ -207,10 +254,7 @@ class AttackAction(Action):
         except Exception as e:
             logger.error(f"Formula evaluation failed: {e}, using fallback")
             damage = damage_roll - target_defense
-
-        damage = max(min_damage, int(damage))
-        damage = self._apply_damage_modifiers(actor, target, damage)
-        return target.take_damage(damage)
+        return max(config.get_min_damage(), int(damage))
 
     def _apply_damage_modifiers(self, actor, target, damage: int) -> int:
         """Run the @damage_modifier of each ability the attacking player has."""
