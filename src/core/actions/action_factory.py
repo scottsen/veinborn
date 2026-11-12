@@ -27,6 +27,7 @@ from .craft_action import CraftAction
 from .equip_action import EquipAction
 from .pickup_action import PickupAction
 from .ability_action import AbilityAction
+from ..extensions import abilities
 
 logger = logging.getLogger(__name__)
 
@@ -363,12 +364,10 @@ class ActionFactory:
         Returns:
             AbilityAction or None if the player has no active ability
         """
-        from .ability_action import ACTIVE_ABILITIES
-
         player = context.get_player()
         ability = kwargs.get('ability')
         if not ability:
-            known = [a for a in player.get_stat('abilities', []) if a in ACTIVE_ABILITIES]
+            known = [a for a in player.get_stat('abilities', []) if a in abilities]
             if not known:
                 context.game_state.add_message(f"{player.name} has no ability to use.")
                 return None

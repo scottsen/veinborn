@@ -447,6 +447,26 @@ def create_item_crafted_event(
     }
 
 
+def create_turn_ended_event(turn: int) -> dict:
+    """Create turn ended event (published by Game after every processed turn)."""
+    return {
+        'type': GameEventType.TURN_ENDED.value,
+        'data': {'turn': turn},
+        'timestamp': time.time(),
+        'turn': turn,
+    }
+
+
+def create_game_started_event(player_id: str, floor: int) -> dict:
+    """Create game started event (published once, when a new game begins)."""
+    return {
+        'type': GameEventType.GAME_STARTED.value,
+        'data': {'player_id': player_id, 'floor': floor},
+        'timestamp': time.time(),
+        'turn': 0,
+    }
+
+
 def create_floor_changed_event(
     from_floor: int,
     to_floor: int,

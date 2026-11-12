@@ -557,3 +557,24 @@ def test_movement_into_dead_entity_succeeds():
     # Should succeed - dead entities don't block or attack
     if outcome.is_success:
         assert player.x == 11
+
+
+@pytest.mark.unit
+def test_monster_bumping_another_monster_is_blocked_not_an_attack(game_state_with_monster):
+    """Monsters don't fight each other: a pack queueing in a corridor must not kill itself."""
+    from core.base.entity import EntityType
+    from core.base.game_context import GameContext
+    from core.entities import Monster
+
+    state = game_state_with_monster
+    context = GameContext(game_state=state)
+    first = next(e for e in state.entities.values() if e.entity_type == EntityType.MONSTER)
+    second = Monster(name="Goblin", x=first.x + 1, y=first.y, hp=6, max_hp=6, attack=3, defense=1)
+    state.entities[second.entity_id] = second
+    hp = first.hp
+
+    outcome = MoveAction(second.entity_id, -1, 0).execute(context)
+
+    assert not outcome.took_turn
+    assert first.hp == hp and first.is_alive
+    assert (second.x, second.y) == (first.x + 1, first.y)

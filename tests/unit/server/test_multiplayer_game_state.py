@@ -42,8 +42,8 @@ def test_add_player_spawns_floor_entities():
 def test_host_player_is_in_entities():
     """VB-23: the host (first player added) used to live ONLY in
     game_state.player, invisible to game_state.entities -- the dict every
-    position/id-based lookup (GameContext.get_entity, get_entity_at, Lua
-    get_entity) actually scans. Confirm it's now present under its real
+    position/id-based lookup (GameContext.get_entity, get_entity_at)
+    actually scans. Confirm it's now present under its real
     entity_id, matching how guests already worked."""
     mp = _make_two_player_game()
     host_slot = mp.player_slots["p1"]

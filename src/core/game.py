@@ -25,7 +25,8 @@ from .action_pipeline import process_action_outcome
 from .turn_processor import TurnProcessor
 from .floor_manager import FloorManager
 from .save_load import SaveSystem, SaveLoadError
-from .events import EventBus
+from .events import EventBus, create_turn_ended_event, create_game_started_event, create_floor_changed_event
+from .extensions import install_event_handlers, uninstall_event_handlers
 from .telemetry import StatsTracker, GameTelemetry, PerformanceTelemetry
 from .game_bootstrap import GameBootstrapper
 
@@ -68,6 +69,8 @@ class Game:
         self.stats_tracker = StatsTracker()
         self.game_telemetry = GameTelemetry()
         self.perf_telemetry = PerformanceTelemetry()
+
+        self.event_handlers = []  # content event handlers, one instance each, per game
 
         self.bootstrapper = GameBootstrapper(self.config, self.entity_loader)
         logger.debug("Game initialized with configuration, entity loader, and event system")
@@ -123,7 +126,7 @@ class Game:
         self._initialize_subsystems()
 
         # Register AI system
-        ai_system = AISystem(self.context)
+        ai_system = AISystem(self.context, entity_loader=self.entity_loader)
         self.context.register_system('ai', ai_system)
 
         # Spawn entities
@@ -143,6 +146,9 @@ class Game:
         self.bootstrapper.display_welcome_messages(self.state, entities['forges'], withdrawn_ore)
 
         self.running = True
+        self.event_bus.publish_dict(
+            create_game_started_event(self.state.player.entity_id, self.state.current_floor)
+        )
         logger.info(
             f"Game started: Player at {player_pos}, "
             f"{len(self.context.get_entities_by_type(EntityType.MONSTER))} monsters, "
@@ -208,8 +214,9 @@ class Game:
         return False
 
     def _process_turn(self) -> None:
-        """Process one game turn (delegated to TurnProcessor)."""
+        """Process one game turn (delegated to TurnProcessor), then announce it."""
         self.turn_processor.process_turn()
+        self.event_bus.publish_dict(create_turn_ended_event(self.state.turn_count))
 
     def restart_game(self) -> None:
         """Restart the game."""
@@ -217,8 +224,14 @@ class Game:
         self.start_new_game()
 
     def descend_floor(self) -> None:
-        """Descend to next floor (delegated to FloorManager)."""
+        """Descend to next floor (delegated to FloorManager), then announce it."""
+        from_floor = self.state.current_floor
         self.floor_manager.descend_floor()
+        if self.state.current_floor != from_floor:
+            self.event_bus.publish_dict(create_floor_changed_event(
+                from_floor, self.state.current_floor,
+                self.state.player.entity_id, self.state.turn_count,
+            ))
 
     def save_game(self, slot_name: str = "quicksave") -> bool:
         """
@@ -273,6 +286,11 @@ class Game:
         # Subscribe telemetry to the event bus (EventBus de-duplicates re-subscription)
         self.stats_tracker.subscribe_to(self.event_bus)
 
+        # Content event handlers (core/content/events/): fresh instances per
+        # (re)initialisation, so a loaded game never double-subscribes old ones
+        uninstall_event_handlers(self.event_handlers, self.event_bus)
+        self.event_handlers = install_event_handlers(self.context, self.event_bus)
+
         logger.debug("Subsystems initialized successfully")
 
     def load_game(self, slot_name: str = "quicksave") -> bool:
@@ -299,7 +317,7 @@ class Game:
             self._initialize_subsystems()
 
             # Re-register AI system
-            ai_system = AISystem(self.context)
+            ai_system = AISystem(self.context, entity_loader=self.entity_loader)
             self.context.register_system('ai', ai_system)
 
             self.running = True

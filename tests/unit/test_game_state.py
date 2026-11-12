@@ -3,7 +3,7 @@
 Before this fix, GameState.player and GameState.entities were two
 independent stores: single-player's own player and multiplayer's host lived
 ONLY in .player, invisible to every entities-based lookup (GameContext.
-get_entity, get_entity_at, get_all_players, Lua get_entity). Multiplayer
+get_entity, get_entity_at, get_all_players, content lookups). Multiplayer
 guests were the third variant, stored only in entities. This is what forced
 Action._get_actor() to grow a special-case fallback (VB-16) just to resolve
 an actor_id that happened to equal the local player's own id.

@@ -10,6 +10,8 @@ from .events import (
     create_ore_mined_event,
     create_item_crafted_event,
     create_floor_changed_event,
+    create_turn_ended_event,
+    create_game_started_event,
 )
 
 __all__ = [
@@ -22,4 +24,6 @@ __all__ = [
     'create_ore_mined_event',
     'create_item_crafted_event',
     'create_floor_changed_event',
+    'create_turn_ended_event',
+    'create_game_started_event',
 ]

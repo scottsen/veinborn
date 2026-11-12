@@ -116,6 +116,11 @@ class MoveAction(Action):
         if not target or not target.is_alive:
             return None
 
+        # Monsters don't fight each other: a monster blocked by another monster
+        # waits (otherwise a pack crowding a corridor kills itself)
+        if actor.entity_type == EntityType.MONSTER and target.entity_type == EntityType.MONSTER:
+            return ActionOutcome.failure(f"Cannot move - {target.name} is in the way")
+
         # Attackable entity - bump to attack
         if target.attackable:
             logger.info("MoveAction redirecting to attack (bump combat)",

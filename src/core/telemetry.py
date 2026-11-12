@@ -79,6 +79,7 @@ class StatsTracker:
             GameEventType.ORE_MINED: self.on_ore_mined,
             GameEventType.ORE_SURVEYED: self.on_ore_surveyed,
             GameEventType.ITEM_CRAFTED: self.on_item_crafted,
+            GameEventType.EQUIPMENT_CRAFTED: self.on_item_crafted,
             GameEventType.CRAFTING_FAILED: self.on_crafting_failed,
             GameEventType.FLOOR_CHANGED: self.on_floor_changed,
             GameEventType.TURN_ENDED: self.on_turn_ended,

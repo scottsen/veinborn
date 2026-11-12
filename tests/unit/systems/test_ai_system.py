@@ -329,7 +329,7 @@ class TestFleeDirection:
             monster.x, monster.y = start
             player.x, player.y = start[0] + (1 if start[0] < 15 else -1) * 2, start[1] + (1 if start[1] < 15 else -1) * 2
             before = (monster.x - player.x) ** 2 + (monster.y - player.y) ** 2
-            ai._flee_from(monster, player)
+            ai.flee_from(monster, player)
             after = (monster.x - player.x) ** 2 + (monster.y - player.y) ** 2
             assert after >= before, f"fled toward player from {start}"
 
@@ -349,7 +349,7 @@ class TestFleeDirection:
         player.hp = player.max_hp
         hp = player.hp
 
-        AISystem(context)._flee_from(monster, player)
+        AISystem(context).flee_from(monster, player)
 
         assert (monster.x, monster.y) == (5, 5)
         assert player.hp < hp

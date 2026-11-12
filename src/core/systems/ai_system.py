@@ -3,12 +3,17 @@ AISystem - handles monster AI behavior.
 
 Responsibilities:
 - Run AI for all monsters each turn
-- Multiple AI behavior types (aggressive, defensive, passive, coward, guard)
-- Data-driven configuration via YAML
-- Extensible: behaviors are registered by name (see core.extensions)
+- Look up each monster's behaviour by name (monsters.yaml `ai: type:`)
+- Provide the toolkit behaviours are written against
+
+Behaviours are not defined here: they live in core/content/ai/ and register
+with @ai_behavior (see core.extensions, docs/EXTENDING.md). The public methods
+below (nearest_player, distance, in_sight, attack, move_towards, flee_from,
+wander, summon) are the toolkit a behaviour calls.
 """
 
 import logging
+from functools import partial
 from typing import Optional, Dict, Any
 from ..base.system import System
 from ..base.entity import EntityType
@@ -16,6 +21,8 @@ from ..actions.move_action import MoveAction
 from ..actions.attack_action import AttackAction
 from ..pathfinding import get_direction
 from ..config.config_loader import ConfigLoader
+from ..extensions import ai_behaviors
+from ..geometry import has_line_of_sight
 from .ai_behavior_registry import AIBehaviorRegistry
 
 logger = logging.getLogger(__name__)
@@ -33,26 +40,26 @@ class AISystem(System):
     - guard: Defend spawn area
     """
 
-    def __init__(self, context):
+    def __init__(self, context, entity_loader=None):
         """
         Initialize AI system with config and behavior registry.
 
         Args:
             context: GameContext instance
+            entity_loader: EntityLoader used by summon(); created on first use
+                if not given
         """
         super().__init__(context)
         self.config = ConfigLoader.get_config()
         self.registry = AIBehaviorRegistry()
-        self._register_builtin_behaviors()
+        self._entity_loader = entity_loader
+        self._register_behaviors()
 
-    def _register_builtin_behaviors(self) -> None:
-        """Register Python AI behaviors in registry."""
-        self.registry.register_python_behavior("aggressive", self._behavior_aggressive)
-        self.registry.register_python_behavior("defensive", self._behavior_defensive)
-        self.registry.register_python_behavior("passive", self._behavior_passive)
-        self.registry.register_python_behavior("coward", self._behavior_coward)
-        self.registry.register_python_behavior("guard", self._behavior_guard)
-        logger.debug("Registered 5 built-in AI behaviors")
+    def _register_behaviors(self) -> None:
+        """Register every @ai_behavior from core.content, bound to this system."""
+        for name, fn in ai_behaviors.items():
+            self.registry.register_python_behavior(name, partial(fn, self))
+        logger.debug(f"Registered {len(self.registry.list_behaviors())} AI behaviors")
 
     def update(self, delta_time: float = 0) -> None:
         """Run AI for all monsters."""
@@ -76,7 +83,17 @@ class AISystem(System):
             # Execute behavior
             self._execute_behavior(monster, ai_type, behavior_config)
 
-    def _get_nearest_player(self, monster) -> Optional['Entity']:
+    @staticmethod
+    def distance(a, b) -> int:
+        """Manhattan distance between two entities (or anything with x, y)."""
+        return abs(a.x - b.x) + abs(a.y - b.y)
+
+    def in_sight(self, a, b) -> bool:
+        """True if no wall blocks the straight line between a and b."""
+        game_map = self.context.get_map()
+        return has_line_of_sight(a.x, a.y, b.x, b.y, game_map.is_transparent)
+
+    def nearest_player(self, monster) -> Optional['Entity']:
         """
         Get the nearest alive player to a monster (for multiplayer support).
 
@@ -121,169 +138,17 @@ class AISystem(System):
             logger.warning(f"Unknown AI type: {ai_type}, using aggressive")
             behavior_fn = self.registry.get_behavior("aggressive")
 
-        behavior_fn(monster, behavior_config)
+        try:
+            behavior_fn(monster, behavior_config)
+        except Exception:
+            # Content is pluggable: one buggy behaviour must not stop the turn.
+            logger.exception(
+                f"AI behavior '{ai_type}' failed for {monster.name}; monster skipped this turn"
+            )
 
-    def _behavior_aggressive(
-        self,
-        monster,
-        config: Dict[str, Any]
-    ) -> None:
-        """Aggressive: Chase and attack nearest player."""
-        player = self._get_nearest_player(monster)
-
-        if not player:
-            self._wander(monster)
-            return
-
-        distance = abs(monster.x - player.x) + abs(monster.y - player.y)
-        chase_range = config.get('chase_range', 10)
-
-        # Attack if adjacent
-        if monster.is_adjacent(player):
-            self._attack_target(monster, player)
-            return
-
-        # Chase if in range
-        if distance <= chase_range:
-            self._move_towards(monster, player)
-            return
-
-        # Wander if out of range
-        self._wander(monster)
-
-    def _behavior_defensive(
-        self,
-        monster,
-        config: Dict[str, Any]
-    ) -> None:
-        """Defensive: Attack when close, flee when low HP, otherwise patrol."""
-        player = self._get_nearest_player(monster)
-
-        if not player:
-            self._wander(monster)
-            return
-
-        distance = abs(monster.x - player.x) + abs(monster.y - player.y)
-
-        # Check if should flee
-        hp_ratio = monster.hp / monster.max_hp
-        flee_threshold = config.get('flee_threshold', 0.3)
-
-        if hp_ratio < flee_threshold:
-            self._flee_from(monster, player)
-            return
-
-        # Attack if adjacent
-        if monster.is_adjacent(player):
-            self._attack_target(monster, player)
-            return
-
-        # Chase if in range
-        chase_range = config.get('chase_range', 5)
-        if distance <= chase_range:
-            self._move_towards(monster, player)
-            return
-
-        # Patrol/wander
-        self._wander(monster)
-
-    def _behavior_passive(
-        self,
-        monster,
-        config: Dict[str, Any]
-    ) -> None:
-        """Passive: Wander peacefully, flee if attacked."""
-        player = self._get_nearest_player(monster)
-
-        if not player:
-            self._wander(monster)
-            return
-
-        # Check if recently attacked (monster would track this)
-        was_attacked = monster.get_stat('was_attacked_last_turn', False)
-
-        if was_attacked:
-            # Flee when attacked - flee from nearest player
-            hp_ratio = monster.hp / monster.max_hp
-            flee_threshold = config.get('flee_threshold', 0.5)
-
-            if hp_ratio < flee_threshold:
-                self._flee_from(monster, player)
-                # Clear the flag after fleeing
-                monster.set_stat('was_attacked_last_turn', False)
-                return
-
-        # Otherwise just wander
-        self._wander(monster)
-
-    def _behavior_coward(
-        self,
-        monster,
-        config: Dict[str, Any]
-    ) -> None:
-        """Coward: Always flee from nearest player."""
-        player = self._get_nearest_player(monster)
-
-        if not player:
-            self._wander(monster)
-            return
-
-        distance = abs(monster.x - player.x) + abs(monster.y - player.y)
-        flee_range = config.get('flee_range', 8)
-
-        if distance <= flee_range:
-            self._flee_from(monster, player)
-        else:
-            self._wander(monster)
-
-    def _behavior_guard(
-        self,
-        monster,
-        config: Dict[str, Any]
-    ) -> None:
-        """Guard: Defend spawn area, attack nearest player within radius."""
-        player = self._get_nearest_player(monster)
-
-        # Get spawn position (stored when monster created)
-        spawn_x = monster.get_stat('spawn_x', monster.x)
-        spawn_y = monster.get_stat('spawn_y', monster.y)
-        guard_radius = config.get('guard_radius', 4)
-
-        # Check if too far from spawn
-        distance_from_spawn = abs(monster.x - spawn_x) + abs(monster.y - spawn_y)
-        if distance_from_spawn > guard_radius:
-            # Return to spawn - create a temporary target entity
-            class SpawnPoint:
-                def __init__(self, x, y):
-                    self.x = x
-                    self.y = y
-
-            spawn_point = SpawnPoint(spawn_x, spawn_y)
-            self._move_towards(monster, spawn_point)
-            return
-
-        if not player:
-            self._wander(monster)
-            return
-
-        # Normal aggressive behavior within guard radius
-        distance_to_player = abs(monster.x - player.x) + abs(monster.y - player.y)
-
-        if monster.is_adjacent(player):
-            self._attack_target(monster, player)
-            return
-
-        chase_range = config.get('chase_range', 6)
-        if distance_to_player <= chase_range and distance_from_spawn <= guard_radius:
-            # Hold the line rather than step out of the leash (no border flip-flop)
-            self._move_towards(monster, player, leash=(spawn_x, spawn_y, guard_radius))
-            return
-
-        self._wander(monster)
-
-    def _attack_target(self, monster, target) -> None:
-        """Attack a target."""
-        action = AttackAction(monster.entity_id, target.entity_id)
+    def attack(self, monster, target, ranged: bool = False) -> None:
+        """Attack a target (adjacent, or from range when ranged=True)."""
+        action = AttackAction(monster.entity_id, target.entity_id, ranged=ranged)
         outcome = action.execute(self.context)
 
         # Add messages to game log
@@ -295,7 +160,7 @@ class AISystem(System):
             extra={'damage': outcome.events}
         )
 
-    def _flee_from(self, monster, target) -> None:
+    def flee_from(self, monster, target) -> None:
         """
         Move to the neighbouring tile that is farthest from target.
 
@@ -324,7 +189,7 @@ class AISystem(System):
         if best:
             best.execute(self.context)
         elif monster.is_adjacent(target):
-            self._attack_target(monster, target)  # cornered: bite back
+            self.attack(monster, target)  # cornered: bite back
 
     def _obstacle_tiles(self):
         """Tiles blocked by ore veins and forges (walkable terrain, solid entity)."""
@@ -334,7 +199,7 @@ class AISystem(System):
             for e in self.context.get_entities_by_type(entity_type)
         }
 
-    def _move_towards(self, monster, target, leash=None) -> None:
+    def move_towards(self, monster, target, leash=None) -> None:
         """
         Move toward target using pathfinding, routing around ore veins and forges.
 
@@ -371,7 +236,7 @@ class AISystem(System):
                         extra={'reason': outcome.messages}
                     )
 
-    def _wander(self, monster) -> None:
+    def wander(self, monster) -> None:
         """Random movement."""
         rng = self.context.get_rng()
 
@@ -393,3 +258,25 @@ class AISystem(System):
                 if action.validate(self.context):
                     action.execute(self.context)
                     return
+
+    def summon(self, monster, monster_id: str):
+        """Create `monster_id` on a free tile next to `monster`; None if there is none.
+
+        Used by behaviours that call for help. The new monster is added to the
+        world and acts from the next turn.
+        """
+        from ..entity_loader import EntityLoader
+        from ..spawning.entity_spawner import EntitySpawner
+
+        if self._entity_loader is None:
+            self._entity_loader = EntityLoader()
+        minion = self._entity_loader.create_monster(monster_id, monster.x, monster.y)
+        occupied = {
+            (e.x, e.y) for e in self.context.game_state.entities.values() if e.x is not None
+        }
+        if not EntitySpawner._claim_free_tile(
+            minion, occupied, self.context.get_map(), max_radius=3
+        ):
+            return None
+        self.context.add_entity(minion)
+        return minion

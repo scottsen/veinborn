@@ -183,10 +183,10 @@ def test_backstab_doubles_the_first_hit_only(sure_hit):
     base = rogue.get_total_attack() - goblin.defense
     first = AttackAction(rogue.entity_id, goblin.entity_id)
     dealt1 = first._calculate_and_apply_damage(rogue, goblin)
-    assert first.backstabbed and dealt1 == max(1, base) * 2
+    assert first.verb == "backstabs" and dealt1 == max(1, base) * 2
     second = AttackAction(rogue.entity_id, goblin.entity_id)
     dealt2 = second._calculate_and_apply_damage(rogue, goblin)
-    assert not second.backstabbed and dealt2 == max(1, base)
+    assert second.verb == "hits" and dealt2 == max(1, base)
 
 
 def test_backstab_message_names_it(sure_hit):
@@ -201,4 +201,4 @@ def test_warrior_does_not_backstab(sure_hit):
     ogre = game.entity_loader.create_monster("ogre", 0, 0)
     attack = AttackAction(game.state.player.entity_id, ogre.entity_id)
     attack._calculate_and_apply_damage(game.state.player, ogre)
-    assert not attack.backstabbed
+    assert attack.verb == "hits"

@@ -20,6 +20,7 @@ from ..entities import Player
 from ..loot import LootGenerator
 from ..events import create_attack_event, create_entity_died_event
 from ..config.config_loader import ConfigLoader
+from ..extensions import damage_modifiers
 
 logger = logging.getLogger(__name__)
 
@@ -31,7 +32,8 @@ class AttackAction(Action):
     actor_id: str
     target_id: str
     loot_generator: Optional[LootGenerator] = None  # For dependency injection
-    backstabbed: bool = field(default=False, init=False, repr=False)  # set by the damage roll
+    ranged: bool = False  # True: the target need not be adjacent (caller checks range and sight)
+    verb: str = field(default="hits", init=False, repr=False)  # set by damage modifiers
 
     def validate(self, context: GameContext) -> bool:
         """Check if attack is valid."""
@@ -45,7 +47,7 @@ class AttackAction(Action):
         attackable_types = {EntityType.MONSTER, EntityType.PLAYER}
         target = self._validate_entity(
             context, self.target_id, attackable_types,
-            entity_name="target", require_adjacency=True, require_alive=True
+            entity_name="target", require_adjacency=not self.ranged, require_alive=True
         )
         if not target:
             return False
@@ -207,20 +209,19 @@ class AttackAction(Action):
             damage = damage_roll - target_defense
 
         damage = max(min_damage, int(damage))
-        if self._is_backstab(actor, target):
-            damage *= config.get_ability_config('backstab')['damage_multiplier']
-            self.backstabbed = True
+        damage = self._apply_damage_modifiers(actor, target, damage)
         return target.take_damage(damage)
 
-    @staticmethod
-    def _is_backstab(actor, target) -> bool:
-        """Rogue passive: the first hit on an unhurt monster does extra damage."""
-        return (
-            isinstance(actor, Player)
-            and 'backstab' in actor.get_stat('abilities', [])
-            and target.entity_type == EntityType.MONSTER
-            and target.hp >= target.max_hp
-        )
+    def _apply_damage_modifiers(self, actor, target, damage: int) -> int:
+        """Run the @damage_modifier of each ability the attacking player has."""
+        if not isinstance(actor, Player):
+            return damage
+        for ability_name in actor.get_stat('abilities', []):
+            modifier = damage_modifiers.get(ability_name)
+            result = modifier(actor, target, damage) if modifier else None
+            if result:
+                damage, self.verb = result
+        return damage
 
     def _build_miss_outcome(self, actor, target) -> ActionOutcome:
         """Outcome for a swing that missed: turn spent, no damage."""
@@ -256,9 +257,8 @@ class AttackAction(Action):
     def _build_combat_outcome(self, actor, target, actual_damage: int) -> ActionOutcome:
         """Build outcome with damage message and event."""
         outcome = ActionOutcome.success(took_turn=True)
-        verb = "backstabs" if self.backstabbed else "hits"
         outcome.messages.append(
-            f"{actor.name} {verb} {target.name} for {actual_damage} damage!"
+            f"{actor.name} {self.verb} {target.name} for {actual_damage} damage!"
         )
         # Use event builder helper for type-safe event creation
         outcome.events.append(create_attack_event(
@@ -517,6 +517,7 @@ class AttackAction(Action):
             'action_type': 'AttackAction',
             'actor_id': self.actor_id,
             'target_id': self.target_id,
+            'ranged': self.ranged,
         }
 
     @classmethod
@@ -524,4 +525,5 @@ class AttackAction(Action):
         return cls(
             actor_id=data['actor_id'],
             target_id=data['target_id'],
+            ranged=data.get('ranged', False),
         )
