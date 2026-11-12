@@ -65,3 +65,21 @@ def test_unseeded_results_are_rejected(cmp, tmp_path):
     g['seed'] = None
     with pytest.raises(SystemExit):
         cmp.load([write(tmp_path, "b.json", [g])])
+
+
+def test_damage_by_monster_isolates_the_monster_that_changed(cmp, tmp_path):
+    def with_damage(seed, orc, imp):
+        g = game(seed, 3)
+        g['damage_taken_by'] = {'orc': orc + seed % 3, 'imp': imp}
+        return g
+    before, _ = cmp.load([write(tmp_path, "b.json", [with_damage(s, 10, 0) for s in range(12)])])
+    after, _ = cmp.load([write(tmp_path, "a.json", [with_damage(s, 10, 5) for s in range(12)])])
+    rows = cmp.damage_by_monster(before, after, sorted(before))
+    assert list(rows) == ['orc', 'imp']                       # most damage first
+    assert rows['orc']['diff'] == 0 and not rows['orc']['significant']
+    assert rows['imp']['diff'] == 5 and rows['imp']['significant']
+
+
+def test_damage_by_monster_skips_runs_without_it(cmp, tmp_path):
+    before, _ = cmp.load([write(tmp_path, "b.json", [game(s, 3) for s in range(4)])])
+    assert cmp.damage_by_monster(before, before, sorted(before)) == {}

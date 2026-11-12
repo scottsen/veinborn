@@ -11,7 +11,10 @@ Usage:
     python3 scripts/compare_bot_runs.py --before a.json --after b.json --json diff.json
 
 Per metric: mean before, mean after, mean paired difference with a 95% confidence
-interval. '*' marks a difference whose interval excludes 0.
+interval. '*' marks a difference whose interval excludes 0. The same for damage taken
+from each monster type, so a change to one monster shows up where it acts.
+
+Runs started deep (--start-floor/--start-level) compare only with runs started the same way.
 """
 import argparse
 import json
@@ -90,6 +93,30 @@ def print_killers(before, after, keys):
             f"{m} {b}->{a}" for m, (b, a) in sorted(counts.items(), key=lambda kv: -sum(kv[1]))))
 
 
+def damage_by_monster(before, after, keys):
+    """Paired damage taken per game from each monster type (VB-68), most damage first.
+
+    Shows which monster a change made more or less dangerous, which the total hides.
+    """
+    if not all('damage_taken_by' in before[k] and 'damage_taken_by' in after[k] for k in keys):
+        return {}
+    monsters = {m for k in keys for g in (before[k], after[k]) for m in (g['damage_taken_by'] or {})}
+    rows = {m: paired(before, after, keys, lambda g, m=m: (g['damage_taken_by'] or {}).get(m, 0))
+            for m in monsters}
+    return dict(sorted(((m, r) for m, r in rows.items() if r['before'] or r['after']),
+                       key=lambda kv: -(kv[1]['before'] + kv[1]['after'])))
+
+
+def print_damage_by(rows):
+    if not rows:
+        return
+    print(f"  damage taken per game, by monster:")
+    for m, r in rows.items():
+        mark = '*' if r['significant'] else ' '
+        print(f"    {m:14} {r['before']:8.2f} {r['after']:8.2f} {r['diff']:+8.2f}{mark}  "
+              f"[{r['ci_low']:+.2f}, {r['ci_high']:+.2f}]")
+
+
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument('--before', nargs='+', required=True)
@@ -109,6 +136,12 @@ def main():
     turns = {m.get('max_turns') for m in meta_b + meta_a}
     if len(turns) > 1:
         print(f"WARNING: runs used different --max-turns {sorted(turns, key=str)}; turns/floor are not comparable")
+    starts = {(m.get('start_floor', 1), m.get('start_level', 1)) for m in meta_b + meta_a}
+    if len(starts) > 1:
+        print(f"WARNING: runs used different --start-floor/--start-level {sorted(starts)}; not comparable")
+    elif starts != {(1, 1)}:
+        f, l = starts.pop()
+        print(f"deep start: floor {f}, level {l} (tests/fuzz/scenario.py)")
 
     common = sorted(set(before) & set(after))
     unmatched = len(set(before) ^ set(after))
@@ -142,6 +175,10 @@ def main():
         shared = [read for name, _, read in METRICS if name in report[cls]]
         identical = sum(all(read(before[k]) == read(after[k]) for read in shared) for k in keys)
         print_killers(before, after, keys)
+        by_monster = damage_by_monster(before, after, keys)
+        print_damage_by(by_monster)
+        if by_monster:
+            report[cls]['damage_by_monster'] = by_monster
         print(f"  identical games: {identical}/{len(keys)}")
 
     if args.json:

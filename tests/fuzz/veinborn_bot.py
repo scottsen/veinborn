@@ -77,6 +77,7 @@ from fuzz.services.tactical_decision_service import (
     TacticalDecisionService, CombatConfig, MiningConfig
 )
 from fuzz.services.action_planner import ActionPlanner
+from fuzz.scenario import advance_to
 
 
 @dataclass
@@ -105,6 +106,9 @@ class GameResult:
     # Died within BURST_TURNS turns of being above half HP: the "that felt cheap" proxy
     burst_death: bool = False
     potions_used: int = 0
+    # Deep start (--start-floor/--start-level, fuzz/scenario.py); floor_reached counts from here
+    start_floor: int = 1
+    start_level: int = 1
 
 
 BURST_TURNS = 2
@@ -216,6 +220,8 @@ class VeinbornBot:
         self.verbose = verbose
         self.mode = mode
         self.player_name = player_name
+        self.start_floor = 1   # --start-floor / --start-level (fuzz/scenario.py)
+        self.start_level = 1
         self.stats = BotStats()
         self.error_log: List[Dict] = []
         _keep_bot_scores_off_the_leaderboard()
@@ -431,14 +437,16 @@ class VeinbornBot:
             character_class = getattr(self, 'character_class', None)
             game.start_new_game(player_name=self.player_name, character_class=character_class,
                                 seed=seed)
+            if self.start_floor > 1 or self.start_level > 1:
+                advance_to(game, floor=self.start_floor, level=self.start_level)
             recorder = CombatRecorder(game)
             hp_history = []  # player HP at the start of each turn
 
             turn = 0
             game_stats = {
                 'turns': 0,
-                'level': 1,
-                'floor': 1,
+                'level': game.state.player.get_stat('level', 1),
+                'floor': game.state.current_floor,
                 'monsters_killed': 0,
                 'completed': False,
                 'death_reason': None,
@@ -717,6 +725,7 @@ class VeinbornBot:
                 'level': 1,
                 'monsters_killed': 0,
                 'completed': False,
+                'floor': self.start_floor,
                 'death_reason': 'crash',
                 'errors': self.stats.errors - errors_before + 1,
             }
@@ -746,6 +755,8 @@ class VeinbornBot:
         print(f"Verbose: {self.verbose}")
         print(f"Seeds: {'unseeded' if seed_base is None else f'{seed_base}..{seed_base + num_games - 1}'}")
         print(f"Jobs: {jobs}")
+        if self.start_floor > 1 or self.start_level > 1:
+            print(f"Start: floor {self.start_floor}, level {self.start_level} (fuzz/scenario.py)")
         print(f"{'='*60}\n")
 
         start_time = time.time()
@@ -771,8 +782,8 @@ class VeinbornBot:
                 self.stats.max_floor_reached,
                 game_stats.get('floor', 1)
             )
-            if game_stats.get('floor', 1) > 1:
-                self.stats.total_floors_descended += (game_stats['floor'] - 1)
+            if game_stats.get('floor', 1) > self.start_floor:
+                self.stats.total_floors_descended += (game_stats['floor'] - self.start_floor)
 
             if game_stats['completed']:
                 self.stats.games_completed += 1
@@ -803,6 +814,8 @@ class VeinbornBot:
                 killed_by_type=game_stats.get('killed_by_type'),
                 burst_death=game_stats.get('burst_death', False),
                 potions_used=game_stats.get('potions_used', 0),
+                start_floor=self.start_floor,
+                start_level=self.start_level,
             )
             self.stats.game_results.append(game_result)
             if output:
@@ -934,6 +947,8 @@ class VeinbornBot:
                 'timestamp': timestamp,
                 'seed_base': getattr(self, 'seed_base', None),
                 'max_turns': getattr(self, 'max_turns_per_game', None),
+                'start_floor': self.start_floor,
+                'start_level': self.start_level,
                 'code': _code_version(),
             },
             'games': [asdict(result) for result in self.stats.game_results]
@@ -1077,6 +1092,18 @@ Examples:
         help='Per-game results JSON path (default: logs/bot_results_<class>_<time>.json)'
     )
     parser.add_argument(
+        '--start-floor',
+        type=int,
+        default=1,
+        help='Begin each game on this floor (real descents; for deep placements, VB-69)'
+    )
+    parser.add_argument(
+        '--start-level',
+        type=int,
+        default=1,
+        help='Begin each game at this player level (real XP and level-up rolls)'
+    )
+    parser.add_argument(
         '--name',
         type=str,
         default=None,
@@ -1127,6 +1154,8 @@ Examples:
         if args.name:
             bot.player_name = args.name
 
+    bot.start_floor = args.start_floor
+    bot.start_level = args.start_level
     bot.run(num_games=args.games, max_turns_per_game=args.max_turns,
             seed_base=args.seed_base, jobs=args.jobs, output=args.output)
 
