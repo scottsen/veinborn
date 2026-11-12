@@ -2,7 +2,7 @@
 project: veinborn
 schema_version: '1.0'
 id_prefix: VB
-next_id: 72
+next_id: 73
 archival: inline
 areas: {}
 ---
@@ -1703,3 +1703,21 @@ notes_next: 2
 <!-- notes: append-only log; each has a stable #id (see CLI §5) -->
 ### Notes
 - [#1 2026-11-12T21:21:40Z session:serene-cyclone-1112] Found 2026-11-12 (serene-cyclone-1112) while making spawn bands data-driven (28f9d9e). GameConfig.get_monster_density_multiplier (spawning.yaml monster_density) has no caller: global_multiplier 1.0 'set to 1.5 for 50% more monsters' does nothing. ore_veins.yaml ore_types (floors/quality_range per ore) is read by nothing (entity_loader reads data/entities/ores.yaml ore_types; spawn_weights decides placement); comment added in the YAML. ores.yaml floor_range also unread (reveal src --grep floor_range: 0 hits). get_ore_vein_count_for_floor = base + floor - 1 has no cap: 17 veins on floor 10, 107 on floor 100. Decide per knob: wire it (density via the monster_counts bands; ore count as a band table with max) or delete it, as VB-59 did for the AI knobs.
+
+
+## TASK-VB-72 · Shields can never be equipped: items.yaml shield has item_type 'shield', EquipAction accepts only weapon/armor; goblin, orc and troll loot tables drop them
+
+```yaml
+status: backlog
+priority: medium
+effort: 1-2h
+tags: [bug, items, equipment, loot]
+created: '2026-11-12T21:31:34Z'
+updated: '2026-11-12T21:31:41Z'
+session: serene-cyclone-1112
+notes_next: 2
+```
+
+<!-- notes: append-only log; each has a stable #id (see CLI §5) -->
+### Notes
+- [#1 2026-11-12T21:31:41Z session:serene-cyclone-1112] Found 2026-11-12 (serene-cyclone-1112) adding sim_duels --gear. Runtime check: LootGenerator.create_item('shield') then EquipAction(...).validate(ctx) -> False, log 'invalid equipment slot' (chainmail -> True as control). reveal src --grep shield: 0 hits, so no off-hand slot exists anywhere. Drops: goblin armor 30%, orc 20%, troll 20% of armor rolls; each one is inventory clutter. Options: (a) off-hand slot (Player.equipped_shield, get_total_defense, save/load VB-19 path, TUI, bot equip logic), (b) retag shield as armor (it then competes with body armor, so nobody wears it), (c) drop shields from loot tables until (a). (a) is the real fix; (c) is a 2-line stopgap. Design call for Scott.
