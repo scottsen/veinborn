@@ -1417,12 +1417,12 @@ move_speed is declared for all 19 monsters and never read. Both drivers (TurnPro
 ## TASK-VB-63 · Abilities for any actor: hostility helper on GameContext, actor-agnostic ability targeting, monsters use abilities from their YAML (AI ability step); sniper/summoner become tactics + abilities
 
 ```yaml
-status: backlog
+status: done
 priority: low
 effort: 1d
 tags: [ai, architecture, abilities, content]
 created: '2026-11-12T17:40:08Z'
-updated: '2026-11-12T17:40:09Z'
+updated: '2026-11-12T18:17:46Z'
 session: vevine-1112
 depends_on: [VB-60, VB-61]
 parent: VB-47
@@ -1433,13 +1433,16 @@ links:
   - data/entities/monsters.yaml
   relates_to:
   - VB-53
+  commits:
+  - 455623284a11052a9369c53652d289f46401793e
+notes_next: 2
 ```
 
 13 of 19 monsters already declare abilities in monsters.yaml (death_bolt, fire_bolt, bat_swarm, summon_undead, life_drain, regeneration, teleport, ...) all enabled: false. Player abilities (AbilityAction, @ability) are nearly actor-agnostic (abilities + cooldowns are entity stats); the player-only part is target choice (force_bolt picks the nearest monster). Add context.hostiles_of(actor) (also makes move_action's 'monsters don't bump-attack monsters' rule explicit), give @ability a target-selection/should_use hook, add an engine step where a perceiving monster uses a ready enabled ability before its tactics. Re-express sniper as kite-tactics + ranged ability and summoner as keep-away tactics + summon ability. Ships with every monster ability still disabled: no gameplay change. Update EXTENDING.md. See AI_ARCHITECTURE.md 'Abilities for any actor'.
 
 <!-- notes: append-only log; each has a stable #id (see CLI §5) -->
 ### Notes
-_(no notes yet)_
+- [#1 2026-11-12T18:17:46Z session:vevine-1112] No gameplay change by design: test asserts no shipped monster has an ability; sniper/summoner tests unchanged in intent. Mutation (drop _use_ability) fails 8 tests. Also: player-vs-player bump attacks in MP are now blocked (co-op).
 
 
 ## TASK-VB-64 · Turn on monster abilities one at a time (bolts, summons, drains, regeneration) with bot runs + Scott's play-test
