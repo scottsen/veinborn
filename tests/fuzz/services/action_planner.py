@@ -18,6 +18,11 @@ from .room_sweeper import RoomSweeper
 
 # Use heal at or below this fraction of max HP
 HEAL_BELOW = 0.6
+# Drink a potion / eat at or below this fraction (lower: the heal ability comes back, potions don't)
+DRINK_BELOW = 0.4
+# Detour at most this far (Chebyshev) to collect a potion or food
+ITEM_REACH = 6
+INVENTORY_MAX = 20
 
 
 class ActionPlanner:
@@ -111,9 +116,11 @@ class ActionPlanner:
         2. If craftable ore + near forge → CRAFT EQUIPMENT!
         3. If on stairs and floor cleared → DESCEND
         3b. If an active class ability is ready and useful → USE IT (force bolt, heal)
+        3c. If HP is low and a potion/food is carried → DRINK/EAT IT
         4. If monster adjacent → FIGHT (forced combat)
         5. If jackpot ore nearby and safe → MINE IT!
         6. If low health and monster nearby → FLEE TO STAIRS
+        6b. If a potion/food lies nearby → PICK IT UP
         7. If high-quality ore nearby (70+) and safe → MINE IT
         8. If unsurveyed ore nearby → SURVEY IT
         9. If monster in view and we can win → PURSUE
@@ -159,6 +166,11 @@ class ActionPlanner:
         ability = self.ability_action(game)
         if ability:
             return ability
+
+        # Priority 3c: Drink a potion / eat when low (after the heal ability)
+        drink = self.drink_action(game)
+        if drink:
+            return drink
 
         # Priority 4: Forced combat (monster adjacent)
         adjacent = self.perception.is_adjacent_to_monster(game)
@@ -211,6 +223,11 @@ class ActionPlanner:
             if nearby:
                 self.log("💀 Low health! Fleeing from danger!")
                 return self.flee_from(game, nearby)
+
+        # Priority 6b: Collect potions and food lying nearby
+        collect = self.collect_action(game)
+        if collect:
+            return collect
 
         # Priority 7: Strategic mining
         valuable_ore = self.perception.find_valuable_ore(game)
@@ -290,6 +307,38 @@ class ActionPlanner:
                     self.log(f"⚡ Force bolt at {monster.name} (distance {dist})")
                     return ('ability', {'ability': 'force_bolt'})
         return None
+
+    def drink_action(self, game) -> Optional[Tuple[str, dict]]:
+        """Use the best healing item (core's choice) at or below DRINK_BELOW of max HP."""
+        from core.actions.use_item_action import best_healing_item
+
+        player = game.state.player
+        if player.hp > player.max_hp * DRINK_BELOW:
+            return None
+        item = best_healing_item(player)
+        if item is None:
+            return None
+        self.log(f"🧪 Using {item.name} (HP: {player.hp}/{player.max_hp})")
+        return ('use', {'item_id': item.entity_id})
+
+    def collect_action(self, game) -> Optional[Tuple[str, dict]]:
+        """Pick up a usable consumable underfoot, or walk to one within ITEM_REACH."""
+        player = game.state.player
+        if len(getattr(player, 'inventory', [])) >= INVENTORY_MAX:
+            return None
+        items = self.perception.find_usable_items(game)
+        if not items:
+            return None
+        if any(i.x == player.x and i.y == player.y for i in items):
+            self.log("🎒 Picking up items")
+            return ('pickup', {})
+        if self.perception.is_adjacent_to_monster(game):
+            return None
+        nearest = min(items, key=lambda i: max(abs(i.x - player.x), abs(i.y - player.y)))
+        if max(abs(nearest.x - player.x), abs(nearest.y - player.y)) > ITEM_REACH:
+            return None
+        self.log(f"🎒 Going for {nearest.name} at ({nearest.x},{nearest.y})")
+        return self.move_towards(game, nearest)
 
     def get_random_action(self, game) -> Tuple[str, dict]:
         """
@@ -571,7 +620,7 @@ class ActionPlanner:
                 return True
             return False
 
-        elif action_type in ('wait', 'descend', 'equip', 'craft', 'ability'):
+        elif action_type in ('wait', 'descend', 'equip', 'craft', 'ability', 'use', 'pickup'):
             # These are always valid (game engine will reject if not)
             return True
 

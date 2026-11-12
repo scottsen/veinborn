@@ -254,6 +254,20 @@ class PerceptionService:
     # ========================================================================
 
     
+    def find_usable_items(self, game) -> List:
+        """Items on the floor whose effect the game can apply (potions, food)."""
+        if 'usable_items' in self._cache:
+            return self._cache['usable_items']
+        from core.base.entity import EntityType
+        from core.actions.use_item_action import usable_effect
+        items = [
+            e for e in game.state.entities.values()
+            if e.entity_type == EntityType.ITEM and e.x is not None and e.is_alive
+            and usable_effect(e)
+        ]
+        self._cache['usable_items'] = items
+        return items
+
     def find_level_exit(self, game) -> Optional[Tuple[int, int]]:
         """
         Find stairs down to next level.

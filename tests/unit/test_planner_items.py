@@ -1,0 +1,86 @@
+"""ActionPlanner drinks potions when low and collects potions and food nearby."""
+
+import pytest
+
+from core.base.entity import EntityType
+from core.character_class import CharacterClass
+from core.loot import LootGenerator
+from tests.fuzz.services import action_planner as planner_module
+from tests.unit.test_planner_abilities import make
+
+pytestmark = pytest.mark.unit
+
+
+def potion(item_id='potion_healing'):
+    return LootGenerator.get_instance().create_item(item_id)
+
+
+def warrior():
+    game, planner = make("warrior")  # no heal ability, so drinking is the only heal
+    for e in list(game.state.entities.values()):
+        if e.entity_type == EntityType.ITEM:
+            game.context.remove_entity(e.entity_id)
+    return game, planner
+
+
+def drop_beside_player(game, item, dist=2):
+    p = game.state.player
+    for dx in range(dist, 0, -1):
+        for sx in (1, -1):
+            x, y = p.x + sx * dx, p.y
+            if game.state.dungeon_map.is_walkable(x, y):
+                item.x, item.y = x, y
+                game.context.add_entity(item)
+                return item
+    pytest.skip("no open tile beside the player")
+
+
+def test_drinks_when_low():
+    game, planner = warrior()
+    player = game.state.player
+    bottle = potion()
+    player.add_to_inventory(bottle)
+    player.hp = int(player.max_hp * planner_module.DRINK_BELOW)
+    assert planner.get_smart_action(game) == ('use', {'item_id': bottle.entity_id})
+
+
+def test_does_not_drink_above_the_threshold():
+    game, planner = warrior()
+    player = game.state.player
+    player.add_to_inventory(potion())
+    player.hp = player.max_hp - 1
+    assert planner.drink_action(game) is None
+
+
+def test_picks_up_a_potion_underfoot():
+    game, planner = warrior()
+    p = game.state.player
+    item = potion()
+    item.x, item.y = p.x, p.y
+    game.context.add_entity(item)
+    assert planner.collect_action(game) == ('pickup', {})
+
+
+def test_walks_to_a_nearby_potion():
+    game, planner = warrior()
+    item = drop_beside_player(game, potion())
+    action, kwargs = planner.collect_action(game)
+    p = game.state.player
+    assert action == 'move'
+    assert max(abs(p.x + kwargs['dx'] - item.x), abs(p.y + kwargs['dy'] - item.y)) < \
+        max(abs(p.x - item.x), abs(p.y - item.y))
+
+
+def test_ignores_items_it_cannot_use():
+    game, planner = warrior()
+    drop_beside_player(game, potion('scroll_mapping'))
+    assert planner.collect_action(game) is None
+
+
+def test_does_not_collect_with_a_full_pack():
+    game, planner = warrior()
+    player = game.state.player
+    while len(player.inventory) < planner_module.INVENTORY_MAX:
+        player.add_to_inventory(potion('scroll_mapping'))
+    drop_beside_player(game, potion())
+    assert planner.collect_action(game) is None
