@@ -1266,18 +1266,22 @@ _(no notes yet)_
 ## TASK-VB-57 · Fuzz class bots: the per-class get_smart_action trees in tests/fuzz/{warrior,rogue,mage,healer}_bot.py are never called (veinborn_bot calls planner.plan_next_action), so all four bots run the shared planner and differ only by CombatConfig. Either wire the class trees in (e.g. planner delegates to a bot hook) or delete them
 
 ```yaml
-status: backlog
+status: done
 priority: low
 tags: [fuzz, bots]
 created: '2026-11-12T06:56:00Z'
-updated: '2026-11-12T19:08:18Z'
+updated: '2026-11-12T20:27:32Z'
 session: turquoise-mosaic-1111
-notes_next: 2
+links:
+  commits:
+  - 86ed2e450f4f854c58af41bb0ead20d455933bfd
+notes_next: 3
 ```
 
 <!-- notes: append-only log; each has a stable #id (see CLI §5) -->
 ### Notes
 - [#1 2026-11-12T19:08:18Z session:vevine-1112] 2026-11-12: ActionPlanner.ability_action (0fef6be) is the only ability logic the bots use; the per-class trees are still dead.
+- [#2 2026-11-12T20:27:32Z session:warming-squall-1112] Deleted the dead per-class trees; behaviour unchanged (they were never called). Class bots = CombatConfig + shared planner.
 
 
 ## TASK-VB-58 · AI: one range metric (Chebyshev) in core/geometry, used by AI, abilities, spawning and guard leash
