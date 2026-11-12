@@ -55,9 +55,14 @@ meaning; the spread adds the swing. Attack 4 rolls 2-6; attack 3 rolls 2-4.
 - **Defense counts twice**: it lowers the chance to be hit *and* the damage taken
 - **Minimum Damage** = 1 on a hit
 
-**Measure a change:** `python3 scripts/sim_duels.py [--level N]` runs
-thousands of duels per class x monster through the real `AttackAction` and
-prints win% and HP lost.
+**Measure a change:** `python3 scripts/sim_duels.py [--levels 1,4] [--monsters ...]`
+runs hundreds of duels per class x monster x level on an open arena. The monster
+is driven by the real `AISystem` (perception, morale, speed, abilities) and both
+sides use the real `AttackAction`/`AbilityAction`. It prints win%, timeouts, HP
+lost, rounds, and how much of the player's damage came from monster melee,
+monster abilities or summoned minions. `--abilities both` compares monster
+abilities off (as shipped) and on, and `--set lich.death_bolt.damage=8` tries a
+number before it goes into the YAML. `--json` writes the table.
 
 ### Equipment Bonuses
 

@@ -219,6 +219,16 @@ defense, like force bolt), blasts in `blast.py`, summons in `summon.py`. Several
 are large next to a level-1 player's 20 HP (death_bolt 15, dive_bomb 20, reality_warp 25); they
 were written before any of this ran and should be tuned when enabled.
 
+**Measure before enabling:** `python3 scripts/sim_duels.py --monsters lich --levels 4,8
+--abilities both --start-distance 4` fights each class against the monster with its abilities
+off and on through the real AISystem, and splits the player's damage into melee / ability /
+minion. `--set monster.ability.key=value` tries a number without editing YAML (VB-68).
+
+**Spawn gap:** of the monsters above with built abilities, only the imp is in
+`data/balance/monster_spawns.yaml` (floors 11+). Wyvern, vampire, lich, demon, phoenix and
+ancient_horror (and wraith, mimic, golem, basilisk) are in no spawn table, so enabling their
+abilities changes nothing in a real game until they are placed (VB-69).
+
 Goblin, orc, bat, skeleton, ogre, wolf and golem declare none. Wolf "pack tactics" appears only in
 flavour text; it would be a tactic, and is not planned.
 
