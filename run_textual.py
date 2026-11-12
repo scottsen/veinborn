@@ -50,7 +50,7 @@ Config File:
         '--class',
         dest='char_class',
         type=str,
-        choices=['warrior', 'rogue', 'mage'],
+        choices=['warrior', 'rogue', 'mage', 'healer'],
         help='Character class'
     )
     parser.add_argument(

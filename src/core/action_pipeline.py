@@ -48,6 +48,12 @@ def process_action_outcome(
             }
         )
 
+    # The action's own messages go first, so anything the events trigger
+    # (quest/achievement lines, "Welcome to floor N") reads as a consequence
+    # ("Goblin died!" then "Quest: Goblin Slayer [1/5]"), not a cause.
+    for msg in outcome.messages:
+        add_message(msg)
+
     if event_bus is not None and outcome.events:
         event_bus.publish_all(outcome.events)
         logger.debug(f"Published {len(outcome.events)} events to EventBus")
@@ -55,8 +61,5 @@ def process_action_outcome(
     for event in outcome.events:
         if event.get('type') == 'descend_floor':
             on_descend_floor()
-
-    for msg in outcome.messages:
-        add_message(msg)
 
     return outcome.took_turn

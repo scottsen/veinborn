@@ -61,3 +61,34 @@ def test_each_descend_event_triggers_descent():
     outcome.events.append({'type': 'descend_floor'})
     _, _, descents = _run(outcome)
     assert descents == [1]
+
+
+def test_action_messages_come_before_what_its_events_trigger():
+    """A kill's "Goblin died!" must read before the quest line its event causes."""
+    log = []
+    bus = Mock()
+    bus.publish_all.side_effect = lambda events: log.append("events published")
+    outcome = ActionOutcome.success(took_turn=True)
+    outcome.messages.append("Goblin died!")
+    outcome.events.append({'type': 'entity_died', 'data': {}})
+
+    process_action_outcome(
+        outcome, "attack", add_message=lambda m: log.append(m),
+        on_descend_floor=lambda: log.append("descended"), event_bus=bus,
+    )
+
+    assert log == ["Goblin died!", "events published"]
+
+
+def test_descent_messages_follow_the_action_message():
+    log = []
+    outcome = ActionOutcome.success(took_turn=True)
+    outcome.messages.append("You descend the stairs.")
+    outcome.events.append({'type': 'descend_floor', 'data': {}})
+
+    process_action_outcome(
+        outcome, "descend", add_message=lambda m: log.append(m),
+        on_descend_floor=lambda: log.append("Welcome to floor 2!"),
+    )
+
+    assert log == ["You descend the stairs.", "Welcome to floor 2!"]
