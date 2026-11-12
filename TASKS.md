@@ -1278,12 +1278,12 @@ _(no notes yet)_
 ## TASK-VB-58 · AI: one range metric (Chebyshev) in core/geometry, used by AI, abilities, spawning and guard leash
 
 ```yaml
-status: backlog
+status: in_progress
 priority: medium
 effort: 1-2h
 tags: [ai, architecture]
 created: '2026-11-12T17:39:42Z'
-updated: '2026-11-12T17:39:42Z'
+updated: '2026-11-12T17:42:46Z'
 session: vevine-1112
 parent: VB-47
 links:
@@ -1301,12 +1301,12 @@ _(no notes yet)_
 ## TASK-VB-59 · AI: per-monster AI parameters (monster ai: block overrides behaviour defaults, resolved by content_id) + load-time validation; delete default_ai_by_type
 
 ```yaml
-status: backlog
+status: done
 priority: medium
 effort: 2-3h
 tags: [ai, architecture, content]
 created: '2026-11-12T17:39:43Z'
-updated: '2026-11-12T17:39:43Z'
+updated: '2026-11-12T17:48:01Z'
 session: vevine-1112
 parent: VB-47
 links:
@@ -1314,13 +1314,16 @@ links:
   - docs/architecture/AI_ARCHITECTURE.md
   - data/entities/monsters.yaml
   - data/balance/ai_behaviors.yaml
+  commits:
+  - 8394cef86087837421a32012b1b3b1fac4e6ec33
+notes_next: 2
 ```
 
 AISystem.update passes only the behaviour's section of ai_behaviors.yaml; monsters.yaml ai.aggro_range/move_speed are never read (entity_loader.create_monster stores only ai_type). Resolve params = behaviour defaults <- monster ai: block <- optional per-instance stat override, looked up by monster.content_id at runtime (not copied into stats, so YAML tuning reaches existing saves). Validate at load (ContentValidationError, like unknown monster ids): unknown ai.type, unknown ai: keys (allowed = behaviour's default keys + universal set: type, aggro_range, move_speed, flee_threshold, description), enabled abilities with no registered implementation. Delete default_ai_by_type + ConfigLoader.get_default_ai_for_monster + its test lines. Fix ai.description lines that claim unbuilt behaviour. See AI_ARCHITECTURE.md 'Parameters' and 'Validation'.
 
 <!-- notes: append-only log; each has a stable #id (see CLI §5) -->
 ### Notes
-_(no notes yet)_
+- [#1 2026-11-12T17:48:01Z session:vevine-1112] AISystem.params_for + validate_monster_ai (raises ContentValidationError at AISystem construction, SP and MP). No gameplay change: aggro_range/move_speed resolved but unused until VB-60/VB-62.
 
 
 ## TASK-VB-60 · AI: engine perception (aggro_range + line of sight + provocation) via ai.perceive; provocation from ATTACK_RESOLVED in core; passive becomes neutral; contract test over every behaviour
