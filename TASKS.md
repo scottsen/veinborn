@@ -1449,12 +1449,13 @@ notes_next: 2
 ## TASK-VB-64 · Turn on monster abilities one at a time (bolts, summons, drains, regeneration) with bot runs + Scott's play-test
 
 ```yaml
-status: in_progress
+status: blocked
 priority: low
+owner: scott
 effort: per ability ~1h + play-test
 tags: [ai, balance, content, design]
 created: '2026-11-12T17:40:20Z'
-updated: '2026-11-12T18:18:34Z'
+updated: '2026-11-12T18:22:07Z'
 session: vevine-1112
 depends_on: [VB-63]
 parent: VB-47
@@ -1462,13 +1463,16 @@ links:
   references:
   - docs/architecture/AI_ARCHITECTURE.md
   - data/entities/monsters.yaml
+  commits:
+  - 294cf9aa9dc4ffa7535b95109dfa328748d80420
+notes_next: 2
 ```
 
 Design/balance work, needs Scott: which abilities, in what order, at what numbers. Suggested first wave (no status effects needed): lich death_bolt + summon_undead, imp fire_bolt, vampire bat_swarm + life_drain, wraith life_drain, troll regeneration, ancient_horror summon_horrors + phase_two (enrage). Each: implement as @ability content, set enabled: true, rewrite that monster's ai.description to match, bot before/after, play-test. Also decides whether any monster keeps berserker/sniper/summoner tactics. See AI_ARCHITECTURE.md 'Monster ability inventory'.
 
 <!-- notes: append-only log; each has a stable #id (see CLI §5) -->
 ### Notes
-_(no notes yet)_
+- [#1 2026-11-12T18:22:07Z session:vevine-1112] Built (disabled) at 294cf9a: the 9 active abilities in AI_ARCHITECTURE.md 'Monster ability inventory'. Waiting on Scott: which to enable and at what numbers (declared values like death_bolt 15 / dive_bomb 20 / reality_warp 25 vs 20 HP players look too high), then bot runs + play-test per ability. Passive ones are VB-67, status effects VB-65.
 
 
 ## TASK-VB-65 · Status effect system (poison, stun, root/adhesive, petrify) for monster and player abilities
