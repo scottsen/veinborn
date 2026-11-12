@@ -19,6 +19,7 @@ from typing import Dict, Any, Optional, Tuple
 from dataclasses import dataclass
 
 from ..exceptions import ContentValidationError
+from .floor_bands import band_for_floor, validate_bands
 
 logger = logging.getLogger(__name__)
 
@@ -40,6 +41,13 @@ class GameConfig:
     formulas: Dict[str, Any]
     dungeon_generation: Dict[str, Any]
 
+    def __post_init__(self):
+        # Floor-band tables must cover every floor exactly once (floor_bands.py);
+        # a gap or overlap would otherwise surface only when a player reached it.
+        validate_bands(self.monster_spawns['monster_counts'], 'monster_spawns.yaml monster_counts')
+        validate_bands(self.monster_spawns['spawn_weights'], 'monster_spawns.yaml spawn_weights')
+        validate_bands(self.ore_veins['spawn_weights'], 'ore_veins.yaml spawn_weights')
+
     def get_monster_count_for_floor(self, floor: int) -> int:
         """
         Calculate how many monsters should spawn on a given floor.
@@ -50,23 +58,11 @@ class GameConfig:
         Returns:
             Number of monsters to spawn
         """
-        counts = self.monster_spawns['monster_counts']
-
-        if 1 <= floor <= 6:
-            # Floors 1-6: base + (floor // divisor)
-            config = counts['floors_1_6']
-            return config['base'] + (floor // config['divisor'])
-
-        elif 7 <= floor <= 20:
-            # Floors 7-20: base + (floor // divisor)
-            config = counts['floors_7_20']
-            return config['base'] + (floor // config['divisor'])
-
-        else:
-            # Floors 21+: min(max, base + (floor // divisor))
-            config = counts['floors_21_plus']
-            count = config['base'] + (floor // config['divisor'])
-            return min(config['max'], count)
+        config = band_for_floor(self.monster_spawns['monster_counts'], floor)
+        count = config['base'] + (floor // config['divisor'])
+        if 'max' in config:
+            count = min(config['max'], count)
+        return count
 
     def get_monster_spawn_weights(self, floor: int) -> Dict[str, int]:
         """
@@ -78,20 +74,7 @@ class GameConfig:
         Returns:
             Dictionary of monster_type -> weight
         """
-        weights = self.monster_spawns['spawn_weights']
-
-        if floor == 1:
-            return weights['floor_1']
-        elif floor == 2:
-            return weights['floor_2']
-        elif 3 <= floor <= 5:
-            return weights['floors_3_5']
-        elif 6 <= floor <= 10:
-            return weights['floors_6_10']
-        elif 11 <= floor <= 15:
-            return weights['floors_11_15']
-        else:
-            return weights['floors_16_plus']
+        return band_for_floor(self.monster_spawns['spawn_weights'], floor)
 
     def get_ore_vein_count_for_floor(self, floor: int) -> int:
         """
@@ -117,14 +100,7 @@ class GameConfig:
         Returns:
             Dictionary of ore_type -> weight
         """
-        weights = self.ore_veins['spawn_weights']
-
-        if 1 <= floor <= 3:
-            return weights['floors_1_3']
-        elif 4 <= floor <= 6:
-            return weights['floors_4_6']
-        else:
-            return weights['floors_7_plus']
+        return band_for_floor(self.ore_veins['spawn_weights'], floor)
 
     def get_constant(self, path: str, default: Any = None) -> Any:
         """

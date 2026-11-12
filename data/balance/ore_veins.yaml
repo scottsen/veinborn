@@ -17,6 +17,8 @@ ore_vein_counts:
   description: "More ore veins on deeper floors"
   # Floor 1 = 8 veins, Floor 2 = 9 veins, Floor 10 = 17 veins, etc.
 
+# NOTE: ore_types below is not read by the game (spawn_weights decides which ore
+# appears where; data/entities/ores.yaml holds ore properties).
 # Ore type distribution by floor depth
 # Higher floors have better ore types
 ore_types:

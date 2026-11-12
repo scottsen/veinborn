@@ -10,6 +10,12 @@
 # - Floors 2-5: Gradual difficulty increase
 # - Floors 6-10: Balanced mix
 # - Floors 11+: High difficulty (more Trolls)
+#
+# Floor bands: the keys under monster_counts and spawn_weights name their floor
+# range (floor_N, floors_A_B, floors_A_plus; src/core/config/floor_bands.py).
+# Add or split a band by adding a key; the game checks at load that the bands
+# start at floor 1, leave no gaps, do not overlap and end with a _plus band, and
+# that every monster named here is defined in data/entities/monsters.yaml.
 
 # Monster count formulas by floor range
 monster_counts:

@@ -48,7 +48,29 @@ class EntitySpawner:
         """
         self.config = config
         self.entity_loader = entity_loader
+        self._validate_spawn_tables()
         logger.debug("EntitySpawner initialized")
+
+    def _validate_spawn_tables(self) -> None:
+        """Every id in a spawn-weight band must be a defined monster / ore.
+
+        Without this a typo surfaces only when a player first reaches that band.
+        """
+        checks = (
+            ('monster_spawns.yaml', self.config.monster_spawns['spawn_weights'],
+             set(self.entity_loader.get_monster_ids())),
+            ('ore_veins.yaml', self.config.ore_veins['spawn_weights'],
+             set(self.entity_loader.get_ore_ids())),
+        )
+        for filename, bands, known in checks:
+            for band, weights in bands.items():
+                unknown = sorted(k for k, v in weights.items()
+                                 if isinstance(v, int) and k not in known)
+                if unknown:
+                    raise ContentValidationError(
+                        f"{filename} spawn_weights.{band} names undefined ids: {unknown}",
+                        band=band, unknown=unknown,
+                    )
 
     def spawn_monsters_for_floor(self, floor: int, dungeon_map: Map) -> List[Monster]:
         """
