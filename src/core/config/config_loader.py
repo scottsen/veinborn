@@ -227,19 +227,6 @@ class GameConfig:
         behaviors = self.ai_behaviors.get('behaviors', {})
         return behaviors.get(ai_type, behaviors.get('aggressive', {}))
 
-    def get_default_ai_for_monster(self, monster_type: str) -> str:
-        """
-        Get default AI type for a monster type.
-
-        Args:
-            monster_type: Monster type name (rat, goblin, etc.)
-
-        Returns:
-            AI type string (defaults to 'aggressive')
-        """
-        defaults = self.ai_behaviors.get('default_ai_by_type', {})
-        return defaults.get(monster_type, 'aggressive')
-
     def get_damage_formula(self) -> str:
         """Get damage calculation formula."""
         return self.formulas['combat']['damage']['formula']

@@ -10,22 +10,64 @@ Behaviours are not defined here: they live in core/content/ai/ and register
 with @ai_behavior (see core.extensions, docs/EXTENDING.md). The public methods
 below (nearest_player, distance, in_sight, attack, move_towards, flee_from,
 wander, summon) are the toolkit a behaviour calls.
+
+Each monster's parameters are resolved per turn (params_for): the behaviour's
+defaults from ai_behaviors.yaml, overridden by the monster's `ai:` block in
+monsters.yaml (looked up by content_id, so YAML tuning reaches saved games),
+overridden by an optional per-instance `ai_params` stat. Monster AI data is
+validated when the system is built (validate_monster_ai). Design:
+docs/architecture/AI_ARCHITECTURE.md (ADR-019).
 """
 
 import logging
 from functools import partial
-from typing import Optional, Dict, Any
+from typing import Optional, Dict, Any, Iterable, List
 from ..base.system import System
 from ..base.entity import EntityType
 from ..actions.move_action import MoveAction
 from ..actions.attack_action import AttackAction
 from ..pathfinding import get_direction
 from ..config.config_loader import ConfigLoader
-from ..extensions import ai_behaviors
+from ..exceptions import ContentValidationError
+from ..extensions import abilities, ai_behaviors
 from ..geometry import chebyshev, has_line_of_sight
 from .ai_behavior_registry import AIBehaviorRegistry
 
 logger = logging.getLogger(__name__)
+
+# ai: keys any monster may set, whatever its behaviour (ADR-019)
+UNIVERSAL_AI_KEYS = frozenset({'type', 'description', 'aggro_range', 'move_speed', 'flee_threshold'})
+# ai: keys that describe the monster rather than tune its behaviour
+_NOT_PARAMS = frozenset({'type', 'description'})
+
+
+def validate_monster_ai(
+    monsters: Dict[str, Dict[str, Any]],
+    behavior_configs: Dict[str, Dict[str, Any]],
+    behavior_names: Iterable[str],
+    ability_names: Iterable[str],
+) -> List[str]:
+    """Problems in monster AI data, as readable strings (empty list = valid).
+
+    Checks every monster's `ai:` block and `abilities:` block:
+    - ai.type names a registered @ai_behavior
+    - every ai key is universal or a key of that behaviour's defaults
+    - an ability with enabled: true has a registered @ability
+    """
+    behavior_names, ability_names = set(behavior_names), set(ability_names)
+    problems = []
+    for monster_id, definition in monsters.items():
+        ai = definition.get('ai') or {}
+        ai_type = ai.get('type', 'aggressive')
+        if ai_type not in behavior_names:
+            problems.append(f"{monster_id}: ai.type '{ai_type}' is not a registered AI behaviour")
+        allowed = UNIVERSAL_AI_KEYS | set(behavior_configs.get(ai_type, {}))
+        for key in sorted(set(ai) - allowed):
+            problems.append(f"{monster_id}: ai.{key} is not a parameter of '{ai_type}' or a universal AI key")
+        for name, config in (definition.get('abilities') or {}).items():
+            if isinstance(config, dict) and config.get('enabled') and name not in ability_names:
+                problems.append(f"{monster_id}: ability '{name}' is enabled but no @ability('{name}') exists")
+    return problems
 
 
 class AISystem(System):
@@ -54,6 +96,40 @@ class AISystem(System):
         self.registry = AIBehaviorRegistry()
         self._entity_loader = entity_loader
         self._register_behaviors()
+        self._validate_monster_data()
+
+    @property
+    def entity_loader(self):
+        """Monster definitions (shared with the game when it passed one in)."""
+        if self._entity_loader is None:
+            from ..entity_loader import EntityLoader
+            self._entity_loader = EntityLoader()
+        return self._entity_loader
+
+    def _validate_monster_data(self) -> None:
+        """Refuse to run on monster AI data the engine would silently misread."""
+        problems = validate_monster_ai(
+            self.entity_loader.monsters,
+            self.config.ai_behaviors.get('behaviors', {}),
+            self.registry.list_behaviors(),
+            abilities.names(),
+        )
+        if problems:
+            raise ContentValidationError(
+                "Invalid monster AI data:\n  " + "\n  ".join(problems), problems=problems
+            )
+
+    def params_for(self, monster) -> Dict[str, Any]:
+        """This monster's AI parameters: behaviour defaults <- its ai: block <- ai_params stat."""
+        ai_type = monster.get_stat('ai_type', 'aggressive')
+        params = dict(self.config.get_ai_behavior_config(ai_type))
+        params.pop('description', None)
+        definition = self.entity_loader.monsters.get(getattr(monster, 'content_id', None)) or {}
+        for key, value in (definition.get('ai') or {}).items():
+            if key not in _NOT_PARAMS:
+                params[key] = value
+        params.update(monster.get_stat('ai_params', None) or {})
+        return params
 
     def _register_behaviors(self) -> None:
         """Register every @ai_behavior from core.content, bound to this system."""
@@ -74,14 +150,8 @@ class AISystem(System):
                 monster.set_stat('spawn_x', monster.x)
                 monster.set_stat('spawn_y', monster.y)
 
-            # Get AI type (from monster or default)
             ai_type = monster.get_stat('ai_type', 'aggressive')
-
-            # Get behavior config
-            behavior_config = self.config.get_ai_behavior_config(ai_type)
-
-            # Execute behavior
-            self._execute_behavior(monster, ai_type, behavior_config)
+            self._execute_behavior(monster, ai_type, self.params_for(monster))
 
     @staticmethod
     def distance(a, b) -> int:
@@ -265,12 +335,9 @@ class AISystem(System):
         Used by behaviours that call for help. The new monster is added to the
         world and acts from the next turn.
         """
-        from ..entity_loader import EntityLoader
         from ..spawning.entity_spawner import EntitySpawner
 
-        if self._entity_loader is None:
-            self._entity_loader = EntityLoader()
-        minion = self._entity_loader.create_monster(monster_id, monster.x, monster.y)
+        minion = self.entity_loader.create_monster(monster_id, monster.x, monster.y)
         occupied = {
             (e.x, e.y) for e in self.context.game_state.entities.values() if e.x is not None
         }

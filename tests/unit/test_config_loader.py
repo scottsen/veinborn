@@ -53,7 +53,6 @@ class TestAIBehaviorConfiguration:
         config = ConfigLoader.get_config()
 
         assert 'behaviors' in config.ai_behaviors
-        assert 'default_ai_by_type' in config.ai_behaviors
 
     def test_aggressive_behavior_config(self):
         """Aggressive AI behavior has correct configuration."""
@@ -127,23 +126,6 @@ class TestAIBehaviorConfiguration:
         assert unknown is not None
         assert 'chase_range' in unknown
         assert unknown['chase_range'] == 10  # Aggressive's chase range
-
-    def test_default_ai_for_monster_types(self):
-        """Monster types have default AI assignments."""
-        config = ConfigLoader.get_config()
-
-        assert config.get_default_ai_for_monster('rat') == 'passive'
-        assert config.get_default_ai_for_monster('bat') == 'coward'
-        assert config.get_default_ai_for_monster('goblin') == 'aggressive'
-        assert config.get_default_ai_for_monster('orc') == 'aggressive'
-        assert config.get_default_ai_for_monster('troll') == 'aggressive'
-        assert config.get_default_ai_for_monster('dragon') == 'defensive'
-
-    def test_default_ai_for_unknown_monster(self):
-        """Unknown monster type defaults to aggressive."""
-        config = ConfigLoader.get_config()
-
-        assert config.get_default_ai_for_monster('unknown') == 'aggressive'
 
 
 class TestFormulaConfiguration:

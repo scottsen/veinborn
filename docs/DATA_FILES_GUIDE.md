@@ -82,7 +82,7 @@ monsters:
     ai:
       type: "aggressive"     # aggressive, defensive, passive, coward, guard (config: balance/ai_behaviors.yaml)
       move_speed: 1.0        # Movement speed multiplier (NOT read yet: VB-62)
-      aggro_range: 8         # Detection range in tiles (NOT read yet: VB-59/VB-60; see docs/architecture/AI_ARCHITECTURE.md)
+      aggro_range: 8         # Detection range in tiles (resolved per monster, but no behaviour uses it until VB-60; see docs/architecture/AI_ARCHITECTURE.md)
       description: "AI behavior notes"
 
     # Gameplay tags

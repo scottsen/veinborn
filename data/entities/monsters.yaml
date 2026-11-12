@@ -256,7 +256,7 @@ monsters:
       type: "aggressive"
       move_speed: 1.2  # Fast (future feature)
       aggro_range: 10
-      description: "Pack tactics, flanking behavior"
+      description: "Fast; charges on sight (pack tactics not built)"
 
     # Gameplay tags
     tags:
@@ -383,7 +383,7 @@ monsters:
       type: "aggressive"
       move_speed: 1.2
       aggro_range: 12
-      description: "Flying, ranged attacker"
+      description: "Fast flyer; charges on sight (its abilities are planned, VB-64)"
 
     # Special abilities (future feature)
     abilities:
@@ -470,7 +470,7 @@ monsters:
       type: "aggressive"
       move_speed: 1.0
       aggro_range: 15
-      description: "Phases through walls, ignores terrain"
+      description: "Relentless; spots you from far away (wall phasing not built)"
 
     # Special abilities (future feature)
     abilities:
@@ -564,7 +564,7 @@ monsters:
       type: "aggressive"
       move_speed: 1.1
       aggro_range: 10
-      description: "Fast, life-draining predator"
+      description: "Fast predator; charges on sight (life drain planned, VB-64)"
 
     # Special abilities (future feature)
     abilities:
@@ -669,7 +669,7 @@ monsters:
       type: "aggressive"
       move_speed: 1.0
       aggro_range: 10
-      description: "Powerful melee combatant with fire magic"
+      description: "Powerful melee combatant (fire magic planned, VB-64)"
 
     # Special abilities (future feature)
     abilities:
@@ -774,7 +774,7 @@ monsters:
       type: "aggressive"
       move_speed: 1.3
       aggro_range: 15
-      description: "Fast, flying, respawns once"
+      description: "Fast flyer; charges on sight (rebirth planned, VB-64)"
 
     # Special abilities (future feature)
     abilities:
@@ -829,7 +829,7 @@ monsters:
       type: "aggressive"
       move_speed: 1.0
       aggro_range: 20
-      description: "Final boss with reality-warping powers"
+      description: "Final boss; charges on sight (its powers are planned, VB-64)"
 
     # Special abilities (future feature)
     abilities:

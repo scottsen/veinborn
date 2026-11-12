@@ -43,15 +43,20 @@ override on purpose).
 A behaviour is a function `(ai, monster, config)`. `ai` is the `AISystem`; its
 public methods are the toolkit: `nearest_player`, `distance`, `in_sight`,
 `attack(monster, target, ranged=False)`, `move_towards`, `flee_from`, `wander`,
-`summon(monster, monster_id)`. `config` is the behaviour's section of
-`data/balance/ai_behaviors.yaml`.
+`summon(monster, monster_id)`. `config` is the monster's resolved parameters: the
+behaviour's section of `data/balance/ai_behaviors.yaml`, overridden by the monster's
+`ai:` block in `monsters.yaml`, overridden by an `ai_params` stat on that monster
+(`AISystem.params_for`). Distances are 8-way steps (`ai.distance`, Chebyshev).
+Monster AI data is validated at game start: an unknown `ai.type`, an `ai:` key that
+is neither universal (`aggro_range`, `move_speed`, `flee_threshold`) nor a key of the
+behaviour's defaults, or an `enabled: true` ability with no `@ability` stops the game
+with a `ContentValidationError`.
 
 > **Planned change (ADR-019, [architecture/AI_ARCHITECTURE.md](architecture/AI_ARCHITECTURE.md)):**
 > the engine will own perception, morale and speed, and behaviours become tactics only.
-> Behaviours will call `ai.perceive(monster, params)` instead of `nearest_player`, and
-> `config` becomes the monster's resolved parameters (behaviour defaults overridden by its
-> `ai:` block). Ranged attacks and summons move into abilities usable by monsters. Tasks:
-> `VB-47` and children.
+> Behaviours will call `ai.perceive(monster, params)` instead of `nearest_player`.
+> Ranged attacks and summons move into abilities usable by monsters. Tasks: `VB-47` and
+> children (parameters and the range metric are done: VB-58, VB-59).
 
 ```python
 # src/core/content/ai/sentry.py

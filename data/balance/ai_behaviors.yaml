@@ -68,15 +68,10 @@ behaviors:
     minion_type: goblin   # monsters.yaml id of what it summons
     max_minions: 3        # living minions at once
 
-# Monster AI Assignments
-# (Can override in monster YAML files)
-default_ai_by_type:
-  rat: passive
-  bat: coward
-  goblin: aggressive
-  orc: aggressive
-  troll: aggressive
-  dragon: defensive
+# Monster AI assignments live in data/entities/monsters.yaml (`ai: type:`).
+# A monster's ai: block may also override any parameter of its behaviour above,
+# plus the universal keys aggro_range, move_speed and flee_threshold; unknown
+# keys fail validation at game start. See docs/architecture/AI_ARCHITECTURE.md.
 
 # Configuration Versioning
 meta:

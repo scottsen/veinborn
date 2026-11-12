@@ -13,8 +13,8 @@ beth_topics:
 
 # Veinborn AI Architecture
 
-**Status:** Proposed (ADR-019 in [DECISIONS.md](DECISIONS.md)), 2026-11-12. Nothing below is built yet
-except where "Today" says so.
+**Status:** Accepted, in progress (ADR-019 in [DECISIONS.md](DECISIONS.md)), 2026-11-12.
+Built: range metric (VB-58), parameters and validation (VB-59). Everything else below is the plan.
 **Tasks:** umbrella `VB-47`; children `VB-58` to `VB-65`, plus `VB-66` (`tt list --children-of VB-47`).
 **Read with:** [../EXTENDING.md](../EXTENDING.md) (the content contract this changes),
 `data/entities/monsters.yaml`, `data/balance/ai_behaviors.yaml`.

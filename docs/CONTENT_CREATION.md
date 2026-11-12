@@ -62,9 +62,11 @@ wyvern:
   ai:
     type: "aggressive"  # aggressive, defensive, passive, coward, guard
     move_speed: 1.2     # 1.0 = normal, 1.2 = 20% faster (NOT read yet: VB-62)
-    aggro_range: 12     # Detection range (8 = normal) (NOT read yet: VB-59/VB-60)
+    aggro_range: 12     # Detection range (8 = normal) (behaviours use it from VB-60)
     description: "Fast flying predator, chases relentlessly"
-  # Today only ai.type is read; chase range comes from data/balance/ai_behaviors.yaml.
+  # Any key here overrides the behaviour's defaults in data/balance/ai_behaviors.yaml;
+  # unknown keys stop the game at start (validation). Chase range still comes from the
+  # behaviour until VB-60 makes aggro_range the detection range.
   # The planned design (per-monster parameters, perception, speed, monster abilities)
   # is in docs/architecture/AI_ARCHITECTURE.md.
 
