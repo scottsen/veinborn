@@ -57,7 +57,7 @@ class TurnProcessor:
     - Clear separation of concerns
     """
 
-    def __init__(self, context: 'GameContext', hp_regen_interval: int = 10, hp_regen_amount: int = 1):
+    def __init__(self, context: 'GameContext', hp_regen_interval: int = 10, hp_regen_amount: int = 1, spawner=None):
         """
         Initialize turn processor.
 
@@ -65,11 +65,13 @@ class TurnProcessor:
             context: Game context for safe state access
             hp_regen_interval: Number of turns between HP regeneration (default: 10)
             hp_regen_amount: Amount of HP restored per regeneration tick (default: 1)
+            spawner: EntitySpawner for ongoing spawns (VB-52); None disables them
         """
         self.context = context
         self.game_state = context.game_state
         self.hp_regen_interval = hp_regen_interval
         self.hp_regen_amount = hp_regen_amount
+        self.spawner = spawner
         logger.debug(f"TurnProcessor initialized (HP regen: {hp_regen_amount} per {hp_regen_interval} turns)")
 
     def process_turn(self) -> None:
@@ -102,6 +104,9 @@ class TurnProcessor:
         # Apply HP regeneration
         self._apply_hp_regeneration()
 
+        # A new monster may wander in (VB-52)
+        self._maybe_spawn_wanderer()
+
         # Run AI system (monsters take turns)
         self._run_ai_systems()
 
@@ -123,6 +128,47 @@ class TurnProcessor:
             self.hp_regen_interval,
             self.hp_regen_amount,
         )
+
+    def _maybe_spawn_wanderer(self) -> None:
+        """NetHack-style ongoing spawn: small per-turn chance of a new monster."""
+        if self.spawner is None:
+            return
+        config = self.spawner.config.get_ongoing_spawn_config()
+        if not config.get('enabled', False):
+            return
+
+        players = self.context.get_alive_players()
+        if not players:
+            return
+
+        rng = self.context.get_rng()
+        if rng.random() >= config.get('chance_per_turn', 0.0):
+            return
+
+        monsters = [
+            m for m in self.context.get_entities_by_type(EntityType.MONSTER) if m.is_alive
+        ]
+        if len(monsters) >= config.get('max_monsters_per_floor', 12):
+            return
+
+        occupied = {
+            (e.x, e.y) for e in self.game_state.entities.values() if e.x is not None
+        }
+        level = max(1, round(sum(p.get_stat('level', 1) for p in players) / len(players)))
+        monster = self.spawner.spawn_wandering_monster(
+            self.game_state.current_floor,
+            level,
+            self.game_state.dungeon_map,
+            [(p.x, p.y) for p in players],
+            occupied,
+            rng,
+        )
+        if monster:
+            self.context.add_entity(monster)
+            logger.info(
+                f"A {monster.name} wandered in at ({monster.x}, {monster.y})",
+                extra={'turn': self.game_state.turn_count, 'floor': self.game_state.current_floor},
+            )
 
     def _run_ai_systems(self) -> None:
         """Run all AI systems (monster turns)."""

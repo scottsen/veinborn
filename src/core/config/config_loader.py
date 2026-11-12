@@ -178,6 +178,16 @@ class GameConfig:
         """
         return self.spawning['special_room_assignment']
 
+    def get_ongoing_spawn_config(self) -> Dict[str, Any]:
+        """
+        Get configuration for ongoing (wandering) monster spawns.
+
+        Returns:
+            Dict with enabled, chance_per_turn, max_monsters_per_floor,
+            min_distance_from_player. Disabled when the section is absent.
+        """
+        return self.spawning.get('ongoing_spawns', {'enabled': False})
+
     def get_monster_density_multiplier(self, floor: int) -> float:
         """
         Get the monster density multiplier for a given floor.

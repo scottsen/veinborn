@@ -147,7 +147,7 @@ class GameBootstrapper:
         hp_regen_interval = hp_regen_config['interval_turns']
         hp_regen_amount = hp_regen_config['amount']
 
-        turn_processor = TurnProcessor(context, hp_regen_interval, hp_regen_amount)
+        turn_processor = TurnProcessor(context, hp_regen_interval, hp_regen_amount, spawner=spawner)
         floor_manager = FloorManager(context, spawner)
         action_factory = ActionFactory(context)
 

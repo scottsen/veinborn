@@ -14,7 +14,7 @@ Phase 3: Now uses EntityLoader for data-driven entity creation.
 """
 
 import logging
-from typing import List, Dict
+from typing import List, Dict, Optional
 
 from ..config import GameConfig
 from ..entity_loader import EntityLoader
@@ -85,6 +85,54 @@ class EntitySpawner:
         )
 
         return monsters
+
+    def spawn_wandering_monster(
+        self,
+        floor: int,
+        player_level: int,
+        dungeon_map: Map,
+        player_positions: List[tuple],
+        occupied: set,
+        rng: GameRNG,
+    ) -> Optional[Monster]:
+        """
+        Spawn one monster mid-floor (VB-52), out of the players' reach.
+
+        Difficulty tier is (floor + player_level) // 2 (NetHack's formula,
+        minimum 1) so it follows both depth and how strong the player is.
+
+        Args:
+            floor: Current floor number
+            player_level: Average level of the living players
+            dungeon_map: Map to spawn into
+            player_positions: (x, y) of every living player
+            occupied: Tiles already holding an entity
+            rng: The game's RNG (keeps seeded games reproducible)
+
+        Returns:
+            The new Monster (not yet added to the world), or None if no tile
+            far enough from every player was free.
+        """
+        min_dist = self.config.get_ongoing_spawn_config().get('min_distance_from_player', 8)
+        candidates = [
+            (x, y)
+            for x in range(dungeon_map.width)
+            for y in range(dungeon_map.height)
+            if dungeon_map.is_walkable(x, y)
+            and (x, y) not in occupied
+            and all(abs(x - px) + abs(y - py) >= min_dist for px, py in player_positions)
+        ]
+        if not candidates:
+            return None
+
+        x, y = rng.choice(candidates)
+        tier = max(1, (floor + player_level) // 2)
+        monster_type = self._weighted_random_choice(
+            self.config.get_monster_spawn_weights(tier), rng
+        )
+        monster = self.entity_loader.create_monster(monster_type, x, y)
+        logger.debug(f"Wandering {monster.name} appeared at ({x}, {y}) [floor {floor}, tier {tier}]")
+        return monster
 
     def spawn_ore_veins_for_floor(self, floor: int, dungeon_map: Map) -> List[OreVein]:
         """
