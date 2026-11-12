@@ -2,7 +2,7 @@
 project: veinborn
 schema_version: '1.0'
 id_prefix: VB
-next_id: 73
+next_id: 76
 archival: inline
 areas: {}
 ---
@@ -1715,11 +1715,72 @@ priority: medium
 effort: 1-2h
 tags: [bug, items, equipment, loot]
 created: '2026-11-12T21:31:34Z'
-updated: '2026-11-12T21:31:41Z'
+updated: '2026-11-12T21:53:33Z'
+session: serene-cyclone-1112
+notes_next: 3
+```
+
+<!-- notes: append-only log; each has a stable #id (see CLI §5) -->
+### Notes
+- [#1 2026-11-12T21:31:41Z session:serene-cyclone-1112] Found 2026-11-12 (serene-cyclone-1112) adding sim_duels --gear. Runtime check: LootGenerator.create_item('shield') then EquipAction(...).validate(ctx) -> False, log 'invalid equipment slot' (chainmail -> True as control). reveal src --grep shield: 0 hits, so no off-hand slot exists anywhere. Drops: goblin armor 30%, orc 20%, troll 20% of armor rolls; each one is inventory clutter. Options: (a) off-hand slot (Player.equipped_shield, get_total_defense, save/load VB-19 path, TUI, bot equip logic), (b) retag shield as armor (it then competes with body armor, so nobody wears it), (c) drop shields from loot tables until (a). (a) is the real fix; (c) is a 2-line stopgap. Design call for Scott.
+- [#2 2026-11-12T21:53:33Z session:serene-cyclone-1112] VB-73 (d06ac7d) gives a stopgap: shields rank as 'no use' in least_useful_item, so players can drop them with 'd' and bots drop them when the pack is full. The equip slot itself is still open.
+
+
+## TASK-VB-73 · No way to drop items: the 20-slot pack fills with unusable things (gold piles, shields, scrolls, rings, worse weapons) and then mined ore is lost and crafting stops for the rest of the game
+
+```yaml
+status: backlog
+priority: high
+effort: 3h
+tags: [bug, items, inventory, core, bots]
+created: '2026-11-12T21:47:23Z'
+updated: '2026-11-12T21:53:33Z'
 session: serene-cyclone-1112
 notes_next: 2
 ```
 
 <!-- notes: append-only log; each has a stable #id (see CLI §5) -->
 ### Notes
-- [#1 2026-11-12T21:31:41Z session:serene-cyclone-1112] Found 2026-11-12 (serene-cyclone-1112) adding sim_duels --gear. Runtime check: LootGenerator.create_item('shield') then EquipAction(...).validate(ctx) -> False, log 'invalid equipment slot' (chainmail -> True as control). reveal src --grep shield: 0 hits, so no off-hand slot exists anywhere. Drops: goblin armor 30%, orc 20%, troll 20% of armor rolls; each one is inventory clutter. Options: (a) off-hand slot (Player.equipped_shield, get_total_defense, save/load VB-19 path, TUI, bot equip logic), (b) retag shield as armor (it then competes with body armor, so nobody wears it), (c) drop shields from loot tables until (a). (a) is the real fix; (c) is a 2-line stopgap. Design call for Scott.
+- [#1 2026-11-12T21:53:33Z session:serene-cyclone-1112] Fixed d06ac7d (core: DropAction 'drop', least_useful_item, TUI d, autopickup skips own drops, RecipeManager.preview_stats) and a336011 (bots: wear looted gear via gear_slot, drop junk/worse gear then healing beyond 6 when full, craft only real upgrades). Cause: no drop action existed; pack filled by floor 4 (gold, unworn loot, scrolls, food) and mining/crafting stopped. Bot side made it worse: looted gear never worn (equipment_slot-only check), crafted non-upgrades endlessly once room existed. Warrior seed 3001 floor 12: atk 18/def 16 before, 36/33 after. Paired A/B and long runs running (a336011).
+
+
+## TASK-VB-74 · Gold has no use: gold piles drop from every loot table and fill inventory slots, but nothing reads gold_amount (no purse, not in score, nothing to buy)
+
+```yaml
+status: backlog
+priority: medium
+effort: '-'
+tags: [design, items, loot, economy]
+created: '2026-11-12T21:53:19Z'
+updated: '2026-11-12T21:53:33Z'
+session: serene-cyclone-1112
+links:
+  relates_to:
+  - VB-73
+notes_next: 2
+```
+
+<!-- notes: append-only log; each has a stable #id (see CLI §5) -->
+### Notes
+- [#1 2026-11-12T21:53:33Z session:serene-cyclone-1112] Found 2026-11-12 (serene-cyclone-1112) chasing why bot gear stalled (VB-73). reveal src --grep 'gold_amount': only core/loot.py sets it; highscore, game_state, UI never read it. Gold piles take one of 20 slots each (a mage carried 8 by floor 4). Since d06ac7d least_useful_item ranks gold as 'no use' so 'd' drops it first. Options for Scott: (a) purse: pickup adds gold_amount to a player stat, no slot, shown in sidebar and counted in score; (b) remove gold from loot tables; (c) a use for it (shop, shrine, forge fee). (a) is the NetHack convention and cheap; what gold buys is the design question.
+
+
+## TASK-VB-75 · Crafted gear outscales every monster: bots reach attack ~37 / defense ~33 by floor 12 (monsters top out at defense 8, attack 18), so nothing threatens a crafting player past the early floors
+
+```yaml
+status: backlog
+priority: medium
+effort: '-'
+tags: [balance, crafting, design]
+created: '2026-11-12T21:53:20Z'
+updated: '2026-11-12T21:53:33Z'
+session: serene-cyclone-1112
+links:
+  relates_to:
+  - VB-69
+notes_next: 2
+```
+
+<!-- notes: append-only log; each has a stable #id (see CLI §5) -->
+### Notes
+- [#1 2026-11-12T21:53:33Z session:serene-cyclone-1112] Measured 2026-11-12 (serene-cyclone-1112) after VB-73 let bots wear loot and craft upgrades: warrior/mage seed 3001 reach total attack 36-38 / defense 33 by floor 12 and plateau there (adamantite chestplate/weapon). Strongest shipped monster: ancient_horror attack 18 / defense 8; demon 13/6. With defense 33 most monsters hit for the minimum. Crafted stats come from recipes.yaml formulas on ore properties (hardness/purity ...), so this is tunable in YAML. Design call: scale crafted gear down, scale monsters by floor, or gate high-tier recipes. Measure any change with paired bot runs and sim_duels --gear (e.g. --gear adamantite gear ids aren't in items.yaml; use a crafted-item hook or add a sim option if needed).
