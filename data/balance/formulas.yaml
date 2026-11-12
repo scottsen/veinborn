@@ -3,24 +3,30 @@
 # Centralizes all mathematical formulas used in game mechanics.
 # Makes it easy to tune combat balance, progression curves, etc.
 
-# Combat Formulas
+# Combat Formulas (read by AttackAction for every player and monster swing)
+#
+# NetHack-flavoured: each swing first rolls to hit, then rolls damage.
+# Attack makes you hit more often and harder; defense makes you get hit less
+# often and for less. There are no critical hits (NetHack has none either).
 combat:
-  # Damage Calculation
+  # To-hit roll: roll a d<die>; natural_miss always misses, natural_hit always hits.
+  # Otherwise the formula decides. Names: roll, attacker_attack, defender_defense.
+  # Examples: attack 5 vs defense 1 -> hit on 6+ (75%); attack 3 vs defense 3 -> 10+ (55%).
+  to_hit:
+    die: 20
+    formula: "roll + attacker_attack >= 10 + defender_defense"
+    natural_miss: 1
+    natural_hit: 20
+
+  # Damage roll: damage_roll is uniform in
+  # [ceil(attack * (1 - spread)), floor(attack * (1 + spread))], so the average
+  # stays close to the attack stat. Names: damage_roll, attacker_attack, defender_defense.
   damage:
-    formula: "max(1, attacker_attack - defender_defense)"
-    description: "Base damage formula, minimum 1 damage"
+    formula: "max(1, damage_roll - defender_defense)"
+    spread: 0.5
+    description: "Rolled damage minus defense, minimum 1 damage"
     min_damage: 1
     max_damage: 9999
-
-  # Critical Hit
-  critical_hit:
-    chance: 0.1  # 10% chance
-    multiplier: 2.0  # Double damage
-
-  # Accuracy (future)
-  accuracy:
-    base_chance: 0.9  # 90% hit chance
-    formula: "0.9"  # Can add attacker_dex / defender_dex later
 
 # Health & Regeneration
 health:
@@ -64,11 +70,7 @@ crafting:
     steel: 1.6
     adamantite: 2.0
 
-# Experience & Progression (future)
-progression:
-  xp_per_monster_level: 10
-  xp_formula: "monster_level * 10"
-  level_up_threshold: 100
+# Experience & Progression: see game_constants.yaml player.progression (the live XP curve)
 
 # Configuration Versioning
 meta:

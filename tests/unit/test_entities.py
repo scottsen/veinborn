@@ -277,83 +277,93 @@ class TestPlayerInventory:
 
 
 class TestPlayerExperience:
-    """Tests for Player XP and leveling mechanics."""
+    """Player XP and leveling: NetHack-style doubling curve (game_constants.yaml)."""
+
+    @pytest.mark.unit
+    def test_xp_curve_doubles_then_goes_linear(self):
+        """Total XP to reach a level: 20, 40, 80 ... 10240 at 11, then +10000."""
+        from core.config.config_loader import ConfigLoader
+        config = ConfigLoader.get_config()
+        assert config.get_xp_for_level(1) == 0
+        assert [config.get_xp_for_level(n) for n in range(2, 7)] == [20, 40, 80, 160, 320]
+        assert config.get_xp_for_level(11) == 10240
+        assert config.get_xp_for_level(12) == 20240
 
     @pytest.mark.unit
     def test_player_gains_xp(self, fresh_player):
         """Player can gain experience points."""
-        initial_xp = fresh_player.get_stat('xp')
-
-        leveled_up = fresh_player.gain_xp(50)
+        leveled_up = fresh_player.gain_xp(10)
 
         assert not leveled_up  # Not enough for level up
-        assert fresh_player.get_stat('xp') == initial_xp + 50
-        assert fresh_player.get_stat('xp') == 50
+        assert fresh_player.get_stat('xp') == 10
 
     @pytest.mark.unit
-    def test_player_levels_up_at_100_xp(self, fresh_player):
-        """Player levels up when reaching 100 XP."""
-        initial_level = fresh_player.get_stat('level')
-        initial_max_hp = fresh_player.max_hp
-        initial_attack = fresh_player.attack
-        initial_defense = fresh_player.defense
+    def test_player_levels_up_at_20_xp(self, fresh_player):
+        """Level 2 needs 20 XP total -- about four goblins."""
+        assert not fresh_player.gain_xp(19)
+        assert fresh_player.get_stat('level') == 1
 
-        leveled_up = fresh_player.gain_xp(100)
-
-        assert leveled_up
-        assert fresh_player.get_stat('level') == initial_level + 1
+        assert fresh_player.gain_xp(1)
         assert fresh_player.get_stat('level') == 2
-        assert fresh_player.get_stat('xp') == 100
+        assert fresh_player.xp_for_next_level() == 40
 
     @pytest.mark.unit
-    def test_level_up_increases_stats(self, fresh_player):
-        """Leveling up increases player stats."""
+    def test_level_3_requires_40_total_xp(self, fresh_player):
+        """Thresholds are cumulative: level 3 at 40 total, not 20 more after level 2."""
+        fresh_player.gain_xp(20)
+        assert not fresh_player.gain_xp(19)
+        assert fresh_player.get_stat('level') == 2
+
+        assert fresh_player.gain_xp(1)
+        assert fresh_player.get_stat('level') == 3
+        assert fresh_player.get_stat('xp') == 40
+
+    @pytest.mark.unit
+    def test_one_big_kill_grants_several_levels(self, fresh_player):
+        """100 XP at level 1 crosses 20, 40 and 80: straight to level 4."""
+        assert fresh_player.gain_xp(100)
+        assert fresh_player.get_stat('level') == 4
+
+    @pytest.mark.unit
+    def test_classless_level_up_uses_config_growth(self, fresh_player):
+        """No class: +1 attack, +0 defense, HP gain rolled in [3, 7] (hp_gain_per_level 5)."""
         initial_max_hp = fresh_player.max_hp
         initial_attack = fresh_player.attack
         initial_defense = fresh_player.defense
 
-        fresh_player.gain_xp(100)
+        fresh_player.gain_xp(20)
 
-        assert fresh_player.max_hp == initial_max_hp + 5
+        assert 3 <= fresh_player.max_hp - initial_max_hp <= 7
         assert fresh_player.attack == initial_attack + 1
-        assert fresh_player.defense == initial_defense + 1
+        assert fresh_player.defense == initial_defense
 
     @pytest.mark.unit
-    def test_level_up_restores_hp(self, damaged_player):
-        """Leveling up fully restores HP."""
-        assert damaged_player.hp == 10  # Start damaged
+    def test_class_growth_is_used_on_level_up(self):
+        """Each class levels with its own template growth, not a flat +5/+1/+1."""
+        from core.character_class import CharacterClass, create_player_from_class, get_class_template
+        for cls in CharacterClass:
+            template = get_class_template(cls)
+            player = create_player_from_class(cls, 0, 0)
+            player.gain_xp(20)
+            hp_gain = player.max_hp - template.hp
+            low = max(1, -(-template.hp_per_level // 2))
+            high = template.hp_per_level + template.hp_per_level // 2
+            assert low <= hp_gain <= high, cls
+            assert player.attack == template.attack + template.attack_per_level, cls
+            assert player.defense == template.defense + template.defense_per_level, cls
+
+    @pytest.mark.unit
+    def test_level_up_adds_hp_but_does_not_fully_heal(self, damaged_player):
+        """Like NetHack: the HP gain goes to current HP too, but it is not a full heal."""
+        assert damaged_player.hp == 10
         assert damaged_player.max_hp == 20
 
-        damaged_player.gain_xp(100)
+        damaged_player.gain_xp(20)
 
-        assert damaged_player.hp == damaged_player.max_hp
-        assert damaged_player.hp == 25  # New max HP
-
-    @pytest.mark.unit
-    def test_gaining_insufficient_xp_no_level(self, fresh_player):
-        """Gaining less than 100 XP doesn't level up."""
-        leveled_up = fresh_player.gain_xp(99)
-
-        assert not leveled_up
-        assert fresh_player.get_stat('level') == 1
-        assert fresh_player.get_stat('xp') == 99
-
-    @pytest.mark.unit
-    def test_level_2_requires_200_xp(self, fresh_player):
-        """Level 2 → 3 requires 200 XP total."""
-        # Reach level 2
-        fresh_player.gain_xp(100)
-        assert fresh_player.get_stat('level') == 2
-
-        # Need 200 more XP for level 3 (level * 100)
-        leveled_up = fresh_player.gain_xp(99)
-        assert not leveled_up
-        assert fresh_player.get_stat('level') == 2
-
-        leveled_up = fresh_player.gain_xp(1)
-        assert leveled_up
-        assert fresh_player.get_stat('level') == 3
-        assert fresh_player.get_stat('xp') == 200
+        gained = damaged_player.max_hp - 20
+        assert gained >= 1
+        assert damaged_player.hp == 10 + gained
+        assert damaged_player.hp < damaged_player.max_hp
 
 
 class TestPlayerStats:

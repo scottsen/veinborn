@@ -1,6 +1,6 @@
 # Veinborn Mechanics Reference
 
-**Last Updated:** 2025-11-05
+**Last Updated:** 2026-11-11 (combat dice + XP curve)
 **For:** Balance tuning, playtesting, and understanding exact game mechanics
 
 ---
@@ -17,51 +17,47 @@ This document contains **exact formulas** for all game mechanics. Use this for:
 
 ## ⚔️ Combat Mechanics
 
-### Damage Calculation
+### Attack Resolution (to-hit, then damage)
 
-**Formula:**
+Every swing, player or monster, goes through `AttackAction` and rolls twice,
+NetHack-style. Config: `data/balance/formulas.yaml` → `combat`. There are no
+critical hits.
+
+**1. To-hit roll (d20):**
 ```python
-damage = max(1, attacker_attack - defender_defense)
+roll = d20
+if roll == 1:   miss                    # natural 1 always misses
+elif roll == 20: hit                    # natural 20 always hits
+else: hit if roll + attacker_attack >= 10 + defender_defense
 ```
+A miss still takes the turn ("Goblin misses Player.").
+
+| Attack vs Defense | Hit on | Chance |
+|---|---|---|
+| 5 vs 1 (warrior vs goblin) | 6+ | 75% |
+| 3 vs 3 (goblin vs warrior) | 10+ | 55% |
+| 3 vs 1 (goblin vs mage) | 8+ | 65% |
+| 5 vs 6 (warrior vs golem) | 11+ | 50% |
+| far above defense | 2+ | 95% |
+| far below defense | 20 | 5% |
+
+**2. Damage roll:**
+```python
+damage_roll = uniform(ceil(attack * 0.5), floor(attack * 1.5))   # spread 0.5
+damage = max(1, damage_roll - defender_defense)
+```
+The average stays near `attack - defense`, so monster stat blocks keep their
+meaning; the spread adds the swing. Attack 4 rolls 2-6; attack 3 rolls 2-4.
 
 **Details:**
 - **Attacker Attack** = Base Attack + Equipment Bonuses
 - **Defender Defense** = Base Defense + Equipment Bonuses
-- **Minimum Damage** = 1 (always deal at least 1 damage)
+- **Defense counts twice**: it lowers the chance to be hit *and* the damage taken
+- **Minimum Damage** = 1 on a hit
 
-**Example 1: Player vs Goblin**
-```
-Player:
-  Base Attack: 5
-  Weapon Bonus: +12 (Iron Sword)
-  Total Attack: 17
-
-Goblin:
-  Defense: 1
-
-Damage = max(1, 17 - 1) = 16 damage
-```
-
-**Example 2: Goblin vs Player**
-```
-Goblin:
-  Attack: 3
-
-Player:
-  Base Defense: 2
-  Armor Bonus: +5 (Iron Armor)
-  Total Defense: 7
-
-Damage = max(1, 3 - 7) = max(1, -4) = 1 damage (minimum)
-```
-
-**Example 3: Equal Match**
-```
-Orc Attack: 5
-Player Defense: 5
-
-Damage = max(1, 5 - 5) = 1 damage (minimum guarantees progress)
-```
+**Measure a change:** `python3 scripts/sim_duels.py [--level N]` runs
+thousands of duels per class x monster through the real `AttackAction` and
+prints win% and HP lost.
 
 ### Equipment Bonuses
 
@@ -106,28 +102,33 @@ if entity.hp <= 0:
 **XP Award:**
 ```python
 xp_gained = monster.xp_reward  # Defined in monsters.yaml
-player.xp += xp_gained
-
-# Level up check
-if player.xp >= (player.level * 100):
-    player.level_up()
+player.gain_xp(xp_gained)      # may grant several levels at once
 ```
 
-**Leveling Formula:**
-```
-XP needed for level N = N * 100
+**Leveling curve (NetHack-style doubling):** `game_constants.yaml` →
+`player.progression.xp_curve`. Thresholds are **total** XP:
 
-Level 1 → 2: 100 XP
-Level 2 → 3: 200 XP
-Level 3 → 4: 300 XP
+```
+Level 2: 20    Level 3: 40    Level 4: 80    Level 5: 160
+Level 6: 320   Level 7: 640   ...            Level 11: 10240
+then +10000 per level
 ```
 
-**Level Up Bonuses:**
-```
-HP: +5 per level
-Attack: +1 per level
-Defense: +1 per level
-```
+With today's monster XP, a player who clears floors reaches level 2 on floor 2,
+level 4 around floor 3-4, level 5-6 by floor 6-8.
+
+**Level Up Bonuses** (per class, `src/core/character_class.py`):
+
+| Class | HP per level (rolled) | Attack | Defense |
+|---|---|---|---|
+| Warrior | 3-7 (avg 5) | +1 | +0 |
+| Rogue | 2-4 (avg 3) | +1 | +0 |
+| Mage | 2-4 (avg 3) | +1 | +0 |
+| Healer | 2-6 (avg 4) | +1 | +0 |
+| no class | 3-7 (avg 5) | +1 | +0 |
+
+The HP gain is added to current HP as well as max HP; levelling is **not** a
+full heal. Defense never grows with level: it comes from crafted armor.
 
 ---
 

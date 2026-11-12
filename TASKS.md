@@ -1037,13 +1037,16 @@ _(no notes yet)_
 ## TASK-VB-46 · Spawner stacks ore veins, forges and (rarely) monsters on one tile
 
 ```yaml
-status: in_progress
+status: done
 priority: medium
 effort: 2h
 tags: [spawning, bug]
 created: '2026-11-11T23:02:13Z'
-updated: '2026-11-12T02:39:01Z'
+updated: '2026-11-12T02:55:59Z'
 session: kinetic-fusion-1111
+links:
+  commits:
+  - ec6b05a09e4ef1c4f33d038ade7e1ee24ce82697
 notes_next: 3
 ```
 
@@ -1082,27 +1085,31 @@ priority: medium
 effort: 3h
 tags: [balance]
 created: '2026-11-12T01:33:21Z'
-updated: '2026-11-12T01:33:21Z'
+updated: '2026-11-12T03:35:29Z'
 session: kinetic-fusion-1111
+notes_next: 2
 ```
 
 Bot comparison (8 games x 4 classes, 3000-turn cap, old vs new mob AI): 0 of 64 games reached level 2 (up to 8 kills). gain_xp needs 100*level XP; goblin gives 5, orc 15. Mage deals 1 damage to a goblin and takes 2 per hit; 4 of 8 mages died to goblins/orcs on floor 1 in both trees, 'Killed by Goblin' within 15-80 turns. Decide target kills-per-level and mage starting attack.
 
 <!-- notes: append-only log; each has a stable #id (see CLI §5) -->
 ### Notes
-_(no notes yet)_
+- [#1 2026-11-12T03:35:29Z session:nebular-eclipse-1111] Done: d20 to-hit (roll+atk >= 10+def, nat 1/20) + damage roll atk±50% in AttackAction (formulas.yaml combat; dead crit/accuracy blocks removed). NetHack doubling XP curve 20/40/80..10240 then +10000 (game_constants xp_curve), multi-level gains, HP gain rolled and added to current HP (no full heal). Class growth from templates; attack +1/level, defense 0 for all (at +2 atk / +2 def, L3 warrior beat trolls 100% and L7 healer was unhittable). Mage attack 2->4 until spells. scripts/sim_duels.py measures win%/HP lost per class x monster x level. Bots 8 games x 4 classes x 3000 turns vs ec6b05a baseline: mage deaths 4/6 -> 1/8, avg level 1.0 -> 1.5-2.0 (max 3-4), 0 crashes; floors unchanged (~1.5, bots explore slowly). Still unverified: human feel; spells (mage), ongoing spawns.
 
 
 ## TASK-VB-49 · Fuzz bots: thousands of non-adjacent mine attempts, repeated 'Crafted Copper Dagger!', stalls on floors 1-2
 
 ```yaml
-status: in_progress
+status: done
 priority: low
 effort: 3h
 tags: [bots, tests]
 created: '2026-11-12T01:33:23Z'
-updated: '2026-11-12T02:39:01Z'
+updated: '2026-11-12T02:55:59Z'
 session: kinetic-fusion-1111
+links:
+  commits:
+  - ec6b05a09e4ef1c4f33d038ade7e1ee24ce82697
 notes_next: 3
 ```
 

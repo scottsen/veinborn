@@ -10,7 +10,7 @@ from core.loot import LootGenerator
 from core.base.entity import Entity
 
 
-pytestmark = pytest.mark.integration
+pytestmark = [pytest.mark.integration, pytest.mark.usefixtures("sure_hit")]
 
 @pytest.mark.integration
 def test_loot_system_integration(game_state_with_monster):

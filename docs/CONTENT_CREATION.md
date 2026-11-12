@@ -512,9 +512,10 @@ spawning:
 ```yaml
 player:
   progression:
-    xp_per_level: 50    # Was 100 (level faster)
-    hp_gain_per_level: 7   # Was 5 (more HP per level)
-    attack_gain_per_level: 2  # Was 1 (stronger per level)
+    xp_curve:
+      base: 10             # Was 20 (every level threshold halves)
+    hp_gain_per_level: 7   # Was 5 (classless player; classes are in character_class.py)
+    attack_gain_per_level: 2  # Was 1 -- careful: compounds fast, check scripts/sim_duels.py
 ```
 
 ---

@@ -82,7 +82,7 @@ def test_can_attack_monster(game_context, weak_goblin):
 
 
 @pytest.mark.unit
-def test_attack_execution_on_monster(game_context, weak_goblin):
+def test_attack_execution_on_monster(game_context, weak_goblin, sure_hit):
     """Test that attack execution works correctly on valid targets."""
     game_context.add_entity(weak_goblin)
 
@@ -128,7 +128,7 @@ def test_attack_validation_requires_adjacency(game_context, weak_goblin):
 
 
 @pytest.mark.unit
-def test_attack_deals_damage_to_living_target(game_context, weak_goblin):
+def test_attack_deals_damage_to_living_target(game_context, weak_goblin, sure_hit):
     """Attack successfully damages living targets."""
 
     game_context.add_entity(weak_goblin)
@@ -149,7 +149,7 @@ def test_attack_deals_damage_to_living_target(game_context, weak_goblin):
 
 
 def test_configured_damage_formula_is_evaluated_not_the_fallback(
-        game_context, weak_goblin, monkeypatch, caplog):
+        game_context, weak_goblin, monkeypatch, caplog, sure_hit):
     """VB-37: max/min were passed as names, so every attack fell back silently."""
     from core.config.config_loader import ConfigLoader
 
@@ -167,7 +167,7 @@ def test_configured_damage_formula_is_evaluated_not_the_fallback(
     assert weak_goblin.max_hp - weak_goblin.hp == player.get_total_attack() * 2
 
 
-def test_default_damage_formula_uses_max_without_error(game_context, weak_goblin, caplog):
+def test_default_damage_formula_uses_max_without_error(game_context, weak_goblin, caplog, sure_hit):
     game_context.add_entity(weak_goblin)
     player = game_context.get_player()
     weak_goblin.hp = weak_goblin.max_hp = 500
@@ -178,3 +178,92 @@ def test_default_damage_formula_uses_max_without_error(game_context, weak_goblin
 
     assert "Formula evaluation failed" not in caplog.text
     assert weak_goblin.hp == 499
+
+
+# ============================================================================
+# Combat dice: to-hit roll and damage roll (formulas.yaml combat)
+# ============================================================================
+
+class _FixedRolls:
+    """Stand-in RNG: randint returns queued values in order."""
+
+    def __init__(self, *rolls):
+        self.rolls = list(rolls)
+
+    def randint(self, a, b):
+        value = self.rolls.pop(0)
+        assert a <= value <= b, f"queued roll {value} outside [{a}, {b}]"
+        return value
+
+
+def _swing(game_context, weak_goblin, monkeypatch, *rolls):
+    game_context.add_entity(weak_goblin)
+    player = game_context.get_player()
+    monkeypatch.setattr(game_context, 'get_rng', lambda: _FixedRolls(*rolls))
+    return AttackAction(actor_id=player.entity_id, target_id=weak_goblin.entity_id).execute(game_context)
+
+
+@pytest.mark.unit
+def test_natural_one_always_misses(game_context, weak_goblin, monkeypatch):
+    """A miss takes the turn, deals no damage, and says so."""
+    weak_goblin.defense = -100  # the formula alone would always hit
+    start_hp = weak_goblin.hp
+
+    outcome = _swing(game_context, weak_goblin, monkeypatch, 1)
+
+    assert outcome.success and outcome.took_turn
+    assert weak_goblin.hp == start_hp
+    assert any("misses" in m for m in outcome.messages)
+    assert outcome.events[0]['data']['hit'] is False
+    assert outcome.events[0]['data']['damage'] == 0
+
+
+@pytest.mark.unit
+def test_natural_twenty_always_hits(game_context, weak_goblin, monkeypatch):
+    weak_goblin.hp = weak_goblin.max_hp = 500
+    weak_goblin.defense = 10_000  # the formula alone would never hit
+
+    _swing(game_context, weak_goblin, monkeypatch, 20, 5)
+
+    assert weak_goblin.hp == 499  # min damage 1
+
+
+@pytest.mark.unit
+def test_to_hit_formula_uses_attack_and_defense(game_context, weak_goblin, monkeypatch):
+    """Attack 5 vs defense 1 needs roll + 5 >= 11: a 5 misses, a 6 hits."""
+    weak_goblin.hp = weak_goblin.max_hp = 500
+    weak_goblin.defense = 1
+    assert game_context.get_player().get_total_attack() == 5
+
+    _swing(game_context, weak_goblin, monkeypatch, 5)
+    assert weak_goblin.hp == 500
+
+    _swing(game_context, weak_goblin, monkeypatch, 6, 5)
+    assert weak_goblin.hp == 500 - (5 - 1)
+
+
+@pytest.mark.unit
+def test_damage_roll_range_and_no_spread():
+    """Spread 0.5 on attack 4 rolls 2..6; spread 0 is the flat attack."""
+    from core.rng import GameRNG
+    rng = GameRNG(seed=7)
+    rolls = {AttackAction._roll_damage(4, 0.5, rng) for _ in range(500)}
+    assert rolls == {2, 3, 4, 5, 6}
+    assert AttackAction._roll_damage(4, 0.0, rng) == 4
+    assert {AttackAction._roll_damage(3, 0.5, rng) for _ in range(300)} == {2, 3, 4}
+
+
+@pytest.mark.unit
+def test_hit_rate_matches_the_formula_over_many_swings(game_context, weak_goblin):
+    """Player attack 5 vs goblin defense 1 hits on 6+ of a d20: 75%."""
+    from core.rng import GameRNG
+    GameRNG.initialize(12345)
+    game_context.add_entity(weak_goblin)
+    player = game_context.get_player()
+    hits = 0
+    swings = 2000
+    for _ in range(swings):
+        weak_goblin.hp = weak_goblin.max_hp = 10_000
+        outcome = AttackAction(actor_id=player.entity_id, target_id=weak_goblin.entity_id).execute(game_context)
+        hits += outcome.events[0]['data']['hit']
+    assert 0.71 <= hits / swings <= 0.79

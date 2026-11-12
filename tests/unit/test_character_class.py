@@ -94,7 +94,7 @@ class TestClassTemplates:
         mage = CLASS_TEMPLATES[CharacterClass.MAGE]
         assert mage.name == "Mage"
         assert mage.hp == 15
-        assert mage.attack == 2
+        assert mage.attack == 4  # 4 until spells exist (VB-48)
         assert mage.defense == 1
         assert "fireball" in mage.abilities
         assert "teleport" in mage.abilities
@@ -214,7 +214,7 @@ class TestCreatePlayerFromClass:
         assert player.name == "Charlie"
         assert player.hp == 15
         assert player.max_hp == 15
-        assert player.attack == 2
+        assert player.attack == 4
         assert player.defense == 1
         assert player.stats['class'] == "Mage"
 

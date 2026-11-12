@@ -32,7 +32,9 @@ class Sidebar(Static):
         text.append(f"Health: {player.hp}/{player.max_hp}\n")
         text.append(f"Attack: {player.attack}\n")
         text.append(f"Defense: {player.defense}\n")
-        text.append(f"XP: {player.get_stat('xp', 0)}\n")
+        next_xp = player.xp_for_next_level() if hasattr(player, 'xp_for_next_level') else None
+        xp_line = f"{player.get_stat('xp', 0)}/{next_xp}" if next_xp else f"{player.get_stat('xp', 0)}"
+        text.append(f"XP: {xp_line}\n")
         text.append(f"Level: {player.get_stat('level', 1)}\n\n")
 
         # Show inventory only if InventoryWidget is hidden (for default layout)

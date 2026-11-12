@@ -164,9 +164,20 @@ class TestFormulaConfiguration:
         formula = config.get_damage_formula()
 
         assert formula is not None
-        assert 'attacker_attack' in formula
+        assert 'damage_roll' in formula
         assert 'defender_defense' in formula
         assert 'max' in formula
+
+    def test_combat_dice_config(self):
+        """To-hit roll and damage spread are configured (NetHack-style combat)."""
+        config = ConfigLoader.get_config()
+
+        to_hit = config.get_to_hit_config()
+        assert to_hit['die'] == 20
+        assert 'roll' in to_hit['formula']
+        assert to_hit['natural_miss'] == 1
+        assert to_hit['natural_hit'] == 20
+        assert 0 < config.get_damage_spread() < 1
 
     def test_min_damage(self):
         """Minimum damage value is accessible."""

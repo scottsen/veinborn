@@ -17,7 +17,7 @@ from src.core.game_state import GameState
 from src.core.world import Map, Tile, TileType
 
 
-pytestmark = pytest.mark.unit
+pytestmark = [pytest.mark.unit, pytest.mark.usefixtures("sure_hit")]
 
 
 @pytest.fixture

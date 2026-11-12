@@ -382,17 +382,30 @@ player:
     defense: 2
 
   progression:
-    xp_per_level: 100
-    hp_gain_per_level: 5
+    xp_curve:                 # total XP to reach each level, NetHack-style
+      base: 20                # level 2 = 20, 3 = 40, 4 = 80 ...
+      doubling_until_level: 11
+      linear_step_after: 10000
+    hp_gain_per_level: 5      # classless player only; classes set their own
     attack_gain_per_level: 1
+    defense_gain_per_level: 0
 ```
 
 #### Combat Settings
+The live combat config is in `formulas.yaml` (not here): a d20 to-hit roll and
+a damage roll. See `docs/MECHANICS_REFERENCE.md` → Attack Resolution.
 ```yaml
+# formulas.yaml
 combat:
-  damage_formula: "max(1, attacker_attack - defender_defense)"
-  min_damage: 1
-  bump_to_attack: true
+  to_hit:
+    die: 20
+    formula: "roll + attacker_attack >= 10 + defender_defense"
+    natural_miss: 1
+    natural_hit: 20
+  damage:
+    formula: "max(1, damage_roll - defender_defense)"
+    spread: 0.5          # damage_roll = attack +/- 50%
+    min_damage: 1
 ```
 
 #### Spawning & Difficulty
@@ -425,7 +438,8 @@ spawning:
 # Faster progression
 player:
   progression:
-    xp_per_level: 50  # Was 100 (level up faster)
+    xp_curve:
+      base: 10  # Was 20 (every threshold halves)
 ```
 
 ---

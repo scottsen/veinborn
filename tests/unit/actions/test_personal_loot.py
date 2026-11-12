@@ -15,7 +15,7 @@ from core.base.entity import Entity, EntityType
 from core.loot import LootGenerator
 
 
-pytestmark = pytest.mark.unit
+pytestmark = [pytest.mark.unit, pytest.mark.usefixtures("sure_hit")]
 
 
 # ============================================================================

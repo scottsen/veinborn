@@ -5,10 +5,15 @@ ore_surveyed / best_ore_purity / death_cause from player.stats, but nothing wrot
 them, so combat and mining never counted toward any score (single- or multiplayer).
 """
 
+import pytest
+
 from core.actions.attack_action import AttackAction
 from core.actions.mine_action import MineAction
 from core.actions.survey_action import SurveyAction
 from core.highscore import HighScoreEntry
+
+# These test stat bookkeeping, not combat dice: every swing hits.
+pytestmark = pytest.mark.usefixtures("sure_hit")
 
 
 def _attack(context, actor, target):

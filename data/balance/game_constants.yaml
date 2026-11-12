@@ -14,10 +14,18 @@ player:
     xp: 0
 
   progression:
-    xp_per_level: 100  # Level 2 needs 100 XP, Level 3 needs 200 XP
+    # NetHack-style doubling curve: TOTAL XP needed to reach each level.
+    # Level 2 = 20, 3 = 40, 4 = 80, 5 = 160 ... 11 = 10240, then +10000 per level.
+    xp_curve:
+      base: 20                  # total XP to reach level 2
+      doubling_until_level: 11  # thresholds double up to this level
+      linear_step_after: 10000  # XP per level after that
+    # Per-level growth for a classless player. Classes override these with
+    # their own hp/attack/defense_per_level (src/core/character_class.py).
+    # HP gain is rolled: uniform in [ceil(hp/2), hp + hp//2], averaging ~hp.
     hp_gain_per_level: 5
     attack_gain_per_level: 1
-    defense_gain_per_level: 1
+    defense_gain_per_level: 0  # defense comes from armor, as in NetHack
 
   health_regeneration:
     interval_turns: 10  # Regenerate every 10 turns

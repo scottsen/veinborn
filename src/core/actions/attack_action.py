@@ -69,8 +69,16 @@ class AttackAction(Action):
         actor, target = self._get_attacker_and_target(context)
         self._log_attack_start(actor, target)
 
-        # Calculate and apply damage
-        actual_damage = self._calculate_and_apply_damage(actor, target)
+        rng = context.get_rng()
+        actor_attack, target_defense = self._effective_stats(actor, target)
+
+        # Roll to hit; a miss still takes the turn
+        if not self._roll_to_hit(actor_attack, target_defense, rng):
+            self._record_run_stats(actor, target, 0)
+            return self._build_miss_outcome(actor, target)
+
+        # Roll and apply damage
+        actual_damage = self._calculate_and_apply_damage(actor, target, rng)
         self._log_damage(actor, target, actual_damage)
         self._record_run_stats(actor, target, actual_damage)
 
@@ -123,31 +131,70 @@ class AttackAction(Action):
             }
         )
 
-    def _calculate_and_apply_damage(self, actor, target) -> int:
-        """Calculate damage and apply to target using configured formula."""
+    @staticmethod
+    def _effective_stats(actor, target):
+        """Attack and defense including equipment bonuses for players."""
+        actor_attack = actor.get_total_attack() if isinstance(actor, Player) else actor.attack
+        target_defense = target.get_total_defense() if isinstance(target, Player) else target.defense
+        return actor_attack, target_defense
 
-        # Get attack value (including equipment bonuses for Players)
-        if isinstance(actor, Player):
-            actor_attack = actor.get_total_attack()
-        else:
-            actor_attack = actor.attack
+    @staticmethod
+    def _roll_to_hit(actor_attack: int, target_defense: int, rng) -> bool:
+        """NetHack-style to-hit roll (formulas.yaml combat.to_hit).
 
-        # Get defense value (including equipment bonuses for Players)
-        if isinstance(target, Player):
-            target_defense = target.get_total_defense()
-        else:
-            target_defense = target.defense
+        Natural miss/hit faces override the formula, so nothing is ever
+        guaranteed or impossible. No to_hit config means every swing hits.
+        """
+        to_hit = ConfigLoader.get_config().get_to_hit_config()
+        if not to_hit:
+            return True
 
-        # Get damage formula from config
+        roll = rng.randint(1, to_hit['die'])
+        if roll <= to_hit.get('natural_miss', 0):
+            return False
+        if roll >= to_hit.get('natural_hit', to_hit['die'] + 1):
+            return True
+        try:
+            return bool(simple_eval(
+                to_hit['formula'],
+                names={
+                    'roll': roll,
+                    'attacker_attack': actor_attack,
+                    'defender_defense': target_defense,
+                },
+                functions={'max': max, 'min': min},
+            ))
+        except Exception as e:
+            logger.error(f"To-hit formula evaluation failed: {e}, treating as hit")
+            return True
+
+    @staticmethod
+    def _roll_damage(actor_attack: int, spread: float, rng) -> int:
+        """Damage roll: uniform in [ceil(atk*(1-spread)), floor(atk*(1+spread))]."""
+        if spread <= 0 or actor_attack <= 0:
+            return actor_attack
+        low = max(0, -int(-actor_attack * (1 - spread) // 1))  # ceil
+        high = max(low, int(actor_attack * (1 + spread)))      # floor
+        return rng.randint(low, high)
+
+    def _calculate_and_apply_damage(self, actor, target, rng=None) -> int:
+        """Roll damage and apply it to the target using the configured formula."""
+        actor_attack, target_defense = self._effective_stats(actor, target)
+
         config = ConfigLoader.get_config()
         formula = config.get_damage_formula()
         min_damage = config.get_min_damage()
+        damage_roll = (
+            self._roll_damage(actor_attack, config.get_damage_spread(), rng)
+            if rng is not None else actor_attack
+        )
 
         # Evaluate formula
         try:
             damage = simple_eval(
                 formula,
                 names={
+                    'damage_roll': damage_roll,
                     'attacker_attack': actor_attack,
                     'defender_defense': target_defense,
                 },
@@ -156,9 +203,26 @@ class AttackAction(Action):
             )
         except Exception as e:
             logger.error(f"Formula evaluation failed: {e}, using fallback")
-            damage = actor_attack - target_defense
+            damage = damage_roll - target_defense
 
         return target.take_damage(max(min_damage, int(damage)))
+
+    def _build_miss_outcome(self, actor, target) -> ActionOutcome:
+        """Outcome for a swing that missed: turn spent, no damage."""
+        logger.info(
+            "AttackAction missed",
+            extra={'actor_id': self.actor_id, 'target_id': self.target_id},
+        )
+        outcome = ActionOutcome.success(took_turn=True)
+        outcome.messages.append(f"{actor.name} misses {target.name}.")
+        outcome.events.append(create_attack_event(
+            attacker_id=self.actor_id,
+            defender_id=self.target_id,
+            damage=0,
+            killed=False,
+            hit=False,
+        ))
+        return outcome
 
     def _log_damage(self, actor, target, actual_damage: int):
         """Log damage dealt."""

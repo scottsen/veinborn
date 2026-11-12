@@ -238,6 +238,42 @@ class GameConfig:
         """Get minimum damage value."""
         return self.formulas['combat']['damage']['min_damage']
 
+    def get_damage_spread(self) -> float:
+        """Get the damage roll spread (0 = fixed damage, 0.5 = attack +/- 50%)."""
+        return self.formulas['combat']['damage'].get('spread', 0.0)
+
+    def get_to_hit_config(self) -> Optional[Dict[str, Any]]:
+        """Get the to-hit roll config (die, formula, natural_miss, natural_hit).
+
+        None means every swing hits (the pre-to-hit behaviour).
+        """
+        return self.formulas['combat'].get('to_hit')
+
+    def get_xp_for_level(self, level: int) -> int:
+        """Total XP needed to reach ``level`` (NetHack-style doubling curve).
+
+        Level 1 needs 0. With the default curve: 2 -> 20, 3 -> 40, 4 -> 80,
+        ... 11 -> 10240, then +linear_step_after per level.
+        """
+        if level <= 1:
+            return 0
+        curve = self.game_constants['player']['progression']['xp_curve']
+        base = curve['base']
+        doubling_until = curve['doubling_until_level']
+        if level <= doubling_until:
+            return base * 2 ** (level - 2)
+        top = base * 2 ** (doubling_until - 2)
+        return top + curve['linear_step_after'] * (level - doubling_until)
+
+    def get_level_growth_defaults(self) -> Dict[str, int]:
+        """Per-level growth for a player whose class doesn't set its own."""
+        prog = self.game_constants['player']['progression']
+        return {
+            'hp_per_level': prog['hp_gain_per_level'],
+            'attack_per_level': prog['attack_gain_per_level'],
+            'defense_per_level': prog['defense_gain_per_level'],
+        }
+
     def get_mining_turns_formula(self) -> str:
         """Get mining turns calculation formula."""
         return self.formulas['mining']['formula']

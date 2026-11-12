@@ -97,23 +97,38 @@ class Player(Entity):
         Returns:
             True if leveled up
         """
-        current_xp = self.get_stat('xp', 0)
-        current_level = self.get_stat('level', 1)
+        config = ConfigLoader.get_config()
+        total_xp = self.get_stat('xp', 0) + amount
+        self.set_stat('xp', total_xp)
 
-        self.set_stat('xp', current_xp + amount)
+        # NetHack-style doubling curve (game_constants.yaml player.progression).
+        # One big kill can grant several levels.
+        leveled_up = False
+        while total_xp >= config.get_xp_for_level(self.get_stat('level', 1) + 1):
+            self._level_up(config)
+            leveled_up = True
+        return leveled_up
 
-        # Check for level up (100 XP per level)
-        xp_for_next_level = current_level * 100
-        if current_xp + amount >= xp_for_next_level:
-            self.set_stat('level', current_level + 1)
-            # Increase stats on level up
-            self.max_hp += 5
-            self.hp = self.max_hp
-            self.attack += 1
-            self.defense += 1
-            return True
+    def xp_for_next_level(self) -> int:
+        """Total XP needed to reach the next level."""
+        return ConfigLoader.get_config().get_xp_for_level(self.get_stat('level', 1) + 1)
 
-        return False
+    def _level_up(self, config) -> None:
+        """Gain one level: class growth, with a rolled HP gain.
+
+        Like NetHack, the HP gain is added to current HP; it is not a full heal.
+        Growth comes from the class (stored in stats by create_player_from_class),
+        falling back to the classless defaults in game_constants.yaml.
+        """
+        growth = config.get_level_growth_defaults()
+        hp_per = self.get_stat('hp_per_level', growth['hp_per_level'])
+        hp_gain = GameRNG.get_instance().randint(max(1, -(-hp_per // 2)), max(1, hp_per + hp_per // 2))
+
+        self.set_stat('level', self.get_stat('level', 1) + 1)
+        self.max_hp += hp_gain
+        self.hp = min(self.max_hp, self.hp + hp_gain)
+        self.attack += self.get_stat('attack_per_level', growth['attack_per_level'])
+        self.defense += self.get_stat('defense_per_level', growth['defense_per_level'])
 
     def get_total_attack(self) -> int:
         """

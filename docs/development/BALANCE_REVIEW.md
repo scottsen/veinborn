@@ -3,6 +3,14 @@
 **Purpose:** Pre-playtest analysis of balance configuration
 **Status:** ⚠️ Configuration reviewed, needs playtesting validation
 **Date:** 2026-01-08
+
+> **Superseded in part (2026-11-11, `VB-48`):** combat now rolls a d20 to hit and
+> rolls damage (attack +/- 50%); there are no critical hits (the 10%/2x block was
+> never read by code and was removed). XP uses a NetHack-style doubling curve
+> (20, 40, 80, ...), classes level with their own growth, and levels never add
+> defense. The Combat Math table, crit section and "+5 HP per level" below
+> describe the old deterministic rules. Current rules: `docs/MECHANICS_REFERENCE.md`;
+> measured duel odds: `python3 scripts/sim_duels.py --level N`.
 **Correction (2026-08-04):** Point 2 below ("only 1 vein") was verified against the actually-loaded config and is wrong — see note under Resource Availability. Tracked as `VB-7`. Also see `TASKS.md`/`VB-1`: playtesting was blocked by a floor-11 crash bug, unrelated to balance — fixed 2026-08-05, playtesting past floor 10 is now possible.
 
 ---

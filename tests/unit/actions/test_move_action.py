@@ -166,7 +166,7 @@ def test_movement_creates_event():
 # ============================================================================
 
 @pytest.mark.unit
-def test_bump_into_monster_triggers_attack(game_state_with_monster):
+def test_bump_into_monster_triggers_attack(game_state_with_monster, sure_hit):
     """Moving into monster space triggers attack instead of movement."""
     from core.base.game_context import GameContext
 

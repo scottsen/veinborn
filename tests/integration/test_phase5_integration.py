@@ -77,7 +77,7 @@ class TestGameStartIntegration:
 
         # Check mage stats
         assert game.state.player.hp == 15  # Mage starting HP
-        assert game.state.player.attack == 2
+        assert game.state.player.attack == 4
         assert game.state.player.defense == 1
 
         # Check class stored

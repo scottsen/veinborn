@@ -78,9 +78,9 @@ class ClassTemplate:
         attack: Starting attack
         defense: Starting defense
         starting_items: List of starting item IDs (future)
-        hp_per_level: HP gained per level (future)
-        attack_per_level: Attack gained per level (future)
-        defense_per_level: Defense gained per level (future)
+        hp_per_level: Average HP gained per level (rolled; see Player._level_up)
+        attack_per_level: Attack gained per level
+        defense_per_level: Defense gained per level
         abilities: List of class abilities (future)
     """
 
@@ -95,7 +95,7 @@ class ClassTemplate:
     # Starting items (future feature)
     starting_items: List[str]
 
-    # Class-specific progression (future feature)
+    # Class-specific progression
     hp_per_level: int
     attack_per_level: int
     defense_per_level: int
@@ -105,6 +105,13 @@ class ClassTemplate:
 
 
 # Class definitions
+#
+# Growth is NetHack-shaped: levels give HP and +1 attack (accuracy and damage),
+# never defense -- protection comes from crafted armor. With the doubling XP
+# curve, levels 2-5 arrive within the first few floors, so larger per-level
+# gains compound fast: +2 attack/level made a level-3 warrior beat a troll
+# 100% of the time, and +2 defense/level made a level-7 healer unhittable.
+# Measure changes with scripts/sim_duels.py --level N.
 CLASS_TEMPLATES: Dict[CharacterClass, ClassTemplate] = {
     CharacterClass.WARRIOR: ClassTemplate(
         name="Warrior",
@@ -114,8 +121,8 @@ CLASS_TEMPLATES: Dict[CharacterClass, ClassTemplate] = {
         defense=3,
         starting_items=["iron_sword", "leather_armor"],
         hp_per_level=5,
-        attack_per_level=2,
-        defense_per_level=1,
+        attack_per_level=1,
+        defense_per_level=0,
         abilities=["power_strike"],
     ),
 
@@ -128,7 +135,7 @@ CLASS_TEMPLATES: Dict[CharacterClass, ClassTemplate] = {
         starting_items=["dagger", "lockpick"],
         hp_per_level=3,
         attack_per_level=1,
-        defense_per_level=1,
+        defense_per_level=0,
         abilities=["backstab", "dodge"],
     ),
 
@@ -136,10 +143,12 @@ CLASS_TEMPLATES: Dict[CharacterClass, ClassTemplate] = {
         name="Mage",
         description="Arcane spellcaster with low HP but powerful magic",
         hp=15,
-        attack=2,
+        # 4, not 2: the mage has no spells yet (abilities above are unimplemented),
+        # and at 2 it lost two-thirds of its HP to a goblin and could not beat an orc.
+        attack=4,
         defense=1,
         starting_items=["wand", "spellbook"],
-        hp_per_level=2,
+        hp_per_level=3,
         attack_per_level=1,
         defense_per_level=0,
         abilities=["fireball", "teleport"],
@@ -154,7 +163,7 @@ CLASS_TEMPLATES: Dict[CharacterClass, ClassTemplate] = {
         starting_items=["healing_staff", "bandages"],
         hp_per_level=4,
         attack_per_level=1,
-        defense_per_level=2,
+        defense_per_level=0,
         abilities=["heal", "protect", "regeneration"],
     ),
 }
@@ -227,6 +236,11 @@ def create_player_from_class(
     player.stats['char'] = '@'
     player.stats['blocks_movement'] = True
     player.stats['blocks_light'] = False
+
+    # Per-level growth, read by Player.gain_xp on level-up
+    player.stats['hp_per_level'] = template.hp_per_level
+    player.stats['attack_per_level'] = template.attack_per_level
+    player.stats['defense_per_level'] = template.defense_per_level
 
     # Future: Add starting items
     # for item_id in template.starting_items:

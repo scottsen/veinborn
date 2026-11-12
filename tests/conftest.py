@@ -410,6 +410,23 @@ def capture_messages(monkeypatch):
     return messages
 
 
+@pytest.fixture
+def sure_hit(monkeypatch):
+    """Turn off combat dice: every swing hits for exactly max(1, atk - def).
+
+    Combat rolls to hit and rolls damage (formulas.yaml combat). Tests about
+    something other than the dice -- loot, XP, run stats, AI choosing to attack
+    -- use this so a missed swing can't make them fail at random. Tests of the
+    rolls themselves must not use it.
+    """
+    # The config class can be imported as core.* or src.core.*; patch every copy.
+    for mod_name in ("core.config.config_loader", "src.core.config.config_loader"):
+        mod = sys.modules.get(mod_name)
+        if mod is not None:
+            monkeypatch.setattr(mod.GameConfig, "get_to_hit_config", lambda self: None)
+            monkeypatch.setattr(mod.GameConfig, "get_damage_spread", lambda self: 0.0)
+
+
 # ============================================================================
 # Pytest Configuration
 # ============================================================================

@@ -405,7 +405,8 @@ def create_attack_event(
     defender_id: str,
     damage: int,
     killed: bool,
-    turn: Optional[int] = None
+    turn: Optional[int] = None,
+    hit: bool = True,
 ) -> dict:
     """
     Create attack resolved event.
@@ -419,6 +420,7 @@ def create_attack_event(
         damage: Damage dealt
         killed: Whether defender was killed
         turn: Current turn number (optional)
+        hit: False if the to-hit roll missed (damage is then 0)
 
     Returns:
         Event dict ready for ActionOutcome.events
@@ -430,6 +432,7 @@ def create_attack_event(
             'defender_id': defender_id,
             'damage': damage,
             'killed': killed,
+            'hit': hit,
         },
         'timestamp': time.time(),
         'turn': turn,

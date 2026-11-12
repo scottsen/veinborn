@@ -140,29 +140,34 @@ Higher numbers = better! Purity amplifies everything.
 
 ### Your Character
 - **HP (Hit Points):** Your health. 0 HP = death
-- **Attack:** Damage you deal in combat
-- **Defense:** Reduces damage from monsters
-- **XP (Experience):** Gain by killing monsters
-- **Level:** Increases stats when you level up
+- **Attack:** How often you hit, and how hard
+- **Defense:** How often monsters hit you, and how hard
+- **XP (Experience):** Gain by killing monsters (sidebar shows `XP: now/next`)
+- **Level:** Each level adds HP and +1 attack. Defense comes from armor.
 
 ### Combat Math (Simple)
+Every swing rolls a d20 to hit, then rolls damage:
 ```
-Damage = Your Attack - Enemy Defense
-(minimum 1 damage per hit)
+Hit if:  d20 + Your Attack >= 10 + Enemy Defense   (1 always misses, 20 always hits)
+Damage:  roll around Your Attack (+/- 50%) - Enemy Defense   (minimum 1)
 ```
 
 Example:
-- Your attack: 5
-- Goblin defense: 1
-- You deal: 4 damage per hit
-- Goblin HP: 6
-- Kills in: 2 hits!
+- Your attack: 5, goblin defense: 1
+- You hit on a 6 or better (75%)
+- Each hit rolls 3-7, minus 1: 2-6 damage
+- Goblin HP: 6, usually dead in 2-3 swings
+
+Levels come fast early (20 XP for level 2, 40 for 3, 80 for 4) and then double.
 
 ---
 
 ## Character Classes
 
-Choose at game start:
+Choose at game start. Starting HP / Attack / Defense today: Warrior 30/5/3,
+Rogue 20/4/2, Mage 15/4/1, Healer 25/3/4. Spells, backstab, crits and healing
+abilities described below are planned but not in the game yet: every class
+fights in melee for now, so the mage is the fragile one.
 
 ### Warrior (Red @)
 - **Best at:** Melee combat, tanking
