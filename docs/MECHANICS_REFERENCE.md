@@ -420,7 +420,7 @@ Floor 12: 2 + (12 // 3) = 6 monsters
 
 **Ongoing spawns (VB-52):** after the floor is made, every turn has a 2%
 chance (`spawning.yaml` → `ongoing_spawns`) of one new monster appearing at
-least 8 tiles (Manhattan) from every living player, up to 12 living monsters on
+least 8 tiles (Chebyshev: 8-way steps) from every living player, up to 12 living monsters on
 the floor. Its type is drawn from the spawn weights of tier
 `(floor + average player level) // 2` (minimum 1), NetHack's formula, so idling
 costs you and a high-level player draws tougher wanderers. Code:

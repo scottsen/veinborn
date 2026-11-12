@@ -1,6 +1,7 @@
 """The five classic AI behaviours. Tuning lives in data/balance/ai_behaviors.yaml."""
 
 from ...extensions import ai_behavior
+from ...geometry import chebyshev
 
 
 @ai_behavior("aggressive")
@@ -85,7 +86,7 @@ def guard(ai, monster, config):
     spawn_y = monster.get_stat('spawn_y', monster.y)
     guard_radius = config.get('guard_radius', 4)
 
-    from_spawn = abs(monster.x - spawn_x) + abs(monster.y - spawn_y)
+    from_spawn = chebyshev(monster.x, monster.y, spawn_x, spawn_y)
     if from_spawn > guard_radius:
         ai.move_towards(monster, _Spot(spawn_x, spawn_y))
         return

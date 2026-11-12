@@ -24,7 +24,7 @@ def game():
 
 
 def spawn(game, ai_type, dist, monster_id="orc"):
-    """Put a monster `dist` tiles (Manhattan) from the player in the open, with sight."""
+    """Put a monster `dist` tiles from the player along an axis, in the open, with sight."""
     p, m = game.state.player, game.state.dungeon_map
     for dx, dy in [(dist, 0), (-dist, 0), (0, dist), (0, -dist)]:
         x, y = p.x + dx, p.y + dy
@@ -177,3 +177,13 @@ def test_summoner_replaces_dead_minions(game):
     minion.is_alive = False
     from core.content.ai.summoner import _living_minions
     assert _living_minions(game.context.get_system('ai'), mon) == []
+
+
+# --- range metric (VB-58) --------------------------------------------------------
+
+def test_ai_range_is_chebyshev_so_a_diagonal_is_not_twice_as_far(game):
+    ai = game.context.get_system('ai')
+    p = game.state.player
+    mon = spawn(game, "aggressive", 3)
+    mon.x, mon.y = p.x + 4, p.y + 4  # 4 diagonal steps; Manhattan would say 8
+    assert ai.distance(mon, p) == 4

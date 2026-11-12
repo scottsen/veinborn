@@ -2,10 +2,20 @@
 Shared 2D grid geometry helpers.
 
 Single source of truth for Bresenham line stepping, previously hand-rolled
-separately in pathfinding.py and twice in perception.py.
+separately in pathfinding.py and twice in perception.py, and for the game's
+range metric (chebyshev).
 """
 
 from typing import Callable, Iterator, Tuple
+
+
+def chebyshev(x0: int, y0: int, x1: int, y1: int) -> int:
+    """Range between two tiles: the number of 8-way steps, max(|dx|, |dy|).
+
+    The game's one range metric (ADR-019): AI ranges, ability ranges, leashes and
+    spawn distances all use it, because movement and adjacency are 8-directional.
+    """
+    return max(abs(x0 - x1), abs(y0 - y1))
 
 
 def bresenham_line(x0: int, y0: int, x1: int, y1: int) -> Iterator[Tuple[int, int]]:

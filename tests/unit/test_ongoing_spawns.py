@@ -49,7 +49,7 @@ def test_wanderer_spawns_far_from_player(game):
     spawned = [m for m in _monsters(game) if m.entity_id not in initial]
     assert len(spawned) == 1
     m = spawned[0]
-    assert abs(m.x - player.x) + abs(m.y - player.y) >= 8
+    assert max(abs(m.x - player.x), abs(m.y - player.y)) >= 8  # Chebyshev, the range metric
 
 
 def test_wanderer_never_shares_a_tile(game):

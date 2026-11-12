@@ -7,7 +7,7 @@ from ...base.action import ActionOutcome
 from ...base.entity import EntityType
 from ...events import create_attack_event
 from ...extensions import ability
-from ...geometry import has_line_of_sight
+from ...geometry import chebyshev, has_line_of_sight
 
 logger = logging.getLogger(__name__)
 
@@ -18,7 +18,7 @@ def _nearest_visible_monster(context, actor, max_range: int):
     for monster in context.get_entities_by_type(EntityType.MONSTER):
         if not monster.is_alive or monster.x is None:
             continue
-        dist = max(abs(monster.x - actor.x), abs(monster.y - actor.y))
+        dist = chebyshev(monster.x, monster.y, actor.x, actor.y)
         if dist > max_range or (best_dist is not None and dist >= best_dist):
             continue
         if has_line_of_sight(actor.x, actor.y, monster.x, monster.y, game_map.is_transparent):

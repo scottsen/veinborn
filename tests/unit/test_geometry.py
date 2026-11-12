@@ -4,11 +4,12 @@ Tests for shared grid geometry helpers (src/core/geometry.py).
 Validates:
 - bresenham_line() point stepping
 - has_line_of_sight() endpoint-exclusion and blocking behavior
+- chebyshev() the game's range metric
 """
 
 import pytest
 
-from src.core.geometry import bresenham_line, has_line_of_sight
+from src.core.geometry import bresenham_line, chebyshev, has_line_of_sight
 
 pytestmark = pytest.mark.unit
 
@@ -52,3 +53,17 @@ class TestHasLineOfSight:
 
     def test_same_position_always_visible(self):
         assert has_line_of_sight(5, 5, 5, 5, is_transparent=lambda x, y: False)
+
+
+class TestChebyshev:
+    def test_diagonal_counts_one_per_step(self):
+        assert chebyshev(0, 0, 5, 5) == 5
+
+    def test_straight_line(self):
+        assert chebyshev(3, 2, 3, 9) == 7
+
+    def test_mixed_is_the_larger_axis(self):
+        assert chebyshev(0, 0, 2, -6) == 6
+
+    def test_same_tile(self):
+        assert chebyshev(4, 4, 4, 4) == 0

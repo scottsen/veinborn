@@ -22,7 +22,7 @@ from ..actions.attack_action import AttackAction
 from ..pathfinding import get_direction
 from ..config.config_loader import ConfigLoader
 from ..extensions import ai_behaviors
-from ..geometry import has_line_of_sight
+from ..geometry import chebyshev, has_line_of_sight
 from .ai_behavior_registry import AIBehaviorRegistry
 
 logger = logging.getLogger(__name__)
@@ -85,8 +85,8 @@ class AISystem(System):
 
     @staticmethod
     def distance(a, b) -> int:
-        """Manhattan distance between two entities (or anything with x, y)."""
-        return abs(a.x - b.x) + abs(a.y - b.y)
+        """Range between two entities (or anything with x, y): 8-way steps (Chebyshev)."""
+        return chebyshev(a.x, a.y, b.x, b.y)
 
     def in_sight(self, a, b) -> bool:
         """True if no wall blocks the straight line between a and b."""
@@ -108,12 +108,12 @@ class AISystem(System):
         if not alive_players:
             return None
 
-        # Find nearest player by Manhattan distance
+        # Find the nearest player (ties: first in the player list)
         nearest_player = None
         nearest_distance = float('inf')
 
         for player in alive_players:
-            distance = abs(monster.x - player.x) + abs(monster.y - player.y)
+            distance = self.distance(monster, player)
             if distance < nearest_distance:
                 nearest_distance = distance
                 nearest_player = player
@@ -205,7 +205,7 @@ class AISystem(System):
 
         Args:
             leash: Optional (x, y, radius). The monster will not step to a tile
-                farther than `radius` (Manhattan) from (x, y).
+                farther than `radius` (Chebyshev) from (x, y).
         """
         game_map = self.context.get_map()
         direction = get_direction(
@@ -221,7 +221,7 @@ class AISystem(System):
 
             if leash is not None:
                 lx, ly, radius = leash
-                if abs(monster.x + dx - lx) + abs(monster.y + dy - ly) > radius:
+                if chebyshev(monster.x + dx, monster.y + dy, lx, ly) > radius:
                     return  # Next step leaves the leash: hold position
 
             action = MoveAction(monster.entity_id, dx, dy)

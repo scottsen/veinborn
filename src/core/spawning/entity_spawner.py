@@ -19,6 +19,7 @@ from typing import List, Dict, Optional
 from ..config import GameConfig
 from ..entity_loader import EntityLoader
 from ..rng import GameRNG
+from ..geometry import chebyshev
 from ..entities import Monster, OreVein, Forge
 from ..world import Map
 from ..exceptions import ContentValidationError
@@ -120,7 +121,7 @@ class EntitySpawner:
             for y in range(dungeon_map.height)
             if dungeon_map.is_walkable(x, y)
             and (x, y) not in occupied
-            and all(abs(x - px) + abs(y - py) >= min_dist for px, py in player_positions)
+            and all(chebyshev(x, y, px, py) >= min_dist for px, py in player_positions)
         ]
         if not candidates:
             return None
