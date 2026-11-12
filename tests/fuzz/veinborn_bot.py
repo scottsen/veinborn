@@ -800,6 +800,8 @@ class VeinbornBot:
                 potions_used=game_stats.get('potions_used', 0),
             )
             self.stats.game_results.append(game_result)
+            if output:
+                self.save_game_results(output, quiet=True)  # a stopped run keeps its games
 
             # Progress update
             if (i + 1) % 10 == 0:
@@ -901,7 +903,7 @@ class VeinbornBot:
         else:
             print(f"\n🐛 BUGS FOUND - See errors above")
 
-    def save_game_results(self, output: Optional[str] = None) -> None:
+    def save_game_results(self, output: Optional[str] = None, quiet: bool = False) -> None:
         """Save per-game results to JSON for histogram analysis."""
         if not self.stats.game_results:
             return
@@ -936,6 +938,8 @@ class VeinbornBot:
         with open(filepath, 'w') as f:
             json.dump(results_data, f, indent=2)
 
+        if quiet:
+            return
         print(f"\n📊 Per-game results saved to: {filepath}")
         print(f"   {len(self.stats.game_results)} game records for histogram analysis")
 

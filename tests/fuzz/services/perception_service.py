@@ -382,14 +382,15 @@ class PerceptionService:
         Returns recipe_id if craftable, None otherwise.
         Uses RecipeManager's suggest_recipe() for intelligent recipe selection.
         """
-        from core.crafting import RecipeManager
+        from core.actions.craft_action import CraftAction
         player = game.state.player
 
         if not hasattr(player, 'inventory') or not player.inventory:
             return None
 
-        # Use RecipeManager's smart recipe suggestion
-        recipe_manager = RecipeManager()
+        # The game's shared RecipeManager: building one per call re-read recipes.yaml
+        # every turn and was ~94% of a bot game's run time
+        recipe_manager = CraftAction.get_recipe_manager()
         current_floor = game.context.get_floor()
 
         # Get best craftable recipe (prioritizes higher tier, weapons over armor)
