@@ -29,6 +29,9 @@ INVENTORY_MAX = 20
 # adjacent tiles may be unreachable); without a limit two goals could trade turns
 # forever (VB-68: a bot spent 18,000 turns on one floor stepping between them)
 ORE_SEEK_TURNS = 20
+# Healing items (potions, food) the bot keeps; past this it stops collecting them and,
+# with a full pack, drops the cheapest, so food and potions cannot crowd out ore (VB-73)
+HEALING_RESERVE = 6
 
 
 class ActionPlanner:
@@ -114,6 +117,26 @@ class ActionPlanner:
         self.log("🚪 Room swept, heading for the stairs" if kind == 'stairs' else f"🗺️  Sweeping on to room at ({x}, {y})")
         return self.move_towards(game, waypoint)
 
+    def healing_items(self, game):
+        from core.actions.drop_action import HEALING, usefulness
+        player = game.state.player
+        return [i for i in getattr(player, 'inventory', []) if usefulness(player, i) == HEALING]
+
+    def junk_to_drop(self, game):
+        """With a full pack: junk or worse gear first, then healing beyond HEALING_RESERVE
+        (cheapest first); never ore or the reserve. None when the pack has room."""
+        from core.actions.drop_action import WORSE_GEAR, least_useful_item
+        player = game.state.player
+        if len(getattr(player, 'inventory', [])) < INVENTORY_MAX:
+            return None
+        junk = least_useful_item(player, max_tier=WORSE_GEAR)
+        if junk:
+            return junk
+        healing = self.healing_items(game)
+        if len(healing) > HEALING_RESERVE:
+            return min(healing, key=lambda i: i.get_stat('value', 0))
+        return None
+
     def seek_ore(self, game, ore, reach: int, label: str) -> Optional[Tuple[str, dict]]:
         """Walk toward an ore vein within `reach` (8-way steps), or None to let lower goals act.
 
@@ -136,6 +159,7 @@ class ActionPlanner:
         Enhanced Decision Tree (With Crafting/Equipment!):
         0. If actively mining → CONTINUE MINING (multi-turn action)
         1. If unequipped gear → EQUIP IT! (instant, no turn cost)
+        1b. If the pack is full → DROP junk or worse gear (never ore or healing)
         2. If craftable ore + near forge → CRAFT EQUIPMENT!
         3. If on stairs and floor cleared → DESCEND
         3b. If an active class ability is ready and useful → USE IT (force bolt, heal)
@@ -169,6 +193,13 @@ class ActionPlanner:
         if better_gear:
             self.log(f"🎽 Equipping {better_gear.name}!")
             return ('equip', {'item_id': better_gear.entity_id})
+
+        # Priority 1b: Pack full: drop what has no use or is worse than what's worn, so
+        # mined ore has room (VB-73; ore and healing items are never dropped here)
+        junk = self.junk_to_drop(game)
+        if junk:
+            self.log(f"🗑️  Dropping {junk.name} (pack full)")
+            return ('drop', {'item_id': junk.entity_id})
 
         # Priority 2: Craft equipment if possible
         if self.decisions.should_craft(game):
@@ -360,6 +391,8 @@ class ActionPlanner:
         """Pick up a usable consumable underfoot, or walk to one within ITEM_REACH."""
         player = game.state.player
         if len(getattr(player, 'inventory', [])) >= INVENTORY_MAX:
+            return None
+        if len(self.healing_items(game)) >= HEALING_RESERVE:
             return None
         items = self.perception.find_usable_items(game)
         if not items:

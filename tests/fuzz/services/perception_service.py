@@ -332,11 +332,12 @@ class PerceptionService:
         if not hasattr(player, 'inventory') or not player.inventory:
             return None
 
-        # Equipment items are Entity objects with equipment_slot stat
-        # (ore items may have attack/defense bonuses but aren't equippable)
+        # Crafted gear has equipment_slot, looted gear only item_type: core's gear_slot
+        # reads both, as EquipAction does (ore may carry bonuses but isn't equippable).
+        # Reading equipment_slot alone left every looted weapon and armor unworn (VB-73).
+        from core.actions.drop_action import gear_slot
         for item in player.inventory:
-            # Check if item has equipment_slot (weapon or armor)
-            equipment_slot = item.get_stat('equipment_slot')
+            equipment_slot = gear_slot(item)
             is_equipped_stat = item.get_stat('equipped', False)
 
             if equipment_slot:
@@ -377,12 +378,15 @@ class PerceptionService:
     
     def has_craftable_ore(self, game) -> Optional[str]:
         """
-        Check if player has enough ore to craft something.
+        The recipe whose result most improves on the gear worn in its slot, or None.
 
-        Returns recipe_id if craftable, None otherwise.
-        Uses RecipeManager's suggest_recipe() for intelligent recipe selection.
+        Uses the game's own preview (RecipeManager.preview_stats: the ore CraftAction
+        would consume, the recipe's formulas), so only real upgrades are crafted.
+        Crafting whatever suggest_recipe ranked first made a warrior craft 53 items in
+        6000 turns, most never worn, and burn the ore and turns (VB-73).
         """
         from core.actions.craft_action import CraftAction
+        from core.actions.drop_action import gear_bonus
         player = game.state.player
 
         if not hasattr(player, 'inventory') or not player.inventory:
@@ -391,14 +395,18 @@ class PerceptionService:
         # The game's shared RecipeManager: building one per call re-read recipes.yaml
         # every turn and was ~94% of a bot game's run time
         recipe_manager = CraftAction.get_recipe_manager()
-        current_floor = game.context.get_floor()
-
-        # Get best craftable recipe (prioritizes higher tier, weapons over armor)
-        return recipe_manager.suggest_recipe(
-            player.inventory,
-            current_floor,
-            preference='balanced'  # Can be 'offense', 'defense', or 'balanced'
-        )
+        best, best_gain = None, 0
+        for recipe in recipe_manager.get_craftable_recipes(player.inventory, game.context.get_floor()):
+            slot = recipe.equipment_slot
+            if slot not in ('weapon', 'armor'):
+                continue
+            stats = recipe_manager.preview_stats(recipe.recipe_id, player.inventory)
+            new = (stats or {}).get('attack_bonus' if slot == 'weapon' else 'defense_bonus', 0)
+            worn = player.equipped_weapon if slot == 'weapon' else player.equipped_armor
+            gain = new - (gear_bonus(worn, slot) if worn is not None else 0)
+            if gain > best_gain:
+                best, best_gain = recipe.recipe_id, gain
+        return best
 
     # ========================================================================
     # Threat Assessment

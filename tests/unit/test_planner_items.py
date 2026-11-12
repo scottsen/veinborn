@@ -105,3 +105,38 @@ def test_a_low_mage_drinks_before_bolting():
     assert planner.get_smart_action(game) == ('use', {'item_id': bottle.entity_id})
     player.hp = player.max_hp
     assert planner.get_smart_action(game) == ('ability', {'ability': 'force_bolt'})
+
+
+def test_full_pack_drops_junk_before_anything_useful():
+    game, planner = warrior()
+    player = game.state.player
+    player.inventory.clear()
+    shield = LootGenerator.get_instance().create_item('shield')      # cannot be worn (VB-72)
+    player.add_to_inventory(shield)
+    while len(player.inventory) < planner_module.INVENTORY_MAX:
+        player.add_to_inventory(potion())
+    action = planner.get_smart_action(game)
+    assert action == ('drop', {'item_id': shield.entity_id})
+
+
+def test_full_pack_drops_healing_only_beyond_the_reserve():
+    game, planner = warrior()
+    player = game.state.player
+    player.inventory.clear()
+    while len(player.inventory) < planner_module.INVENTORY_MAX:
+        player.add_to_inventory(potion())
+    action, kwargs = planner.get_smart_action(game)
+    assert action == 'drop'                                           # 20 potions > reserve
+    player.inventory[:] = player.inventory[:planner_module.HEALING_RESERVE]
+    assert planner.junk_to_drop(game) is None                         # pack has room again
+
+
+def test_wears_looted_armor():
+    """Looted gear has item_type but no equipment_slot; the bot used to ignore it."""
+    game, planner = warrior()
+    player = game.state.player
+    player.equipped_armor = None
+    mail = LootGenerator.get_instance().create_item('chainmail')
+    assert not mail.get_stat('equipment_slot')
+    player.add_to_inventory(mail)
+    assert planner.get_smart_action(game) == ('equip', {'item_id': mail.entity_id})
