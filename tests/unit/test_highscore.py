@@ -256,6 +256,23 @@ class TestHighScoreManager:
             assert final_scores[1].player_name == "Charlie"  # 4000 - rank 2
             assert final_scores[2].player_name == "Bob"  # 3000 - rank 3
 
+    def test_add_score_past_the_trim_limit_still_saves(self):
+        """Regression: trimming a full board raised TypeError (unhashable entries)."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            filepath = Path(tmpdir) / "scores.json"
+            hsm = HighScoreManager(filepath)
+            limit = hsm.max_entries_per_category * 3
+
+            for i in range(limit + 1):
+                hsm.add_score(self._create_entry(f"P{i}", 1000 + i))
+            rank = hsm.add_score(self._create_entry("Newcomer", 999999))
+
+            assert rank == 1
+            assert len(hsm.scores) <= limit + 1
+            HighScoreManager.reset()
+            reloaded = HighScoreManager(filepath)
+            assert any(e.player_name == "Newcomer" for e in reloaded.scores)
+
     def test_scores_sorted_by_score(self):
         """Scores should be sorted descending by score."""
         with tempfile.TemporaryDirectory() as tmpdir:

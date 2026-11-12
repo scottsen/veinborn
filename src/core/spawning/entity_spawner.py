@@ -206,6 +206,44 @@ class EntitySpawner:
 
         return rng.choice(items)
 
+    @staticmethod
+    def _claim_free_tile(entity, occupied: set, dungeon_map: Map, max_radius: int = 8) -> bool:
+        """
+        Make `entity` the sole occupant of a tile, moving it if its tile is taken.
+
+        Moves to the nearest walkable, unoccupied tile (breadth-first, 8-directional,
+        within `max_radius`). Records the final tile in `occupied`.
+
+        Returns:
+            False if no free tile was found (caller should drop the entity).
+        """
+        start = (entity.x, entity.y)
+        if start not in occupied:
+            occupied.add(start)
+            return True
+
+        seen = {start}
+        frontier = [start]
+        for _ in range(max_radius):
+            next_frontier = []
+            for x, y in frontier:
+                for dx in (-1, 0, 1):
+                    for dy in (-1, 0, 1):
+                        tile = (x + dx, y + dy)
+                        if tile in seen:
+                            continue
+                        seen.add(tile)
+                        if not dungeon_map.in_bounds(*tile):
+                            continue
+                        if dungeon_map.is_walkable(*tile) and tile not in occupied:
+                            entity.x, entity.y = tile
+                            occupied.add(tile)
+                            return True
+                        next_frontier.append(tile)
+            frontier = next_frontier
+        logger.warning(f"No free tile near {start} for {getattr(entity, 'name', entity)}; dropped")
+        return False
+
     def spawn_all_for_floor(self, floor: int, dungeon_map: Map) -> Dict[str, List]:
         """Spawn everything a floor gets: regular entities plus special-room extras.
 
@@ -221,16 +259,20 @@ class EntitySpawner:
 
         special_entities = self.spawn_special_room_entities(floor, dungeon_map)
 
-        # Den monsters are placed at random room tiles that know nothing about
-        # the regular spawns, so two could land on one tile. Drop the later one
-        # (after generation, so the RNG sequence and seeded floors don't change).
-        occupied = {(e.x, e.y) for e in monsters + ore_veins + forges}
+        # Each spawner picks tiles without knowing about the others: the forge always
+        # lands on the first ore vein's tile, and special-room extras pick random room
+        # tiles. Resolve overlaps here, after generation, so the RNG sequence (and so
+        # seeded floors) is unchanged and no entity is lost. Earlier groups keep their
+        # tile; later ones move to the nearest free walkable tile.
+        occupied = {(e.x, e.y) for e in monsters + ore_veins}
+        for entity in forges:
+            self._claim_free_tile(entity, occupied, dungeon_map)
         for den_monster in special_entities['monsters']:
-            if (den_monster.x, den_monster.y) in occupied:
-                continue
-            occupied.add((den_monster.x, den_monster.y))
-            monsters.append(den_monster)
-        ore_veins.extend(special_entities['ores'])
+            if self._claim_free_tile(den_monster, occupied, dungeon_map):
+                monsters.append(den_monster)
+        for bonus_ore in special_entities['ores']:
+            if self._claim_free_tile(bonus_ore, occupied, dungeon_map):
+                ore_veins.append(bonus_ore)
 
         return {'monsters': monsters, 'ore_veins': ore_veins, 'forges': forges}
 

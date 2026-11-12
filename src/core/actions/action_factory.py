@@ -270,11 +270,19 @@ class ActionFactory:
         actor_id = context.get_player().entity_id
         player = context.get_player()
 
-        # Check if resuming existing mining action
+        # Resume an in-progress mining action -- but only while the player is still
+        # next to that vein. If they walked away, or the vein is gone, the saved
+        # state is stale: resuming it fails validation every time, no turn passes,
+        # and mining is wedged for the rest of the run (found by the fuzz bots).
         mining_data = player.get_stat('mining_action')
         if mining_data:
-            logger.debug("Resuming multi-turn mining action")
-            return MineAction.from_dict(mining_data)
+            vein = context.get_entity(mining_data.get('ore_vein_id'))
+            if vein is not None and vein.entity_type == EntityType.ORE_VEIN \
+                    and player.is_adjacent(vein):
+                logger.debug("Resuming multi-turn mining action")
+                return MineAction.from_dict(mining_data)
+            logger.debug("Dropping stale mining state (player moved away or vein gone)")
+            player.set_stat('mining_action', None)
 
         # Find adjacent ore vein
         ore_vein = self._find_adjacent_ore_vein(context)

@@ -426,6 +426,30 @@ def isolated_multiplayer_highscores(tmp_path):
     HighScoreManager._multiplayer_instance = None
 
 
+@pytest.fixture(autouse=True)
+def isolated_singleplayer_highscores(tmp_path):
+    """Keep any test that reaches game over off the real data/highscores.json.
+
+    Tests import the package both as ``core`` and ``src.core`` (two separate module
+    objects, each with its own singleton), so isolate both. Before this, the shipped
+    leaderboard filled up with 300 "Anonymous" test entries, and once add_score's
+    trim worked, a plain test run rewrote the tracked file.
+    """
+    import importlib
+
+    saved = []
+    for module_name in ("core.highscore", "src.core.highscore"):
+        try:
+            manager_cls = importlib.import_module(module_name).HighScoreManager
+        except ImportError:
+            continue
+        saved.append((manager_cls, manager_cls._instance))
+        manager_cls._instance = manager_cls(tmp_path / f"highscores_{module_name}.json")
+    yield
+    for manager_cls, previous in saved:
+        manager_cls._instance = previous
+
+
 def pytest_configure(config):
     """Configure pytest with custom markers."""
     config.addinivalue_line(

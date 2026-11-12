@@ -21,7 +21,7 @@ from typing import Optional
 from ..base.action import Action, ActionOutcome
 from ..base.game_context import GameContext
 from ..base.entity import EntityType
-from ..crafting import RecipeManager
+from ..crafting import RecipeManager, is_ore_item
 
 logger = logging.getLogger(__name__)
 
@@ -72,8 +72,10 @@ class CraftAction(Action):
             self.recipe_id, actor.inventory, current_floor
         )
         if not can_craft:
-            self._log_validation_failure("cannot craft recipe",
-                                        recipe_id=self.recipe_id, reason=reason)
+            # reason is the helper's own first parameter; passing it as a keyword
+            # raised TypeError, so a craft without enough ore crashed the action.
+            self._log_validation_failure(f"cannot craft recipe: {reason}",
+                                        recipe_id=self.recipe_id)
             return False
 
         self._log_validation_success("validated successfully",
@@ -183,7 +185,7 @@ class CraftAction(Action):
         # Find ore of the required type
         ore_items = []
         for item in actor.inventory[:]:  # Copy to avoid modification during iteration
-            if item.get_stat('ore_type') == required_type:
+            if is_ore_item(item) and item.get_stat('ore_type') == required_type:
                 ore_items.append(item)
                 if len(ore_items) >= required_count:
                     break

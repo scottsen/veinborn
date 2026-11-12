@@ -1,6 +1,6 @@
 # Veinborn Status Dashboard 🎯
 
-**Last Updated:** 2026-09-22 (full code review + urgent-fix pass, then 4 of 5 high-priority MP-architecture findings closed same day; see `TASKS.md` `VB-16`–`VB-32`)
+**Last Updated:** 2026-11-11 (mob AI styles + fuzz-bot bug pass; earlier: 2026-09-22 full code review + urgent-fix pass, then 4 of 5 high-priority MP-architecture findings closed same day; see `TASKS.md` `VB-16`–`VB-32`)
 **Quick View:** One-page status overview
 
 ---
@@ -11,7 +11,7 @@
 |----------|--------|---------|
 | **Single-Player core** | 🟢 Healthy | All tests pass |
 | **Multiplayer** | 🟡 8 critical/urgent/high bugs fixed 2026-09-22, playtest still pending | `VB-16`–`VB-23` all fixed and test-covered this session (dead-actor redirect, Lua sandbox RCE, process-global RNG cross-contamination, save/load data loss, chat delta desync after 20 messages, Pickup/Wait actions unusable in MP, reconnect race, 3-way player storage). A scripted headless two-client playtest over real websockets (2026-09-23) then found and fixed 5 more bugs that mock-based tests could not see — the server rejected every real connection on websockets ≥ 13, clients never learned their entity id or that the game started, monster-turn messages never reached deltas, and every client drop raised (`VB-39`–`VB-43`); it now runs join → play → death → drop/reconnect → victory cleanly (`tests/integration/test_multiplayer_real_sockets.py`). Still no *human* playtest: nothing but the dev `test_client.py` can send actions (`VB-44`). `VB-24` (SP/MP separate post-action pipelines) is done as of 2026-09-23: MP shares the outcome pipeline (messages, events, took_turn) and HP regen, the party plays on while any player is alive, and co-op runs are scored per player on their own leaderboard (`data/highscores_multiplayer.json`, view with `veinborn-scores --coop`; no in-game screen yet — see `tt list --project veinborn`). |
-| **Test Health** | ✅ Green | 1207 collected: 1207 passing / 0 failing / 0 skipped (verified 2026-09-23) — up from 1067/1065/0/2 baseline; the 2 previously-skipped Lua timeout tests now genuinely pass (see `VB-17`), and the flaky planner tests are seeded (`VB-34`) / given a walkable arena (`test_get_smart_action_prioritizes_forced_combat` still failed ~25% of runs after seeding) |
+| **Test Health** | ✅ Green | 1294 collected: 1294 passing / 0 failing / 0 skipped (verified 2026-11-11) — up from 1067/1065/0/2 baseline; the 2 previously-skipped Lua timeout tests now genuinely pass (see `VB-17`), and the flaky planner tests are seeded (`VB-34`) / given a walkable arena (`test_get_smart_action_prioritizes_forced_combat` still failed ~25% of runs after seeding) |
 | **Current Phase** | 🎮 MP hardening + playtest | No open high-priority findings; the next milestone is the first real two-client playtest |
 | **Playability** | ✅ SP playable / 🟡 MP no longer has known exploitable bugs, still unplaytested | |
 
@@ -210,6 +210,12 @@ python3 src/server/test_client.py
 | ~~High scores ignored combat and mining (run stats never written to `player.stats`)~~ | ~~🟠 High~~ | ✅ Fixed — `VB-38`: `AttackAction`/`MineAction`/`SurveyAction` now record kills, damage, ore mined/surveyed, best purity and death cause on the acting Player (per player in co-op too) |
 | ~~Damage formula never evaluated (`max` passed as a name, every attack used the fallback)~~ | ~~🟢 Low~~ | ✅ Fixed — `VB-37`: `functions=` in `simple_eval`; configured formula and `min_damage` now honored |
 | ~~MP server unusable over real websockets (handler `path` arg, `.closed`, lobby→start delta, message_count)~~ | ~~🔴 Critical~~ | ✅ Fixed — `VB-39`–`VB-43`, found by the first real-socket playtest |
+| ~~All 19 monsters used one AI style (`aggressive`); `guard` never kept its leash; fleeing monsters could step toward the player; chasers stuck behind ore veins~~ | ~~🟠 High~~ | ✅ Fixed 2026-11-11: styles assigned per monster in `data/entities/monsters.yaml` (11 aggressive, 4 guard, 3 defensive, 1 coward); validated by `python3 scripts/sim_mob_movement.py` (exits 1 on a failed check) |
+| ~~High scores could not be saved once the board hit its trim limit (`unhashable type: 'HighScoreEntry'`); tests wrote to the real `data/highscores.json`~~ | ~~🔴 Critical~~ | ✅ Fixed 2026-11-11 (`highscore.py`; `tests/conftest.py` isolates the board). The shipped board is still 300 test entries — `VB-50` |
+| ~~Crafted equipment counted as ore (a forge made daggers from daggers); failed craft raised `TypeError`; walking away mid-mine wedged `mine` for the run~~ | ~~🔴 Critical~~ | ✅ Fixed 2026-11-11 (`is_ore_item`, `craft_action.py`, `action_factory.py`); found by the fuzz bots |
+| ~~Forge, ore veins and monsters spawned on the same tile~~ | ~~🟡 Medium~~ | ✅ Fixed 2026-11-11 — `VB-46` (relocated to nearest free tile) |
+| Nobody levels in early play (goblin 5 XP vs 100 XP/level); mage loses to goblins | 🟡 Medium | Open — `VB-48` |
+| Lua AI styles, `passive`, `aggro_range`/`move_speed` are not wired | 🟢 Low | Open — `VB-47` |
 | No gameplay client: `MultiplayerClient` can't send actions, TUI only does chat/lobby | 🟠 High | Open — `VB-44` |
 | Dead-code candidates (`perception.py` module, `GameTelemetry.log_*`) | 🟢 Low | Held — `VB-32`: need a wire-in-or-delete decision |
 | No tutorial for new players | 🟢 Low | Planned for Phase 3 |

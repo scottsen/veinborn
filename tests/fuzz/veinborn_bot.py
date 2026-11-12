@@ -566,8 +566,17 @@ class VeinbornBot:
             game_stats['turns'] = turn
             game_stats['completed'] = not game.state.game_over
 
+            # Per-run combat/mining stats are recorded on the player by the actions
+            # (VB-38); read them from there. The bot used to hardcode kills to 0 and
+            # never tracked damage, so every report showed 0 kills / 0 damage.
+            player_stats = game.state.player.stats
+            for key in ('monsters_killed', 'damage_dealt', 'damage_taken',
+                        'ore_mined', 'ore_surveyed'):
+                game_stats[key] = player_stats.get(key, 0)
+            game_stats['final_score'] = 0
+
             if game.state.game_over:
-                game_stats['death_reason'] = 'player_died'
+                game_stats['death_reason'] = player_stats.get('death_cause') or 'player_died'
                 self.log(f"Game over on turn {turn}")
             else:
                 self.log(f"Reached max turns ({max_turns})")

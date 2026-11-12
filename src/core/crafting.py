@@ -171,6 +171,17 @@ class StatFormulaEvaluator:
         return expr
 
 
+def is_ore_item(item) -> bool:
+    """True for raw ore, false for crafted equipment.
+
+    Crafted equipment used to carry an ``ore_type`` stat (and old saves still do),
+    which made a finished dagger count as copper ore: a forge would "craft" from
+    it indefinitely without consuming any real ore. Equipment always has an
+    ``equipment_slot``; ore never does.
+    """
+    return bool(item.get_stat('ore_type')) and not item.get_stat('equipment_slot')
+
+
 class RecipeManager:
     """
     Manages all crafting recipes.
@@ -285,8 +296,8 @@ class RecipeManager:
         # Count ore by type in inventory
         ore_counts = {}
         for item in player_inventory:
-            ore_type = item.get_stat('ore_type')
-            if ore_type:
+            if is_ore_item(item):
+                ore_type = item.get_stat('ore_type')
                 ore_counts[ore_type] = ore_counts.get(ore_type, 0) + 1
 
         # Filter recipes by requirements
@@ -397,8 +408,8 @@ class RecipeManager:
         # Count ore in inventory
         ore_counts = {}
         for item in player_inventory:
-            ore_type = item.get_stat('ore_type')
-            if ore_type:
+            if is_ore_item(item):
+                ore_type = item.get_stat('ore_type')
                 ore_counts[ore_type] = ore_counts.get(ore_type, 0) + 1
 
         # Check ore requirement
@@ -458,7 +469,8 @@ class RecipeManager:
 
         # Set ore properties (for info display)
         equipment.set_stat('crafted_from_ore', ore_properties)
-        equipment.set_stat('ore_type', recipe.get_required_ore_type())
+        # Not 'ore_type': that tag marks raw ore (see is_ore_item).
+        equipment.set_stat('crafted_ore_type', recipe.get_required_ore_type())
 
         logger.info(
             f"Created equipment: {recipe.display_name}",

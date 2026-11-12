@@ -60,7 +60,7 @@ wyvern:
 
   # AI behavior
   ai:
-    type: "aggressive"  # aggressive, passive, defensive, fleeing
+    type: "aggressive"  # aggressive, defensive, passive, coward, guard
     move_speed: 1.2     # 1.0 = normal, 1.2 = 20% faster
     aggro_range: 12     # Detection range (8 = normal)
     description: "Fast flying predator, chases relentlessly"

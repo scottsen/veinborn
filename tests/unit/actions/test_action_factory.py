@@ -321,3 +321,52 @@ def test_factory_ore_vein_at_player_position(game_context, copper_ore):
     action = factory.create('survey')
     # Note: is_adjacent might not consider same position as adjacent
     # This documents current behavior
+
+
+# ============================================================================
+# Stale multi-turn mining state
+# ============================================================================
+
+@pytest.mark.unit
+def test_mine_drops_stale_state_after_player_walks_away(mining_context):
+    """Regression: walking away mid-mine left 'mining_action' behind, and every later
+    'mine' resumed it, failed validation, took no turn, and wedged mining for the
+    run (the fuzz bots sat on it for thousands of ticks)."""
+    from core.actions.mine_action import MineAction
+
+    context = mining_context
+    player = context.get_player()
+    factory = ActionFactory(context)
+
+    # Start a multi-turn mine next to the vein, then walk away before it finishes.
+    first = factory.create('mine')
+    assert isinstance(first, MineAction)
+    first.execute(context)
+    assert player.get_stat('mining_action')
+    near = (player.x, player.y)
+    player.x += 6
+
+    assert factory.create('mine') is None              # nothing nearby to mine
+    assert not player.get_stat('mining_action')        # stale state dropped
+
+    # Back next to the vein: a fresh mine starts instead of failing forever.
+    player.x, player.y = near
+    again = factory.create('mine')
+    assert isinstance(again, MineAction)
+    assert again.execute(context).result.value == 'success'
+
+
+@pytest.mark.unit
+def test_mine_still_resumes_when_adjacent(mining_context):
+    from core.actions.mine_action import MineAction
+
+    context = mining_context
+    player = context.get_player()
+    factory = ActionFactory(context)
+    factory.create('mine').execute(context)
+    saved = player.get_stat('mining_action')
+    assert saved and saved['turns_remaining'] > 0
+
+    resumed = factory.create('mine')
+    assert isinstance(resumed, MineAction)
+    assert resumed.turns_remaining == saved['turns_remaining']

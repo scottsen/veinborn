@@ -2,7 +2,7 @@
 project: veinborn
 schema_version: '1.0'
 id_prefix: VB
-next_id: 48
+next_id: 51
 archival: inline
 areas: {}
 ---
@@ -1037,20 +1037,22 @@ _(no notes yet)_
 ## TASK-VB-46 · Spawner stacks ore veins, forges and (rarely) monsters on one tile
 
 ```yaml
-status: backlog
+status: in_progress
 priority: medium
 effort: 2h
 tags: [spawning, bug]
 created: '2026-11-11T23:02:13Z'
-updated: '2026-11-11T23:02:13Z'
+updated: '2026-11-12T02:39:01Z'
 session: kinetic-fusion-1111
+notes_next: 3
 ```
 
 Found by scripts/sim_mob_movement.py + tests/unit/test_spawn_no_overlap.py. Across seeds 1-24 x floors 1/6/12, spawn_all_for_floor puts ore-on-ore (~27), forge-on-ore (6) and monster-on-ore (7) on the same tile. Monster-on-monster (den monsters) is fixed in spawn_all_for_floor; ore/forge/regular-monster overlaps are not. Dropping or relocating the later entity changes ore counts, so check balance first.
 
 <!-- notes: append-only log; each has a stable #id (see CLI §5) -->
 ### Notes
-_(no notes yet)_
+- [#1 2026-11-12T01:49:50Z session:kinetic-fusion-1111] Fixed in spawn_all_for_floor: forge/den monsters/bonus ores now relocate to the nearest free walkable tile (no entities dropped, RNG sequence unchanged). test_spawn_no_overlap.py covers monsters+ore+forges, 24 seeds x 3 floors.
+- [#2 2026-11-12T02:39:01Z session:kinetic-fusion-1111] Fix is in the working tree (spawn_all_for_floor relocation + test_spawn_no_overlap.py); close with --commit after the commit
 
 
 ## TASK-VB-47 · Wire up or remove the unused AI knobs: Lua AI behaviours, passive attack flag, aggro_range/move_speed, guard flee_threshold
@@ -1066,6 +1068,65 @@ session: kinetic-fusion-1111
 ```
 
 Found while assigning mob AI styles. (1) AISystem is built without a lua_runtime in game.py and server session.py and nothing calls register_lua_behavior, so berserker/sniper/summoner never run; sniper only emits a message (no ranged attack action exists). (2) 'passive' relies on was_attacked_last_turn which nothing sets, and it never fights back, so no monster uses it. (3) monsters.yaml ai.aggro_range and ai.move_speed are never read; chase range comes from ai_behaviors.yaml. (4) guard config has flee_threshold 0.2 but _behavior_guard never flees. (5) default_ai_by_type in ai_behaviors.yaml names rat/dragon, which do not exist, and is unused. Chase range is Manhattan while movement is 8-directional.
+
+<!-- notes: append-only log; each has a stable #id (see CLI §5) -->
+### Notes
+_(no notes yet)_
+
+
+## TASK-VB-48 · Early balance: mage loses to a goblin; 100 XP/level vs 5 XP goblin means nobody levels
+
+```yaml
+status: backlog
+priority: medium
+effort: 3h
+tags: [balance]
+created: '2026-11-12T01:33:21Z'
+updated: '2026-11-12T01:33:21Z'
+session: kinetic-fusion-1111
+```
+
+Bot comparison (8 games x 4 classes, 3000-turn cap, old vs new mob AI): 0 of 64 games reached level 2 (up to 8 kills). gain_xp needs 100*level XP; goblin gives 5, orc 15. Mage deals 1 damage to a goblin and takes 2 per hit; 4 of 8 mages died to goblins/orcs on floor 1 in both trees, 'Killed by Goblin' within 15-80 turns. Decide target kills-per-level and mage starting attack.
+
+<!-- notes: append-only log; each has a stable #id (see CLI §5) -->
+### Notes
+_(no notes yet)_
+
+
+## TASK-VB-49 · Fuzz bots: thousands of non-adjacent mine attempts, repeated 'Crafted Copper Dagger!', stalls on floors 1-2
+
+```yaml
+status: in_progress
+priority: low
+effort: 3h
+tags: [bots, tests]
+created: '2026-11-12T01:33:23Z'
+updated: '2026-11-12T02:39:01Z'
+session: kinetic-fusion-1111
+notes_next: 3
+```
+
+In 3000-turn runs bots reach floor 1-2 and kill ~3 monsters. Logs show up to ~19k 'MineAction validation failed: not adjacent to ore_vein' per run and one mage run logged 139 'Crafted Copper Dagger!' with 5 ore mined -- check whether CraftAction consumes ore or the bot loops. Bot result JSON kills/damage were hardcoded 0 (fixed to read player.stats).
+
+<!-- notes: append-only log; each has a stable #id (see CLI §5) -->
+### Notes
+- [#1 2026-11-12T01:49:49Z session:kinetic-fusion-1111] Root causes found and fixed: (1) crafted equipment carried ore_type so it counted as ore -- a forge turned daggers into daggers forever (is_ore_item + crafted_ore_type); (2) craft validation failure raised TypeError (reason= kwarg collision); (3) stale mining_action state after walking away wedged 'mine' permanently, no turn passed, bots froze. Tests: test_craft_consumes_ore.py, test_action_factory.py stale-mining cases.
+- [#2 2026-11-12T02:39:01Z session:kinetic-fusion-1111] All three root causes fixed in the working tree; close with --commit after the commit
+
+
+## TASK-VB-50 · data/highscores.json is 300 test 'Anonymous' entries; decide whether to reset the shipped leaderboard
+
+```yaml
+status: backlog
+priority: low
+effort: 30m
+tags: [highscores]
+created: '2026-11-12T01:33:24Z'
+updated: '2026-11-12T01:33:24Z'
+session: kinetic-fusion-1111
+```
+
+All 300 committed entries are 'Anonymous' (8 distinct names) dated 2025-10-25..11-07, written by tests through the real singleton. add_score trim crashed at 300 (fixed) and tests now isolate the single-player board in conftest. The file itself is still the junk board; clearing it is a product call.
 
 <!-- notes: append-only log; each has a stable #id (see CLI §5) -->
 ### Notes

@@ -80,7 +80,7 @@ monsters:
 
     # AI behavior
     ai:
-      type: "aggressive"     # aggressive, passive, defensive, fleeing
+      type: "aggressive"     # aggressive, defensive, passive, coward, guard (config: balance/ai_behaviors.yaml)
       move_speed: 1.0        # Movement speed multiplier
       aggro_range: 8         # Detection range (tiles)
       description: "AI behavior notes"

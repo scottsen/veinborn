@@ -353,9 +353,12 @@ class HighScoreManager:
             random_scores = self.get_random_scores(self.max_entries_per_category)
             seeded_scores = self.get_seeded_scores(self.max_entries_per_category)
 
-            # Combine and deduplicate (keep unique entries)
-            keep_set = set(all_scores + random_scores + seeded_scores)
-            self.scores = list(keep_set)
+            # Combine and deduplicate by identity (an entry can be in several
+            # categories). HighScoreEntry is an unhashable dataclass, so a set()
+            # of entries raised TypeError once the board passed its limit and
+            # no further score was ever saved.
+            kept = {id(e): e for e in all_scores + random_scores + seeded_scores}
+            self.scores = list(kept.values())
             self.scores.sort(key=lambda e: e.score, reverse=True)
 
         # Save to disk
