@@ -3,8 +3,7 @@ Event system for game events and observability.
 
 This implements a lightweight pub/sub pattern that:
 - Works with ActionOutcome.events field (already present)
-- Supports Python subscribers now
-- Can add Lua subscribers in Phase 3 (zero refactoring)
+- Supports Python subscribers (see core.extensions for decorator registration)
 - Enables multiplayer in Phase 2 (events → NATS messages)
 
 Design principles:
@@ -15,14 +14,11 @@ Design principles:
 """
 
 from dataclasses import dataclass, field
-from typing import Callable, Dict, List, Any, Optional, TYPE_CHECKING
+from typing import Callable, Dict, List, Any, Optional
 from enum import Enum
 from collections import defaultdict
 import logging
 import time
-
-if TYPE_CHECKING:
-    from .lua_event_handler import LuaEventHandler
 
 logger = logging.getLogger(__name__)
 
@@ -32,8 +28,7 @@ class GameEventType(Enum):
     Types of game events that can be published.
 
     These events flow through the EventBus and can be subscribed to by:
-    - Python systems (now)
-    - Lua scripts (Phase 3)
+    - Python systems and content modules (core.extensions)
     - NATS pub/sub (Phase 2 multiplayer)
     """
     # Combat events
@@ -105,7 +100,6 @@ class GameEvent:
 
         This format is ready for:
         - NATS messages (Phase 2)
-        - Lua event handlers (Phase 3)
         - Save/replay (future)
         """
         return {
@@ -147,8 +141,7 @@ class EventBus:
     Lightweight pub/sub event bus for game events.
 
     Design:
-    - Python subscribers now (simple callbacks)
-    - Lua subscribers later (LuaBridge integration)
+    - Python subscribers (simple callbacks)
     - NATS pub/sub in Phase 2 (multiplayer)
 
     Usage:
@@ -163,7 +156,6 @@ class EventBus:
     def __init__(self):
         """Initialize empty event bus."""
         self.subscribers: Dict[GameEventType, List[EventSubscriber]] = defaultdict(list)
-        self.lua_subscribers: Dict[GameEventType, List['LuaEventHandler']] = defaultdict(list)
         self.event_history: List[GameEvent] = []
         self.enable_history = False  # For debugging/testing
 
@@ -180,7 +172,12 @@ class EventBus:
             event_type: Type of event to subscribe to
             subscriber: Callback function(event: GameEvent) -> None
             subscriber_name: Optional name for debugging
+
+        Subscribing the same callable twice is a no-op, so re-running setup
+        (e.g. after loading a saved game) never double-delivers events.
         """
+        if subscriber in self.subscribers[event_type]:
+            return
         self.subscribers[event_type].append(subscriber)
         name = subscriber_name or subscriber.__name__
         logger.info(
@@ -209,45 +206,6 @@ class EventBus:
             return True
         return False
 
-    def subscribe_lua(
-        self,
-        event_type: GameEventType,
-        handler: 'LuaEventHandler'
-    ) -> None:
-        """
-        Subscribe Lua event handler to an event type.
-
-        Args:
-            event_type: Type of event to subscribe to
-            handler: LuaEventHandler instance
-        """
-        self.lua_subscribers[event_type].append(handler)
-        logger.info(
-            f"Lua handler registered: {handler.handler_function} → {event_type.value}",
-            extra={'event_type': event_type.value, 'handler': handler.handler_function}
-        )
-
-    def unsubscribe_lua(
-        self,
-        event_type: GameEventType,
-        handler: 'LuaEventHandler'
-    ) -> bool:
-        """
-        Unsubscribe Lua event handler from an event type.
-
-        Args:
-            event_type: Type of event to unsubscribe from
-            handler: LuaEventHandler instance to remove
-
-        Returns:
-            True if handler was found and removed
-        """
-        if event_type in self.lua_subscribers and handler in self.lua_subscribers[event_type]:
-            self.lua_subscribers[event_type].remove(handler)
-            logger.debug(f"Lua handler removed from {event_type.value}")
-            return True
-        return False
-
     def publish(self, event: GameEvent) -> None:
         """
         Publish a structured GameEvent.
@@ -261,55 +219,29 @@ class EventBus:
 
         # Notify subscribers
         subscribers = self.subscribers.get(event.event_type, [])
-        lua_subscribers = self.lua_subscribers.get(event.event_type, [])
 
-        if not subscribers and not lua_subscribers:
+        if not subscribers:
             logger.debug(
                 f"Event published with no subscribers: {event.event_type.value}",
                 extra={'event_type': event.event_type.value, 'data': event.data}
             )
             return
 
-        # Count total subscribers (Python + Lua)
-        total_subscribers = len(subscribers) + len(lua_subscribers)
-
         logger.debug(
-            f"Event published: {event.event_type.value} → "
-            f"{len(subscribers)} Python + {len(lua_subscribers)} Lua subscribers",
-            extra={
-                'event_type': event.event_type.value,
-                'python_subscribers': len(subscribers),
-                'lua_subscribers': len(lua_subscribers)
-            }
+            f"Event published: {event.event_type.value} → {len(subscribers)} subscribers",
+            extra={'event_type': event.event_type.value, 'subscribers': len(subscribers)}
         )
 
-        # 1. Call Python subscribers (EXISTING)
         for subscriber in subscribers:
             try:
                 subscriber(event)
             except Exception as e:
                 logger.error(
-                    f"Error in Python subscriber for {event.event_type.value}",
+                    f"Error in subscriber for {event.event_type.value}",
                     exc_info=True,
                     extra={
                         'event_type': event.event_type.value,
-                        'subscriber': subscriber.__name__,
-                        'error': str(e)
-                    }
-                )
-
-        # 2. Call Lua subscribers (NEW)
-        for lua_handler in lua_subscribers:
-            try:
-                lua_handler.handle(event)
-            except Exception as e:
-                logger.error(
-                    f"Error in Lua subscriber for {event.event_type.value}",
-                    exc_info=True,
-                    extra={
-                        'event_type': event.event_type.value,
-                        'handler': lua_handler.handler_function,
-                        'script': lua_handler.script_path,
+                        'subscriber': getattr(subscriber, '__name__', repr(subscriber)),
                         'error': str(e)
                     }
                 )
@@ -375,21 +307,9 @@ class EventBus:
             event_type: Event type to check
 
         Returns:
-            Number of Python subscribers (use get_lua_subscriber_count for Lua)
+            Number of subscribers
         """
         return len(self.subscribers.get(event_type, []))
-
-    def get_lua_subscriber_count(self, event_type: GameEventType) -> int:
-        """
-        Get number of Lua subscribers for an event type.
-
-        Args:
-            event_type: Event type to check
-
-        Returns:
-            Number of Lua subscribers
-        """
-        return len(self.lua_subscribers.get(event_type, []))
 
 
 # ============================================================================

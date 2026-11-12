@@ -5,8 +5,7 @@ Responsibilities:
 - Run AI for all monsters each turn
 - Multiple AI behavior types (aggressive, defensive, passive, coward, guard)
 - Data-driven configuration via YAML
-- Extensible for future AI types
-- Support for Lua AI behaviors via registry
+- Extensible: behaviors are registered by name (see core.extensions)
 """
 
 import logging
@@ -34,17 +33,15 @@ class AISystem(System):
     - guard: Defend spawn area
     """
 
-    def __init__(self, context, lua_runtime=None):
+    def __init__(self, context):
         """
         Initialize AI system with config and behavior registry.
 
         Args:
             context: GameContext instance
-            lua_runtime: Optional LuaRuntime for Lua AI behaviors
         """
         super().__init__(context)
         self.config = ConfigLoader.get_config()
-        self.lua_runtime = lua_runtime
         self.registry = AIBehaviorRegistry()
         self._register_builtin_behaviors()
 
@@ -56,23 +53,6 @@ class AISystem(System):
         self.registry.register_python_behavior("coward", self._behavior_coward)
         self.registry.register_python_behavior("guard", self._behavior_guard)
         logger.debug("Registered 5 built-in AI behaviors")
-
-    def register_lua_behavior(self, ai_type: str, script_path: str) -> None:
-        """
-        Register Lua AI behavior from script.
-
-        Args:
-            ai_type: Behavior type name (e.g., "berserker", "sniper")
-            script_path: Path to Lua script file
-
-        Raises:
-            ValueError: If lua_runtime not available or script invalid
-        """
-        if not self.lua_runtime:
-            raise ValueError("LuaRuntime not available - cannot register Lua behaviors")
-
-        self.registry.register_lua_behavior(ai_type, self.lua_runtime, script_path)
-        logger.info(f"Registered Lua AI behavior: {ai_type}")
 
     def update(self, delta_time: float = 0) -> None:
         """Run AI for all monsters."""
@@ -132,8 +112,7 @@ class AISystem(System):
         """
         Execute AI behavior based on type.
 
-        Supports both Python and Lua behaviors via registry.
-        Lua behaviors return action descriptors which are executed.
+        Behaviors come from the registry and act on the world directly.
         """
         # Get behavior from registry
         behavior_fn = self.registry.get_behavior(ai_type)
@@ -142,13 +121,7 @@ class AISystem(System):
             logger.warning(f"Unknown AI type: {ai_type}, using aggressive")
             behavior_fn = self.registry.get_behavior("aggressive")
 
-        # Execute behavior
-        result = behavior_fn(monster, behavior_config)
-
-        # Handle action descriptor from Lua behaviors
-        # (Python behaviors execute actions directly and return None)
-        if result:
-            self._execute_action_descriptor(monster, result)
+        behavior_fn(monster, behavior_config)
 
     def _behavior_aggressive(
         self,
@@ -397,58 +370,6 @@ class AISystem(System):
                         f"Monster {monster.name} failed to move",
                         extra={'reason': outcome.messages}
                     )
-
-    def _execute_action_descriptor(
-        self,
-        monster,
-        action_descriptor: Dict[str, Any]
-    ) -> None:
-        """
-        Execute action descriptor returned by Lua AI behavior.
-
-        Args:
-            monster: Monster entity
-            action_descriptor: Action descriptor dict from Lua
-                {action: str, target_id: str (optional), ...}
-        """
-        action_type = action_descriptor.get('action')
-
-        if action_type == 'attack':
-            target_id = action_descriptor.get('target_id')
-            if target_id:
-                target = self.context.get_entity(target_id)
-                if target:
-                    self._attack_target(monster, target)
-            else:
-                logger.warning("Attack action missing target_id")
-
-        elif action_type == 'move_towards':
-            target_id = action_descriptor.get('target_id')
-            if target_id:
-                target = self.context.get_entity(target_id)
-                if target:
-                    self._move_towards(monster, target)
-            else:
-                logger.warning("Move_towards action missing target_id")
-
-        elif action_type == 'flee_from':
-            target_id = action_descriptor.get('target_id')
-            if target_id:
-                target = self.context.get_entity(target_id)
-                if target:
-                    self._flee_from(monster, target)
-            else:
-                logger.warning("Flee_from action missing target_id")
-
-        elif action_type == 'wander':
-            self._wander(monster)
-
-        elif action_type == 'idle':
-            # Do nothing
-            pass
-
-        else:
-            logger.warning(f"Unknown action type: {action_type}, defaulting to idle")
 
     def _wander(self, monster) -> None:
         """Random movement."""

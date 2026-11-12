@@ -7,7 +7,7 @@ EVENTS_ASYNC_OBSERVABILITY_GUIDE.md.
 Design:
 - MVP: Subscribe to events via direct calls
 - Phase 2: Subscribe via EventBus (already implemented!)
-- Phase 3: Lua scripts can also subscribe
+- Content modules can also subscribe (see core.extensions)
 
 The key insight: StatsTracker has on_*() methods that work both ways:
 - Now: game.stats.on_attack_resolved(event)
@@ -21,7 +21,7 @@ from typing import Dict, List
 import logging
 import time
 
-from .events import GameEvent
+from .events import GameEvent, GameEventType
 
 logger = logging.getLogger('veinborn.telemetry')
 
@@ -70,6 +70,23 @@ class StatsTracker:
         # Phase 2: Event subscription (same methods!)
         event_bus.subscribe(ATTACK_RESOLVED, stats.on_attack_resolved)
     """
+
+    def subscribe_to(self, event_bus) -> None:
+        """Subscribe every on_* handler to its event on `event_bus`."""
+        handlers = {
+            GameEventType.ATTACK_RESOLVED: self.on_attack_resolved,
+            GameEventType.ENTITY_DIED: self.on_entity_died,
+            GameEventType.ORE_MINED: self.on_ore_mined,
+            GameEventType.ORE_SURVEYED: self.on_ore_surveyed,
+            GameEventType.ITEM_CRAFTED: self.on_item_crafted,
+            GameEventType.CRAFTING_FAILED: self.on_crafting_failed,
+            GameEventType.FLOOR_CHANGED: self.on_floor_changed,
+            GameEventType.TURN_ENDED: self.on_turn_ended,
+        }
+        for event_type, handler in handlers.items():
+            event_bus.subscribe(
+                event_type, handler, subscriber_name=f"StatsTracker.{handler.__name__}"
+            )
 
     def __init__(self):
         """Initialize empty statistics."""

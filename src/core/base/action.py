@@ -5,7 +5,7 @@ Critical for:
 - Multiplayer (actions serialize to NATS messages)
 - Testing (create actions directly, verify outcomes)
 - Replay (save action history)
-- Lua integration (scripts return Action objects)
+- Content modules can define new Action types (see core.extensions)
 """
 
 from abc import ABC, abstractmethod

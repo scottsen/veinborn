@@ -11,7 +11,7 @@ Benefits:
 - Clean separation of concerns
 - Easy to test (mock dependencies)
 - Can enable/disable systems
-- Clear API for Lua integration
+- Clear API for content modules
 """
 
 from abc import ABC, abstractmethod

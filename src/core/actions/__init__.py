@@ -39,11 +39,6 @@ __all__ = [
 # instead of hand-maintaining its own import list, which is how PickupAction
 # and WaitAction silently ended up unusable in multiplayer despite working
 # fine in single-player.
-#
-# LuaAction is deliberately excluded: its from_dict() can't reconstruct a
-# bound LuaRuntime from wire data alone (see lua_action.py) and multiplayer
-# doesn't construct a LuaRuntime at all yet (VB-24) -- Lua actions need
-# per-game routing through ActionFactory, not a plain class map.
 ACTION_TYPES: Dict[str, Type[Action]] = {
     'MoveAction': MoveAction,
     'AttackAction': AttackAction,

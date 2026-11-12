@@ -11,8 +11,6 @@ from .events import (
     create_item_crafted_event,
     create_floor_changed_event,
 )
-from .lua_event_handler import LuaEventHandler
-from .lua_event_registry import LuaEventRegistry
 
 __all__ = [
     'GameEventType',
@@ -24,6 +22,4 @@ __all__ = [
     'create_ore_mined_event',
     'create_item_crafted_event',
     'create_floor_changed_event',
-    'LuaEventHandler',
-    'LuaEventRegistry',
 ]

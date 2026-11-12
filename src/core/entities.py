@@ -3,7 +3,7 @@ Core game entities - Player, Monster, OreVein.
 
 All inherit from Entity base class for:
 - Code reuse (take_damage, heal, distance_to)
-- Uniform API (future Lua integration)
+- Uniform API for content modules and systems
 - Easy serialization (save/load, multiplayer)
 """
 

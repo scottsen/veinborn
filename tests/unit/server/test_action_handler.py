@@ -23,14 +23,10 @@ def test_registry_includes_every_standard_action_subclass():
     without also being added to ACTION_TYPES -- the actual root cause of
     VB-21 (a class existed and worked in single-player, but no one
     remembered to register it for the network protocol too)."""
-    import core.actions.lua_action  # noqa: F401  registers LuaAction as a subclass
     from core.base.action import Action
 
-    # LuaAction can't be a plain class-map entry: from_dict() can't
-    # reconstruct a bound LuaRuntime from wire data alone, and multiplayer
-    # doesn't construct a LuaRuntime yet (VB-24). Deserializing it needs
-    # per-game routing through ActionFactory instead.
-    excluded = {"LuaAction"}
+    # Add a class here only with a reason it can't travel over the wire.
+    excluded = set()
 
     all_action_classes = {cls.__name__ for cls in Action.__subclasses__()}
     unaccounted = all_action_classes - set(ACTION_TYPES.keys()) - excluded
@@ -38,7 +34,7 @@ def test_registry_includes_every_standard_action_subclass():
     assert not unaccounted, (
         f"Action subclass(es) {unaccounted} exist but aren't in "
         f"core.actions.ACTION_TYPES -- add them or explicitly exclude them "
-        f"with a reason, the way LuaAction is excluded above."
+        f"with a reason in `excluded` above."
     )
 
 

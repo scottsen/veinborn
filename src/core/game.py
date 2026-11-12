@@ -26,12 +26,8 @@ from .turn_processor import TurnProcessor
 from .floor_manager import FloorManager
 from .save_load import SaveSystem, SaveLoadError
 from .events import EventBus
-from .events.lua_event_registry import LuaEventRegistry
-from .scripting.lua_runtime import LuaRuntime
-from .scripting.game_context_api import GameContextAPI
 from .telemetry import StatsTracker, GameTelemetry, PerformanceTelemetry
 from .game_bootstrap import GameBootstrapper
-from .game_lua_integration import GameLuaIntegration
 
 logger = logging.getLogger(__name__)
 
@@ -42,7 +38,7 @@ class Game:
 
     Responsibilities:
     - Own game/context/subsystem state
-    - Coordinate bootstrap (GameBootstrapper) and event/Lua wiring (GameLuaIntegration)
+    - Coordinate bootstrap (GameBootstrapper) and event wiring
     - Provide the action-execution/turn-orchestration interface
     - Own persistence (save/load)
     """
@@ -67,22 +63,13 @@ class Game:
         # Save/load system
         self.save_system = SaveSystem()
 
-        # Event system and telemetry (Phase 2-ready, Lua-ready)
+        # Event system and telemetry
         self.event_bus = EventBus()
         self.stats_tracker = StatsTracker()
         self.game_telemetry = GameTelemetry()
         self.perf_telemetry = PerformanceTelemetry()
 
-        # Lua event system (Phase 3, wired by GameLuaIntegration)
-        self.lua_runtime = LuaRuntime()
-        self.lua_event_registry: Optional[LuaEventRegistry] = None
-        self.game_context_api: Optional[GameContextAPI] = None
-
         self.bootstrapper = GameBootstrapper(self.config, self.entity_loader)
-        self.lua_integration = GameLuaIntegration(
-            self.event_bus, self.stats_tracker, self.lua_runtime
-        )
-
         logger.debug("Game initialized with configuration, entity loader, and event system")
 
     def start_new_game(
@@ -283,16 +270,8 @@ class Game:
             self.bootstrapper.initialize_subsystems(self.context)
         )
 
-        # Initialize Lua event system (Phase 3)
-        self.lua_event_registry, self.game_context_api = (
-            self.lua_integration.initialize_lua_event_system(self.context)
-        )
-
-        # Subscribe telemetry systems to events (Phase 2-ready pattern)
-        self.lua_integration.subscribe_event_handlers()
-
-        # Load Lua event handlers from scripts/events/ (Phase 3)
-        self.lua_integration.load_event_handlers(self.lua_event_registry)
+        # Subscribe telemetry to the event bus (EventBus de-duplicates re-subscription)
+        self.stats_tracker.subscribe_to(self.event_bus)
 
         logger.debug("Subsystems initialized successfully")
 

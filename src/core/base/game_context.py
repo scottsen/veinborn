@@ -4,7 +4,7 @@ GameContext - safe, controlled access to game state.
 Provides controlled API surface:
 - Systems use this instead of accessing GameState directly
 - Easy to mock for testing
-- Future Lua scripts get this as their API
+- Content modules (core.content) get this as their API
 - Can add permission checks (multiplayer)
 """
 
@@ -25,7 +25,7 @@ class GameContext:
 
     Design principles:
     - Controlled API (no direct state manipulation)
-    - Safe for untrusted code (future Lua scripts)
+    - A narrow, safe surface for content modules
     - Easy to test (mock this for unit tests)
     """
 

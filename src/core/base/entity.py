@@ -5,7 +5,7 @@ Provides:
 - Unique ID for each entity (critical for multiplayer)
 - Common stats and position
 - Serialization support (save/load)
-- Uniform API for Lua integration (future)
+- Uniform API for content modules and systems
 """
 
 from dataclasses import dataclass, field
