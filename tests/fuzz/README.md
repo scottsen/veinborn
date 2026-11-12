@@ -127,10 +127,38 @@ python3 tests/fuzz/veinborn_bot.py [options]
 
 Options:
   --games N         Number of games to play (default: 100)
-  --max-turns N     Max turns per game (default: 1000)
+  --max-turns N     Max turns per game (default: 100000)
+  --mode M          strategic (default) | random | hybrid
+  --seed-base N     Game i plays seed N+i (dungeon, dice and the bot's own choices)
+  --jobs N          Play N games at once in worker processes (results keep game order)
+  --output PATH     Per-game results JSON (default: logs/bot_results_<class>_<time>.json)
   -v, --verbose     Show detailed output (turn-by-turn)
   -h, --help        Show help message
 ```
+
+### Before/after comparisons (paired seeds)
+
+A seed fixes the whole game, so the same seed on the same code replays the same game
+(`tests/unit/test_seeded_replay.py` guards this). Play the same seeds before and after a
+change and compare game by game; 8 unseeded games could not separate a real effect from
+noise, paired seeds usually can.
+
+```bash
+# before the change (one file per class)
+for c in warrior rogue mage healer; do
+  python3 tests/fuzz/${c}_bot.py --games 32 --max-turns 3000 --seed-base 1000 --jobs 3 \
+      --output logs/before_${c}.json
+done
+# ... make the change, then the same with --output logs/after_${c}.json ...
+python3 scripts/compare_bot_runs.py --before logs/before_*.json --after logs/after_*.json
+```
+
+The comparison prints, per class and overall, mean before/after and the mean paired
+difference with a 95% interval for floor, turns, level, kills, damage taken, deaths,
+crashes and errors (`*` = the interval excludes 0), plus how many games came out identical.
+Each results file records the commit it ran and whether `src/`, `data/` or `tests/fuzz/`
+had uncommitted changes. To compare two commits without touching your tree, play the
+"before" side from a copy: `git archive <commit> | tar -x -C /tmp/vb_before`.
 
 ---
 
@@ -324,10 +352,10 @@ class BotStats:
 
 ### Planned Features
 - [ ] Mutation testing (inject faults, verify detection)
-- [ ] Replay system (save/replay crash sequences)
+- [ ] Replay system (save/replay crash sequences): seeds replay whole games now (`--seed-base`); a crash's seed is in the results file
 - [ ] Coverage-guided fuzzing (prioritize unexplored code paths)
 - [ ] Property-based testing (Hypothesis integration)
-- [ ] Parallel execution (run multiple bots at once)
+- [x] Parallel execution (`--jobs`)
 - [ ] Crash deduplication (group similar crashes)
 
 ### Advanced Ideas

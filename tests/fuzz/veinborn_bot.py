@@ -21,6 +21,16 @@ Usage:
     python tests/fuzz/veinborn_bot.py --mode random      # Random chaos mode
     python tests/fuzz/veinborn_bot.py --mode hybrid      # Mix of both
     python tests/fuzz/veinborn_bot.py --games 1000 -v    # Verbose 1000 games
+
+Before/after comparisons (VB-68): play the same seeds on both sides, then pair them.
+    python3 tests/fuzz/mage_bot.py --games 64 --max-turns 3000 --seed-base 1000 --jobs 6 \
+        --output logs/before_mage.json
+    ... change the game ...
+    python3 tests/fuzz/mage_bot.py --games 64 --max-turns 3000 --seed-base 1000 --jobs 6 \
+        --output logs/after_mage.json
+    python3 scripts/compare_bot_runs.py --before logs/before_*.json --after logs/after_*.json
+A seed fixes the dungeon, the game's dice and the bot's own random choices, so a
+seed played twice on the same code plays the same game.
 """
 
 try:
@@ -41,6 +51,8 @@ from datetime import datetime
 from dataclasses import dataclass, asdict
 from typing import List, Dict, Optional, Tuple
 import traceback
+import multiprocessing
+import subprocess
 
 # Add src to path
 src_path = Path(__file__).parent.parent.parent / "src"
@@ -85,6 +97,8 @@ class GameResult:
     death_cause: str
     completed: bool
     timestamp: str
+    seed: Optional[int] = None   # same seed + same code = same game (VB-68)
+    errors: int = 0              # invariant violations + failed actions this game
 
 
 @dataclass
@@ -123,6 +137,19 @@ class BotStats:
             self.ore_by_type = {}
         if self.game_results is None:
             self.game_results = []
+
+    # Counters the action tracking in play_one_game adds to (run() derives the rest
+    # from each game's result). absorb() folds a worker's per-game BotStats in.
+    _SUMMED = ('crashes', 'errors', 'total_ore_surveyed', 'total_ore_mined',
+               'jackpot_ore_found', 'legacy_ore_mined', 'total_equipment_crafted',
+               'total_equipment_equipped', 'weapons_crafted', 'armor_crafted')
+
+    def absorb(self, other: 'BotStats') -> None:
+        for name in self._SUMMED:
+            setattr(self, name, getattr(self, name) + getattr(other, name))
+        self.best_purity_found = max(self.best_purity_found, other.best_purity_found)
+        for ore, count in other.ore_by_type.items():
+            self.ore_by_type[ore] = self.ore_by_type.get(ore, 0) + count
 
     @property
     def avg_turns_per_game(self) -> float:
@@ -311,22 +338,28 @@ class VeinbornBot:
     # Methods removed: move_towards, flee_from, get_smart_action, get_random_action
     # Use: self.planner.method_name(game)
 
-    def play_one_game(self, max_turns: int = 100000) -> Dict:
+    def play_one_game(self, max_turns: int = 100000, seed: Optional[int] = None) -> Dict:
         """
         Play one complete game until win or death.
 
         Args:
             max_turns: Safety limit to prevent infinite loops (default: 100000)
+            seed: Fixes the dungeon, the game's dice and the bot's random choices
+                (None: a fresh random game)
 
         Returns game statistics.
         """
         self.log("Starting new game...")
+        errors_before = self.stats.errors
+        random.seed(seed)                    # the bot's own choices (planner, stuck recovery)
+        self.perception._cache_turn = None   # turn numbers restart every game
 
         try:
             game = Game()
             # Use character class if bot has one (specialized bots)
             character_class = getattr(self, 'character_class', None)
-            game.start_new_game(player_name=self.player_name, character_class=character_class)
+            game.start_new_game(player_name=self.player_name, character_class=character_class,
+                                seed=seed)
 
             turn = 0
             game_stats = {
@@ -581,6 +614,7 @@ class VeinbornBot:
             else:
                 self.log(f"Reached max turns ({max_turns})")
 
+            game_stats['errors'] = self.stats.errors - errors_before
             return game_stats
 
         except Exception as e:
@@ -598,16 +632,24 @@ class VeinbornBot:
                 'monsters_killed': 0,
                 'completed': False,
                 'death_reason': 'crash',
+                'errors': self.stats.errors - errors_before + 1,
             }
 
-    def run(self, num_games: int = 100, max_turns_per_game: int = 100000) -> None:
+    def run(self, num_games: int = 100, max_turns_per_game: int = 100000,
+            seed_base: Optional[int] = None, jobs: int = 1,
+            output: Optional[str] = None) -> None:
         """
         Run multiple games and collect statistics.
 
         Args:
             num_games: Number of games to play
             max_turns_per_game: Safety limit to prevent infinite loops (default: 100000)
+            seed_base: Game i plays seed seed_base + i (None: unseeded random games)
+            jobs: Games played in parallel worker processes (results keep game order)
+            output: Path for the per-game JSON (default: logs/bot_results_<class>_<time>.json)
         """
+        self.seed_base = seed_base
+        self.max_turns_per_game = max_turns_per_game
         print(f"\n{'='*60}")
         print(f"Veinborn Automated Testing Bot")
         print(f"{'='*60}")
@@ -616,13 +658,16 @@ class VeinbornBot:
         print(f"Games to play: {num_games}")
         print(f"Max turns per game: {max_turns_per_game}")
         print(f"Verbose: {self.verbose}")
+        print(f"Seeds: {'unseeded' if seed_base is None else f'{seed_base}..{seed_base + num_games - 1}'}")
+        print(f"Jobs: {jobs}")
         print(f"{'='*60}\n")
 
         start_time = time.time()
+        seeds = [None if seed_base is None else seed_base + i for i in range(num_games)]
 
-        for i in range(num_games):
-            print(f"\n[Game {i+1}/{num_games}]")
-            game_stats = self.play_one_game(max_turns=max_turns_per_game)
+        for i, (seed, game_stats) in enumerate(self._play_games(seeds, max_turns_per_game, jobs)):
+            print(f"\n[Game {i+1}/{num_games}] seed={seed} floor={game_stats.get('floor', 1)} "
+                  f"turns={game_stats['turns']} {game_stats.get('death_reason') or 'survived'}")
 
             # Update overall stats
             self.stats.games_played += 1
@@ -664,7 +709,9 @@ class VeinbornBot:
                 jackpot_ore=game_stats.get('jackpot_ore', 0),
                 death_cause=game_stats.get('death_reason', 'unknown'),
                 completed=game_stats['completed'],
-                timestamp=datetime.now().isoformat()
+                timestamp=datetime.now().isoformat(),
+                seed=seed,
+                errors=game_stats.get('errors', 0),
             )
             self.stats.game_results.append(game_result)
 
@@ -681,7 +728,27 @@ class VeinbornBot:
         self.print_final_report(elapsed)
 
         # Save per-game results to JSON for histogram analysis
-        self.save_game_results()
+        self.save_game_results(output)
+
+    def _play_games(self, seeds, max_turns, jobs):
+        """Yield (seed, game_stats) in seed order, sequentially or across worker processes.
+
+        Workers are forked copies of this bot that have not played yet; each game
+        starts from a fresh BotStats, which the parent folds back in with absorb().
+        """
+        if jobs <= 1:
+            for seed in seeds:
+                yield seed, self.play_one_game(max_turns=max_turns, seed=seed)
+            return
+        global _WORKER_BOT
+        _WORKER_BOT = self
+        ctx = multiprocessing.get_context('fork')
+        with ctx.Pool(jobs) as pool:
+            work = [(seed, max_turns) for seed in seeds]
+            for seed, game_stats, stats, error_log in pool.imap(_play_in_worker, work):
+                self.stats.absorb(stats)
+                self.error_log.extend(error_log)
+                yield seed, game_stats
 
     def print_progress(self) -> None:
         """Print progress update."""
@@ -748,21 +815,21 @@ class VeinbornBot:
         else:
             print(f"\n🐛 BUGS FOUND - See errors above")
 
-    def save_game_results(self) -> None:
+    def save_game_results(self, output: Optional[str] = None) -> None:
         """Save per-game results to JSON for histogram analysis."""
         if not self.stats.game_results:
             return
 
-        # Create logs directory if it doesn't exist
-        logs_dir = Path(__file__).parent.parent.parent / "logs"
-        logs_dir.mkdir(exist_ok=True)
-
-        # Generate filename with timestamp and character class
         character_class = getattr(self, 'character_class', None)
         class_name = character_class.value if character_class else 'bot'
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        filename = f"bot_results_{class_name}_{timestamp}.json"
-        filepath = logs_dir / filename
+        if output:
+            filepath = Path(output)
+            filepath.parent.mkdir(parents=True, exist_ok=True)
+        else:
+            logs_dir = Path(__file__).parent.parent.parent / "logs"
+            logs_dir.mkdir(exist_ok=True)
+            filepath = logs_dir / f"bot_results_{class_name}_{timestamp}.json"
 
         # Convert game results to dicts
         results_data = {
@@ -772,6 +839,9 @@ class VeinbornBot:
                 'mode': self.mode,
                 'games_played': self.stats.games_played,
                 'timestamp': timestamp,
+                'seed_base': getattr(self, 'seed_base', None),
+                'max_turns': getattr(self, 'max_turns_per_game', None),
+                'code': _code_version(),
             },
             'games': [asdict(result) for result in self.stats.game_results]
         }
@@ -782,6 +852,32 @@ class VeinbornBot:
 
         print(f"\n📊 Per-game results saved to: {filepath}")
         print(f"   {len(self.stats.game_results)} game records for histogram analysis")
+
+
+_WORKER_BOT = None  # set by VeinbornBot._play_games before forking workers
+
+
+def _play_in_worker(work):
+    """One seeded game in a worker process, on the forked (unplayed) bot."""
+    seed, max_turns = work
+    bot = _WORKER_BOT
+    bot.stats = BotStats()
+    bot.error_log = []
+    game_stats = bot.play_one_game(max_turns=max_turns, seed=seed)
+    return seed, game_stats, bot.stats, bot.error_log
+
+
+def _code_version() -> Dict:
+    """The commit the run played (and whether the tree had changes), for comparing runs."""
+    repo = Path(__file__).resolve().parent.parent.parent
+    try:
+        commit = subprocess.run(['git', 'rev-parse', '--short', 'HEAD'], cwd=repo,
+                                capture_output=True, text=True, timeout=5).stdout.strip()
+        dirty = bool(subprocess.run(['git', 'status', '--porcelain', '--', 'src', 'data', 'tests/fuzz'],
+                                    cwd=repo, capture_output=True, text=True, timeout=5).stdout.strip())
+        return {'commit': commit or None, 'dirty': dirty}
+    except (OSError, subprocess.SubprocessError):
+        return {'commit': None, 'dirty': None}
 
 
 def main(bot_class=None, default_class=None):
@@ -847,6 +943,24 @@ Examples:
         help='Debug output (show DEBUG level logs - full trace)'
     )
     parser.add_argument(
+        '--seed-base',
+        type=int,
+        default=None,
+        help='Game i plays seed SEED_BASE+i: same seeds on two code versions = paired comparison'
+    )
+    parser.add_argument(
+        '--jobs',
+        type=int,
+        default=1,
+        help='Games played in parallel worker processes (default: 1)'
+    )
+    parser.add_argument(
+        '--output',
+        type=str,
+        default=None,
+        help='Per-game results JSON path (default: logs/bot_results_<class>_<time>.json)'
+    )
+    parser.add_argument(
         '--name',
         type=str,
         default=None,
@@ -897,7 +1011,8 @@ Examples:
         if args.name:
             bot.player_name = args.name
 
-    bot.run(num_games=args.games, max_turns_per_game=args.max_turns)
+    bot.run(num_games=args.games, max_turns_per_game=args.max_turns,
+            seed_base=args.seed_base, jobs=args.jobs, output=args.output)
 
 
 if __name__ == '__main__':
