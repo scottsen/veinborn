@@ -2,7 +2,7 @@
 project: veinborn
 schema_version: '1.0'
 id_prefix: VB
-next_id: 70
+next_id: 71
 archival: inline
 areas: {}
 ---
@@ -723,9 +723,9 @@ priority: low
 effort: small
 tags: [cleanup, quality]
 created: '2026-09-23T05:26:58Z'
-updated: '2026-09-23T16:54:07Z'
+updated: '2026-11-12T20:14:10Z'
 session: earthly-god-0922
-notes_next: 2
+notes_next: 3
 ```
 
 Static-analysis heuristic flagged 33 uncalled functions; most (action_factory.py 8 _create_* methods, ai_system.py 5 _behavior_* methods) are almost certainly dict/registry-dispatched and not actually dead -- confirm via reveal 'calls://src?target=_create_move_action&depth=2' before touching. Genuinely worth investigating: telemetry.py:311/349 (log_combat, log_player_death -- hooks that may just not be wired up yet) and perception.py:205-268 (four get_visible_*/get_nearby_ore/get_entities_at_distance helpers, all uncalled -- possibly superseded by update_visibility's internal logic, or dead API surface left from a refactor). run_server.py flagged as 'not imported anywhere' is a false positive (CLI entry point) -- ignore.
@@ -733,6 +733,7 @@ Static-analysis heuristic flagged 33 uncalled functions; most (action_factory.py
 <!-- notes: append-only log; each has a stable #id (see CLI §5) -->
 ### Notes
 - [#1 2026-09-23T16:54:07Z session:sultry-drizzle-0923] Investigated 2026-09-23, nothing deleted -- each remaining item needs a product call. (1) src/core/perception.py: FogOfWar/TileVisibility/PerceptionSystem have NO production caller (only referenced inside the file); tests/unit/test_perception.py (786 lines) tests it, and docs/development/BOT_* describe it, but the fuzz bots use their own tests/fuzz/services/perception_service.py. So get_visible_monsters/get_nearby_ore/get_entities_at_distance are dead as part of a wholly unwired module: decide wire-in (fog of war / bot API) vs delete module+tests. (2) telemetry.py GameTelemetry.log_combat/log_player_death: never called; Game builds game_telemetry but nothing writes to it. StatsTracker IS wired via EventBus subscribers, but see VB-33 -- most action events fail to publish, so even that is mostly silent. Decide alongside VB-33. (3) Action-factory _create_* and ai_system _behavior_* are registry-dispatched, not dead; run_server.py is a CLI entry point. Not dead.
+- [#2 2026-11-12T20:14:10Z session:warming-squall-1112] Design question surfaced 2026-11-12 (VB-68): players have no fog of war (TUI draws every monster), while monsters since ADR-019 need LOS + memory. FogOfWar/PerceptionSystem here are the unused implementation; deciding whether players get FOV is Scott's call before deleting them.
 
 
 ## TASK-VB-33 · Action events mostly fail to publish to EventBus: flat dicts lack 'data', some types not in GameEventType
@@ -1567,7 +1568,7 @@ links:
 _(no notes yet)_
 
 
-## TASK-VB-68 · Automated play-testing: duel sim through AISystem, seeded paired bot runs, fog-of-war bots, fairness metrics
+## TASK-VB-68 · Automated play-testing: duel sim through AISystem, seeded paired bot runs, bot realism, fairness metrics
 
 ```yaml
 status: in_progress
@@ -1575,7 +1576,7 @@ priority: medium
 effort: 8-12h total (steps 1+2 ~half day)
 tags: [fuzz, bots, balance, ai, tests]
 created: '2026-11-12T19:21:49Z'
-updated: '2026-11-12T19:31:29Z'
+updated: '2026-11-12T20:13:52Z'
 session: warming-squall-1112
 parent: VB-47
 links:
@@ -1590,7 +1591,7 @@ links:
   - VB-64
   - VB-57
   - VB-32
-notes_next: 2
+notes_next: 4
 ```
 
 Goal: turn most of 'play-test' into measurement so VB-64 (and later VB-65/67) become data decisions, and Scott's play-test shrinks to feel questions (fun, fairness feel, message readability, boss feel) on monsters the numbers already call balanced.
@@ -1599,7 +1600,7 @@ Gaps found 2026-11-12 (warming-squall-1112):
 - scripts/sim_duels.py duel() hand-rolls the monster turn (step closer, bump AttackAction). It never calls AISystem, so perception, speed (energy), morale and monster abilities are invisible to it: it cannot measure VB-64 at all.
 - veinborn_bot.py play_one_game calls game.start_new_game() with no seed (the game supports one), so before/after runs play different dungeons; 8 games x 3000 turns could not resolve speed or morale effects (vevine-1112).
 - validate_game_state checks only HP range, bounds, inventory size.
-- PerceptionService.find_monsters returns every living monster on the floor: bots are omniscient while monsters now have LOS + memory, so bot runs make the game look easier than it is for humans.
+- PerceptionService.find_monsters returns every living monster on the floor. That matches a human: the TUI shows every monster and players have no fog of war (see note #2), so this is not a bot gap.
 - TacticalDecisionService.can_win_fight is deterministic atk-def; ignores d20 to-hit, damage spread, monster speed, ranged/summon abilities, morale.
 - Bots never drink potions (loot drops them), never break LOS vs ranged monsters or use corridors vs packs.
 - Per-class bots are one planner differing by CombatConfig (VB-57).
@@ -1608,7 +1609,7 @@ Gaps found 2026-11-12 (warming-squall-1112):
 Path, in order:
 1. (~2-3h) Duel/arena sim drives monster turns through AISystem.update (real perception, energy, morale, abilities via abilities_for/_use_ability). Matrix class x level x monster, each monster ability on/off: win%, HP lost, turns-to-kill, share of damage from abilities. Output a table TIA can propose VB-64 numbers from.
 2. (~1-2h) --seed-base for bot runs; paired before/after on identical seeds (common random numbers), 32-64 games, report CIs on floor/deaths/turns.
-3. (~3-4h) Bot realism: restrict perception to LOS + memory (core.geometry.has_line_of_sight), fight model with to-hit/speed/abilities, potion use, break-LOS vs ranged. Resolve VB-57 here (wire class trees as planner hooks or delete them).
+3. (~3-4h) Bot realism: fight model with to-hit/speed/abilities, potion use, break-LOS vs ranged. Resolve VB-57 here (wire class trees as planner hooks or delete them).
 4. (~2-3h) Fairness metrics + deeper invariants from the ATTACK_RESOLVED events (VB-66): burst deaths (>50% HP to dead within 2 turns), damage from attackers outside player sight, summon counts vs max_minions, disabled ability firing, cooldowns, actor overlap, actor in wall, monsters that fled and never returned. Per-monster breakdown in GameResult.
 
 Steps 1+2 are the high-value half: do them before asking Scott for VB-64 numbers.
@@ -1616,6 +1617,8 @@ Steps 1+2 are the high-value half: do them before asking Scott for VB-64 numbers
 <!-- notes: append-only log; each has a stable #id (see CLI §5) -->
 ### Notes
 - [#1 2026-11-12T19:31:29Z session:warming-squall-1112] Step 1 done a982c4f: scripts/sim_duels.py now runs monster turns via AISystem (TrackedAI subclass records damage melee/ability/minion and uses per ability, minion uses prefixed 'minion:'); --abilities off|on|both|m.a, --set m.a.k=v, --json. tests/unit/test_sim_duels.py (5), mutation (drop ctx.register_system('ai')) fails the summon test. Suite 1280. Found VB-69: only imp of the ability monsters is in any spawn table. Steps 2-4 open.
+- [#2 2026-11-12T20:13:52Z session:warming-squall-1112] Correction (2026-11-12): bots are NOT more omniscient than humans. The TUI map (map_widget._render_cell) and sidebar show every monster on the floor; players have no fog of war (core/perception.py FogOfWar is unused, VB-32). So 'restrict bot perception to LOS' would make bots less human-like; dropped from step 3. The asymmetry is a design question for Scott: monsters need LOS (ADR-019) but players see all.
+- [#3 2026-11-12T20:13:52Z session:warming-squall-1112] Step 2 done (3e8ef58, f378a49, 76222a4): --seed-base/--jobs/--output, scripts/compare_bot_runs.py (paired by class+seed, 95% CI). Found and fixed a core bug on the way: kill loot rolled on a fresh unseeded GameRNG(), so no seeded game replayed past the first kill (test_seeded_replay). Bot high scores now go to logs/, not data/highscores.json. Step 3 (part): potions/food were unusable by anyone -> UseItemAction + @item_effect + key e (52eb525); bots drink at <=40% HP and collect consumables within 6 tiles (38ce94d). Step 4 (part, d4a2505): per-monster damage, killer type, burst deaths, potions used; invariants for overlap/walls/carried-on-map/minion caps. Remaining: fight model (to-hit, speed, abilities), ranged-threat response, VB-57; A/B of potion use running (seeds 1000-1031, 3000 turns).
 
 
 ## TASK-VB-69 · Spawn tables: 10 of 19 monsters never spawn (wyvern, vampire, lich, demon, phoenix, ancient_horror, wraith, mimic, golem, basilisk)
@@ -1640,6 +1643,32 @@ links:
 ```
 
 Found 2026-11-12 (VB-68) while measuring monster abilities: data/balance/monster_spawns.yaml spawn_weights only names goblin, bat, orc, skeleton, wolf, spider, troll, ogre, imp. The other 10 monsters (all defined in monsters.yaml, several with ADR-019 abilities built) appear in no spawn table and no other data/balance file except recipe flavour (recipes.yaml 'requires lich/phoenix/ancient_horror kill'). So of the 9 built VB-64 abilities only imp fire_bolt (floors 11+) can affect a real game. Design call for Scott: which floors each monster belongs to, boss placement (ancient_horror as final boss?), weights. Measure each placement with scripts/sim_duels.py at the player level expected on that floor, plus seeded bot runs (VB-68 step 2).
+
+<!-- notes: append-only log; each has a stable #id (see CLI §5) -->
+### Notes
+_(no notes yet)_
+
+
+## TASK-VB-70 · Loot tables: only goblin, orc, troll drop anything; 16 of 19 monsters (bat, skeleton, ogre, wolf, spider, imp, ...) have no loot table
+
+```yaml
+status: backlog
+priority: medium
+owner: scott
+tags: [balance, content, loot]
+created: '2026-11-12T20:14:28Z'
+updated: '2026-11-12T20:14:28Z'
+session: warming-squall-1112
+links:
+  references:
+  - data/balance/loot_tables.yaml
+  - src/core/loot.py
+  relates_to:
+  - VB-69
+  - VB-68
+```
+
+Found 2026-11-12 (VB-68) in bot logs: every kill of a monster without a table logs WARNING 'No loot table found for monster type: X' (core/loot.py generate_loot). data/balance/loot_tables.yaml has goblin, orc, troll only. Consequence now that potions and food are usable (52eb525): potion supply comes only from goblins/orcs/trolls, which thin out from floor 3 (skeleton/wolf/spider/ogre take over). Design call for Scott: which monsters drop what (animals: meat? undead: nothing?). Once decided, a monster that intentionally drops nothing should have an empty table or a flag so the WARNING means a real gap. Measure with seeded bot runs (scripts/compare_bot_runs.py: potions used, deaths).
 
 <!-- notes: append-only log; each has a stable #id (see CLI §5) -->
 ### Notes
