@@ -1080,13 +1080,16 @@ _(no notes yet)_
 ## TASK-VB-48 · Early balance: mage loses to a goblin; 100 XP/level vs 5 XP goblin means nobody levels
 
 ```yaml
-status: backlog
+status: done
 priority: medium
 effort: 3h
 tags: [balance]
 created: '2026-11-12T01:33:21Z'
-updated: '2026-11-12T03:35:29Z'
+updated: '2026-11-12T03:35:43Z'
 session: kinetic-fusion-1111
+links:
+  commits:
+  - 20c36cb5092246b3488a745920ebe191644e3102
 notes_next: 2
 ```
 
