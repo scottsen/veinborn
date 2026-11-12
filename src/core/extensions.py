@@ -1,8 +1,8 @@
 """
 Extension points: how content plugs into the engine.
 
-Game content (AI behaviours, class abilities, combat modifiers, event
-handlers) lives in modules under ``core/content/`` and registers itself with a
+Game content (AI behaviours, class abilities, combat modifiers, item effects,
+event handlers) lives in modules under ``core/content/`` and registers itself with a
 decorator. The engine looks content up by name, so adding content means adding
 one file; no core file changes. See docs/EXTENDING.md for worked examples.
 
@@ -17,6 +17,7 @@ Registries
 ``ai_behaviors``      name -> fn(ai, monster, config)            (AISystem)
 ``abilities``         name -> fn(context, actor, config)         (AbilityAction)
 ``damage_modifiers``  name -> fn(actor, target, damage)          (AttackAction)
+``item_effects``      name -> fn(context, actor, item)           (UseItemAction)
 ``event_handlers``    name -> class(context)                     (Game)
 
 Every registry loads ``core.content`` on first lookup, so callers never have to
@@ -87,6 +88,7 @@ class Registry:
 ai_behaviors = Registry("AI behavior")
 abilities = Registry("ability")
 damage_modifiers = Registry("damage modifier")
+item_effects = Registry("item effect")
 event_handlers = Registry("event handler")
 
 
@@ -146,6 +148,21 @@ def damage_modifier(name: str, *, replace: bool = False) -> Callable:
     """
     def decorator(fn: Callable) -> Callable:
         damage_modifiers.register(name, fn, replace=replace)
+        return fn
+    return decorator
+
+
+def item_effect(name: str, *, replace: bool = False) -> Callable:
+    """Register ``fn(context, actor, item) -> ActionOutcome`` as item effect ``name``.
+
+    An item uses the effect named by its ``effect:`` field in items.yaml (stored
+    on the item entity as the ``effect`` stat); its numbers are the item's stats
+    (``heal_amount``, ...). UseItemAction finds the item, calls the effect, and
+    consumes the item only when the outcome succeeds. Return
+    ``ActionOutcome.failure(msg)`` to refuse and keep the item.
+    """
+    def decorator(fn: Callable) -> Callable:
+        item_effects.register(name, fn, replace=replace)
         return fn
     return decorator
 

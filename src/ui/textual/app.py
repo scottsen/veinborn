@@ -146,6 +146,7 @@ class VeinbornApp(App):
         Binding("w", "equip_item", "Wield/Wear Item", show=True),
         Binding("W", "cycle_equip", "Cycle Equipment", show=False),
         Binding("g", "pickup", "Pick up Items", show=True),
+        Binding("e", "use_item", "Eat/Drink (heal)", show=True),
         Binding(":", "look_at_ground", "Look at Ground", show=True),
         # Wait/Pass turn
         Binding(".", "wait", "Wait/Pass Turn", show=True),
@@ -363,6 +364,22 @@ class VeinbornApp(App):
                 self.game.state.add_message(f"  {idx}. {item.name} ({item_type})")
             self.game.state.add_message("========================================")
 
+        self.refresh_ui()
+
+    async def action_use_item(self) -> None:
+        """Drink a healing potion or eat food: the one that best covers missing HP."""
+        if self.game.state.game_over:
+            return
+        from core.actions.use_item_action import best_healing_item
+
+        player = self.game.state.player
+        item = best_healing_item(player)
+        if item is not None:
+            self.game.handle_player_action('use', item_id=item.entity_id)
+        elif player.hp >= player.max_hp:
+            self.game.state.add_message("You are already at full health.")
+        else:
+            self.game.state.add_message("You have nothing to eat or drink.")
         self.refresh_ui()
 
     async def action_pickup(self) -> None:

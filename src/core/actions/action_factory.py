@@ -27,6 +27,7 @@ from .craft_action import CraftAction
 from .equip_action import EquipAction
 from .pickup_action import PickupAction
 from .ability_action import AbilityAction
+from .use_item_action import UseItemAction
 from ..extensions import abilities
 
 logger = logging.getLogger(__name__)
@@ -199,6 +200,12 @@ class ActionFactory:
             name='pickup',
             create_fn=self._create_pickup_action,
             description='Pick up items from the ground'
+        )
+
+        self._handlers['use'] = ActionHandler(
+            name='use',
+            create_fn=self._create_use_action,
+            description='Drink, eat or read an item from inventory'
         )
 
     # ============================================================================
@@ -430,6 +437,14 @@ class ActionFactory:
             return None
 
         return EquipAction(actor_id, item_id)
+
+    def _create_use_action(self, context: GameContext, kwargs: dict) -> Optional[Action]:
+        """Create a use-item action. kwargs must contain 'item_id'."""
+        item_id = kwargs.get('item_id')
+        if not item_id:
+            context.game_state.add_message("Nothing to use")
+            return None
+        return UseItemAction(context.get_player().entity_id, item_id)
 
     def _create_pickup_action(
         self,

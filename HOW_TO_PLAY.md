@@ -41,7 +41,8 @@ b   n
 - **Walk into an ore vein** = Mine it (bump-to-mine; takes 3-5 turns, you're vulnerable!)
 - **s** = Survey nearby ore (see its properties)
 - **z** = Use your class ability (mage force bolt, healer heal)
-- **g** = Pick up items on your tile
+- **g** = Pick up items on your tile (potions and scrolls are not picked up automatically)
+- **e** = Eat or drink: uses the cheapest potion or food that covers your missing HP
 - **i** = View inventory
 - **w** = Wield/wear (equip) an item — **W** cycles equipment
 - **:** = Look at what's on the ground
@@ -361,8 +362,8 @@ MOVEMENT          COMBAT / MINING         ITEMS
 ← h @ l →         = Attack                w - Wield/equip
 ↓ j    b  n       Walk into ore vein      W - Cycle equipment
                   = Mine (bump-to-mine)   g - Pick up
-                  s - Survey ore          : - Look at ground
-                  z - Class ability
+                  s - Survey ore          e - Eat/drink (heal)
+                  z - Class ability       : - Look at ground
 
 TURN / FLOW       PROGRESSION             GAME
 . or space        > - Descend stairs      S - Save   L - Load

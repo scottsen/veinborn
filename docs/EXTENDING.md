@@ -29,6 +29,7 @@ game. See `docs/architecture/DECISIONS.md`, ADR-018.)
 | A monster AI behaviour | `@ai_behavior("name")` | `src/core/content/ai/` |
 | An ability (a player presses z for it; monsters use it too) | `@ability("name", should_use=...)` | `src/core/content/abilities/` |
 | A passive combat effect (like backstab) | `@damage_modifier("name")` | `src/core/content/abilities/` |
+| What an item does when used (key e; `effect:` in items.yaml) | `@item_effect("name")` | `src/core/content/items/` |
 | Something that reacts to game events (achievements, quests, ...) | `@event_handler` class with `@on(...)` methods | `src/core/content/events/` |
 
 Everything in `src/core/content/` is imported automatically on the first lookup
@@ -167,6 +168,17 @@ worked examples.
 `AttackAction` applies it for any player who has `"name"` in their class abilities.
 Return `None` when it doesn't apply to this hit. `content/abilities/backstab.py` is
 the example.
+
+## Add an item effect
+
+An item names its effect in `data/entities/items.yaml` (`effect: heal`); its numbers are
+its `stats` (`heal_amount: 10`), stored on the item entity. `@item_effect("name")`
+registers `fn(context, actor, item) -> ActionOutcome`. `UseItemAction` (action `use`,
+key **e** via `best_healing_item`) finds the item in the inventory, calls the effect and
+removes the item only when the outcome succeeds; return `ActionOutcome.failure(msg)` to
+refuse and keep it. An item whose effect is not registered cannot be used and stays in
+the pack. `content/items/healing.py` (heal, heal_full, eat) is the example. Buffs
+(`buff_attack`, `buff_speed`, `invisibility`) wait on status effects (VB-65).
 
 ## Add an event handler
 
