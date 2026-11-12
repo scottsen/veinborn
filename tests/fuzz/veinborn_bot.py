@@ -218,6 +218,7 @@ class VeinbornBot:
         self.player_name = player_name
         self.stats = BotStats()
         self.error_log: List[Dict] = []
+        _keep_bot_scores_off_the_leaderboard()
 
         # Phase 3: Load entity intelligence from YAML
         self.entity_loader = EntityLoader()
@@ -735,7 +736,6 @@ class VeinbornBot:
         """
         self.seed_base = seed_base
         self.max_turns_per_game = max_turns_per_game
-        _keep_bot_scores_off_the_leaderboard()
         print(f"\n{'='*60}")
         print(f"Veinborn Automated Testing Bot")
         print(f"{'='*60}")
@@ -965,12 +965,20 @@ def _play_in_worker(work):
 def _keep_bot_scores_off_the_leaderboard() -> None:
     """Bot deaths go to logs/bot_highscores.json, not the shipped data/highscores.json.
 
+    Called when a bot is built, so every entry point (CLI, scripts calling
+    play_one_game) is covered; a manager already pointing elsewhere is kept.
+
     Every bot game that ends records a high score; from a working tree that used to
     rewrite the tracked leaderboard with bot names. Tests do the same through the
     isolated_singleplayer_highscores fixture.
     """
     from core.highscore import HighScoreManager
-    logs_dir = Path(__file__).resolve().parent.parent.parent / "logs"
+    root = Path(__file__).resolve().parent.parent.parent
+    current = HighScoreManager._instance
+    shipped = root / "data" / "highscores.json"
+    if current is not None and Path(current.filepath).resolve() != shipped.resolve():
+        return  # already redirected (a test's tmp file, or an earlier bot)
+    logs_dir = root / "logs"
     logs_dir.mkdir(exist_ok=True)
     HighScoreManager._instance = HighScoreManager(logs_dir / "bot_highscores.json")
 
