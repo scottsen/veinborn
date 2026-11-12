@@ -1496,12 +1496,12 @@ _(no notes yet)_
 ## TASK-VB-66 · AISystem.attack drops the monster attack's outcome.events: monster attacks never reach the event bus
 
 ```yaml
-status: backlog
+status: done
 priority: low
 effort: 30m
 tags: [ai, events, bug]
 created: '2026-11-12T17:40:23Z'
-updated: '2026-11-12T17:40:26Z'
+updated: '2026-11-12T18:08:59Z'
 session: vevine-1112
 depends_on: [VB-60]
 links:
@@ -1511,10 +1511,13 @@ links:
   relates_to:
   - VB-47
   - VB-55
+  commits:
+  - f72e78fcd440f393221facf463c70b595ad9708c
+notes_next: 2
 ```
 
 AISystem.attack executes AttackAction and adds outcome.messages to the log but discards outcome.events, so ATTACK_RESOLVED/ENTITY_DIED from monster attacks are never published (player attacks are, via process_action_outcome). Not verified yet whether telemetry (damage taken), achievements or anything else expect them. Fix: publish monster outcome events through the same pipeline once AISystem holds the event bus (VB-60 passes it in).
 
 <!-- notes: append-only log; each has a stable #id (see CLI §5) -->
 ### Notes
-_(no notes yet)_
+- [#1 2026-11-12T18:08:59Z session:vevine-1112] Also fixed: StatsTracker counted every attack as the player's and recorded deaths only for entity_id == 'player' (real ids are UUIDs), so deaths/damage_taken were never tracked.
