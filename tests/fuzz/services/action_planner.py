@@ -25,6 +25,10 @@ ITEM_REACH = 6
 # ...and only when no monster is this close to the bot or the item
 ITEM_SAFE_RADIUS = 8
 INVENTORY_MAX = 20
+# Turns the bot may spend walking toward one ore vein before writing it off (its
+# adjacent tiles may be unreachable); without a limit two goals could trade turns
+# forever (VB-68: a bot spent 18,000 turns on one floor stepping between them)
+ORE_SEEK_TURNS = 20
 
 
 class ActionPlanner:
@@ -50,6 +54,8 @@ class ActionPlanner:
         # Clear rooms, then go down; stops the bot from skipping rooms by stepping on the stairs
         self.sweeper = RoomSweeper(perception)
         self.decisions.descend_gate = self.sweeper.ready_to_leave
+        self._ore_seek = {}        # ore vein entity_id -> turns spent walking toward it
+        self._ore_seek_map = None  # reset per floor
 
     def log(self, message: str) -> None:
         """Log message if verbose enabled."""
@@ -108,6 +114,21 @@ class ActionPlanner:
         self.log("🚪 Room swept, heading for the stairs" if kind == 'stairs' else f"🗺️  Sweeping on to room at ({x}, {y})")
         return self.move_towards(game, waypoint)
 
+    def seek_ore(self, game, ore, reach: int, label: str) -> Optional[Tuple[str, dict]]:
+        """Walk toward an ore vein within `reach` (8-way steps), or None to let lower goals act.
+
+        Gives up on a vein after ORE_SEEK_TURNS turns of walking without arriving.
+        """
+        if game.state.dungeon_map is not self._ore_seek_map:
+            self._ore_seek_map, self._ore_seek = game.state.dungeon_map, {}
+        player = game.state.player
+        steps = max(abs(ore.x - player.x), abs(ore.y - player.y))
+        if steps > reach or self._ore_seek.get(ore.entity_id, 0) >= ORE_SEEK_TURNS:
+            return None
+        self._ore_seek[ore.entity_id] = self._ore_seek.get(ore.entity_id, 0) + 1
+        self.log(f"{label} Distance: {steps}")
+        return self.move_towards_adjacent(game, ore)
+
     def get_smart_action(self, game) -> Tuple[str, dict]:
         """
         Choose action strategically to try to win.
@@ -128,6 +149,10 @@ class ActionPlanner:
         9. If monster in view and we can win → PURSUE
         10. Sweep room by room, clearing monsters, then → SEEK STAIRS
         11. Otherwise → random exploration
+
+        Once the sweep is done (every room, or the floor's turn budget), 5 and 6b-9 are
+        skipped so nothing pulls the bot back from the stairs; ore is sought by 8-way
+        steps with a per-vein turn limit (seek_ore), and never mined with a full pack.
 
         Returns:
             Tuple of (action_type, kwargs)
@@ -185,18 +210,22 @@ class ActionPlanner:
             self.log(f"⚔️  Fighting {adjacent.name} ({threat}) at ({adjacent.x},{adjacent.y})")
             return self.move_towards(game, adjacent)
 
+        # Once the rooms are swept or the floor's turn budget is spent, only the stairs
+        # matter: optional detours (ore, surveys, pickups, pursuits) would otherwise keep
+        # pulling the bot back from them (VB-68). Adjacent fights and healing still run.
+        leaving = self.sweeper.done(game)
+        room_in_pack = len(getattr(game.state.player, 'inventory', [])) < INVENTORY_MAX
+
         # Priority 5: JACKPOT ORE
-        jackpot = self.perception.find_jackpot_ore(game)
+        jackpot = self.perception.find_jackpot_ore(game) if not leaving and room_in_pack else None
         if jackpot and not self.decisions.is_low_health(game):
-            dist = game.state.player.distance_to(jackpot)
             if game.state.player.is_adjacent(jackpot):
                 self.log(f"💎 Mining JACKPOT ore! {jackpot.ore_type}")
                 return ('mine', {'ore_vein_id': jackpot.entity_id})
-            elif dist > 2 and dist <= 5:
-                # Seek adjacent tile to ore (ore blocks movement)
-                self.log(f"💎 Seeking JACKPOT ore! Distance: {dist:.1f}")
-                return self.move_towards_adjacent(game, jackpot)
-            # If close but not adjacent (dist <= 2), explore randomly
+            # Seek adjacent tile to ore (ore blocks movement)
+            seek = self.seek_ore(game, jackpot, reach=5, label="💎 Seeking JACKPOT ore!")
+            if seek:
+                return seek
 
         # Priority 6: Flee if in danger
         if self.decisions.should_flee(game):
@@ -230,14 +259,13 @@ class ActionPlanner:
                 return self.flee_from(game, nearby)
 
         # Priority 6b: Collect potions and food lying nearby
-        collect = self.collect_action(game)
+        collect = self.collect_action(game) if not leaving else None
         if collect:
             return collect
 
         # Priority 7: Strategic mining
-        valuable_ore = self.perception.find_valuable_ore(game)
+        valuable_ore = self.perception.find_valuable_ore(game) if not leaving and room_in_pack else None
         if valuable_ore and not self.decisions.is_low_health(game):
-            dist = game.state.player.distance_to(valuable_ore)
             if game.state.player.is_adjacent(valuable_ore):
                 # Adjacent to valuable ore
                 if valuable_ore.get_stat('surveyed'):
@@ -250,13 +278,14 @@ class ActionPlanner:
                     # Not surveyed - survey it first
                     self.log(f"🔍 Surveying {valuable_ore.ore_type} ore...")
                     return ('survey', {'ore_vein_id': valuable_ore.entity_id})
-            elif dist > 2 and dist <= 4 and valuable_ore.get_stat('purity', 0) >= 80:
+            elif valuable_ore.get_stat('purity', 0) >= 80:
                 # Seek adjacent tile to Legacy Vault quality ore (ore blocks movement)
-                self.log(f"⛏️  Seeking Legacy Vault ore! Distance: {dist:.1f}")
-                return self.move_towards_adjacent(game, valuable_ore)
+                seek = self.seek_ore(game, valuable_ore, reach=4, label="⛏️  Seeking Legacy Vault ore!")
+                if seek:
+                    return seek
 
         # Priority 8: Survey nearby unsurveyed ore
-        unsurveyed_ore = self.decisions.should_survey_ore(game)
+        unsurveyed_ore = self.decisions.should_survey_ore(game) if not leaving else None
         if unsurveyed_ore and not self.decisions.is_low_health(game):
             dist = game.state.player.distance_to(unsurveyed_ore)
             if game.state.player.is_adjacent(unsurveyed_ore):
@@ -264,7 +293,7 @@ class ActionPlanner:
                 return ('survey', {'ore_vein_id': unsurveyed_ore.entity_id})
 
         # Priority 9: Pursue monsters if we can win
-        if self.decisions.should_fight(game):
+        if not leaving and self.decisions.should_fight(game):
             nearby = self.perception.monster_in_view(game, distance=5.0)
             if nearby:
                 self.log(f"⚔️  Pursuing {nearby.name}!")
