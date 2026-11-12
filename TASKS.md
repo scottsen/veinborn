@@ -1396,7 +1396,7 @@ priority: low
 effort: 2h
 tags: [ai, architecture, balance]
 created: '2026-11-12T17:40:07Z'
-updated: '2026-11-12T18:05:41Z'
+updated: '2026-11-12T18:32:49Z'
 session: vevine-1112
 depends_on: [VB-59]
 parent: VB-47
@@ -1405,7 +1405,7 @@ links:
   - docs/architecture/AI_ARCHITECTURE.md
   commits:
   - d71654b0ea21a2eec58ac0409c0c552d430d7c19
-notes_next: 2
+notes_next: 3
 ```
 
 move_speed is declared for all 19 monsters and never read. Both drivers (TurnProcessor._run_ai_systems single-player, session._process_monster_turn multiplayer) call ai_system.update() once per round, so the scheduler can live in AISystem: each update add move_speed to a per-monster 'energy' stat, act while energy >= 1 (subtract 1 per action). Bat 1.5 acts 3 times per 2 rounds, golem 0.6 acts 3 per 5. Player speed (haste/slow) is out of scope but should reuse the same rule later. Balance change: bot before/after. See AI_ARCHITECTURE.md 'Speed'.
@@ -1413,6 +1413,7 @@ move_speed is declared for all 19 monsters and never read. Both drivers (TurnPro
 <!-- notes: append-only log; each has a stable #id (see CLI §5) -->
 ### Notes
 - [#1 2026-11-12T18:05:41Z session:vevine-1112] Energy counter in AISystem.update/_act; tests/unit/systems/test_ai_speed.py. Bot comparison in a note.
+- [#2 2026-11-12T18:32:49Z session:vevine-1112] Bots 8x3000 at 4556232 (VB-58..VB-63, VB-66), vs acd5cda (VB-60): warrior floor 9.4->8.4 deaths 0->0; rogue 8.8->10.0 deaths 0; mage 7.0->7.5 deaths 0->1; healer 8.6->8.4 deaths 0. 0 bugs. Speed + morale: no clear shift beyond 8-game noise.
 
 
 ## TASK-VB-63 · Abilities for any actor: hostility helper on GameContext, actor-agnostic ability targeting, monsters use abilities from their YAML (AI ability step); sniper/summoner become tactics + abilities
