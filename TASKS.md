@@ -1278,24 +1278,28 @@ _(no notes yet)_
 ## TASK-VB-58 · AI: one range metric (Chebyshev) in core/geometry, used by AI, abilities, spawning and guard leash
 
 ```yaml
-status: in_progress
+status: done
 priority: medium
 effort: 1-2h
 tags: [ai, architecture]
 created: '2026-11-12T17:39:42Z'
-updated: '2026-11-12T17:42:46Z'
+updated: '2026-11-12T17:56:46Z'
 session: vevine-1112
 parent: VB-47
 links:
   references:
   - docs/architecture/AI_ARCHITECTURE.md
+  commits:
+  - 8394cef86087837421a32012b1b3b1fac4e6ec33
+notes_next: 3
 ```
 
 Today: AISystem.distance/nearest_player, guard leash (classic.py) and EntitySpawner.spawn_wandering_monster use Manhattan; force_bolt uses Chebyshev inline; Entity.distance_to is Euclidean. Movement and adjacency are 8-way, so Manhattan makes a 10-tile chase ~5-7 tiles on the diagonal. Add geometry.chebyshev(a, b) and route every range check through it (keep Euclidean dist2 only for choosing a flee step). Balance change: diagonal ranges grow; bot before/after. See AI_ARCHITECTURE.md 'Distance'.
 
 <!-- notes: append-only log; each has a stable #id (see CLI §5) -->
 ### Notes
-_(no notes yet)_
+- [#1 2026-11-12T17:48:24Z session:vevine-1112] geometry.chebyshev; AI ranges, nearest player, guard leash, spawn distance, force bolt now share one metric.
+- [#2 2026-11-12T17:56:46Z session:vevine-1112] Bots 8 games x 3000 turns each, before -> after (before = warrior/rogue from turquoise-mosaic-1111, mage/healer from 0fef6be): warrior floor 9.4->6.4 deaths 1->2; rogue 6.8->8.2 deaths 1->0; mage 6.2->6.1 deaths 2->5; healer 9.4->8.4 deaths 1->1. 0 bugs. Direction: monsters reach further on diagonals; 8-game samples are noisy (rogue went up).
 
 
 ## TASK-VB-59 · AI: per-monster AI parameters (monster ai: block overrides behaviour defaults, resolved by content_id) + load-time validation; delete default_ai_by_type
@@ -1306,7 +1310,7 @@ priority: medium
 effort: 2-3h
 tags: [ai, architecture, content]
 created: '2026-11-12T17:39:43Z'
-updated: '2026-11-12T17:48:01Z'
+updated: '2026-11-12T17:48:18Z'
 session: vevine-1112
 parent: VB-47
 links:
@@ -1315,7 +1319,7 @@ links:
   - data/entities/monsters.yaml
   - data/balance/ai_behaviors.yaml
   commits:
-  - 8394cef86087837421a32012b1b3b1fac4e6ec33
+  - 5b8b073a301f2c40ead70bd6f9e1a454699b766a
 notes_next: 2
 ```
 
@@ -1329,12 +1333,12 @@ AISystem.update passes only the behaviour's section of ai_behaviors.yaml; monste
 ## TASK-VB-60 · AI: engine perception (aggro_range + line of sight + provocation) via ai.perceive; provocation from ATTACK_RESOLVED in core; passive becomes neutral; contract test over every behaviour
 
 ```yaml
-status: backlog
+status: done
 priority: medium
 effort: 3-4h
 tags: [ai, architecture]
 created: '2026-11-12T17:39:53Z'
-updated: '2026-11-12T17:40:26Z'
+updated: '2026-11-12T17:57:57Z'
 session: vevine-1112
 depends_on: [VB-58, VB-59]
 parent: VB-47
@@ -1344,13 +1348,16 @@ links:
   - docs/EXTENDING.md
   relates_to:
   - VB-55
+  commits:
+  - acd5cdaac935eb1aea9327fa652e6eb02b972473
+notes_next: 2
 ```
 
 Classic behaviours chase by distance only (no line of sight), via nearest_player. Add ai.perceive(monster, params) -> target or None: a player within aggro_range AND in sight, or the monster's provoker. Provocation: AISystem (core, not content: the MP server installs no content handlers, VB-55) subscribes to ATTACK_RESOLVED and records last_attacker_id + provoked_turn on the defender, with a decay window. Needs the event bus passed to AISystem in Game and in server session.py. Behaviours switch nearest_player -> perceive (multiplayer: prefer the provoker). passive -> 'neutral': wanders, fights back when provoked. A parametrized contract test runs every registered @ai_behavior and asserts an unperceived player is neither attacked nor approached. Update EXTENDING.md toolkit list. Bot before/after. See AI_ARCHITECTURE.md 'Perception' and 'Provocation'.
 
 <!-- notes: append-only log; each has a stable #id (see CLI §5) -->
 ### Notes
-_(no notes yet)_
+- [#1 2026-11-12T17:57:57Z session:vevine-1112] perceive/provoked_by/_on_attack in AISystem; defaults block (aggro_range 8, memory_turns 10, move_speed 1.0, flee_threshold 0). Contract test (8 behaviours x positive/negative) + 2 mutation checks (no LOS, perceive=nearest_player) caught. Side fix: wander stepped onto the player's tile = bump attack. Bot comparison in a note.
 
 
 ## TASK-VB-61 · AI: engine morale step (flee_threshold) runs before every behaviour; drop per-behaviour flee checks; guards hold (0)
