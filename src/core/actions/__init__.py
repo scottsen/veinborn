@@ -17,6 +17,7 @@ from .craft_action import CraftAction
 from .equip_action import EquipAction
 from .pickup_action import PickupAction
 from .wait_action import WaitAction
+from .ability_action import AbilityAction
 
 __all__ = [
     'MoveAction',
@@ -28,6 +29,7 @@ __all__ = [
     'EquipAction',
     'PickupAction',
     'WaitAction',
+    'AbilityAction',
     'ACTION_TYPES',
 ]
 
@@ -52,4 +54,5 @@ ACTION_TYPES: Dict[str, Type[Action]] = {
     'EquipAction': EquipAction,
     'PickupAction': PickupAction,
     'WaitAction': WaitAction,
+    'AbilityAction': AbilityAction,
 }

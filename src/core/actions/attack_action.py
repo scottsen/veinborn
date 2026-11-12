@@ -10,7 +10,7 @@ Handles:
 """
 
 import logging
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Optional
 from simpleeval import simple_eval
 from ..base.action import Action, ActionOutcome
@@ -31,6 +31,7 @@ class AttackAction(Action):
     actor_id: str
     target_id: str
     loot_generator: Optional[LootGenerator] = None  # For dependency injection
+    backstabbed: bool = field(default=False, init=False, repr=False)  # set by the damage roll
 
     def validate(self, context: GameContext) -> bool:
         """Check if attack is valid."""
@@ -205,7 +206,21 @@ class AttackAction(Action):
             logger.error(f"Formula evaluation failed: {e}, using fallback")
             damage = damage_roll - target_defense
 
-        return target.take_damage(max(min_damage, int(damage)))
+        damage = max(min_damage, int(damage))
+        if self._is_backstab(actor, target):
+            damage *= config.get_ability_config('backstab')['damage_multiplier']
+            self.backstabbed = True
+        return target.take_damage(damage)
+
+    @staticmethod
+    def _is_backstab(actor, target) -> bool:
+        """Rogue passive: the first hit on an unhurt monster does extra damage."""
+        return (
+            isinstance(actor, Player)
+            and 'backstab' in actor.get_stat('abilities', [])
+            and target.entity_type == EntityType.MONSTER
+            and target.hp >= target.max_hp
+        )
 
     def _build_miss_outcome(self, actor, target) -> ActionOutcome:
         """Outcome for a swing that missed: turn spent, no damage."""
@@ -241,8 +256,9 @@ class AttackAction(Action):
     def _build_combat_outcome(self, actor, target, actual_damage: int) -> ActionOutcome:
         """Build outcome with damage message and event."""
         outcome = ActionOutcome.success(took_turn=True)
+        verb = "backstabs" if self.backstabbed else "hits"
         outcome.messages.append(
-            f"{actor.name} hits {target.name} for {actual_damage} damage!"
+            f"{actor.name} {verb} {target.name} for {actual_damage} damage!"
         )
         # Use event builder helper for type-safe event creation
         outcome.events.append(create_attack_event(

@@ -252,6 +252,14 @@ class GameConfig:
         """Get the damage roll spread (0 = fixed damage, 0.5 = attack +/- 50%)."""
         return self.formulas['combat']['damage'].get('spread', 0.0)
 
+    def get_ability_config(self, ability: str) -> Dict[str, Any]:
+        """Get the tuning numbers for a class ability (formulas.yaml `abilities`).
+
+        Raises:
+            KeyError: if the ability has no config
+        """
+        return self.formulas['abilities'][ability]
+
     def get_to_hit_config(self) -> Optional[Dict[str, Any]]:
         """Get the to-hit roll config (die, formula, natural_miss, natural_hit).
 

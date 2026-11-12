@@ -38,8 +38,8 @@ class TestGameStartIntegration:
         assert game.state.player is not None
         assert game.state.player.hp == 30  # Warrior starting HP
         assert game.state.player.max_hp == 30
-        assert game.state.player.attack == 5  # Warrior attack
-        assert game.state.player.defense == 3  # Warrior defense
+        assert game.state.player.get_total_attack() == 5  # base 2 + short sword
+        assert game.state.player.get_total_defense() == 3  # base 1 + leather armor
 
         # Check player name stored
         assert game.state.player_name == "TestWarrior"
@@ -60,7 +60,7 @@ class TestGameStartIntegration:
 
         # Check rogue stats
         assert game.state.player.hp == 20  # Rogue starting HP
-        assert game.state.player.attack == 4
+        assert game.state.player.get_total_attack() == 4  # base 2 + dagger
         assert game.state.player.defense == 2
 
         # Check class stored
@@ -77,7 +77,7 @@ class TestGameStartIntegration:
 
         # Check mage stats
         assert game.state.player.hp == 15  # Mage starting HP
-        assert game.state.player.attack == 4
+        assert game.state.player.attack == 3
         assert game.state.player.defense == 1
 
         # Check class stored

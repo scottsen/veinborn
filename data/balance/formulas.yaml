@@ -28,6 +28,28 @@ combat:
     min_damage: 1
     max_damage: 9999
 
+# Class abilities (VB-51). Read by AbilityAction / AttackAction.
+# Cooldowns are in turns; there is no mana system.
+abilities:
+  # Mage: ranged, never misses, ignores defense. Hits the nearest monster in
+  # line of sight. Damage is a roll in [damage_min, damage_max] plus
+  # damage_per_level * (level - 1), rounded down.
+  force_bolt:
+    range: 6
+    damage_min: 2
+    damage_max: 6
+    damage_per_level: 0.5
+    cooldown: 3
+  # Healer: restores the caster's own HP (heal_per_level * (level - 1) extra).
+  heal:
+    amount: 6
+    heal_per_level: 1
+    cooldown: 12
+  # Rogue: passive. The first hit on a monster at full HP does this multiple
+  # of its normal damage.
+  backstab:
+    damage_multiplier: 2
+
 # Health & Regeneration
 health:
   # HP Regeneration

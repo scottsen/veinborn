@@ -215,6 +215,7 @@ python3 src/server/test_client.py
 | ~~Crafted equipment counted as ore (a forge made daggers from daggers); failed craft raised `TypeError`; walking away mid-mine wedged `mine` for the run~~ | ~~🔴 Critical~~ | ✅ Fixed 2026-11-11 (`is_ore_item`, `craft_action.py`, `action_factory.py`); found by the fuzz bots |
 | ~~Forge, ore veins and monsters spawned on the same tile~~ | ~~🟡 Medium~~ | ✅ Fixed 2026-11-11 — `VB-46` (relocated to nearest free tile) |
 | ~~Nobody levels in early play (goblin 5 XP vs 100 XP/level); mage loses to goblins; combat fully deterministic~~ | ~~🟡 Medium~~ | ✅ Fixed 2026-11-11 — `VB-48`: d20 to-hit + damage roll, NetHack doubling XP curve (20/40/80…), per-class growth (no defense from levels), mage attack 2→4; odds via `scripts/sim_duels.py` |
+| ~~Classes were bare stat lines; monsters only spawned at floor creation~~ | ~~🟡 Medium~~ | ✅ Fixed 2026-11-11 — `VB-51`: mage force bolt (`z`), healer heal, rogue backstab, warrior/rogue start equipped (stat-neutral), mage attack 4→3; `VB-52`: 2%/turn wandering spawns. Remaining abilities: `VB-53` |
 | Lua AI styles, `passive`, `aggro_range`/`move_speed` are not wired | 🟢 Low | Open — `VB-47` |
 | No gameplay client: `MultiplayerClient` can't send actions, TUI only does chat/lobby | 🟠 High | Open — `VB-44` |
 | Dead-code candidates (`perception.py` module, `GameTelemetry.log_*`) | 🟢 Low | Held — `VB-32`: need a wire-in-or-delete decision |

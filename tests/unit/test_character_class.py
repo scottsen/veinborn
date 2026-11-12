@@ -18,6 +18,7 @@ from src.core.character_class import (
     create_player_from_class,
     format_class_selection,
     get_class_from_choice,
+    starting_attack_defense,
 )
 from src.core.base.entity import EntityType
 from src.core.exceptions import DataError
@@ -75,29 +76,25 @@ class TestClassTemplates:
         warrior = CLASS_TEMPLATES[CharacterClass.WARRIOR]
         assert warrior.name == "Warrior"
         assert warrior.hp == 30
-        assert warrior.attack == 5
-        assert warrior.defense == 3
-        assert "power_strike" in warrior.abilities
+        assert starting_attack_defense(warrior) == (5, 3)  # base 2/1 + sword and armor
+        assert warrior.starting_items == ["short_sword", "leather_armor"]
 
     def test_rogue_stats(self):
         """Rogue should be balanced with dodge."""
         rogue = CLASS_TEMPLATES[CharacterClass.ROGUE]
         assert rogue.name == "Rogue"
         assert rogue.hp == 20
-        assert rogue.attack == 4
-        assert rogue.defense == 2
-        assert "backstab" in rogue.abilities
-        assert "dodge" in rogue.abilities
+        assert starting_attack_defense(rogue) == (4, 2)  # base 2/2 + dagger
+        assert rogue.abilities == ["backstab"]
 
     def test_mage_stats(self):
         """Mage should have low HP but magic abilities."""
         mage = CLASS_TEMPLATES[CharacterClass.MAGE]
         assert mage.name == "Mage"
         assert mage.hp == 15
-        assert mage.attack == 4  # 4 until spells exist (VB-48)
+        assert mage.attack == 3  # weak in melee; force bolt is its real attack
         assert mage.defense == 1
-        assert "fireball" in mage.abilities
-        assert "teleport" in mage.abilities
+        assert mage.abilities == ["force_bolt"]
 
     def test_healer_stats(self):
         """Healer should have high defense and support abilities."""
@@ -106,9 +103,7 @@ class TestClassTemplates:
         assert healer.hp == 25
         assert healer.attack == 3
         assert healer.defense == 4
-        assert "heal" in healer.abilities
-        assert "protect" in healer.abilities
-        assert "regeneration" in healer.abilities
+        assert healer.abilities == ["heal"]
 
     def test_progression_defined(self):
         """All classes should have progression defined."""
@@ -117,15 +112,19 @@ class TestClassTemplates:
             assert template.attack_per_level >= 0
             assert template.defense_per_level >= 0
 
-    def test_starting_items_defined(self):
-        """All classes should have starting items."""
+    def test_starting_items_exist_in_items_yaml(self):
+        """Every starting item id must be a real item (no flavor-only ids)."""
+        from src.core.loot import LootGenerator
+        loot = LootGenerator.get_instance()
         for template in CLASS_TEMPLATES.values():
-            assert len(template.starting_items) > 0
+            for item_id in template.starting_items:
+                assert loot.get_item_info(item_id), f"{item_id} is not in items.yaml"
 
-    def test_abilities_defined(self):
-        """All classes should have abilities."""
+    def test_abilities_are_implemented(self):
+        """Templates list only abilities the game can actually use."""
+        implemented = {"force_bolt", "heal", "backstab"}
         for template in CLASS_TEMPLATES.values():
-            assert len(template.abilities) > 0
+            assert set(template.abilities) <= implemented
 
 
 class TestGetClassTemplate:
@@ -183,8 +182,11 @@ class TestCreatePlayerFromClass:
         assert player.y == 20
         assert player.hp == 30
         assert player.max_hp == 30
-        assert player.attack == 5
-        assert player.defense == 3
+        assert player.attack == 2  # base; the sword adds +3
+        assert player.get_total_attack() == 5
+        assert player.get_total_defense() == 3
+        assert player.equipped_weapon.content_id == "short_sword"
+        assert player.equipped_armor.content_id == "leather_armor"
         assert player.stats['class'] == "Warrior"
         assert player.stats['class_type'] == "warrior"
 
@@ -199,8 +201,10 @@ class TestCreatePlayerFromClass:
         assert player.name == "Bob"
         assert player.hp == 20
         assert player.max_hp == 20
-        assert player.attack == 4
+        assert player.get_total_attack() == 4  # base 2 + dagger
         assert player.defense == 2
+        assert player.equipped_weapon.content_id == "dagger"
+        assert player.stats['abilities'] == ["backstab"]
         assert player.stats['class'] == "Rogue"
 
     def test_create_mage(self):
@@ -214,8 +218,10 @@ class TestCreatePlayerFromClass:
         assert player.name == "Charlie"
         assert player.hp == 15
         assert player.max_hp == 15
-        assert player.attack == 4
+        assert player.attack == 3
         assert player.defense == 1
+        assert player.equipped_weapon is None
+        assert player.stats['abilities'] == ["force_bolt"]
         assert player.stats['class'] == "Mage"
 
     def test_create_healer(self):
@@ -293,9 +299,10 @@ class TestFormatClassSelection:
         """Should list abilities for each class."""
         result = format_class_selection()
         assert "Abilities:" in result
-        assert "power_strike" in result
         assert "backstab" in result
-        assert "fireball" in result
+        assert "force_bolt" in result
+        assert "heal" in result
+        assert "none yet" in result  # warrior has no ability yet
 
     def test_formatted_with_box(self):
         """Should have nice box formatting."""

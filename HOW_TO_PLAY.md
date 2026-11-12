@@ -40,6 +40,7 @@ b   n
 - **Walk into a monster** = Attack it (bump-to-attack)
 - **Walk into an ore vein** = Mine it (bump-to-mine; takes 3-5 turns, you're vulnerable!)
 - **s** = Survey nearby ore (see its properties)
+- **z** = Use your class ability (mage force bolt, healer heal)
 - **g** = Pick up items on your tile
 - **i** = View inventory
 - **w** = Wield/wear (equip) an item — **W** cycles equipment
@@ -164,10 +165,20 @@ Levels come fast early (20 XP for level 2, 40 for 3, 80 for 4) and then double.
 
 ## Character Classes
 
-Choose at game start. Starting HP / Attack / Defense today: Warrior 30/5/3,
-Rogue 20/4/2, Mage 15/4/1, Healer 25/3/4. Spells, backstab, crits and healing
-abilities described below are planned but not in the game yet: every class
-fights in melee for now, so the mage is the fragile one.
+Choose at game start. Starting HP / Attack / Defense: Warrior 30/5/3,
+Rogue 20/4/2, Mage 15/3/1, Healer 25/3/4. The warrior starts wearing a short
+sword and leather armor, the rogue wielding a dagger (their Attack/Defense
+include that gear). Three abilities work today; the rest described below
+(area spells, dodge, crits, regeneration) are planned.
+
+- **Mage:** press **z** to cast *force bolt* at the nearest monster in sight
+  (6 tiles). It never misses and ignores defense; ready again after 3 turns.
+  Open with bolts as monsters approach, melee is weak.
+- **Healer:** press **z** to heal yourself (6 HP, +1 per level; ready again
+  after 12 turns). Wasted at full health, so it costs no turn then.
+- **Rogue:** *backstab* is automatic: your first hit on an unhurt monster does
+  double damage.
+- **Warrior:** no ability yet; the tough one.
 
 ### Warrior (Red @)
 - **Best at:** Melee combat, tanking
@@ -176,20 +187,20 @@ fights in melee for now, so the mage is the fragile one.
 - **Playstyle:** Get in their face, trade hits
 
 ### Mage (Blue @)
-- **Best at:** Magic, area damage
-- **High:** Magic power
+- **Best at:** Ranged damage
+- **Has:** Force bolt (z)
 - **Wants:** High conductivity ore (spell power)
-- **Playstyle:** Keep distance, use spells
+- **Playstyle:** Keep distance, bolt, then finish in melee
 
 ### Rogue (Green @)
-- **Best at:** Critical hits, mobility
-- **High:** Crit chance, dodge
+- **Best at:** Opening strikes
+- **Has:** Backstab (double damage on an unhurt monster)
 - **Wants:** Balanced ore (versatility)
-- **Playstyle:** Hit and run, backstabs
+- **Playstyle:** Pick your fights, strike first
 
 ### Healer (Yellow @)
 - **Best at:** Survival, support
-- **High:** HP regeneration
+- **Has:** Heal (z)
 - **Wants:** High purity ore (quality)
 - **Playstyle:** Outlast enemies
 
@@ -344,6 +355,7 @@ MOVEMENT          COMBAT / MINING         ITEMS
 ↓ j    b  n       Walk into ore vein      W - Cycle equipment
                   = Mine (bump-to-mine)   g - Pick up
                   s - Survey ore          : - Look at ground
+                  z - Class ability
 
 TURN / FLOW       PROGRESSION             GAME
 . or space        > - Descend stairs      S - Save   L - Load

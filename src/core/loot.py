@@ -324,6 +324,10 @@ class LootGenerator:
 
         return entity
 
+    def create_item(self, item_id: str) -> Optional[Entity]:
+        """Create one item entity by its items.yaml id (e.g. a starting item)."""
+        return self._create_item_entity(item_id, {}, GameRNG.get_instance())
+
     def get_item_info(self, item_id: str) -> Optional[Dict[str, Any]]:
         """Get item definition by ID (for debugging/testing)."""
         return self.items.get(item_id)

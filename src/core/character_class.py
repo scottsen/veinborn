@@ -77,11 +77,11 @@ class ClassTemplate:
         hp: Starting HP
         attack: Starting attack
         defense: Starting defense
-        starting_items: List of starting item IDs (future)
+        starting_items: items.yaml IDs given (and equipped) at game start
         hp_per_level: Average HP gained per level (rolled; see Player._level_up)
         attack_per_level: Attack gained per level
         defense_per_level: Defense gained per level
-        abilities: List of class abilities (future)
+        abilities: Implemented class abilities (force_bolt, heal, backstab)
     """
 
     name: str
@@ -92,7 +92,7 @@ class ClassTemplate:
     attack: int
     defense: int
 
-    # Starting items (future feature)
+    # Starting items (equipped on creation)
     starting_items: List[str]
 
     # Class-specific progression
@@ -100,7 +100,7 @@ class ClassTemplate:
     attack_per_level: int
     defense_per_level: int
 
-    # Special abilities (future feature)
+    # Special abilities
     abilities: List[str]
 
 
@@ -112,46 +112,50 @@ class ClassTemplate:
 # gains compound fast: +2 attack/level made a level-3 warrior beat a troll
 # 100% of the time, and +2 defense/level made a level-7 healer unhittable.
 # Measure changes with scripts/sim_duels.py --level N.
+#
+# Starting gear is stat-neutral: `attack`/`defense` are the base stats and the
+# equipped starting items add the rest, so totals match the pre-equipment
+# balance. `abilities` lists only what is implemented (see AbilityAction and
+# AttackAction); fireball, teleport, dodge, protect, regeneration and
+# power_strike are still unbuilt (VB-53).
 CLASS_TEMPLATES: Dict[CharacterClass, ClassTemplate] = {
     CharacterClass.WARRIOR: ClassTemplate(
         name="Warrior",
         description="Strong melee fighter with high HP and attack",
         hp=30,
-        attack=5,
-        defense=3,
-        starting_items=["iron_sword", "leather_armor"],
+        attack=2,   # + short sword (+3) = 5
+        defense=1,  # + leather armor (+2) = 3
+        starting_items=["short_sword", "leather_armor"],
         hp_per_level=5,
         attack_per_level=1,
         defense_per_level=0,
-        abilities=["power_strike"],
+        abilities=[],
     ),
 
     CharacterClass.ROGUE: ClassTemplate(
         name="Rogue",
         description="Agile explorer with high speed and critical hits",
         hp=20,
-        attack=4,
+        attack=2,  # + dagger (+2) = 4
         defense=2,
-        starting_items=["dagger", "lockpick"],
+        starting_items=["dagger"],
         hp_per_level=3,
         attack_per_level=1,
         defense_per_level=0,
-        abilities=["backstab", "dodge"],
+        abilities=["backstab"],
     ),
 
     CharacterClass.MAGE: ClassTemplate(
         name="Mage",
         description="Arcane spellcaster with low HP but powerful magic",
         hp=15,
-        # 4, not 2: the mage has no spells yet (abilities above are unimplemented),
-        # and at 2 it lost two-thirds of its HP to a goblin and could not beat an orc.
-        attack=4,
+        attack=3,  # weak in melee; force bolt is the real attack
         defense=1,
-        starting_items=["wand", "spellbook"],
+        starting_items=[],
         hp_per_level=3,
         attack_per_level=1,
         defense_per_level=0,
-        abilities=["fireball", "teleport"],
+        abilities=["force_bolt"],
     ),
 
     CharacterClass.HEALER: ClassTemplate(
@@ -160,11 +164,11 @@ CLASS_TEMPLATES: Dict[CharacterClass, ClassTemplate] = {
         hp=25,
         attack=3,
         defense=4,
-        starting_items=["healing_staff", "bandages"],
+        starting_items=[],
         hp_per_level=4,
         attack_per_level=1,
         defense_per_level=0,
-        abilities=["heal", "protect", "regeneration"],
+        abilities=["heal"],
     ),
 }
 
@@ -242,16 +246,35 @@ def create_player_from_class(
     player.stats['attack_per_level'] = template.attack_per_level
     player.stats['defense_per_level'] = template.defense_per_level
 
-    # Future: Add starting items
-    # for item_id in template.starting_items:
-    #     item = create_item(item_id)
-    #     player.add_to_inventory(item)
+    # Class abilities are read from stats by AbilityAction / AttackAction
+    player.stats['abilities'] = list(template.abilities)
 
-    # Future: Add class abilities
-    # for ability in template.abilities:
-    #     player.add_ability(ability)
+    # Starting gear: equipped straight away, not carried
+    from .loot import LootGenerator
+    loot = LootGenerator.get_instance()
+    for item_id in template.starting_items:
+        item = loot.create_item(item_id)
+        if item is None:
+            raise DataError(f"Unknown starting item: {item_id}", value=item_id)
+        if item.get_stat('item_type') == 'weapon':
+            player.equipped_weapon = item
+        else:
+            player.equipped_armor = item
 
     return player
+
+
+def starting_attack_defense(template: ClassTemplate) -> tuple:
+    """Attack and defense a new character of this class actually has,
+    including the bonuses of the starting gear it is wearing."""
+    from .loot import LootGenerator
+    loot = LootGenerator.get_instance()
+    attack, defense = template.attack, template.defense
+    for item_id in template.starting_items:
+        stats = (loot.get_item_info(item_id) or {}).get('stats', {})
+        attack += stats.get('attack_bonus', 0)
+        defense += stats.get('defense_bonus', 0)
+    return attack, defense
 
 
 def format_class_selection() -> str:
@@ -275,12 +298,13 @@ def format_class_selection() -> str:
 
     for i, (class_type, template) in enumerate(CLASS_TEMPLATES.items(), start=1):
         lines.append(f"{i}. {template.name} - {template.description}")
+        attack, defense = starting_attack_defense(template)
         lines.append(
             f"   HP: {template.hp}  "
-            f"Attack: {template.attack}  "
-            f"Defense: {template.defense}"
+            f"Attack: {attack}  "
+            f"Defense: {defense}"
         )
-        lines.append(f"   Abilities: {', '.join(template.abilities)}")
+        lines.append(f"   Abilities: {', '.join(template.abilities) or 'none yet'}")
         lines.append("")
 
     return "\n".join(lines)

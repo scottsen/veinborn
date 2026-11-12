@@ -26,6 +26,7 @@ from .attack_action import AttackAction
 from .craft_action import CraftAction
 from .equip_action import EquipAction
 from .pickup_action import PickupAction
+from .ability_action import AbilityAction
 
 logger = logging.getLogger(__name__)
 
@@ -187,6 +188,12 @@ class ActionFactory:
             description='Equip an item from inventory'
         )
 
+        self._handlers['ability'] = ActionHandler(
+            name='ability',
+            create_fn=self._create_ability_action,
+            description='Use a class ability (force bolt, heal)'
+        )
+
         self._handlers['pickup'] = ActionHandler(
             name='pickup',
             create_fn=self._create_pickup_action,
@@ -339,6 +346,34 @@ class ActionFactory:
             return None
 
         return AttackAction(actor_id, target_id)
+
+    def _create_ability_action(
+        self,
+        context: GameContext,
+        kwargs: dict
+    ) -> Optional[Action]:
+        """
+        Create an ability action.
+
+        Args:
+            context: Game context
+            kwargs: Optional 'ability' (default: the player's first active
+                class ability)
+
+        Returns:
+            AbilityAction or None if the player has no active ability
+        """
+        from .ability_action import ACTIVE_ABILITIES
+
+        player = context.get_player()
+        ability = kwargs.get('ability')
+        if not ability:
+            known = [a for a in player.get_stat('abilities', []) if a in ACTIVE_ABILITIES]
+            if not known:
+                context.game_state.add_message(f"{player.name} has no ability to use.")
+                return None
+            ability = known[0]
+        return AbilityAction(player.entity_id, ability)
 
     def _create_craft_action(
         self,

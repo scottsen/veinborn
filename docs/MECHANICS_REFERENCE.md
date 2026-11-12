@@ -91,6 +91,28 @@ Final Stats:
   Total Defense: 2 + 8 = 10
 ```
 
+### Class Abilities
+
+Config: `data/balance/formulas.yaml` → `abilities`. Code:
+`src/core/actions/ability_action.py` (active), `AttackAction._is_backstab`
+(passive). Key **z** (`handle_player_action('ability')`) uses the class's first
+active ability. There is no mana: abilities have turn cooldowns, and a use that
+fails (no target, on cooldown, full HP) costs no turn.
+
+| Class | Ability | Effect | Cooldown |
+|---|---|---|---|
+| Mage | `force_bolt` | Nearest monster in line of sight within 6 tiles; never misses, ignores defense; damage `randint(2, 6)` plus 0.5 per level above 1 (rounded down); kills give XP and loot like melee | 3 turns |
+| Healer | `heal` | Heal self 6 HP (+1 per level above 1) | 12 turns |
+| Rogue | `backstab` (passive) | First hit on a monster at full HP does x2 damage | none |
+| Warrior | none yet | | |
+
+**Starting gear** is equipped at creation and is stat-neutral: the template
+base stats plus the gear equal the pre-gear values (warrior 5/3 = base 2/1 +
+short sword +3 + leather armor +2; rogue 4/2 = base 2/2 + dagger +2). Mage and
+healer start with nothing.
+
+Unbuilt: fireball, teleport, dodge, protect, regeneration, power strike (VB-53).
+
 ### Death and XP
 
 **Death Detection:**
@@ -395,6 +417,14 @@ Floor 6: 2 + (6 // 3) = 4 monsters
 Floor 9: 2 + (9 // 3) = 5 monsters
 Floor 12: 2 + (12 // 3) = 6 monsters
 ```
+
+**Ongoing spawns (VB-52):** after the floor is made, every turn has a 2%
+chance (`spawning.yaml` → `ongoing_spawns`) of one new monster appearing at
+least 8 tiles (Manhattan) from every living player, up to 12 living monsters on
+the floor. Its type is drawn from the spawn weights of tier
+`(floor + average player level) // 2` (minimum 1), NetHack's formula, so idling
+costs you and a high-level player draws tougher wanderers. Code:
+`TurnProcessor._maybe_spawn_wanderer`, `EntitySpawner.spawn_wandering_monster`.
 
 **Monster Type Selection:**
 ```yaml

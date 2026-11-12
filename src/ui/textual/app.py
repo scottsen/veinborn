@@ -140,6 +140,7 @@ class VeinbornApp(App):
         Binding("n", "move_down_right", "Move Down-Right", show=False),
         # Mining actions
         Binding("s", "survey", "Survey Ore", show=True),
+        Binding("z", "ability", "Class Ability (cast/heal)", show=True),
         # Inventory and inspection
         Binding("i", "show_inventory", "Show Inventory", show=True),
         Binding("w", "equip_item", "Wield/Wear Item", show=True),
@@ -313,6 +314,14 @@ class VeinbornApp(App):
         self.game.handle_player_action('survey')
 
         # Update all widgets
+        self.refresh_ui()
+
+    async def action_ability(self) -> None:
+        """Use the class ability: mage force bolt, healer heal (async Textual handler)."""
+        if self.game.state.game_over:
+            return
+
+        self.game.handle_player_action('ability')
         self.refresh_ui()
 
     async def action_descend(self) -> None:
