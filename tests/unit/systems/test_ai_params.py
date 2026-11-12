@@ -92,7 +92,7 @@ def test_update_hands_behaviours_the_resolved_params(game):
     try:
         mon = make(game, "troll")
         mon.set_stat('ai_type', '_test_params')
-        mon.set_stat('ai_params', {'chase_range': 99})
+        mon.set_stat('ai_params', {'chase_range': 99, 'move_speed': 1.0})  # troll is 0.8: act on round 1
         game.context.register_system('ai', AISystem(game.context, game.entity_loader))
         game.context.get_system('ai').update()
         assert seen and seen[0]['aggro_range'] == 6 and seen[0]['chase_range'] == 99

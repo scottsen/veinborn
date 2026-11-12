@@ -68,9 +68,9 @@ section, or an `enabled: true` ability with no `@ability` stops the game with a
 `ContentValidationError`.
 
 > **Planned change (ADR-019, [architecture/AI_ARCHITECTURE.md](architecture/AI_ARCHITECTURE.md)):**
-> the engine will also own speed, and ranged attacks and summons move into abilities
-> usable by monsters. Tasks: `VB-47` and children (range metric, parameters, perception
-> and morale are done: VB-58 to VB-61).
+> ranged attacks and summons move into abilities usable by monsters (VB-63). Range metric,
+> parameters, perception, morale and speed are done (VB-58 to VB-62). A behaviour runs
+> once per *action*, and a monster takes `move_speed` actions per round on average.
 
 ```python
 # src/core/content/ai/sentry.py

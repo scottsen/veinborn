@@ -17,7 +17,8 @@ monster's `ai:` block in monsters.yaml (looked up by content_id, so YAML tuning
 reaches saved games), overridden by an optional per-instance `ai_params` stat.
 Monster AI data is validated when the system is built (validate_monster_ai).
 
-Morale runs before every behaviour: below its flee_threshold of max HP, a
+Speed: a monster acts move_speed times per round on average (an energy
+counter; update). Morale runs before every behaviour: below its flee_threshold of max HP, a
 monster flees whatever it perceives instead of acting (0 = never flees).
 
 Perception (perceive) decides which player a monster knows about: one it can see
@@ -216,8 +217,13 @@ class AISystem(System):
         logger.debug(f"Registered {len(self.registry.list_behaviors())} AI behaviors")
 
     def update(self, delta_time: float = 0) -> None:
-        """Run AI for all monsters."""
-        monsters = self.context.get_entities_by_type(EntityType.MONSTER)
+        """Run one round of AI for all monsters (called once per game turn / MP round).
+
+        Speed: each round a monster gains move_speed energy and takes one action
+        per whole point (energy stat, carried between rounds). Speed 1.0 acts
+        every round, 1.5 three times per two rounds, 0.6 three times per five.
+        """
+        monsters = list(self.context.get_entities_by_type(EntityType.MONSTER))
 
         for monster in monsters:
             if not monster.is_alive:
@@ -228,11 +234,18 @@ class AISystem(System):
                 monster.set_stat('spawn_x', monster.x)
                 monster.set_stat('spawn_y', monster.y)
 
-            ai_type = monster.get_stat('ai_type', 'aggressive')
             params = self.params_for(monster)
-            if self._morale_breaks(monster, params):
-                continue
-            self._execute_behavior(monster, ai_type, params)
+            energy = monster.get_stat('energy', 0.0) + max(0.0, params.get('move_speed', 1.0))
+            while energy >= 1 and monster.is_alive:
+                energy -= 1
+                self._act(monster, params)
+            monster.set_stat('energy', round(energy, 6))  # no float drift across many rounds
+
+    def _act(self, monster, params: Dict[str, Any]) -> None:
+        """One action: morale first, else the monster's behaviour."""
+        if self._morale_breaks(monster, params):
+            return
+        self._execute_behavior(monster, monster.get_stat('ai_type', 'aggressive'), params)
 
     def _morale_breaks(self, monster, params: Dict[str, Any]) -> bool:
         """Morale, for every behaviour: below flee_threshold of max HP, flee what it perceives.

@@ -15,7 +15,7 @@ beth_topics:
 
 **Status:** Accepted, in progress (ADR-019 in [DECISIONS.md](DECISIONS.md)), 2026-11-12.
 Built: range metric (VB-58), parameters and validation (VB-59), perception and provocation (VB-60),
-morale (VB-61).
+morale (VB-61), speed (VB-62).
 Everything else below is the plan.
 **Tasks:** umbrella `VB-47`; children `VB-58` to `VB-65`, plus `VB-66` (`tt list --children-of VB-47`).
 **Read with:** [../EXTENDING.md](../EXTENDING.md) (the content contract this changes),
@@ -139,12 +139,13 @@ and the sniper; guards and aggressive monsters hold (0); the coward's fleeing is
 wants it and forgetting it was the bug: a test registers a new behaviour that never flees and
 shows the engine makes it flee anyway.
 
-### Speed (VB-62)
+### Speed (VB-62, built)
 
-Each update a monster gains `move_speed` energy and acts while it has at least 1. A bat (1.5) acts
-3 times per 2 rounds; a golem (0.6) acts 3 times per 5. Both drivers call `ai_system.update()`
-once per round, so this needs no new turn loop. Player speed (haste, slow) is out of scope; when
-it comes it should use the same rule in a shared scheduler.
+Each update a monster gains `move_speed` energy (stat `energy`, so saves keep it) and takes one
+action (morale, then behaviour) per whole point. A bat (1.5) acts 3 times per 2 rounds; a golem
+(0.6) acts 3 times per 5. Both drivers call `ai_system.update()` once per round, so this needed
+no new turn loop. A monster killed mid-round stops acting. Player speed (haste, slow) is out of
+scope; when it comes it should use the same rule in a shared scheduler.
 
 ### Distance (VB-58, built)
 

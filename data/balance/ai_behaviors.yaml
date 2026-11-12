@@ -12,7 +12,7 @@
 defaults:
   aggro_range: 8      # Perception: notices a player this many 8-way steps away, with line of sight
   memory_turns: 10    # Perception: keeps chasing a player it saw or was hit by, this many turns after
-  move_speed: 1.0     # Speed (VB-62, not used yet)
+  move_speed: 1.0     # Speed: actions per round on average (1.5 = 3 per 2 rounds, 0.6 = 3 per 5)
   flee_threshold: 0.0 # Morale (engine, before every behaviour): flee below this fraction of max HP; 0 = never
 
 # AI Behavior Types. Ranges here are engagement policy: perception (aggro_range,

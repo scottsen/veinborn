@@ -61,7 +61,7 @@ wyvern:
   # AI behavior
   ai:
     type: "aggressive"  # aggressive, defensive, neutral, coward, guard, berserker, sniper, summoner
-    move_speed: 1.2     # 1.0 = normal, 1.2 = 20% faster (NOT read yet: VB-62)
+    move_speed: 1.2     # 1.0 = normal, 1.2 = 20% more actions per round
     aggro_range: 12     # Notices players this far away, with line of sight (8 = normal)
     description: "Fast flying predator, chases relentlessly"
   # Any key here overrides the behaviour's defaults in data/balance/ai_behaviors.yaml;

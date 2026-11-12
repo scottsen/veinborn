@@ -81,7 +81,7 @@ monsters:
     # AI behavior
     ai:
       type: "aggressive"     # aggressive, defensive, neutral, coward, guard, berserker, sniper, summoner (config: balance/ai_behaviors.yaml)
-      move_speed: 1.0        # Movement speed multiplier (NOT read yet: VB-62)
+      move_speed: 1.0        # Actions per round on average (1.5 = 3 per 2 rounds)
       aggro_range: 8         # Notices players this many 8-way steps away, with line of sight (docs/architecture/AI_ARCHITECTURE.md)
       description: "AI behavior notes"
 

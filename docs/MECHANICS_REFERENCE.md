@@ -124,6 +124,10 @@ What a monster knows about you (`AISystem.perceive`, VB-60):
 - **Provocation:** attacking a monster (melee or force bolt) makes it remember you as its
   target, however far away you are; a `neutral` monster only fights back when attacked.
 
+**Speed:** a monster takes `move_speed` actions per round on average (`monsters.yaml`;
+an energy counter): a bat (1.5) acts 3 times every 2 rounds, a golem (0.6) 3 times every 5.
+The player always acts once per round.
+
 **Morale:** a monster below its `flee_threshold` of max HP (defensive 0.3, neutral 0.5,
 sniper 0.3; aggressive monsters and guards never) flees from what it perceives instead of
 acting.
