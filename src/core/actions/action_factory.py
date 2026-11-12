@@ -28,6 +28,7 @@ from .equip_action import EquipAction
 from .pickup_action import PickupAction
 from .ability_action import AbilityAction
 from .use_item_action import UseItemAction
+from .drop_action import DropAction
 from ..extensions import abilities
 
 logger = logging.getLogger(__name__)
@@ -206,6 +207,12 @@ class ActionFactory:
             name='use',
             create_fn=self._create_use_action,
             description='Drink, eat or read an item from inventory'
+        )
+
+        self._handlers['drop'] = ActionHandler(
+            name='drop',
+            create_fn=self._create_drop_action,
+            description='Drop an item from inventory onto the floor'
         )
 
     # ============================================================================
@@ -445,6 +452,14 @@ class ActionFactory:
             context.game_state.add_message("Nothing to use")
             return None
         return UseItemAction(context.get_player().entity_id, item_id)
+
+    def _create_drop_action(self, context: GameContext, kwargs: dict) -> Optional[Action]:
+        """Create a drop action. kwargs must contain 'item_id'."""
+        item_id = kwargs.get('item_id')
+        if not item_id:
+            context.game_state.add_message("Nothing to drop")
+            return None
+        return DropAction(context.get_player().entity_id, item_id)
 
     def _create_pickup_action(
         self,

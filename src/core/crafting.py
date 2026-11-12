@@ -422,6 +422,27 @@ class RecipeManager:
 
         return True, None
 
+    def ore_for(self, recipe: 'CraftingRecipe', player_inventory: List[Any]) -> List[Any]:
+        """The ore a craft of `recipe` consumes: the first N ore of its type, in inventory order.
+
+        CraftAction and preview_stats both use this, so a preview is what the craft makes.
+        """
+        required_type = recipe.get_required_ore_type()
+        required_count = recipe.get_required_ore_count()
+        ore = [i for i in player_inventory
+               if is_ore_item(i) and i.get_stat('ore_type') == required_type]
+        return ore[:required_count]
+
+    def preview_stats(self, recipe_id: str, player_inventory: List[Any]) -> Optional[Dict[str, int]]:
+        """Stats crafting `recipe_id` now would give, or None without enough ore."""
+        recipe = self.get_recipe(recipe_id)
+        if not recipe:
+            return None
+        ore = self.ore_for(recipe, player_inventory)
+        if len(ore) < recipe.get_required_ore_count():
+            return None
+        return recipe.calculate_stats(self._average_ore_properties(ore))
+
     def create_equipment(
         self,
         recipe_id: str,

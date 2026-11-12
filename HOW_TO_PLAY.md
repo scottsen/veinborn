@@ -43,6 +43,9 @@ b   n
 - **z** = Use your class ability (mage force bolt, healer heal)
 - **g** = Pick up items on your tile (potions and scrolls are not picked up automatically)
 - **e** = Eat or drink: uses the cheapest potion or food that covers your missing HP
+- **d** = Drop the item least worth carrying: things with no use yet (gold, shields, scrolls,
+  rings), then weapons/armor worse than what you wear, then the lowest-purity ore. Press again
+  to drop the next. Walking over something you dropped does not pick it back up; **g** does.
 - **i** = View inventory
 - **w** = Wield/wear (equip) an item — **W** cycles equipment
 - **:** = Look at what's on the ground
@@ -363,7 +366,8 @@ MOVEMENT          COMBAT / MINING         ITEMS
 ↓ j    b  n       Walk into ore vein      W - Cycle equipment
                   = Mine (bump-to-mine)   g - Pick up
                   s - Survey ore          e - Eat/drink (heal)
-                  z - Class ability       : - Look at ground
+                  z - Class ability       d - Drop (least useful)
+                                          : - Look at ground
 
 TURN / FLOW       PROGRESSION             GAME
 . or space        > - Descend stairs      S - Save   L - Load

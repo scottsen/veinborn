@@ -147,6 +147,7 @@ class VeinbornApp(App):
         Binding("W", "cycle_equip", "Cycle Equipment", show=False),
         Binding("g", "pickup", "Pick up Items", show=True),
         Binding("e", "use_item", "Eat/Drink (heal)", show=True),
+        Binding("d", "drop_item", "Drop least useful item", show=True),
         Binding(":", "look_at_ground", "Look at Ground", show=True),
         # Wait/Pass turn
         Binding(".", "wait", "Wait/Pass Turn", show=True),
@@ -380,6 +381,19 @@ class VeinbornApp(App):
             self.game.state.add_message("You are already at full health.")
         else:
             self.game.state.add_message("You have nothing to eat or drink.")
+        self.refresh_ui()
+
+    async def action_drop_item(self) -> None:
+        """Drop the item least worth carrying (gold, shields, scrolls, worse gear first)."""
+        if self.game.state.game_over:
+            return
+        from core.actions.drop_action import least_useful_item
+
+        item = least_useful_item(self.game.state.player)
+        if item is None:
+            self.game.state.add_message("You have nothing to drop.")
+        else:
+            self.game.handle_player_action('drop', item_id=item.entity_id)
         self.refresh_ui()
 
     async def action_pickup(self) -> None:

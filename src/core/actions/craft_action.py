@@ -21,7 +21,7 @@ from typing import Optional
 from ..base.action import Action, ActionOutcome
 from ..base.game_context import GameContext
 from ..base.entity import EntityType
-from ..crafting import RecipeManager, is_ore_item
+from ..crafting import RecipeManager
 
 logger = logging.getLogger(__name__)
 
@@ -180,15 +180,8 @@ class CraftAction(Action):
             List of ore items removed from inventory
         """
         required_type = recipe.get_required_ore_type()
-        required_count = recipe.get_required_ore_count()
-
-        # Find ore of the required type
-        ore_items = []
-        for item in actor.inventory[:]:  # Copy to avoid modification during iteration
-            if is_ore_item(item) and item.get_stat('ore_type') == required_type:
-                ore_items.append(item)
-                if len(ore_items) >= required_count:
-                    break
+        # Same selection as RecipeManager.preview_stats, so a preview is what this makes
+        ore_items = self.get_recipe_manager().ore_for(recipe, actor.inventory)
 
         # Remove ore from inventory
         for ore_item in ore_items:

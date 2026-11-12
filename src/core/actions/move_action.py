@@ -227,6 +227,10 @@ class MoveAction(Action):
         for item in items_at_position:
             item_type = item.get_stat('item_type', 'unknown').lower()
 
+            # Something this player dropped on purpose stays put ('g' still takes it)
+            if item.get_stat('dropped_by') == actor.entity_id:
+                continue
+
             # Check if item type matches autopickup types
             if item_type not in autopickup_types:
                 logger.debug(f"Skipping item {item.name} (type {item_type} not in autopickup types)")
