@@ -46,6 +46,13 @@ public methods are the toolkit: `nearest_player`, `distance`, `in_sight`,
 `summon(monster, monster_id)`. `config` is the behaviour's section of
 `data/balance/ai_behaviors.yaml`.
 
+> **Planned change (ADR-019, [architecture/AI_ARCHITECTURE.md](architecture/AI_ARCHITECTURE.md)):**
+> the engine will own perception, morale and speed, and behaviours become tactics only.
+> Behaviours will call `ai.perceive(monster, params)` instead of `nearest_player`, and
+> `config` becomes the monster's resolved parameters (behaviour defaults overridden by its
+> `ai:` block). Ranged attacks and summons move into abilities usable by monsters. Tasks:
+> `VB-47` and children.
+
 ```python
 # src/core/content/ai/sentry.py
 from ...extensions import ai_behavior

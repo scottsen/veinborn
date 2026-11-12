@@ -300,6 +300,20 @@
 **Docs**: `docs/EXTENDING.md`
 **Impact**: Adding content is one file; errors in content are logged and isolated.
 
+### ADR-019: Monster AI in Three Layers (Engine, Tactics, Abilities)
+**Date**: 2026-11-12
+**Status**: 📋 Proposed (tasks VB-47, VB-58 to VB-65)
+**Decision**: The AI engine (`AISystem`, core) owns parameter resolution, speed, perception (aggro range, line of sight, provocation), morale and the one range metric (Chebyshev). `@ai_behavior` content is tactics only (where to stand). `@ability` content works for any actor, so monsters use the abilities already declared in `monsters.yaml`. Per-monster parameters are resolved at runtime from `content_id` and validated at load.
+**Rationale**:
+- Monster YAML declares `aggro_range` and `move_speed` for every monster, and the engine reads neither; guard `flee_threshold`, `passive` and `default_ai_by_type` are dead. They drifted because each behaviour does its own sensing and fleeing.
+- Behaviours bake in abilities (sniper's shot, summoner's summon), while 13 of 19 monsters already declare about 30 abilities (`enabled: false`) that need composition, not a behaviour per combination.
+- Provocation and the other engine steps must be core: the multiplayer server installs no content handlers (VB-55).
+**Consequences**:
+- The content contract in `docs/EXTENDING.md` changes: tactics call `ai.perceive` instead of `nearest_player`; abilities take a target chosen among the actor's hostiles.
+- Line of sight, real aggro ranges and speeds change balance; each step ends with a bot comparison, and enabling monster abilities needs a play-test.
+**Docs**: `docs/architecture/AI_ARCHITECTURE.md`
+**Impact**: New monsters become mostly data (tactics + abilities + parameters); knobs can no longer be declared without being read.
+
 ---
 
 ## Rejected Decisions
@@ -377,13 +391,15 @@
 - **Implemented/Accepted**: 2 (Textual UI, Podman)
 - **Planned**: 8 (Entity, Action, System, Lua-ready (superseded by ADR-018), YAML, Events, Context, Containers)
 
-### Phase 2 (Multiplayer) - 7 Decisions
+### Phase 2 (Multiplayer) - 9 Decisions
 - **Designed**: 7 (NATS, Server-authoritative, PostgreSQL, Pydantic, Instances, Turns, WebSocket)
+- **Implemented**: 1 (ADR-018 Python content registries)
+- **Proposed**: 1 (ADR-019 AI in three layers)
 
 ### Rejected - 4 Decisions
 - All properly documented with rationale
 
-**Total**: 21 major architectural decisions tracked
+**Total**: 23 major architectural decisions tracked
 
 ---
 

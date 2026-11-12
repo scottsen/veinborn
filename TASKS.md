@@ -2,7 +2,7 @@
 project: veinborn
 schema_version: '1.0'
 id_prefix: VB
-next_id: 58
+next_id: 67
 archival: inline
 areas: {}
 ---
@@ -1058,24 +1058,29 @@ Found by scripts/sim_mob_movement.py + tests/unit/test_spawn_no_overlap.py. Acro
 - [#2 2026-11-12T02:39:01Z session:kinetic-fusion-1111] Fix is in the working tree (spawn_all_for_floor relocation + test_spawn_no_overlap.py); close with --commit after the commit
 
 
-## TASK-VB-47 · Remaining AI knobs: passive never triggers, aggro_range/move_speed unread, guard flee_threshold unused, default_ai_by_type names missing monsters; assign berserker/sniper/summoner to monsters
+## TASK-VB-47 · AI architecture (ADR-019): engine owns perception/morale/speed, behaviours are tactics, abilities work for any actor
 
 ```yaml
 status: backlog
-priority: low
-effort: 4h
-tags: [ai, design]
+priority: medium
+tags: [ai, design, architecture]
 created: '2026-11-11T23:02:15Z'
-updated: '2026-11-12T05:11:44Z'
+updated: '2026-11-12T17:39:32Z'
 session: kinetic-fusion-1111
-notes_next: 2
+links:
+  references:
+  - docs/architecture/AI_ARCHITECTURE.md
+  - docs/architecture/DECISIONS.md
+  - docs/EXTENDING.md
+notes_next: 3
 ```
 
-Found while assigning mob AI styles. (1) AISystem is built without a lua_runtime in game.py and server session.py and nothing calls register_lua_behavior, so berserker/sniper/summoner never run; sniper only emits a message (no ranged attack action exists). (2) 'passive' relies on was_attacked_last_turn which nothing sets, and it never fights back, so no monster uses it. (3) monsters.yaml ai.aggro_range and ai.move_speed are never read; chase range comes from ai_behaviors.yaml. (4) guard config has flee_threshold 0.2 but _behavior_guard never flees. (5) default_ai_by_type in ai_behaviors.yaml names rat/dragon, which do not exist, and is unused. Chase range is Manhattan while movement is 8-directional.
+Umbrella for the AI redesign in docs/architecture/AI_ARCHITECTURE.md (ADR-019). Replaces the original knob-by-knob list (passive never triggers, aggro_range/move_speed unread, guard flee_threshold unused, default_ai_by_type dead, Manhattan vs 8-way). Children carry the work; close this when the engine phases (1-3) are done. Each child that changes gameplay ends with a bot before/after comparison (tests/fuzz, 4 classes x 8 games x 3000 turns).
 
 <!-- notes: append-only log; each has a stable #id (see CLI §5) -->
 ### Notes
 - [#1 2026-11-12T05:11:44Z session:turquoise-mosaic-1111] Lua half resolved 2026-11-11: Lua removed (ADR-018); berserker/sniper/summoner ported to Python content (src/core/content/ai/) with a real ranged attack (AttackAction ranged=True) and real summoning (AISystem.summon). No shipped monster uses them yet: assigning them changes balance, so it needs a play-test first (sniper in particular is deadly: random-walk bots died in ~30 turns when every monster got one). Still open: items 2-5 of the description (passive, aggro_range/move_speed, guard flee_threshold, default_ai_by_type).
+- [#2 2026-11-12T17:39:31Z session:vevine-1112] Investigated 2026-11-12 (session vevine-1112): all original items confirmed in code; design written up in docs/architecture/AI_ARCHITECTURE.md; work split into child tasks.
 
 
 ## TASK-VB-48 · Early balance: mage loses to a goblin; 100 XP/level vs 5 XP goblin means nobody levels
@@ -1264,6 +1269,235 @@ created: '2026-11-12T06:56:00Z'
 updated: '2026-11-12T06:56:00Z'
 session: turquoise-mosaic-1111
 ```
+
+<!-- notes: append-only log; each has a stable #id (see CLI §5) -->
+### Notes
+_(no notes yet)_
+
+
+## TASK-VB-58 · AI: one range metric (Chebyshev) in core/geometry, used by AI, abilities, spawning and guard leash
+
+```yaml
+status: backlog
+priority: medium
+effort: 1-2h
+tags: [ai, architecture]
+created: '2026-11-12T17:39:42Z'
+updated: '2026-11-12T17:39:42Z'
+session: vevine-1112
+parent: VB-47
+links:
+  references:
+  - docs/architecture/AI_ARCHITECTURE.md
+```
+
+Today: AISystem.distance/nearest_player, guard leash (classic.py) and EntitySpawner.spawn_wandering_monster use Manhattan; force_bolt uses Chebyshev inline; Entity.distance_to is Euclidean. Movement and adjacency are 8-way, so Manhattan makes a 10-tile chase ~5-7 tiles on the diagonal. Add geometry.chebyshev(a, b) and route every range check through it (keep Euclidean dist2 only for choosing a flee step). Balance change: diagonal ranges grow; bot before/after. See AI_ARCHITECTURE.md 'Distance'.
+
+<!-- notes: append-only log; each has a stable #id (see CLI §5) -->
+### Notes
+_(no notes yet)_
+
+
+## TASK-VB-59 · AI: per-monster AI parameters (monster ai: block overrides behaviour defaults, resolved by content_id) + load-time validation; delete default_ai_by_type
+
+```yaml
+status: backlog
+priority: medium
+effort: 2-3h
+tags: [ai, architecture, content]
+created: '2026-11-12T17:39:43Z'
+updated: '2026-11-12T17:39:43Z'
+session: vevine-1112
+parent: VB-47
+links:
+  references:
+  - docs/architecture/AI_ARCHITECTURE.md
+  - data/entities/monsters.yaml
+  - data/balance/ai_behaviors.yaml
+```
+
+AISystem.update passes only the behaviour's section of ai_behaviors.yaml; monsters.yaml ai.aggro_range/move_speed are never read (entity_loader.create_monster stores only ai_type). Resolve params = behaviour defaults <- monster ai: block <- optional per-instance stat override, looked up by monster.content_id at runtime (not copied into stats, so YAML tuning reaches existing saves). Validate at load (ContentValidationError, like unknown monster ids): unknown ai.type, unknown ai: keys (allowed = behaviour's default keys + universal set: type, aggro_range, move_speed, flee_threshold, description), enabled abilities with no registered implementation. Delete default_ai_by_type + ConfigLoader.get_default_ai_for_monster + its test lines. Fix ai.description lines that claim unbuilt behaviour. See AI_ARCHITECTURE.md 'Parameters' and 'Validation'.
+
+<!-- notes: append-only log; each has a stable #id (see CLI §5) -->
+### Notes
+_(no notes yet)_
+
+
+## TASK-VB-60 · AI: engine perception (aggro_range + line of sight + provocation) via ai.perceive; provocation from ATTACK_RESOLVED in core; passive becomes neutral; contract test over every behaviour
+
+```yaml
+status: backlog
+priority: medium
+effort: 3-4h
+tags: [ai, architecture]
+created: '2026-11-12T17:39:53Z'
+updated: '2026-11-12T17:40:26Z'
+session: vevine-1112
+depends_on: [VB-58, VB-59]
+parent: VB-47
+links:
+  references:
+  - docs/architecture/AI_ARCHITECTURE.md
+  - docs/EXTENDING.md
+  relates_to:
+  - VB-55
+```
+
+Classic behaviours chase by distance only (no line of sight), via nearest_player. Add ai.perceive(monster, params) -> target or None: a player within aggro_range AND in sight, or the monster's provoker. Provocation: AISystem (core, not content: the MP server installs no content handlers, VB-55) subscribes to ATTACK_RESOLVED and records last_attacker_id + provoked_turn on the defender, with a decay window. Needs the event bus passed to AISystem in Game and in server session.py. Behaviours switch nearest_player -> perceive (multiplayer: prefer the provoker). passive -> 'neutral': wanders, fights back when provoked. A parametrized contract test runs every registered @ai_behavior and asserts an unperceived player is neither attacked nor approached. Update EXTENDING.md toolkit list. Bot before/after. See AI_ARCHITECTURE.md 'Perception' and 'Provocation'.
+
+<!-- notes: append-only log; each has a stable #id (see CLI §5) -->
+### Notes
+_(no notes yet)_
+
+
+## TASK-VB-61 · AI: engine morale step (flee_threshold) runs before every behaviour; drop per-behaviour flee checks; guards hold (0)
+
+```yaml
+status: backlog
+priority: medium
+effort: 1-2h
+tags: [ai, architecture]
+created: '2026-11-12T17:39:55Z'
+updated: '2026-11-12T17:39:55Z'
+session: vevine-1112
+depends_on: [VB-60]
+parent: VB-47
+links:
+  references:
+  - docs/architecture/AI_ARCHITECTURE.md
+```
+
+defensive, passive and sniper each re-implement 'flee below X% HP'; guard has flee_threshold 0.2 in YAML but never flees. Move it to AISystem: if hp/max_hp < params.flee_threshold and a target is perceived, flee_from instead of running the behaviour. flee_threshold 0 opts out (guards, aggressive). Remove the per-behaviour checks. See AI_ARCHITECTURE.md 'Morale'.
+
+<!-- notes: append-only log; each has a stable #id (see CLI §5) -->
+### Notes
+_(no notes yet)_
+
+
+## TASK-VB-62 · AI: monster speed via an energy counter in AISystem.update (move_speed 0.6-1.5 becomes real)
+
+```yaml
+status: backlog
+priority: low
+effort: 2h
+tags: [ai, architecture, balance]
+created: '2026-11-12T17:40:07Z'
+updated: '2026-11-12T17:40:07Z'
+session: vevine-1112
+depends_on: [VB-59]
+parent: VB-47
+links:
+  references:
+  - docs/architecture/AI_ARCHITECTURE.md
+```
+
+move_speed is declared for all 19 monsters and never read. Both drivers (TurnProcessor._run_ai_systems single-player, session._process_monster_turn multiplayer) call ai_system.update() once per round, so the scheduler can live in AISystem: each update add move_speed to a per-monster 'energy' stat, act while energy >= 1 (subtract 1 per action). Bat 1.5 acts 3 times per 2 rounds, golem 0.6 acts 3 per 5. Player speed (haste/slow) is out of scope but should reuse the same rule later. Balance change: bot before/after. See AI_ARCHITECTURE.md 'Speed'.
+
+<!-- notes: append-only log; each has a stable #id (see CLI §5) -->
+### Notes
+_(no notes yet)_
+
+
+## TASK-VB-63 · Abilities for any actor: hostility helper on GameContext, actor-agnostic ability targeting, monsters use abilities from their YAML (AI ability step); sniper/summoner become tactics + abilities
+
+```yaml
+status: backlog
+priority: low
+effort: 1d
+tags: [ai, architecture, abilities, content]
+created: '2026-11-12T17:40:08Z'
+updated: '2026-11-12T17:40:09Z'
+session: vevine-1112
+depends_on: [VB-60, VB-61]
+parent: VB-47
+links:
+  references:
+  - docs/architecture/AI_ARCHITECTURE.md
+  - docs/EXTENDING.md
+  - data/entities/monsters.yaml
+  relates_to:
+  - VB-53
+```
+
+13 of 19 monsters already declare abilities in monsters.yaml (death_bolt, fire_bolt, bat_swarm, summon_undead, life_drain, regeneration, teleport, ...) all enabled: false. Player abilities (AbilityAction, @ability) are nearly actor-agnostic (abilities + cooldowns are entity stats); the player-only part is target choice (force_bolt picks the nearest monster). Add context.hostiles_of(actor) (also makes move_action's 'monsters don't bump-attack monsters' rule explicit), give @ability a target-selection/should_use hook, add an engine step where a perceiving monster uses a ready enabled ability before its tactics. Re-express sniper as kite-tactics + ranged ability and summoner as keep-away tactics + summon ability. Ships with every monster ability still disabled: no gameplay change. Update EXTENDING.md. See AI_ARCHITECTURE.md 'Abilities for any actor'.
+
+<!-- notes: append-only log; each has a stable #id (see CLI §5) -->
+### Notes
+_(no notes yet)_
+
+
+## TASK-VB-64 · Turn on monster abilities one at a time (bolts, summons, drains, regeneration) with bot runs + Scott's play-test
+
+```yaml
+status: backlog
+priority: low
+effort: per ability ~1h + play-test
+tags: [ai, balance, content, design]
+created: '2026-11-12T17:40:20Z'
+updated: '2026-11-12T17:40:20Z'
+session: vevine-1112
+depends_on: [VB-63]
+parent: VB-47
+links:
+  references:
+  - docs/architecture/AI_ARCHITECTURE.md
+  - data/entities/monsters.yaml
+```
+
+Design/balance work, needs Scott: which abilities, in what order, at what numbers. Suggested first wave (no status effects needed): lich death_bolt + summon_undead, imp fire_bolt, vampire bat_swarm + life_drain, wraith life_drain, troll regeneration, ancient_horror summon_horrors + phase_two (enrage). Each: implement as @ability content, set enabled: true, rewrite that monster's ai.description to match, bot before/after, play-test. Also decides whether any monster keeps berserker/sniper/summoner tactics. See AI_ARCHITECTURE.md 'Monster ability inventory'.
+
+<!-- notes: append-only log; each has a stable #id (see CLI §5) -->
+### Notes
+_(no notes yet)_
+
+
+## TASK-VB-65 · Status effect system (poison, stun, root/adhesive, petrify) for monster and player abilities
+
+```yaml
+status: backlog
+priority: low
+effort: 1d
+tags: [architecture, abilities, content]
+created: '2026-11-12T17:40:22Z'
+updated: '2026-11-12T17:40:22Z'
+session: vevine-1112
+parent: VB-47
+links:
+  references:
+  - docs/architecture/AI_ARCHITECTURE.md
+  relates_to:
+  - VB-64
+  - VB-53
+```
+
+About 6 declared monster abilities need timed effects on the target: spider poison, wyvern poison_sting, basilisk petrifying_gaze + poison_bite, mimic adhesive. No status-effect primitive exists. Shape: per-entity effects list (name, turns_left, magnitude) ticked by the turn loop in single-player and multiplayer, an @status_effect registry, effects that gate actions (stun/root) checked in the action pipeline, persisted in saves via entity stats. See AI_ARCHITECTURE.md 'Later: status effects'.
+
+<!-- notes: append-only log; each has a stable #id (see CLI §5) -->
+### Notes
+_(no notes yet)_
+
+
+## TASK-VB-66 · AISystem.attack drops the monster attack's outcome.events: monster attacks never reach the event bus
+
+```yaml
+status: backlog
+priority: low
+effort: 30m
+tags: [ai, events, bug]
+created: '2026-11-12T17:40:23Z'
+updated: '2026-11-12T17:40:26Z'
+session: vevine-1112
+depends_on: [VB-60]
+links:
+  references:
+  - docs/architecture/AI_ARCHITECTURE.md
+  - src/core/systems/ai_system.py
+  relates_to:
+  - VB-47
+  - VB-55
+```
+
+AISystem.attack executes AttackAction and adds outcome.messages to the log but discards outcome.events, so ATTACK_RESOLVED/ENTITY_DIED from monster attacks are never published (player attacks are, via process_action_outcome). Not verified yet whether telemetry (damage taken), achievements or anything else expect them. Fix: publish monster outcome events through the same pipeline once AISystem holds the event bus (VB-60 passes it in).
 
 <!-- notes: append-only log; each has a stable #id (see CLI §5) -->
 ### Notes

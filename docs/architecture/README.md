@@ -66,6 +66,13 @@
 
 ---
 
+### [AI_ARCHITECTURE.md](AI_ARCHITECTURE.md) (15 min)
+   - Monster AI in three layers: engine (perception, morale, speed), tactics, abilities for any actor
+   - Status: proposed (ADR-019); work tracked as `VB-47` and children
+   - **Read before touching `src/core/systems/ai_system.py` or `src/core/content/ai/`**
+
+---
+
 ## 📋 Optional but Useful
 
 ### 6. [BASE_CLASS_ARCHITECTURE.md](BASE_CLASS_ARCHITECTURE.md) (45 min)
