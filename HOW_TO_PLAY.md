@@ -55,6 +55,13 @@ b   n
 - **Mining happens automatically** when you bump an ore vein — no key needed
 - **Crafting** happens contextually at forges (walk onto a forge tile)
 - **Wait (.)** = Skip your turn (let monsters come to you)
+- **Monsters see, they don't sense:** each notices you only within its own sight range and
+  with no wall in the way; once it has seen you it keeps hunting for a while after you break
+  line of sight. Some are far-sighted (wraith), some near-sighted (troll, mimic)
+- **Hitting a monster makes it come for you**, even from far away (a force bolt included);
+  neutral monsters only fight back when attacked
+- **Speed differs:** bats get extra moves, golems and ogres lag behind
+- **Hurt defensive monsters flee**; aggressive ones and guards fight to the death
 
 ---
 

@@ -232,16 +232,20 @@ Player abilities (VB-53) can use the same system.
 
 ## Phasing
 
-| Order | Task | Gameplay change | Ends with |
-|---|---|---|---|
-| 1 | VB-58 range metric | Yes (diagonal ranges) | Bot before/after |
-| 2 | VB-59 parameters + validation | No (resolution only) | Tests |
-| 3 | VB-60 perception + provocation | Yes (line of sight, real aggro ranges) | Bot before/after |
-| 4 | VB-61 morale | Small (guards stop fleeing, sniper/defensive unchanged) | Bot before/after |
-| 5 | VB-62 speed | Yes | Bot before/after |
-| 6 | VB-63 abilities for any actor | No | Tests |
-| 7 | VB-64 enable monster abilities | Yes, per ability | Bots + play-test |
-| later | VB-65 status effects | Enables the rest | — |
+| Order | Task | Gameplay change | Ends with | State |
+|---|---|---|---|---|
+| 1 | VB-58 range metric | Yes (diagonal ranges) | Bot before/after | Done |
+| 2 | VB-59 parameters + validation | No (resolution only) | Tests | Done |
+| 3 | VB-60 perception + provocation | Yes (line of sight, real aggro ranges) | Bot before/after | Done |
+| 4 | VB-61 morale | Small (guards stop fleeing, sniper/defensive unchanged) | Bot before/after | Done |
+| 5 | VB-62 speed | Yes | Bot before/after | Done |
+| 6 | VB-63 abilities for any actor | No | Tests | Done |
+| — | VB-66 monster attack events + telemetry attribution | No (telemetry only) | Tests | Done |
+| 7 | VB-64 enable monster abilities | Yes, per ability | Bots + play-test | 9 active abilities built, disabled; blocked on Scott's choices |
+| later | VB-67 passive triggers (regen, auras, drain, rebirth, teleport) | Enables 13 more | — | Open |
+| later | VB-65 status effects | Enables poison/stun/root | — | Open |
+
+Per-phase bot numbers are in the task notes (`tt show VB-58`, `VB-60`, `VB-62`).
 
 Bot runs: `tests/fuzz/<class>_bot.py --games 8 --max-turns 3000` from a tree copy in tmux, all
 four classes; see [../../tests/fuzz/README.md](../../tests/fuzz/README.md).

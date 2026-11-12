@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed — Monster AI in three layers (ADR-019, 2026-11-12)
+- The AI engine now owns perception (per-monster `aggro_range` + line of sight + memory, provocation from attacks), morale, speed (`move_speed`) and ability use; behaviours are tactics only and abilities work for any actor. Monster AI data is validated at start. Design: `docs/architecture/AI_ARCHITECTURE.md`; tasks `VB-47` and children.
+
 ### Fixed — Trust-Restore Pass (pajuzopo-0417)
 - **Test Collection**: Registered `asyncio` marker in `pytest.ini` + `pyproject.toml`; suite no longer errors under `--strict-markers`
 - **WaitAction**: Created missing `src/core/actions/wait_action.py` referenced by player binding and multiplayer disconnect fallback; 4 unit tests pass

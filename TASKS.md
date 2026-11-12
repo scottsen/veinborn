@@ -1065,22 +1065,23 @@ status: backlog
 priority: medium
 tags: [ai, design, architecture]
 created: '2026-11-11T23:02:15Z'
-updated: '2026-11-12T17:39:32Z'
+updated: '2026-11-12T19:08:18Z'
 session: kinetic-fusion-1111
 links:
   references:
   - docs/architecture/AI_ARCHITECTURE.md
   - docs/architecture/DECISIONS.md
   - docs/EXTENDING.md
-notes_next: 3
+notes_next: 4
 ```
 
-Umbrella for the AI redesign in docs/architecture/AI_ARCHITECTURE.md (ADR-019). Replaces the original knob-by-knob list (passive never triggers, aggro_range/move_speed unread, guard flee_threshold unused, default_ai_by_type dead, Manhattan vs 8-way). Children carry the work; close this when the engine phases (1-3) are done. Each child that changes gameplay ends with a bot before/after comparison (tests/fuzz, 4 classes x 8 games x 3000 turns).
+Umbrella for the AI redesign in docs/architecture/AI_ARCHITECTURE.md (ADR-019). Replaced the original knob-by-knob list (passive never triggers, aggro_range/move_speed unread, guard flee_threshold unused, default_ai_by_type dead, Manhattan vs 8-way). Children carry the work. The engine phases (VB-58..VB-63) are done; close this when VB-64 (enable monster abilities, needs Scott), VB-65 (status effects) and VB-67 (passive triggers) are done or split out. Each child that changes gameplay ends with a bot before/after comparison (tests/fuzz, 4 classes x 8 games x 3000 turns).
 
 <!-- notes: append-only log; each has a stable #id (see CLI §5) -->
 ### Notes
 - [#1 2026-11-12T05:11:44Z session:turquoise-mosaic-1111] Lua half resolved 2026-11-11: Lua removed (ADR-018); berserker/sniper/summoner ported to Python content (src/core/content/ai/) with a real ranged attack (AttackAction ranged=True) and real summoning (AISystem.summon). No shipped monster uses them yet: assigning them changes balance, so it needs a play-test first (sniper in particular is deadly: random-walk bots died in ~30 turns when every monster got one). Still open: items 2-5 of the description (passive, aggro_range/move_speed, guard flee_threshold, default_ai_by_type).
 - [#2 2026-11-12T17:39:31Z session:vevine-1112] Investigated 2026-11-12 (session vevine-1112): all original items confirmed in code; design written up in docs/architecture/AI_ARCHITECTURE.md; work split into child tasks.
+- [#3 2026-11-12T19:08:18Z session:vevine-1112] 2026-11-12 vevine-1112: VB-58..VB-63 and VB-66 done (commits 8394cef..294cf9a). Open: VB-64 (blocked on Scott: which abilities and numbers), VB-65, VB-67 (filed this session).
 
 
 ## TASK-VB-48 · Early balance: mage loses to a goblin; 100 XP/level vs 5 XP goblin means nobody levels
@@ -1202,13 +1203,14 @@ status: backlog
 priority: low
 tags: [balance, classes]
 created: '2026-11-12T04:03:31Z'
-updated: '2026-11-12T04:03:31Z'
+updated: '2026-11-12T19:08:18Z'
 session: turquoise-mosaic-1111
+notes_next: 2
 ```
 
 <!-- notes: append-only log; each has a stable #id (see CLI §5) -->
 ### Notes
-_(no notes yet)_
+- [#1 2026-11-12T19:08:18Z session:vevine-1112] 2026-11-12: abilities are actor-agnostic now (VB-63: @ability fn(context, actor, config, target=None), should_use, core/targeting). Passive class abilities like regeneration should use VB-67's trigger mechanism.
 
 
 ## TASK-VB-54 · Persist achievement/quest/kill-streak state in save files (content event handlers reset on load_game)
@@ -1234,13 +1236,14 @@ status: backlog
 priority: low
 tags: [content, multiplayer]
 created: '2026-11-12T05:11:48Z'
-updated: '2026-11-12T05:11:48Z'
+updated: '2026-11-12T19:08:18Z'
 session: turquoise-mosaic-1111
+notes_next: 2
 ```
 
 <!-- notes: append-only log; each has a stable #id (see CLI §5) -->
 ### Notes
-_(no notes yet)_
+- [#1 2026-11-12T19:08:18Z session:vevine-1112] 2026-11-12: the server's AISystem now receives the session event bus (VB-60), so monster provocation and monster attack events (VB-66) work in multiplayer. Content handlers (achievements/quests) and turn_ended/floor_changed/game_started are still single-player only.
 
 
 ## TASK-VB-56 · Kill streaks announce but grant nothing: decide whether streaks (and quests) should give real rewards, e.g. an extra LootGenerator roll at the kill
@@ -1266,13 +1269,14 @@ status: backlog
 priority: low
 tags: [fuzz, bots]
 created: '2026-11-12T06:56:00Z'
-updated: '2026-11-12T06:56:00Z'
+updated: '2026-11-12T19:08:18Z'
 session: turquoise-mosaic-1111
+notes_next: 2
 ```
 
 <!-- notes: append-only log; each has a stable #id (see CLI §5) -->
 ### Notes
-_(no notes yet)_
+- [#1 2026-11-12T19:08:18Z session:vevine-1112] 2026-11-12: ActionPlanner.ability_action (0fef6be) is the only ability logic the bots use; the per-class trees are still dead.
 
 
 ## TASK-VB-58 · AI: one range metric (Chebyshev) in core/geometry, used by AI, abilities, spawning and guard leash
