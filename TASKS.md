@@ -2,7 +2,7 @@
 project: veinborn
 schema_version: '1.0'
 id_prefix: VB
-next_id: 71
+next_id: 72
 archival: inline
 areas: {}
 ---
@@ -1581,7 +1581,7 @@ priority: medium
 effort: 8-12h total (steps 1+2 ~half day)
 tags: [fuzz, bots, balance, ai, tests]
 created: '2026-11-12T19:21:49Z'
-updated: '2026-11-12T20:41:40Z'
+updated: '2026-11-12T21:21:45Z'
 session: warming-squall-1112
 parent: VB-47
 links:
@@ -1596,7 +1596,7 @@ links:
   - VB-64
   - VB-57
   - VB-32
-notes_next: 5
+notes_next: 6
 ```
 
 Goal: turn most of 'play-test' into measurement so VB-64 (and later VB-65/67) become data decisions, and Scott's play-test shrinks to feel questions (fun, fairness feel, message readability, boss feel) on monsters the numbers already call balanced.
@@ -1625,6 +1625,7 @@ Steps 1+2 are the high-value half: do them before asking Scott for VB-64 numbers
 - [#2 2026-11-12T20:13:52Z session:warming-squall-1112] Correction (2026-11-12): bots are NOT more omniscient than humans. The TUI map (map_widget._render_cell) and sidebar show every monster on the floor; players have no fog of war (core/perception.py FogOfWar is unused, VB-32). So 'restrict bot perception to LOS' would make bots less human-like; dropped from step 3. The asymmetry is a design question for Scott: monsters need LOS (ADR-019) but players see all.
 - [#3 2026-11-12T20:13:52Z session:warming-squall-1112] Step 2 done (3e8ef58, f378a49, 76222a4): --seed-base/--jobs/--output, scripts/compare_bot_runs.py (paired by class+seed, 95% CI). Found and fixed a core bug on the way: kill loot rolled on a fresh unseeded GameRNG(), so no seeded game replayed past the first kill (test_seeded_replay). Bot high scores now go to logs/, not data/highscores.json. Step 3 (part): potions/food were unusable by anyone -> UseItemAction + @item_effect + key e (52eb525); bots drink at <=40% HP and collect consumables within 6 tiles (38ce94d). Step 4 (part, d4a2505): per-monster damage, killer type, burst deaths, potions used; invariants for overlap/walls/carried-on-map/minion caps. Remaining: fight model (to-hit, speed, abilities), ranged-threat response, VB-57; A/B of potion use running (seeds 1000-1031, 3000 turns).
 - [#4 2026-11-12T20:41:40Z session:warming-squall-1112] A/B results (seeds 1000-1031, 3000 turns, 4 classes = 128 pairs, scripts/compare_bot_runs.py). base 76222a4 -> potions d4a2505: deaths unchanged overall but MAGE deaths 7->14/32; rogue +1.3 floors. potions -> fight model (9480506): 125/128 games identical (fights start adjacent, verdict rarely flips with current monsters). Mage ablation: drink-only 6/32 deaths, collect-only 15/32 -> item detours into monsters were the killer; also stuck detection counted melee as stuck (1-HP bot took random 'wait'). Fixed in 15c0fba. base -> fixed 15c0fba: floor 8.44->9.12 (+0.68, CI +0.05..+1.31), deaths 10->7 (mage 7->6, rogue 3->1), rogue +1.31 floors, 0 crashes/errors, 0 burst deaths, 0.91 potions/game. Balance signal: warrior and healer 0/64 deaths in 3000 turns; mage ~20%; orcs deal the most damage (4689 of ~12.7k). Run copies with results JSON: /var/tmp/vb68_base_76222a4, /var/tmp/vb68_fixed_15c0fba (logs/*.json).
+- [#5 2026-11-12T21:21:45Z session:serene-cyclone-1112] serene-cyclone-1112: per-monster breakdown in compare report done (paired damage taken per monster type with CI, bd1e44e). Deep starts (--start-floor/--start-level, tests/fuzz/scenario.py) for floors bots never reach; default runs unchanged (6/6 identical seeded games vs 1b5c10d). Remaining: bot response to ranged monsters, which matters once a ranged ability is enabled (VB-64).
 
 
 ## TASK-VB-69 · Spawn tables: 10 of 19 monsters never spawn (wyvern, vampire, lich, demon, phoenix, ancient_horror, wraith, mimic, golem, basilisk)
@@ -1635,7 +1636,7 @@ priority: medium
 owner: scott
 tags: [balance, content, spawning]
 created: '2026-11-12T19:31:16Z'
-updated: '2026-11-12T19:31:16Z'
+updated: '2026-11-12T21:21:40Z'
 session: warming-squall-1112
 links:
   references:
@@ -1646,13 +1647,14 @@ links:
   - VB-64
   - VB-47
   - VB-68
+notes_next: 2
 ```
 
 Found 2026-11-12 (VB-68) while measuring monster abilities: data/balance/monster_spawns.yaml spawn_weights only names goblin, bat, orc, skeleton, wolf, spider, troll, ogre, imp. The other 10 monsters (all defined in monsters.yaml, several with ADR-019 abilities built) appear in no spawn table and no other data/balance file except recipe flavour (recipes.yaml 'requires lich/phoenix/ancient_horror kill'). So of the 9 built VB-64 abilities only imp fire_bolt (floors 11+) can affect a real game. Design call for Scott: which floors each monster belongs to, boss placement (ancient_horror as final boss?), weights. Measure each placement with scripts/sim_duels.py at the player level expected on that floor, plus seeded bot runs (VB-68 step 2).
 
 <!-- notes: append-only log; each has a stable #id (see CLI §5) -->
 ### Notes
-_(no notes yet)_
+- [#1 2026-11-12T21:21:40Z session:serene-cyclone-1112] Prep done (serene-cyclone-1112): spawn bands are keyed by floor range (floor_N/floors_A_B/floors_A_plus, core/config/floor_bands.py), validated at load (cover every floor once, ids defined), so placing monsters is YAML only (28f9d9e). Bots can start deep: --start-floor/--start-level (bd1e44e). Baseline at floors 16+ (seeds 2000-2015, 1500 turns, start floor 16 level 8, starting gear only, 64 games): 2 deaths (mage, both troll), 0 crashes/errors; damage mostly troll then ogre; bots descend 0-4 floors. Results /var/tmp/vb69_deep_bd1e44e/logs/deep16_*.json. sim_duels (abilities off, level 7 / 10 win%): mimic/wraith/golem 98-100 at L7; wyvern/vampire 52-100 at L7, ~100 at L10; basilisk/lich 16-96 at L7; phoenix/demon 0-29 at L7, 20-89 at L10; ancient_horror 0 at both. Note wandering monsters use the band for (floor+level)//2, so deep-floor wanderers come from shallower bands.
 
 
 ## TASK-VB-70 · Loot tables: only goblin, orc, troll drop anything; 16 of 19 monsters (bat, skeleton, ogre, wolf, spider, imp, ...) have no loot table
@@ -1663,7 +1665,7 @@ priority: medium
 owner: scott
 tags: [balance, content, loot]
 created: '2026-11-12T20:14:28Z'
-updated: '2026-11-12T20:14:28Z'
+updated: '2026-11-12T21:21:41Z'
 session: warming-squall-1112
 links:
   references:
@@ -1672,10 +1674,32 @@ links:
   relates_to:
   - VB-69
   - VB-68
+notes_next: 2
 ```
 
 Found 2026-11-12 (VB-68) in bot logs: every kill of a monster without a table logs WARNING 'No loot table found for monster type: X' (core/loot.py generate_loot). data/balance/loot_tables.yaml has goblin, orc, troll only. Consequence now that potions and food are usable (52eb525): potion supply comes only from goblins/orcs/trolls, which thin out from floor 3 (skeleton/wolf/spider/ogre take over). Design call for Scott: which monsters drop what (animals: meat? undead: nothing?). Once decided, a monster that intentionally drops nothing should have an empty table or a flag so the WARNING means a real gap. Measure with seeded bot runs (scripts/compare_bot_runs.py: potions used, deaths).
 
 <!-- notes: append-only log; each has a stable #id (see CLI §5) -->
 ### Notes
-_(no notes yet)_
+- [#1 2026-11-12T21:21:41Z session:serene-cyclone-1112] Prep done (9f225e7): monsters.yaml loot_table names a shared table (null = own id), checked at load with every table item id; a description-only table drops nothing without the warning. So 'beasts drop meat' is one table plus loot_table: beast on bat/wolf/spider. Usable drops today: healing potions and food only; potion_strength and every scroll have no @item_effect (UseItemAction refuses them), so putting them in new tables adds dead weight until VB-65 / scroll effects exist.
+
+
+## TASK-VB-71 · Balance knobs nobody reads: spawning.yaml monster_density (global + tier multipliers), ore_veins.yaml ore_types, ores.yaml floor_range; ore vein count grows without bound (8 + floor - 1 = 107 on floor 100)
+
+```yaml
+status: backlog
+priority: low
+effort: 1h
+tags: [balance, content, dead-config, spawning]
+created: '2026-11-12T21:21:29Z'
+updated: '2026-11-12T21:21:40Z'
+session: serene-cyclone-1112
+links:
+  relates_to:
+  - VB-69
+notes_next: 2
+```
+
+<!-- notes: append-only log; each has a stable #id (see CLI §5) -->
+### Notes
+- [#1 2026-11-12T21:21:40Z session:serene-cyclone-1112] Found 2026-11-12 (serene-cyclone-1112) while making spawn bands data-driven (28f9d9e). GameConfig.get_monster_density_multiplier (spawning.yaml monster_density) has no caller: global_multiplier 1.0 'set to 1.5 for 50% more monsters' does nothing. ore_veins.yaml ore_types (floors/quality_range per ore) is read by nothing (entity_loader reads data/entities/ores.yaml ore_types; spawn_weights decides placement); comment added in the YAML. ores.yaml floor_range also unread (reveal src --grep floor_range: 0 hits). get_ore_vein_count_for_floor = base + floor - 1 has no cap: 17 veins on floor 10, 107 on floor 100. Decide per knob: wire it (density via the monster_counts bands; ore count as a band table with max) or delete it, as VB-59 did for the AI knobs.
