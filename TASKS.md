@@ -1390,25 +1390,28 @@ defensive, passive and sniper each re-implement 'flee below X% HP'; guard has fl
 ## TASK-VB-62 · AI: monster speed via an energy counter in AISystem.update (move_speed 0.6-1.5 becomes real)
 
 ```yaml
-status: backlog
+status: done
 priority: low
 effort: 2h
 tags: [ai, architecture, balance]
 created: '2026-11-12T17:40:07Z'
-updated: '2026-11-12T17:40:07Z'
+updated: '2026-11-12T18:05:41Z'
 session: vevine-1112
 depends_on: [VB-59]
 parent: VB-47
 links:
   references:
   - docs/architecture/AI_ARCHITECTURE.md
+  commits:
+  - d71654b0ea21a2eec58ac0409c0c552d430d7c19
+notes_next: 2
 ```
 
 move_speed is declared for all 19 monsters and never read. Both drivers (TurnProcessor._run_ai_systems single-player, session._process_monster_turn multiplayer) call ai_system.update() once per round, so the scheduler can live in AISystem: each update add move_speed to a per-monster 'energy' stat, act while energy >= 1 (subtract 1 per action). Bat 1.5 acts 3 times per 2 rounds, golem 0.6 acts 3 per 5. Player speed (haste/slow) is out of scope but should reuse the same rule later. Balance change: bot before/after. See AI_ARCHITECTURE.md 'Speed'.
 
 <!-- notes: append-only log; each has a stable #id (see CLI §5) -->
 ### Notes
-_(no notes yet)_
+- [#1 2026-11-12T18:05:41Z session:vevine-1112] Energy counter in AISystem.update/_act; tests/unit/systems/test_ai_speed.py. Bot comparison in a note.
 
 
 ## TASK-VB-63 · Abilities for any actor: hostility helper on GameContext, actor-agnostic ability targeting, monsters use abilities from their YAML (AI ability step); sniper/summoner become tactics + abilities
