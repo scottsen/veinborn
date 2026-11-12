@@ -70,3 +70,18 @@ def test_overrides_change_the_ability_config(sim, loader):
 def test_a_fight_ends_with_a_winner_or_a_timeout(sim, loader):
     for f in fights(sim, loader, "goblin", "off", level=1):
         assert f.won or f.timeout or f.hp_lost == 1.0
+
+
+def test_gear_is_equipped_through_equip_action_and_changes_the_odds(sim, loader):
+    arena = sim.open_arena()
+    bare = [sim.duel(CharacterClass.MAGE, 6, 'basilisk', loader, arena, start_distance=4)
+            for _ in range(60)]
+    geared = [sim.duel(CharacterClass.MAGE, 6, 'basilisk', loader, arena, start_distance=4,
+                       gear=['long_sword', 'chainmail']) for _ in range(60)]
+    win = lambda fs: sum(f.won for f in fs) / len(fs)
+    assert win(geared) > win(bare) + 0.2
+
+
+def test_unequippable_gear_is_refused(sim, loader):
+    with pytest.raises(SystemExit, match='not equippable'):
+        sim.duel(CharacterClass.WARRIOR, 1, 'goblin', loader, sim.open_arena(), gear=['shield'])

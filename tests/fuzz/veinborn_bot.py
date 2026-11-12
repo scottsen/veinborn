@@ -109,7 +109,7 @@ class GameResult:
     # Deep start (--start-floor/--start-level, fuzz/scenario.py); floor_reached counts from here
     start_floor: int = 1
     start_level: int = 1
-    # floor -> [turn, level] when the bot first stood on it (JSON keys are strings)
+    # floor -> [turn, level, attack, defense] when the bot first stood on it (JSON keys are strings)
     floor_arrivals: Dict[int, List[int]] = None
 
 
@@ -452,8 +452,9 @@ class VeinbornBot:
                 'monsters_killed': 0,
                 'completed': False,
                 'death_reason': None,
-                # floor -> [turn, level] on arrival: the real level-by-floor curve (VB-69)
-                'floor_arrivals': {game.state.current_floor: [0, game.state.player.get_stat('level', 1)]},
+                # floor -> [turn, level, attack, defense] on arrival (gear included):
+                # the real progression curve that sims should test at (VB-69)
+                'floor_arrivals': {game.state.current_floor: _arrival(0, game.state.player)},
             }
 
             # Stuck detection
@@ -670,7 +671,7 @@ class VeinbornBot:
                 if current_floor > game_stats.get('floor', 1):
                     self.log(f"⬇️  Descended to floor {current_floor}!")
                     game_stats['floor'] = current_floor
-                    game_stats['floor_arrivals'][current_floor] = [turn, current_level]
+                    game_stats['floor_arrivals'][current_floor] = _arrival(turn, game.state.player)
 
                 if turn % 10 == 0:
                     monster_count = len(self.perception.find_monsters(game))
@@ -971,6 +972,11 @@ class VeinbornBot:
 
 
 _WORKER_BOT = None  # set by VeinbornBot._play_games before forking workers
+
+
+def _arrival(turn, player) -> List[int]:
+    """[turn, level, total attack, total defense] (equipment included) on reaching a floor."""
+    return [turn, player.get_stat('level', 1), player.get_total_attack(), player.get_total_defense()]
 
 
 def _play_in_worker(work):

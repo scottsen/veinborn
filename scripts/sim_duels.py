@@ -17,11 +17,16 @@ Monster abilities (VB-64): --abilities picks which ones are on.
 --set overrides one ability number, e.g. --set lich.death_bolt.damage=8
 (applies to every variant that has that ability on).
 
+--gear equips items (data/entities/items.yaml weapon/armor ids) through the real
+EquipAction before each fight, e.g. --gear long_sword,chainmail. Without it the player
+has starting gear only, which understates a player who has been crafting and looting.
+
 Usage:
     python3 scripts/sim_duels.py                              # early monsters, level 1, shipped
     python3 scripts/sim_duels.py --monsters lich,imp --levels 4,8 --abilities both
     python3 scripts/sim_duels.py --monsters lich --levels 6 --set lich.death_bolt.damage=8
     python3 scripts/sim_duels.py --abilities both --json /tmp/duels.json
+    python3 scripts/sim_duels.py --monsters wyvern,lich --levels 8 --gear long_sword,chainmail
 
 Columns: win% / timeout% (max rounds, nobody died) / HP lost on a win (% of max) /
 avg rounds / where the player's damage came from (monster melee, monster
@@ -38,6 +43,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "src"))
 
 from core.actions.ability_action import AbilityAction  # noqa: E402
 from core.actions.attack_action import AttackAction  # noqa: E402
+from core.actions.equip_action import EquipAction  # noqa: E402
 from core.actions.move_action import MoveAction  # noqa: E402
 from core.base.entity import EntityType  # noqa: E402
 from core.base.game_context import GameContext  # noqa: E402
@@ -48,6 +54,7 @@ from core.events import EventBus  # noqa: E402
 from core.extensions import abilities  # noqa: E402
 from core.game_state import GameState  # noqa: E402
 from core.geometry import chebyshev  # noqa: E402
+from core.loot import LootGenerator  # noqa: E402
 from core.pathfinding import get_direction  # noqa: E402
 from core.rng import GameRNG  # noqa: E402
 from core.systems.ai_system import AISystem  # noqa: E402
@@ -178,7 +185,18 @@ class Fight:
     ability_uses: dict = field(default_factory=dict)
 
 
-def duel(cls, level, monster_id, loader, game_map, max_rounds=500, start_distance=1):
+def equip(ctx, player, gear):
+    """Put each item id on the player through the real EquipAction (later ids replace earlier ones)."""
+    for item_id in gear:
+        item = LootGenerator.get_instance().create_item(item_id)
+        player.add_to_inventory(item)
+        action = EquipAction(player.entity_id, item.entity_id)
+        if not action.validate(ctx):
+            raise SystemExit(f"--gear {item_id}: not equippable (only weapon and armor slots exist)")
+        action.execute(ctx)
+
+
+def duel(cls, level, monster_id, loader, game_map, max_rounds=500, start_distance=1, gear=()):
     player = make_player(cls, level)
     monster = loader.create_monster(monster_id, PLAYER_X + start_distance, PLAYER_Y)
     state = GameState(player=player)
@@ -186,6 +204,7 @@ def duel(cls, level, monster_id, loader, game_map, max_rounds=500, start_distanc
     state.entities[player.entity_id] = player
     state.entities[monster.entity_id] = monster
     ctx = GameContext(state)
+    equip(ctx, player, gear)
     bus = EventBus()
     ai = TrackedAI(ctx, entity_loader=loader, event_bus=bus,
                    duelist_id=monster.entity_id, player=player)
@@ -288,6 +307,8 @@ def main():
     ap.add_argument("--start-distance", type=int, default=1,
                     help="tiles between player and monster at the start (1 = adjacent); farther "
                          "gives ranged monsters and the mage's bolt free turns")
+    ap.add_argument("--gear", default="",
+                    help="comma-separated weapon/armor item ids to equip, e.g. long_sword,chainmail")
     ap.add_argument("--json", help="also write every cell to this JSON file")
     args = ap.parse_args()
 
@@ -311,10 +332,15 @@ def main():
     levels = [args.level] if args.level else [int(x) for x in args.levels.split(",")]
     classes = [CharacterClass(c) for c in args.classes.split(",")] if args.classes else list(CharacterClass)
     overrides = parse_overrides(args.set)
+    gear = [g for g in args.gear.split(",") if g]
+    unknown_gear = [g for g in gear if LootGenerator.get_instance().get_item_info(g) is None]
+    if unknown_gear:
+        raise SystemExit(f"unknown item(s) for --gear: {', '.join(unknown_gear)}")
     game_map = open_arena()
 
     cells = []
-    print(f"{args.fights} fights per cell, start distance {args.start_distance}, seed {args.seed}")
+    print(f"{args.fights} fights per cell, start distance {args.start_distance}, seed {args.seed}"
+          f"{', gear ' + '+'.join(gear) if gear else ''}")
     header = (f"{'monster':15} {'variant':>16} {'class':8} {'lvl':>3} {'win%':>5} {'tmo%':>5} "
               f"{'hpLost':>6} {'rounds':>6}  {'melee/abil/minion dmg%':>22}  abilities used per fight")
     print(header)
@@ -325,7 +351,8 @@ def main():
             for level in levels:
                 for cls in classes:
                     fights = [duel(cls, level, monster_id, loader, game_map,
-                                   max_rounds=args.max_rounds, start_distance=args.start_distance)
+                                   max_rounds=args.max_rounds, start_distance=args.start_distance,
+                                   gear=gear)
                               for _ in range(args.fights)]
                     c = summarise(label, monster_id, cls, level, fights)
                     cells.append(c)

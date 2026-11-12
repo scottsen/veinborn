@@ -1,11 +1,12 @@
 #!/usr/bin/env python3
 """Level-by-floor curve from bot results (VB-69).
 
-Each bot game records, per floor, the turn and player level on arrival
-(`floor_arrivals` in tests/fuzz/veinborn_bot.py results). This prints, per class and
-floor, how many games got there, and the median arrival turn and level (with the
-25th-75th percentile of level). Use it to pick the player level that sim_duels should
-test a monster at for the floors it is placed on.
+Each bot game records, per floor, the turn, player level and total attack/defense
+(gear included) on arrival (`floor_arrivals` in tests/fuzz/veinborn_bot.py results).
+This prints, per class and floor, how many games got there, the median arrival turn and
+level (with the 25th-75th percentile of level) and the median attack and defense. Use it
+to pick the level and gear (sim_duels --levels, --gear) to test a monster at for the
+floors it is placed on.
 
 Usage:
     python3 scripts/bot_progression.py logs/long_*.json
@@ -29,22 +30,27 @@ def curve(games):
     """{class: {floor: row}} from per-game results that carry floor_arrivals."""
     by = defaultdict(lambda: defaultdict(list))
     for g in games:
-        for floor, (turn, level) in (g.get('floor_arrivals') or {}).items():
-            by[g['character_class']][int(floor)].append((turn, level))
-            by['ALL'][int(floor)].append((turn, level))
+        for floor, arrival in (g.get('floor_arrivals') or {}).items():
+            row = (list(arrival) + [None, None])[:4]   # [turn, level, attack, defense]
+            by[g['character_class']][int(floor)].append(row)
+            by['ALL'][int(floor)].append(row)
     out = {}
     for cls, floors in by.items():
         out[cls] = {}
         for floor in sorted(floors):
-            turns = [t for t, _ in floors[floor]]
-            levels = [lv for _, lv in floors[floor]]
+            rows = floors[floor]
+            levels = [r[1] for r in rows]
             out[cls][floor] = {
-                'games': len(levels),
-                'turn_median': statistics.median(turns),
+                'games': len(rows),
+                'turn_median': statistics.median(r[0] for r in rows),
                 'level_median': statistics.median(levels),
                 'level_p25': quantile(levels, 0.25),
                 'level_p75': quantile(levels, 0.75),
             }
+            for i, name in ((2, 'attack_median'), (3, 'defense_median')):
+                values = [r[i] for r in rows if r[i] is not None]
+                if values:
+                    out[cls][floor][name] = statistics.median(values)
     return out
 
 
@@ -63,10 +69,12 @@ def main():
     result = curve(games)
     for cls in sorted(result, key=lambda c: (c == 'ALL', c)):
         print(f"\n{cls}")
-        print(f"  {'floor':>5} {'games':>5} {'turn':>7} {'level':>6} {'p25-p75':>8}")
+        print(f"  {'floor':>5} {'games':>5} {'turn':>7} {'level':>6} {'p25-p75':>8} {'atk':>5} {'def':>5}")
         for floor, r in result[cls].items():
+            atk = f"{r['attack_median']:5.1f}" if 'attack_median' in r else f"{'-':>5}"
+            dfn = f"{r['defense_median']:5.1f}" if 'defense_median' in r else f"{'-':>5}"
             print(f"  {floor:5} {r['games']:5} {r['turn_median']:7.0f} {r['level_median']:6.1f} "
-                  f"{r['level_p25']:>4}-{r['level_p75']:<3}")
+                  f"{r['level_p25']:>4}-{r['level_p75']:<3} {atk} {dfn}")
     if args.json:
         Path(args.json).write_text(json.dumps(result, indent=2))
         print(f"\nwrote {args.json}")
