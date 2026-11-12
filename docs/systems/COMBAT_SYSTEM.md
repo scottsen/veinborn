@@ -1,5 +1,10 @@
 # Combat System Design
 
+> **Vision doc, mostly not built.** Initiative, stances, crits, status effects,
+> block/dodge and environment rules below are not in the game. What the game
+> actually does (d20 to-hit, rolled damage, XP curve) is in
+> [`docs/MECHANICS_REFERENCE.md`](../MECHANICS_REFERENCE.md) → Attack Resolution.
+
 ## Core Combat Loop
 
 ### 1. Initiative Phase
