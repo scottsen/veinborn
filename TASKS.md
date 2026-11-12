@@ -1363,25 +1363,28 @@ Classic behaviours chase by distance only (no line of sight), via nearest_player
 ## TASK-VB-61 · AI: engine morale step (flee_threshold) runs before every behaviour; drop per-behaviour flee checks; guards hold (0)
 
 ```yaml
-status: backlog
+status: done
 priority: medium
 effort: 1-2h
 tags: [ai, architecture]
 created: '2026-11-12T17:39:55Z'
-updated: '2026-11-12T17:39:55Z'
+updated: '2026-11-12T18:01:35Z'
 session: vevine-1112
 depends_on: [VB-60]
 parent: VB-47
 links:
   references:
   - docs/architecture/AI_ARCHITECTURE.md
+  commits:
+  - f25302d12c8ca9f73cf5cb7b287ff9aafedb2717
+notes_next: 2
 ```
 
 defensive, passive and sniper each re-implement 'flee below X% HP'; guard has flee_threshold 0.2 in YAML but never flees. Move it to AISystem: if hp/max_hp < params.flee_threshold and a target is perceived, flee_from instead of running the behaviour. flee_threshold 0 opts out (guards, aggressive). Remove the per-behaviour checks. See AI_ARCHITECTURE.md 'Morale'.
 
 <!-- notes: append-only log; each has a stable #id (see CLI §5) -->
 ### Notes
-_(no notes yet)_
+- [#1 2026-11-12T18:01:35Z session:vevine-1112] AISystem._morale_breaks; tests/unit/systems/test_ai_morale.py (incl. a new behaviour that never flees is made to flee by the engine).
 
 
 ## TASK-VB-62 · AI: monster speed via an energy counter in AISystem.update (move_speed 0.6-1.5 becomes real)
