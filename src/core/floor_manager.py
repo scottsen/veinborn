@@ -12,13 +12,12 @@ following Single Responsibility Principle.
 """
 
 import logging
-from typing import TYPE_CHECKING, List
+from typing import TYPE_CHECKING, Callable, List, Optional
 
 from .world import Map
 from .entities import Monster, OreVein, Forge
 from .spawning import EntitySpawner
-from .highscore import HighScoreManager, HighScoreEntry
-from .legacy import get_vault
+from .run_end import record_single_player_run_end
 
 if TYPE_CHECKING:
     from .base.game_context import GameContext
@@ -65,17 +64,21 @@ class FloorManager:
     - Clear victory condition logic
     """
 
-    def __init__(self, context: 'GameContext', spawner: EntitySpawner):
+    def __init__(self, context: 'GameContext', spawner: EntitySpawner,
+                 on_run_end: Optional[Callable[['GameState', bool], None]] = None):
         """
         Initialize floor manager.
 
         Args:
             context: Game context for safe state access
             spawner: Entity spawner for creating entities
+            on_run_end: Called as (game_state, victory) when the party wins; defaults
+                to the single-player score/vault records
         """
         self.context = context
         self.game_state = context.game_state
         self.spawner = spawner
+        self.on_run_end = on_run_end or record_single_player_run_end
         logger.debug("FloorManager initialized")
 
     def descend_floor(self) -> None:
@@ -129,7 +132,7 @@ class FloorManager:
 
     def _check_victory(self, floor: int) -> bool:
         """
-        Check if player has reached victory floor.
+        Check if the party has reached the victory floor.
 
         Args:
             floor: Floor number to check
@@ -143,92 +146,22 @@ class FloorManager:
             self.game_state.victory = True
             self.game_state.game_over = True
 
-            # Record high score with victory bonus (Phase 5)
-            self._record_high_score()
-
-            # Record victory in Legacy Vault (Phase 6)
-            self._record_victory()
+            # High score with victory bonus (Phase 5) and Legacy Vault tally (Phase 6)
+            self.on_run_end(self.game_state, True)
 
             self.game_state.add_message("🎉 VICTORY! You've escaped the dungeon!")
 
             logger.info(
-                f"GAME WON! Player reached floor {victory_floor}",
+                f"GAME WON! Party reached floor {victory_floor}",
                 extra={
                     'floor': floor,
                     'player_level': self.game_state.player.get_stat('level', 1),
-                    'player_hp': self.game_state.player.hp,
+                    'players_alive': len(self.context.get_alive_players()),
                 }
             )
             return True
 
         return False
-
-    def _record_high_score(self) -> None:
-        """
-        Record high score for this game (Phase 5).
-
-        Creates a high score entry and adds it to the leaderboard.
-        Displays rank to player. Victory adds 50,000 point bonus!
-        """
-        try:
-            # Create high score entry from game state
-            entry = HighScoreEntry.from_game_state(
-                self.game_state,
-                self.game_state.player_name
-            )
-
-            # Add to leaderboard
-            hsm = HighScoreManager.get_instance()
-            rank = hsm.add_score(entry)
-
-            # Display rank to player
-            if rank > 0:
-                self.game_state.add_message(f"Final Score: {entry.score} (+50,000 victory bonus!)")
-                if rank <= 10:
-                    self.game_state.add_message(f"🏆 New High Score! Rank #{rank}")
-                else:
-                    self.game_state.add_message(f"You ranked #{rank}")
-
-                logger.info(
-                    f"High score recorded: {self.game_state.player_name} "
-                    f"scored {entry.score} (rank #{rank}, VICTORY!)"
-                )
-            else:
-                logger.warning("High score not saved (rank -1)")
-
-        except Exception as e:
-            logger.error(f"Failed to record high score: {e}", exc_info=True)
-            # Don't crash on high score failure - game over should still work
-
-    def _record_victory(self) -> None:
-        """
-        Record victory in Legacy Vault (Phase 6).
-
-        Tracks Pure vs Legacy victories for meta-progression stats.
-        """
-        try:
-            vault = get_vault()
-            run_type = self.game_state.run_type
-            vault.record_run(run_type, victory=True)
-
-            # Display victory type to player
-            if run_type == "pure":
-                self.game_state.add_message("🏆 PURE VICTORY! (No Legacy gear used)")
-            else:
-                self.game_state.add_message("⚔️ LEGACY VICTORY! (Legacy gear used)")
-
-            logger.info(
-                f"Victory recorded in Legacy Vault: {run_type}",
-                extra={
-                    'run_type': run_type,
-                    'total_pure_victories': vault.total_pure_victories,
-                    'total_legacy_victories': vault.total_legacy_victories
-                }
-            )
-
-        except Exception as e:
-            logger.error(f"Failed to record victory in Legacy Vault: {e}", exc_info=True)
-            # Don't crash on vault failure - game over should still work
 
     def _generate_new_floor(self) -> None:
         """Generate a new dungeon floor."""

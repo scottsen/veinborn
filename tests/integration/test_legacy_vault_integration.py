@@ -390,7 +390,7 @@ def test_vault_error_doesnt_crash_game(temp_vault_for_integration, player_with_r
     turn_processor = TurnProcessor(context)
 
     # Mock vault to raise exception
-    with patch('core.turn_processor.get_vault') as mock_vault:
+    with patch('core.run_end.get_vault') as mock_vault:
         mock_vault.side_effect = Exception("Vault error!")
 
         # Kill player - should not crash

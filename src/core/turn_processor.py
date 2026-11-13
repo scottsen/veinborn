@@ -12,11 +12,10 @@ following Single Responsibility Principle.
 """
 
 import logging
-from typing import TYPE_CHECKING, Iterable
+from typing import TYPE_CHECKING, Callable, Iterable, Optional
 
 from .base.entity import EntityType
-from .highscore import HighScoreManager, HighScoreEntry
-from .legacy import get_vault
+from .run_end import record_single_player_run_end
 
 if TYPE_CHECKING:
     from .base.game_context import GameContext
@@ -57,7 +56,8 @@ class TurnProcessor:
     - Clear separation of concerns
     """
 
-    def __init__(self, context: 'GameContext', hp_regen_interval: int = 10, hp_regen_amount: int = 1, spawner=None):
+    def __init__(self, context: 'GameContext', hp_regen_interval: int = 10, hp_regen_amount: int = 1, spawner=None,
+                 on_run_end: Optional[Callable[['GameState', bool], None]] = None):
         """
         Initialize turn processor.
 
@@ -66,12 +66,15 @@ class TurnProcessor:
             hp_regen_interval: Number of turns between HP regeneration (default: 10)
             hp_regen_amount: Amount of HP restored per regeneration tick (default: 1)
             spawner: EntitySpawner for ongoing spawns (VB-52); None disables them
+            on_run_end: Called as (game_state, victory) when the run is lost; defaults
+                to the single-player score/vault records
         """
         self.context = context
         self.game_state = context.game_state
         self.hp_regen_interval = hp_regen_interval
         self.hp_regen_amount = hp_regen_amount
         self.spawner = spawner
+        self.on_run_end = on_run_end or record_single_player_run_end
         logger.debug(f"TurnProcessor initialized (HP regen: {hp_regen_amount} per {hp_regen_interval} turns)")
 
     def process_turn(self) -> None:
@@ -93,7 +96,7 @@ class TurnProcessor:
             extra={
                 'turn': self.game_state.turn_count,
                 'floor': self.game_state.current_floor,
-                'player_hp': f"{self.game_state.player.hp}/{self.game_state.player.max_hp}",
+                'players_alive': len(self.context.get_alive_players()),
                 'monster_count': len([
                     e for e in self.context.get_entities_by_type(EntityType.MONSTER)
                     if e.is_alive
@@ -118,12 +121,12 @@ class TurnProcessor:
 
     def _apply_hp_regeneration(self) -> None:
         """
-        Apply natural HP regeneration to player.
+        Apply natural HP regeneration to every living player.
 
         NetHack-style: 1 HP every 10 turns (configurable)
         """
         apply_hp_regeneration(
-            [self.game_state.player],
+            self.context.get_all_players(),
             self.game_state.turn_count,
             self.hp_regen_interval,
             self.hp_regen_amount,
@@ -192,123 +195,18 @@ class TurnProcessor:
             self.game_state.cleanup_dead_entities()
 
     def _check_game_over(self) -> None:
-        """Check if game is over (player died)."""
-        if not self.game_state.player.is_alive:
-            # Record high score (Phase 5)
-            self._record_high_score()
-
-            # Save rare ore to Legacy Vault (Phase 6)
-            self._save_legacy_ore()
-
-            # Record defeat in Legacy Vault
-            self._record_defeat()
+        """The run is lost when no player is left alive (a party of one: the player died)."""
+        if not self.context.get_alive_players():
+            self.on_run_end(self.game_state, False)
 
             self.game_state.add_message("You died! Press 'r' to restart.")
             self.game_state.game_over = True
 
             logger.info(
-                "Game over - player died",
+                "Game over - every player died",
                 extra={
                     'turn': self.game_state.turn_count,
                     'floor': self.game_state.current_floor,
                     'player_level': self.game_state.player.get_stat('level', 1),
                 }
             )
-
-    def _record_high_score(self) -> None:
-        """
-        Record high score for this game (Phase 5).
-
-        Creates a high score entry and adds it to the leaderboard.
-        Displays rank to player.
-        """
-        try:
-            # Create high score entry from game state
-            entry = HighScoreEntry.from_game_state(
-                self.game_state,
-                self.game_state.player_name
-            )
-
-            # Add to leaderboard
-            hsm = HighScoreManager.get_instance()
-            rank = hsm.add_score(entry)
-
-            # Display rank to player
-            if rank > 0:
-                self.game_state.add_message(f"Final Score: {entry.score}")
-                if rank <= 10:
-                    self.game_state.add_message(f"🏆 New High Score! Rank #{rank}")
-                else:
-                    self.game_state.add_message(f"You ranked #{rank}")
-
-                logger.info(
-                    f"High score recorded: {self.game_state.player_name} "
-                    f"scored {entry.score} (rank #{rank})"
-                )
-            else:
-                logger.warning("High score not saved (rank -1)")
-
-        except Exception as e:
-            logger.error(f"Failed to record high score: {e}", exc_info=True)
-            # Don't crash on high score failure - game over should still work
-
-    def _save_legacy_ore(self) -> None:
-        """
-        Save rare ore (80+ purity) to Legacy Vault on death.
-
-        Checks player inventory for ore with purity >= 80 and saves them
-        to the vault for use in future runs. Displays message to player
-        if any ore was saved.
-        """
-        try:
-            vault = get_vault()
-
-            # Get all ore from player inventory
-            ores_saved = vault.add_ores_from_inventory(
-                self.game_state.player.inventory,
-                self.game_state.current_floor
-            )
-
-            if ores_saved > 0:
-                self.game_state.add_message(
-                    f"💎 {ores_saved} rare ore{'s' if ores_saved != 1 else ''} "
-                    f"saved to Legacy Vault!"
-                )
-
-                logger.info(
-                    f"Legacy Vault: Saved {ores_saved} ore(s) from player inventory",
-                    extra={
-                        'ores_saved': ores_saved,
-                        'floor': self.game_state.current_floor,
-                        'vault_size': vault.get_ore_count()
-                    }
-                )
-            else:
-                logger.debug("No rare ore (80+ purity) found in player inventory")
-
-        except Exception as e:
-            logger.error(f"Failed to save ore to Legacy Vault: {e}", exc_info=True)
-            # Don't crash on vault failure - game over should still work
-
-    def _record_defeat(self) -> None:
-        """
-        Record defeat in Legacy Vault (Phase 6).
-
-        Tracks total runs for stats purposes.
-        """
-        try:
-            vault = get_vault()
-            run_type = self.game_state.run_type
-            vault.record_run(run_type, victory=False)
-
-            logger.info(
-                f"Defeat recorded in Legacy Vault: {run_type}",
-                extra={
-                    'run_type': run_type,
-                    'total_runs': vault.total_runs
-                }
-            )
-
-        except Exception as e:
-            logger.error(f"Failed to record defeat in Legacy Vault: {e}", exc_info=True)
-            # Don't crash on vault failure - game over should still work
