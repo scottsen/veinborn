@@ -589,9 +589,9 @@ priority: medium
 effort: medium
 tags: [multiplayer, architecture, quality]
 created: '2026-09-23T05:26:36Z'
-updated: '2026-09-23T16:48:43Z'
+updated: '2026-11-13T21:10:10Z'
 session: earthly-god-0922
-notes_next: 2
+notes_next: 3
 ```
 
 state_delta.py:225 apply_delta has complexity 27 / nesting depth 6, the single worst production function in the codebase; compute_delta (16) is complexity 17. session.py:509-513 keeps one last_state per session shared by every client, and there's no sequence number or base-version in the delta protocol -- one dropped WS message leaves a client desynced until the next full-state broadcast. reset_state_tracking (session.py:533) is never called; reconnect instead broadcasts full state to everyone (websocket_server.py:383). Also apply_delta shallow-copies current_state (245) then mutates nested dicts in place (272-274, 304-306) -- a latent aliasing hazard for any future caller that retains a reference to a prior snapshot (replay/debug tooling). The client also depends directly on the server package for the protocol (ui/multiplayer_client.py:13-14), leaking a protocol dependency into the UI layer. Fix: move messages.py/state_delta.py into a shared protocol/ package; add seq/base_seq to deltas with a per-client baseline; have the client request a resync on a detected gap.
@@ -599,6 +599,7 @@ state_delta.py:225 apply_delta has complexity 27 / nesting depth 6, the single w
 <!-- notes: append-only log; each has a stable #id (see CLI §5) -->
 ### Notes
 - [#1 2026-09-23T16:48:43Z session:sultry-drizzle-0923] Done (commit 7e871d2): apply_delta complexity 27->10, no longer mutates its input (aliasing hazard), 9 characterization tests. STILL OPEN from this ticket: seq/base_seq + per-client baseline, client resync on gap, moving messages.py/state_delta.py into a shared protocol/ package. Those are protocol-design changes; do them together.
+- [#2 2026-11-13T21:10:10Z session:chartreuse-filter-1113] Plan: docs/architecture/MULTIPLAYER_ARCHITECTURE_PLAN.md places this task in a phase (see section 4); read it before starting.
 
 
 ## TASK-VB-27 · cleanup_task busy-loops with no backoff if cleanup raises every iteration
@@ -999,14 +1000,14 @@ status: backlog
 priority: high
 tags: [multiplayer, ui]
 created: '2026-09-23T17:41:24Z'
-updated: '2026-11-13T21:00:27Z'
+updated: '2026-11-13T21:10:10Z'
 session: crimson-jewel-0923
 links:
   references:
   - src/ui/multiplayer_client.py
   - src/ui/textual/app.py
   - src/server/test_client.py
-notes_next: 3
+notes_next: 4
 ```
 
 The first real two-client playtest (scripted, headless) worked after VB-39..43, but the only thing that can send move/attack/mine over the wire is the dev tool src/server/test_client.py. ui/multiplayer_client.MultiplayerClient has connect/chat/create/join/ready and delta merging but no send_action; ui/textual/app.py only wires chat. A human two-client playtest needs a multiplayer game view in the TUI (render players/monsters/map from the merged state, send MoveAction/AttackAction/... with the entity_id from state). Design question: reuse the single-player map widget with a state adapter, or a new read-only renderer.
@@ -1015,6 +1016,7 @@ The first real two-client playtest (scripted, headless) worked after VB-39..43, 
 ### Notes
 - [#1 2026-11-13T01:46:46Z session:mustard-sunset-1112] Design answer (2026-11-12, session mustard-sunset-1112): reuse the single-player map widget via a state adapter is the wrong shape; render from a shared snapshot instead (VB-78) so the TUI, server state and any future client use one contract. get_state_dict today omits derived stats (total attack/defense, equipment, XP, cooldowns) that the single-player sidebar shows, so a multiplayer view built on it would be incomplete. Suggest sequencing VB-77 -> VB-78 -> this task.
 - [#2 2026-11-13T21:00:27Z session:chartreuse-filter-1113] Investigation (chartreuse-filter-1113), all verified in code: (1) run_multiplayer.py connects inside asyncio.run(connect_to_server) then runs app.run() in a second loop; MultiplayerClient._listen is a task of the first loop, which asyncio.run cancels on exit (probe: listener task.cancelled()==True after the first asyncio.run), so the TUI client never receives state/chat/delta from the server. Needs one loop (Textual's: connect from on_mount, or app.run_async). (2) VeinbornApp.compose() always start_new_game()s a LOCAL Game, even with multiplayer_client set; multiplayer mode today = a private single-player game with chat attached. Moves go to the local game. (3) Client has no send_action; wire format is Message(type='action', data={'action_data': {'action_type': 'MoveAction','actor_id': <entity_id>, ...}}), the server checks actor_id == the player's entity id and replies with a broadcast of full/delta state (websocket_server.handle_action). The entity id comes from state['players'][i]['entity_id'] where player_id matches client.state.player_id (test_client.py does this). (4) Rendering: state dict has players[], monsters[] (Entity.to_dict), map{width,height,tiles rows}; VB-78 stage 2 added gear totals/equipment/abilities per player. No snapshot-from-dict path yet. Proposed order: a) fix the loop (tiny, testable with the in-process server tests), b) MultiplayerClient.send_action + entity-id lookup + tests, c) Snapshot.from_state_dict(state, player_id) so the existing widgets render server state (this is where VB-78's remaining wire work gets decided), d) app multiplayer mode: no local Game, key handlers send actions, redraw on on_state_update, e) a headless two-client pilot test.
+- [#3 2026-11-13T21:10:10Z session:chartreuse-filter-1113] Plan: docs/architecture/MULTIPLAYER_ARCHITECTURE_PLAN.md places this task in a phase (see section 4); read it before starting.
 
 
 ## TASK-VB-45 · Disconnected-player 'AI control' is never invoked (process_disconnected_player_action has no caller)
@@ -1024,18 +1026,19 @@ status: backlog
 priority: low
 tags: [multiplayer]
 created: '2026-09-23T17:43:16Z'
-updated: '2026-09-23T17:43:16Z'
+updated: '2026-11-13T21:10:10Z'
 session: crimson-jewel-0923
 links:
   references:
   - src/server/game_session/session.py
+notes_next: 2
 ```
 
 GameSession.process_disconnected_player_action (a defensive WaitAction) is called from nowhere in src, yet process_action tells rejected clients 'AI is controlling this character'. In a headless playtest a dropped player's character just stood still and died. Either wire it into a timer/round hook (what should the AI do beyond wait? retreat to stairs?) or delete it and fix the message. Product call.
 
 <!-- notes: append-only log; each has a stable #id (see CLI §5) -->
 ### Notes
-_(no notes yet)_
+- [#1 2026-11-13T21:10:10Z session:chartreuse-filter-1113] Plan: docs/architecture/MULTIPLAYER_ARCHITECTURE_PLAN.md places this task in a phase (see section 4); read it before starting.
 
 
 ## TASK-VB-46 · Spawner stacks ore veins, forges and (rarely) monsters on one tile
@@ -1240,14 +1243,15 @@ status: backlog
 priority: low
 tags: [content, multiplayer]
 created: '2026-11-12T05:11:48Z'
-updated: '2026-11-12T19:08:18Z'
+updated: '2026-11-13T21:10:10Z'
 session: turquoise-mosaic-1111
-notes_next: 2
+notes_next: 3
 ```
 
 <!-- notes: append-only log; each has a stable #id (see CLI §5) -->
 ### Notes
 - [#1 2026-11-12T19:08:18Z session:vevine-1112] 2026-11-12: the server's AISystem now receives the session event bus (VB-60), so monster provocation and monster attack events (VB-66) work in multiplayer. Content handlers (achievements/quests) and turn_ended/floor_changed/game_started are still single-player only.
+- [#2 2026-11-13T21:10:10Z session:chartreuse-filter-1113] Plan: docs/architecture/MULTIPLAYER_ARCHITECTURE_PLAN.md places this task in a phase (see section 4); read it before starting.
 
 
 ## TASK-VB-56 · Kill streaks announce but grant nothing: decide whether streaks (and quests) should give real rewards, e.g. an extra LootGenerator roll at the kill
@@ -1884,7 +1888,7 @@ priority: medium
 effort: 1-2d
 tags: [architecture, refactor, ui, multiplayer]
 created: '2026-11-13T01:46:32Z'
-updated: '2026-11-13T20:57:03Z'
+updated: '2026-11-13T21:10:10Z'
 session: mustard-sunset-1112
 depends_on: [VB-77]
 links:
@@ -1897,7 +1901,7 @@ links:
   - VB-44
   - VB-26
   - VB-24
-notes_next: 3
+notes_next: 4
 ```
 
 Found 2026-11-12 (session mustard-sunset-1112). Every Textual widget reads live domain objects (map_widget._get_entity_at walks game_state.entities; _render_cell reads game_map.tiles and imports TileType/EntityType; sidebar calls player.get_total_attack(), xp_for_next_level(), equipped_weapon, cooldowns). There is no render contract between core and UI. Separately, src/server/multiplayer_game_state.get_state_dict is a hand-rolled 85-line serializer that is a second, different description of the same state: it sends base attack/defense only (not totals including gear), no equipped weapon/armor, no XP/level/cooldowns, so a multiplayer client rendering it could not show what the single-player sidebar shows. Two state models also exist (core GameState vs MultiplayerGameState; see VB-24, VB-25 for earlier pipeline/floor duplication).
@@ -1907,6 +1911,7 @@ Proposed: a core function (e.g. Game.snapshot() / a Snapshot dataclass with to_d
 ### Notes
 - [#1 2026-11-13T20:55:49Z session:chartreuse-filter-1113] Stage 1 done: core/snapshot.py (build_snapshot -> Snapshot/PlayerView/EntityView/MapView, to_dict, JSON-safe; no fog, same view as before; viewer arg is the hook) and the 4 TUI widgets render from it (map caches one snapshot per refresh_ui). entity-rendering tests rewritten on real state. Stage 2 open: server get_state_dict from the snapshot + state_delta (wire format: players/monsters/map keys are consumed by ui/multiplayer_client + server/test_client). Fog (perception.FogOfWar exists, TUI does not use it) is a gameplay decision, deliberately not in v1.
 - [#2 2026-11-13T20:57:03Z session:chartreuse-filter-1113] Stage 2 done (partial): get_state_dict players now built with build_snapshot(viewer=player): stats are gear-inclusive totals + level/xp/xp_next, new equipment + abilities keys, StateDelta diffs them. Existing keys kept so test_client/MultiplayerClient are unchanged. NOT done: monsters/map still Entity.to_dict()/Map.to_dict() (not snapshot), no client renders from it yet (VB-44). Decide whether to close VB-78 or keep it open until get_state_dict's monsters/map also come from the snapshot.
+- [#3 2026-11-13T21:10:10Z session:chartreuse-filter-1113] Plan: docs/architecture/MULTIPLAYER_ARCHITECTURE_PLAN.md places this task in a phase (see section 4); read it before starting.
 
 
 ## TASK-VB-79 · Emit semantic render IDs in the snapshot; make glyph/colour a per-frontend data mapping
