@@ -1754,10 +1754,11 @@ notes_next: 3
 ```yaml
 status: backlog
 priority: medium
+owner: scott
 effort: '-'
 tags: [design, items, loot, economy]
 created: '2026-11-12T21:53:19Z'
-updated: '2026-11-12T21:53:33Z'
+updated: '2026-11-13T00:36:27Z'
 session: serene-cyclone-1112
 links:
   relates_to:
@@ -1774,11 +1775,12 @@ notes_next: 2
 
 ```yaml
 status: backlog
-priority: medium
+priority: high
+owner: scott
 effort: '-'
 tags: [balance, crafting, design]
 created: '2026-11-12T21:53:20Z'
-updated: '2026-11-12T22:12:00Z'
+updated: '2026-11-13T00:36:26Z'
 session: serene-cyclone-1112
 links:
   relates_to:

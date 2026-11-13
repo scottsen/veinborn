@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added — Drop items; bots that progress (VB-73, VB-68, 2026-11-12)
+- Items can be dropped (key `d`, `DropAction`): the least useful goes first (gold, shields, scrolls, then worse gear, then low-purity ore). Before, the 20-slot pack filled by floor 4 and mining and crafting stopped for the rest of the game. Spawn floor bands and shared loot tables are now plain YAML, validated at load.
+- Bots no longer stall on a floor, wear looted gear and craft only upgrades; they reach floor ~75 of 100 in 20,000 turns with 0 deaths past floor 3. Finding: crafted gear (attack ~38 / defense 33 by floor 12) outscales every monster (`VB-75`). Bots can start deep (`--start-floor`), and `scripts/bot_progression.py` prints level and gear by floor.
+
 ### Added — Consumables, seeded replay, paired bot A/B (VB-68, 2026-11-12)
 - Potions and food can be used (key `e`; `UseItemAction` + `@item_effect` content); they dropped as loot before but nothing could consume them. Kill loot now rolls on the game's seeded RNG, so a seed replays the same game (`test_seeded_replay`).
 - Balance tooling: `scripts/sim_duels.py` drives monsters through the real AISystem with abilities on/off; bot runs take `--seed-base`/`--jobs` and `scripts/compare_bot_runs.py` reports paired differences with 95% CIs. Bots run 18x faster. See `tests/fuzz/README.md`.
