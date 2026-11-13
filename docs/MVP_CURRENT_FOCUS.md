@@ -2,8 +2,8 @@
 
 **Status:** Single-player MVP feature-complete; multiplayer experimental (see `docs/STATUS_DASHBOARD.md` for current status, `PROJECT_REVIEW_2026-04-17.md` for the last full audit)
 **Phase:** Trust-restore + MP stabilization + Polish
-**Last Updated:** 2026-11-11 (test numbers only; see `docs/STATUS_DASHBOARD.md` for the review findings)
-**Test Status:** 1302 collected, 1302 passing / 0 failing / 0 skipped (verified 2026-11-11 with `/usr/bin/python3 -m pytest`; the default `python3` lacks `pytest_asyncio`)
+**Last Updated:** 2026-11-13 (test numbers only; see `docs/STATUS_DASHBOARD.md` for the review findings)
+**Test Status:** 1462 collected, 1462 passing / 0 failing / 0 skipped (verified 2026-11-13 with `/usr/bin/python3 -m pytest`; the default `python3` lacks `pytest_asyncio`)
 
 ---
 
