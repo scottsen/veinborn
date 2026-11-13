@@ -90,9 +90,15 @@ class Player(Entity):
             return True
         return False
 
-    def gain_xp(self, amount: int) -> bool:
+    def gain_xp(self, amount: int, rng: Optional[GameRNG] = None) -> bool:
         """
         Gain experience points.
+
+        Args:
+            amount: XP to add
+            rng: The game's RNG (context.get_rng()) for level-up HP rolls; None
+                falls back to the process-global instance, which a loaded save or
+                a multiplayer game does not use (VB-18).
 
         Returns:
             True if leveled up
@@ -105,7 +111,7 @@ class Player(Entity):
         # One big kill can grant several levels.
         leveled_up = False
         while total_xp >= config.get_xp_for_level(self.get_stat('level', 1) + 1):
-            self._level_up(config)
+            self._level_up(config, rng or GameRNG.get_instance())
             leveled_up = True
         return leveled_up
 
@@ -113,7 +119,7 @@ class Player(Entity):
         """Total XP needed to reach the next level."""
         return ConfigLoader.get_config().get_xp_for_level(self.get_stat('level', 1) + 1)
 
-    def _level_up(self, config) -> None:
+    def _level_up(self, config, rng: GameRNG) -> None:
         """Gain one level: class growth, with a rolled HP gain.
 
         Like NetHack, the HP gain is added to current HP; it is not a full heal.
@@ -122,7 +128,7 @@ class Player(Entity):
         """
         growth = config.get_level_growth_defaults()
         hp_per = self.get_stat('hp_per_level', growth['hp_per_level'])
-        hp_gain = GameRNG.get_instance().randint(max(1, -(-hp_per // 2)), max(1, hp_per + hp_per // 2))
+        hp_gain = rng.randint(max(1, -(-hp_per // 2)), max(1, hp_per + hp_per // 2))
 
         self.set_stat('level', self.get_stat('level', 1) + 1)
         self.max_hp += hp_gain

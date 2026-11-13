@@ -328,7 +328,7 @@ class AttackAction(Action):
 
         # Award XP if player killed monster
         if actor.entity_type == EntityType.PLAYER:
-            self._award_xp(actor, target, outcome)
+            self._award_xp(context, actor, target, outcome)
 
         # Generate loot drops if target is a monster
         if target.entity_type == EntityType.MONSTER:
@@ -346,7 +346,7 @@ class AttackAction(Action):
             }
         )
 
-    def _award_xp(self, actor, target, outcome: ActionOutcome):
+    def _award_xp(self, context: GameContext, actor, target, outcome: ActionOutcome):
         """Award XP to player for killing target."""
         xp_reward = target.get_stat('xp_reward', 0)
         if xp_reward <= 0:
@@ -355,7 +355,7 @@ class AttackAction(Action):
         if not isinstance(actor, Player):
             return
 
-        leveled_up = actor.gain_xp(xp_reward)
+        leveled_up = actor.gain_xp(xp_reward, rng=context.get_rng())
         logger.info(
             f"XP awarded",
             extra={

@@ -74,7 +74,7 @@ class QuestTracker:
         self.context.add_message(f"Quest Complete: {quest.name} - {quest.reward_message}")
         if quest.reward_xp:
             self.context.add_message(f"Reward: +{quest.reward_xp} XP")
-            if player.gain_xp(quest.reward_xp):
+            if player.gain_xp(quest.reward_xp, rng=self.context.get_rng()):
                 self.context.add_message(f"Level up! Now level {player.get_stat('level')}!")
         for follow_up in QUESTS:
             if follow_up.after == quest.id:

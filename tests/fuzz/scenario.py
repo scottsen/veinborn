@@ -30,7 +30,7 @@ def advance_to(game, floor: int = 1, level: int = 1) -> None:
     player = game.state.player
     needed = config.get_xp_for_level(level) - player.get_stat('xp', 0)
     if needed > 0:
-        player.gain_xp(needed)
+        player.gain_xp(needed, rng=game.context.get_rng())
     while game.state.current_floor < floor:
         game.descend_floor()
     player.hp = player.max_hp

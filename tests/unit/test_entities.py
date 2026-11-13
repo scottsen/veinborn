@@ -365,6 +365,35 @@ class TestPlayerExperience:
         assert damaged_player.hp == 10 + gained
         assert damaged_player.hp < damaged_player.max_hp
 
+    @pytest.mark.unit
+    def test_level_up_hp_roll_uses_the_games_rng(self, fresh_player):
+        """The HP roll draws from the game's own RNG, not the process-global one.
+
+        A loaded save and every multiplayer game have their own GameRNG (VB-18);
+        rolling from the global made level-up HP differ between replays of one save
+        and leak between concurrent games.
+        """
+        from core.rng import GameRNG
+        GameRNG.initialize(1)
+        game_rng = GameRNG(999)
+        global_before, own_before = GameRNG.get_instance().getstate(), game_rng.getstate()
+
+        assert fresh_player.gain_xp(20, rng=game_rng)
+
+        assert game_rng.getstate() != own_before
+        assert GameRNG.get_instance().getstate() == global_before
+
+    @pytest.mark.unit
+    def test_level_up_hp_is_reproducible_from_the_games_seed(self):
+        from core.rng import GameRNG
+        gains = []
+        for _ in range(2):
+            player = Player(x=0, y=0)
+            GameRNG.initialize()          # scramble the global between runs
+            player.gain_xp(10_000, rng=GameRNG(42))
+            gains.append(player.max_hp)
+        assert gains[0] == gains[1]
+
 
 class TestPlayerStats:
     """Tests for Player stat management."""
