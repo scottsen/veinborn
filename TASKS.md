@@ -2158,19 +2158,23 @@ docs/architecture/MULTIPLAYER_ARCHITECTURE_PLAN.md sections D3, D6 and phase tab
 ## TASK-VB-89 · MP plan 2a: party-aware TurnProcessor/FloorManager rules; run_ended/player_died events with SP subscribers (score, vault)
 
 ```yaml
-status: backlog
+status: done
 priority: high
 effort: 4h
 tags: [multiplayer, architecture]
 created: '2026-11-13T22:09:58Z'
-updated: '2026-11-13T22:10:07Z'
+updated: '2026-11-13T22:19:35Z'
 session: letorera-1113
-notes_next: 2
+links:
+  commits:
+  - 14b7590ee09d423f2d44128303778db0bde09113
+notes_next: 3
 ```
 
 <!-- notes: append-only log; each has a stable #id (see CLI §5) -->
 ### Notes
 - [#1 2026-11-13T22:10:07Z session:letorera-1113] Plan section 4a has the slice breakdown, gates and risks. 'player_ids' dropped: get_all_players() already reads entities (VB-23).
+- [#2 2026-11-13T22:19:35Z session:letorera-1113] TurnProcessor regen/game-over party-aware; core/run_end.py + on_run_end hook on TurnProcessor/FloorManager (hook, not events: events are VB-92). Placement stays in VB-91. Gate: suite 1470 passed; SP bot A/B identical 40/40 on two sets (normal, and deep start with 38/40 deaths so the death path ran).
 
 
 ## TASK-VB-90 · MP plan 2b: RoundScheduler (one action per living seat, SP = one seat); server ticks via TurnProcessor; delete _process_monster_turn and actions_per_round
@@ -2217,14 +2221,15 @@ priority: medium
 effort: 3h
 tags: [multiplayer, architecture]
 created: '2026-11-13T22:10:02Z'
-updated: '2026-11-13T22:10:07Z'
+updated: '2026-11-13T22:19:36Z'
 session: letorera-1113
 depends_on: [VB-89]
+notes_next: 2
 ```
 
 <!-- notes: append-only log; each has a stable #id (see CLI §5) -->
 ### Notes
-_(no notes yet)_
+- [#1 2026-11-13T22:19:36Z session:letorera-1113] VB-89 left an on_run_end(game_state, victory) hook on TurnProcessor/FloorManager (core/run_end.py is the SP default). 2d replaces it with run_ended/player_died events; MP passes its own subscriber instead of today's _record_scores.
 
 
 ## TASK-VB-93 · MP plan 2e: extract core Engine from Game; Game = SP shell, GameSession wraps it; MultiplayerGameState keeps seats only
