@@ -4,8 +4,8 @@
 
 **Document Type:** Architectural Analysis
 **Audience:** Architects, Lead Developers
-**Status:** Active
-**Last Updated:** 2026-01-13 (consolidated from COMPREHENSIVE_ANALYSIS.md dated 2025-11-06)
+**Status:** Active. Section "Current Assessment (2026-11-12)" is verified against the code; the sections after it are the 2026-01 analysis, kept for history and annotated where they no longer hold.
+**Last Updated:** 2026-11-12 (current assessment); 2026-01-13 (consolidated from COMPREHENSIVE_ANALYSIS.md dated 2025-11-06)
 **Source:** Extracted from archived comprehensive analysis
 
 ---
@@ -23,6 +23,32 @@ This document provides architectural assessment of the Veinborn codebase, coveri
 - `BASE_CLASS_ARCHITECTURE.md` - Core design patterns
 - ~~`LUA_INTEGRATION_STRATEGY.md`~~ (removed with Lua; see ADR-018)
 - `00_ARCHITECTURE_OVERVIEW.md` - High-level architecture
+
+---
+
+## Current Assessment (2026-11-12)
+
+Measured with reveal on `src/` (106 Python files, ~15.8k code lines). Re-run these to refresh:
+
+```bash
+reveal overview://src/                        # components, fan-in, import cycles
+reveal 'imports://src/?components'            # cohesion per component
+reveal metrics src/ --hotspots                # riskiest files
+reveal 'ast://src/?type=function&complexity>12&sort=-complexity'
+reveal check src/                             # rule findings (see false positives below)
+```
+
+### Structure (healthy)
+- No import cycles, no unused imports. `core` never imports `ui` or `server` (layering holds).
+- Most-imported files are the small stable base: `core/base/action.py`, `core/base/entity.py`, `core/extensions.py`, `core/base/game_context.py`.
+- Single-player (`core/game.py`) and multiplayer (`server/game_session/session.py`) share outcome handling through `core/action_pipeline.process_action_outcome`.
+- Content is registered, not hardcoded: `core/content/` is auto-imported (`load_content`) and registers AI behaviours, abilities, event handlers and item effects through `core/extensions.py` (ADR-018). `reveal check` reports these modules as "not imported anywhere" (M102): a false positive, they are loaded by name.
+- The event bus is live (`EventBus`, `install_event_handlers`); combat, damage and hit formulas are data in `data/balance/formulas.yaml`.
+
+### Known weaknesses
+- **Process singletons remain**: `GameRNG`, `LootGenerator`, `HighScoreManager`, `ConfigManager`. Per-game randomness must come from `context.get_rng()` (VB-18); a call that omits its `rng` argument falls back to the global stream, which a loaded save or a multiplayer game does not use. Game-over scoring still calls `HighScoreManager` directly from `turn_processor` and `floor_manager` rather than through events.
+- **User preferences drive gameplay**: autopickup reads `ConfigManager` (`~/.veinbornrc`). Bots and tests pin built-in defaults with `ConfigManager.use_defaults()` (VB-76); the multiplayer server still applies its host's file to every player.
+- **Complexity concentrates in a few functions**: `server/state_delta.compute_delta` (VB-26), `ui/multiplayer_client._handle_message`, `ui/textual/widgets/sidebar.render_content`, `core/systems/ai_system.abilities_for` (scored high by `or {}` defaults; short and readable, left as is).
 
 ---
 
@@ -116,6 +142,8 @@ entities_path = project_root / "data" / "entities"
 ```
 
 ### What's Hardcoded (NEEDS ATTENTION)
+
+*(2026-01 list. Since then hit and damage moved to `data/balance/formulas.yaml` and spawn bands to `monster_spawns.yaml` (floor_bands); check the code before acting on the rest.)*
 
 ```
 ❌ BSP dungeon generation      → world.py (algorithm hardcoded)
@@ -295,7 +323,9 @@ context.register_system('custom_system', my_system)
 
 ---
 
-## Architectural Weaknesses
+## Architectural Weaknesses (2026-01, historical)
+
+Status as of 2026-11-12: 1, 2 and 4 are resolved (event bus and content registries exist); 3 is partly resolved (spawn bands and counts are YAML, BSP is still code); 5 still holds (see Current Assessment).
 
 1. **Event System Missing**
    - Events are defined in ActionOutcome but not published
@@ -379,9 +409,9 @@ context.register_system('custom_system', my_system)
 
 ---
 
-## Current State (2026-04-17)
+## State as of 2026-04-17 (historical)
 
-**Test Coverage**: 1067 tests collected; 1065 passing / 0 failing / 2 skipped (verified after commit 33d72f7)
+**Test Coverage** (then): 1067 tests collected; 1065 passing / 0 failing / 2 skipped (verified after commit 33d72f7)
 
 **Code Quality**:
 - Complexity violations resolved (Phase 1-3 refactoring)

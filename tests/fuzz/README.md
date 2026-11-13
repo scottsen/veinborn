@@ -169,6 +169,12 @@ A seed fixes the whole game, so the same seed on the same code replays the same 
 change and compare game by game; 8 unseeded games could not separate a real effect from
 noise, paired seeds usually can.
 
+Bots ignore `~/.veinbornrc`: each game runs on built-in user preferences
+(`ConfigManager.use_defaults()`, VB-76), because autopickup reads them and a developer's
+`autopickup_types` changed what bots collected. To test a preference on purpose, set it
+in the environment, e.g. `VEINBORN_GAME_AUTOPICKUP_TYPES=ore,food,weapon,gold`. Runs made
+before 1fcbdfd used the machine's rc file and do not pair with later runs.
+
 ```bash
 # before the change (one file per class)
 for c in warrior rogue mage healer; do
