@@ -360,29 +360,14 @@ class VeinbornApp(App):
         """Drink a healing potion or eat food: the one that best covers missing HP."""
         if self.game.state.game_over:
             return
-        from core.actions.use_item_action import best_healing_item
-
-        player = self.game.state.player
-        item = best_healing_item(player)
-        if item is not None:
-            self.game.handle_player_action('use', item_id=item.entity_id)
-        elif player.hp >= player.max_hp:
-            self.game.state.add_message("You are already at full health.")
-        else:
-            self.game.state.add_message("You have nothing to eat or drink.")
+        self.game.quick_use()
         self.refresh_ui()
 
     async def action_drop_item(self) -> None:
         """Drop the item least worth carrying (gold, scrolls, worse gear first)."""
         if self.game.state.game_over:
             return
-        from core.actions.drop_action import least_useful_item
-
-        item = least_useful_item(self.game.state.player)
-        if item is None:
-            self.game.state.add_message("You have nothing to drop.")
-        else:
-            self.game.handle_player_action('drop', item_id=item.entity_id)
+        self.game.quick_drop()
         self.refresh_ui()
 
     async def action_pickup(self) -> None:

@@ -213,6 +213,32 @@ class Game:
 
         return False
 
+    def quick_use(self) -> bool:
+        """Use the healing item that best covers missing HP (potion or food).
+
+        One intent for every frontend; with nothing to use, a message says why
+        and no turn passes. Returns True if a turn was consumed.
+        """
+        from .actions.use_item_action import best_healing_item
+        player = self.state.player
+        item = best_healing_item(player)
+        if item is not None:
+            return self.handle_player_action('use', item_id=item.entity_id)
+        if player.hp >= player.max_hp:
+            self.state.add_message("You are already at full health.")
+        else:
+            self.state.add_message("You have nothing to eat or drink.")
+        return False
+
+    def quick_drop(self) -> bool:
+        """Drop the item least worth carrying; a message says so when there is none."""
+        from .actions.drop_action import least_useful_item
+        item = least_useful_item(self.state.player)
+        if item is None:
+            self.state.add_message("You have nothing to drop.")
+            return False
+        return self.handle_player_action('drop', item_id=item.entity_id)
+
     def _process_turn(self) -> None:
         """Process one game turn (delegated to TurnProcessor), then announce it."""
         self.turn_processor.process_turn()

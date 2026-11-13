@@ -50,3 +50,23 @@ def test_items_here_finds_only_living_items_on_the_players_tile(game):
     assert [l.entity_id for l in found] == [here.entity_id]
     msgs = ground_messages(found)
     assert msgs[0] == "=== Items on the ground (1) ===" and found[0].text in msgs[1]
+
+
+def test_quick_use_and_quick_drop_report_why_nothing_happened(game):
+    p, st = game.state.player, game.state
+    p.hp = p.max_hp
+    assert game.quick_use() is False
+    assert st.messages[-1] == "You are already at full health."
+    p.hp = p.max_hp - 1
+    assert game.quick_use() is False
+    assert st.messages[-1] == "You have nothing to eat or drink."
+    assert game.quick_drop() is False
+    assert st.messages[-1] == "You have nothing to drop."
+
+
+def test_quick_use_drinks_the_potion(game):
+    p = game.state.player
+    p.add_to_inventory(make('potion_healing'))
+    p.hp = 1
+    assert game.quick_use() is True
+    assert p.hp > 1 and not p.inventory
