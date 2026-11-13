@@ -1883,7 +1883,7 @@ priority: medium
 effort: 1-2d
 tags: [architecture, refactor, ui, multiplayer]
 created: '2026-11-13T01:46:32Z'
-updated: '2026-11-13T01:46:32Z'
+updated: '2026-11-13T20:57:03Z'
 session: mustard-sunset-1112
 depends_on: [VB-77]
 links:
@@ -1896,6 +1896,7 @@ links:
   - VB-44
   - VB-26
   - VB-24
+notes_next: 3
 ```
 
 Found 2026-11-12 (session mustard-sunset-1112). Every Textual widget reads live domain objects (map_widget._get_entity_at walks game_state.entities; _render_cell reads game_map.tiles and imports TileType/EntityType; sidebar calls player.get_total_attack(), xp_for_next_level(), equipped_weapon, cooldowns). There is no render contract between core and UI. Separately, src/server/multiplayer_game_state.get_state_dict is a hand-rolled 85-line serializer that is a second, different description of the same state: it sends base attack/defense only (not totals including gear), no equipped weapon/armor, no XP/level/cooldowns, so a multiplayer client rendering it could not show what the single-player sidebar shows. Two state models also exist (core GameState vs MultiplayerGameState; see VB-24, VB-25 for earlier pipeline/floor duplication).
@@ -1903,7 +1904,8 @@ Proposed: a core function (e.g. Game.snapshot() / a Snapshot dataclass with to_d
 
 <!-- notes: append-only log; each has a stable #id (see CLI §5) -->
 ### Notes
-_(no notes yet)_
+- [#1 2026-11-13T20:55:49Z session:chartreuse-filter-1113] Stage 1 done: core/snapshot.py (build_snapshot -> Snapshot/PlayerView/EntityView/MapView, to_dict, JSON-safe; no fog, same view as before; viewer arg is the hook) and the 4 TUI widgets render from it (map caches one snapshot per refresh_ui). entity-rendering tests rewritten on real state. Stage 2 open: server get_state_dict from the snapshot + state_delta (wire format: players/monsters/map keys are consumed by ui/multiplayer_client + server/test_client). Fog (perception.FogOfWar exists, TUI does not use it) is a gameplay decision, deliberately not in v1.
+- [#2 2026-11-13T20:57:03Z session:chartreuse-filter-1113] Stage 2 done (partial): get_state_dict players now built with build_snapshot(viewer=player): stats are gear-inclusive totals + level/xp/xp_next, new equipment + abilities keys, StateDelta diffs them. Existing keys kept so test_client/MultiplayerClient are unchanged. NOT done: monsters/map still Entity.to_dict()/Map.to_dict() (not snapshot), no client renders from it yet (VB-44). Decide whether to close VB-78 or keep it open until get_state_dict's monsters/map also come from the snapshot.
 
 
 ## TASK-VB-79 · Emit semantic render IDs in the snapshot; make glyph/colour a per-frontend data mapping
