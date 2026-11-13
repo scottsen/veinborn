@@ -47,9 +47,14 @@ monster_counts:
 # Why: crafted gear stops improving around floor 12 and player level around 50,
 # but the game runs to floor 100, so without this deeper floors are no harder.
 # A monster with `floor_scaling: false` in monsters.yaml keeps its own stats (a boss).
-# Measured with scripts/sim_duels.py and bot long runs; see VB-75 in TASKS.md.
+# Measured with scripts/sim_duels.py and bot long runs (4 classes x 24 games x 20000
+# turns, e25e163; VB-75 in TASKS.md). Deaths, median floor reached:
+#   0.00:  3 of 96 (all on floors 1-3), floor 73. Nothing past floor 3 is a threat.
+#   0.02: 59 of 96 (16 on floors 41-60, 39 on 61-98), floor 65.5. Chosen: harmless
+#         until about floor 40, then the back half of the game gets hard.
+#   0.03: 95 of 96 (85 on floors 41-60), floor 48. A wall at the phoenix band.
 floor_scaling:
-  per_floor: 0.0
+  per_floor: 0.02
   stats: [hp, attack, defense]
 
 # Bosses (VB-75): exactly one of this monster is placed on that floor, on top of the
