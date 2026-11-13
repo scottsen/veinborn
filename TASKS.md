@@ -1722,14 +1722,17 @@ notes_next: 3
 ## TASK-VB-72 · Shields can never be equipped: items.yaml shield has item_type 'shield', EquipAction accepts only weapon/armor; goblin, orc and troll loot tables drop them
 
 ```yaml
-status: backlog
+status: done
 priority: medium
 effort: 1-2h
 tags: [bug, items, equipment, loot]
 created: '2026-11-12T21:31:34Z'
-updated: '2026-11-13T19:23:11Z'
+updated: '2026-11-13T19:36:58Z'
 session: serene-cyclone-1112
-notes_next: 4
+links:
+  commits:
+  - e6984a525a62a0826ef938403defba026d8b680b
+notes_next: 5
 ```
 
 <!-- notes: append-only log; each has a stable #id (see CLI §5) -->
@@ -1737,6 +1740,7 @@ notes_next: 4
 - [#1 2026-11-12T21:31:41Z session:serene-cyclone-1112] Found 2026-11-12 (serene-cyclone-1112) adding sim_duels --gear. Runtime check: LootGenerator.create_item('shield') then EquipAction(...).validate(ctx) -> False, log 'invalid equipment slot' (chainmail -> True as control). reveal src --grep shield: 0 hits, so no off-hand slot exists anywhere. Drops: goblin armor 30%, orc 20%, troll 20% of armor rolls; each one is inventory clutter. Options: (a) off-hand slot (Player.equipped_shield, get_total_defense, save/load VB-19 path, TUI, bot equip logic), (b) retag shield as armor (it then competes with body armor, so nobody wears it), (c) drop shields from loot tables until (a). (a) is the real fix; (c) is a 2-line stopgap. Design call for Scott.
 - [#2 2026-11-12T21:53:33Z session:serene-cyclone-1112] VB-73 (d06ac7d) gives a stopgap: shields rank as 'no use' in least_useful_item, so players can drop them with 'd' and bots drop them when the pack is full. The equip slot itself is still open.
 - [#3 2026-11-13T19:23:11Z session:unexplored-thruster-1113] f8f2876 centralised the slot rule in core/equipment.py (SLOT_ATTR, gear_slot, GEAR_SLOTS) and the equipment screen lists only weapon/armor. An off-hand slot is now a data change there plus Player.equipped_shield, get_total_defense, save/load; still Scott's call.
+- [#4 2026-11-13T19:36:58Z session:unexplored-thruster-1113] Option (a): shield slot. core/equipment.py GEAR_SLOTS/SLOT_ATTR gained 'shield'; Player.equipped_shield feeds get_total_defense; save/load (old saves load with none); sidebar line; equipment screen lists it; bot perception now uses core's worn_item/gear_bonus (any slot). Paired 3000-turn A/B (128 pairs, seeds 1000+): floor +0.15 [+0.02,+0.28], damage taken -1.5, 114/128 identical, so the VB-75 baselines still stand.
 
 
 ## TASK-VB-73 · No way to drop items: the 20-slot pack fills with unusable things (gold piles, shields, scrolls, rings, worse weapons) and then mined ore is lost and crafting stops for the rest of the game
