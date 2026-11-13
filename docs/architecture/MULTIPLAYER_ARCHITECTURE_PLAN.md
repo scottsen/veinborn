@@ -249,6 +249,54 @@ identical, since a party of one must behave exactly as before).
 describes the real model once, instead of being reshaped after. Doing the client (4) last
 means it is built on the final contracts; Phase 0 gives a playable smoke test meanwhile.
 
+### 4a. Phase 2 breakdown (re-measured 2026-11-13, after Phase 0+1)
+
+Phases 0 and 1 are done (VB-88). Measuring the code again changes two assumptions in the
+table above, so the slices below replace its Phase 2 cell.
+
+**What the re-measure found**
+- **No `player_ids` list is needed.** `GameContext.get_all_players()` / `get_alive_players()`
+  already read every `EntityType.PLAYER` from `entities` (VB-23), and `GameState` keeps
+  `.player` in that store. Slice (a) is therefore "stop reading `state.player` where a rule
+  means *the party*", not "add a list".
+- **The single-player assumption is narrower than "41 sites".** Outside `src/ui` there are 21
+  `state.player`/`get_player()` reads. Party-rule sites that must change: `TurnProcessor`
+  (log line, regen, `_check_game_over`, `_save_legacy_ore`, high score), `FloorManager`
+  (`_place_player_at_stairs`, `_check_victory`, log lines). Fine as they are: `snapshot`
+  (viewer default), `item_listing`, `highscore` (explicit `player=` already exists),
+  `save_load` (single-player saves), `Game` (SP shell), `ActionFactory` (default actor).
+- **MP's `descend_floor` differs from SP's in exactly three ways:** it repositions N players
+  (`find_player_spawn_positions`), it skips high score/vault, and `clear_floor_entities` must
+  keep every player (`clear_floor_entities(keep_ids=...)` already supports it).
+- **`TurnProcessor` and the MP monster turn differ only by:** wanderers, `turn_ended`,
+  `_check_game_over` (SP: the player is dead; MP: every player is dead).
+
+**Slices (each lands green; SP bot A/B must stay identical through (a)-(c))**
+
+| Slice | Change | Test gate | Size |
+|---|---|---|---|
+| **2a. Party-aware rules** | `TurnProcessor` regen over `get_alive_players()`, `_check_game_over` = no living player; `FloorManager` victory/placement take the party. End-of-run side effects (SP high score, Legacy Vault) move behind a `run_ended` / `player_died` event with SP subscribers (this is slice 2d's seam, done here so 2a does not hard-code SP). | suite; SP bot A/B identical; new unit tests with a 2-player `GameState` (one dies: game continues; both die: game over, one `run_ended`) | M |
+| **2b. RoundScheduler** | `core/turn_scheduler.py`: `RoundScheduler(get_living_seats)` with `after_action(actor_id, took_turn) -> bool`. The server calls it instead of `actions_this_round >= actions_per_round`; a second action in the same round is rejected with "waiting for the party"; dead seats leave the owed set. SP uses the same scheduler with one seat. `actions_per_round` is deleted. Server round tick calls `TurnProcessor.process_turn` and `_process_monster_turn` is deleted (MP gains wanderers and `turn_ended`). | suite; SP A/B identical; scheduler unit tests (free action does not count, death mid-round, 1/2/4 seats, dropped seat); real-socket test: 2 clients, one acts twice and is refused | M |
+| **2c. N-player floor change** | `FloorManager.descend_floor` places the whole party (spawn positions from `find_player_spawn_positions`), keeps all players when clearing (pass every player id as `keep_ids`; SP passes none today); delete `MultiplayerGameState.descend_floor`/`_reposition`/`_spawn_floor_entities`/`_clear_non_player_entities`/`_get_victory_floor`; MP gets `floor_changed`. Descend stays "any one player on the stairs moves the whole party" (existing MP rule); revisit only if you rule otherwise. | suite; SP A/B identical; MP descend test on 3 players; `floor_changed` seen by a subscriber | S-M |
+| **2d. Events and handlers** | `player_died` / `run_ended` published by the engine; `GameSession` subscribes `_record_scores` (co-op leaderboard); `game_started` published; `install_event_handlers` run for MP (closes VB-55; VB-54 persistence stays separate). | suite; achievement fires in a 2-client test; no double scoring | S-M |
+| **2e. Engine extraction** | `core/engine.py`: owns state, context, `ActionFactory`, `TurnProcessor`, `FloorManager`, scheduler, event bus; `process(actor_id, intent, **args) -> Result`. `Game` becomes a thin SP shell around it (save/load, restart, quick_use), `GameSession` wraps it (seats, lock, transport). `MultiplayerGameState` keeps seat/slot bookkeeping only; its rules are gone. | suite; SP A/B identical; MP real-socket tests unchanged | L |
+
+**Order and dependencies:** 2a -> 2b -> 2c are sequential (each needs the party-aware rules
+before it). 2d can start after 2a (its seam is created there). 2e last, since it only moves
+code that 2a-2d have already unified. Rough total: 2-3 working days.
+
+**Where it can go wrong**
+- *2a SP drift:* the `run_ended` indirection must publish at the same point `_check_game_over`
+  ran, or the SP high score/vault order of side effects changes. A/B covers outcomes, not
+  side-effect order, so add a test that SP death still writes exactly one score and one vault record.
+- *2b round semantics in SP:* with one seat, `after_action` must return True after every
+  turn-consuming action. The A/B detects any difference.
+- *2c fairness of "anyone descends":* a player rushing the stairs drags the party down. This is
+  today's behaviour; not a regression, but flagged here because the round ruling makes MP
+  slower and more deliberate.
+- *Session lock:* the scheduler lives inside the existing `GameSession._lock` section, so no new
+  concurrency rules.
+
 ---
 
 ## 5. Risks and how the plan handles them
