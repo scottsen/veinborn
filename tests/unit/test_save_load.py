@@ -516,3 +516,14 @@ class TestVB19DataFidelity:
         save_system.save_game(sample_state, "blocks_test")
         loaded = save_system.load_game("blocks_test")
         assert loaded.player.blocks_movement is True
+
+
+def test_equipped_shield_round_trips_and_old_saves_load_without_one(save_system, sample_state):
+    from core.loot import LootGenerator
+    shield = LootGenerator.get_instance().create_item('shield')
+    sample_state.player.equipped_shield = shield
+    data = save_system._serialize_entity(sample_state.player)
+    assert save_system._deserialize_entity(data).equipped_shield.name == shield.name
+
+    data.pop('equipped_shield')                      # a save from before VB-72
+    assert save_system._deserialize_entity(data).equipped_shield is None

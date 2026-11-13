@@ -111,7 +111,7 @@ def test_full_pack_drops_junk_before_anything_useful():
     game, planner = warrior()
     player = game.state.player
     player.inventory.clear()
-    shield = LootGenerator.get_instance().create_item('shield')      # cannot be worn (VB-72)
+    shield = LootGenerator.get_instance().create_item('gold_pile_small')    # no use
     player.add_to_inventory(shield)
     while len(player.inventory) < planner_module.INVENTORY_MAX:
         player.add_to_inventory(potion())

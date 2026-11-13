@@ -221,7 +221,7 @@ def equip(ctx, player, gear):
         player.add_to_inventory(item)
         action = EquipAction(player.entity_id, item.entity_id)
         if not action.validate(ctx):
-            raise SystemExit(f"--gear {item_id}: not equippable (only weapon and armor slots exist)")
+            raise SystemExit(f"--gear {item_id}: not equippable (not weapon, armor or shield gear)")
         action.execute(ctx)
 
 

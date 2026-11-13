@@ -17,7 +17,7 @@ from typing import Optional
 
 from ..base.action import Action, ActionOutcome
 from ..base.game_context import GameContext
-from ..equipment import GEAR_SLOTS, gear_bonus, gear_slot  # noqa: F401 (re-exported for the bots)
+from ..equipment import GEAR_SLOTS, SLOT_ATTR, gear_bonus, gear_slot  # noqa: F401 (re-exported for the bots)
 from .use_item_action import usable_effect
 
 logger = logging.getLogger(__name__)
@@ -39,7 +39,7 @@ def usefulness(actor, item) -> int:
         return ORE
     slot = gear_slot(item)
     if slot:
-        worn = getattr(actor, 'equipped_weapon' if slot == 'weapon' else 'equipped_armor', None)
+        worn = getattr(actor, SLOT_ATTR[slot], None)
         if worn is not None and gear_bonus(item, slot) <= gear_bonus(worn, slot):
             return WORSE_GEAR
         return OTHER

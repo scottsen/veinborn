@@ -92,12 +92,49 @@ def test_unequip_empty_or_unknown_slot_fails_cleanly(game):
     assert len(p.inventory) == n
 
 
-def test_equip_refuses_non_gear_and_shield(game):
-    for item_id in ('potion_healing', 'shield'):
-        item = give(game, item_id)
-        game.handle_player_action('equip', item_id=item.entity_id)
-        assert game.state.player.equipped_weapon is None
-        assert game.state.player.equipped_armor is None
+def test_equip_refuses_non_gear(game):
+    item = give(game, 'potion_healing')
+    game.handle_player_action('equip', item_id=item.entity_id)
+    p = game.state.player
+    assert p.equipped_weapon is None and p.equipped_armor is None and p.equipped_shield is None
+
+
+def test_shield_is_worn_alongside_armor_and_adds_defense(game):
+    p = game.state.player
+    base = p.get_total_defense()
+    mail = give(game, 'chainmail')
+    shield = give(game, 'shield')
+    game.handle_player_action('equip', item_id=mail.entity_id)
+    with_mail = p.get_total_defense()
+    game.handle_player_action('equip', item_id=shield.entity_id)
+
+    assert p.equipped_shield is shield and p.equipped_armor is mail   # separate slots
+    assert shield not in p.inventory
+    assert p.get_total_defense() == with_mail + shield.get_stat('defense_bonus') > base
+
+    game.handle_player_action('unequip', slot='shield')
+    assert p.equipped_shield is None and shield in p.inventory
+    assert p.get_total_defense() == with_mail
+
+
+def test_second_shield_swaps_and_the_old_one_returns_to_the_pack(game):
+    p = game.state.player
+    first, second = give(game, 'shield'), give(game, 'shield')
+    second.set_stat('defense_bonus', 5)
+    game.handle_player_action('equip', item_id=first.entity_id)
+    game.handle_player_action('equip', item_id=second.entity_id)
+    assert p.equipped_shield is second and first in p.inventory
+
+
+def test_a_worse_spare_shield_is_junk_a_better_one_is_not(game):
+    from core.actions.drop_action import WORSE_GEAR, usefulness
+    p = game.state.player
+    worn = give(game, 'shield')
+    game.handle_player_action('equip', item_id=worn.entity_id)
+    spare = give(game, 'shield')
+    assert usefulness(p, spare) == WORSE_GEAR
+    spare.set_stat('defense_bonus', worn.get_stat('defense_bonus') + 1)
+    assert usefulness(p, spare) != WORSE_GEAR
 
 
 def test_unequip_action_round_trips_for_the_server():
@@ -110,13 +147,13 @@ def test_listing_shows_worn_slots_and_only_wearable_pack_items(game):
     dagger = give(game, 'dagger')
     sword = give(game, 'long_sword')
     give(game, 'potion_healing')
-    give(game, 'shield')
+    shield = give(game, 'shield')
     game.handle_player_action('equip', item_id=dagger.entity_id)
 
     worn, carried = equipment_listing(p)
 
-    assert [(l.slot, l.item) for l in worn] == [('weapon', dagger), ('armor', None)]
-    assert [l.item for l in carried] == [sword]                 # no potion, no shield
+    assert [(l.slot, l.item) for l in worn] == [('weapon', dagger), ('armor', None), ('shield', None)]
+    assert [l.item for l in carried] == [sword, shield]         # the potion is not gear
     assert carried[0].change == carried[0].bonus - worn[0].bonus > 0
     assert worn[1].text() == "Armor: (nothing)"
     assert "vs worn" in carried[0].text()

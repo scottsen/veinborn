@@ -84,7 +84,7 @@ def test_gear_is_equipped_through_equip_action_and_changes_the_odds(sim, loader)
 
 def test_unequippable_gear_is_refused(sim, loader):
     with pytest.raises(SystemExit, match='not equippable'):
-        sim.duel(CharacterClass.WARRIOR, 1, 'goblin', loader, sim.open_arena(), gear=['shield'])
+        sim.duel(CharacterClass.WARRIOR, 1, 'goblin', loader, sim.open_arena(), gear=['potion_healing'])
 
 
 def test_recipe_gear_is_crafted_at_the_given_quality(sim):

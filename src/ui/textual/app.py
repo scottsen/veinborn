@@ -382,7 +382,7 @@ class VeinbornApp(App):
         self.refresh_ui()
 
     async def action_drop_item(self) -> None:
-        """Drop the item least worth carrying (gold, shields, scrolls, worse gear first)."""
+        """Drop the item least worth carrying (gold, scrolls, worse gear first)."""
         if self.game.state.game_over:
             return
         from core.actions.drop_action import least_useful_item

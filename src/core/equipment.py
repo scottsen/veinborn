@@ -10,11 +10,11 @@ state.
 from dataclasses import dataclass
 from typing import List, Optional, Tuple
 
-GEAR_SLOTS = ('weapon', 'armor')
+GEAR_SLOTS = ('weapon', 'armor', 'shield')
 
 
 def gear_slot(item) -> Optional[str]:
-    """'weapon' or 'armor' if the item can be equipped (EquipAction's rule), else None."""
+    """'weapon', 'armor' or 'shield' if the item can be equipped (EquipAction's rule), else None."""
     slot = item.get_stat('equipment_slot') or item.get_stat('item_type')
     return slot if slot in GEAR_SLOTS else None
 
@@ -24,9 +24,9 @@ def gear_bonus(item, slot) -> int:
     return item.get_stat('attack_bonus' if slot == 'weapon' else 'defense_bonus', 0)
 
 
-SLOT_ATTR = {'weapon': 'equipped_weapon', 'armor': 'equipped_armor'}
-SLOT_STAT = {'weapon': 'attack', 'armor': 'defense'}
-SLOT_LABEL = {'weapon': 'Weapon', 'armor': 'Armor'}
+SLOT_ATTR = {'weapon': 'equipped_weapon', 'armor': 'equipped_armor', 'shield': 'equipped_shield'}
+SLOT_STAT = {'weapon': 'attack', 'armor': 'defense', 'shield': 'defense'}
+SLOT_LABEL = {'weapon': 'Weapon', 'armor': 'Armor', 'shield': 'Shield'}
 
 
 def worn_item(player, slot: str):

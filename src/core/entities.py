@@ -64,6 +64,7 @@ class Player(Entity):
         self.inventory: List[Entity] = []
         self.equipped_weapon: Optional[Entity] = None
         self.equipped_armor: Optional[Entity] = None
+        self.equipped_shield: Optional[Entity] = None   # off-hand (VB-72)
         self.set_stat('xp', 0)
         self.set_stat('level', 1)
 
@@ -160,12 +161,14 @@ class Player(Entity):
         Get total defense including armor bonus.
 
         Returns:
-            Base defense + armor defense bonus (if equipped)
+            Base defense + armor and shield defense bonuses (if equipped)
         """
         total = self.defense
         if self.equipped_armor:
             armor_bonus = self.equipped_armor.get_stat('defense_bonus', 0)
             total += armor_bonus
+        if self.equipped_shield:
+            total += self.equipped_shield.get_stat('defense_bonus', 0)
         return total
 
 

@@ -344,43 +344,16 @@ class PerceptionService:
         # Crafted gear has equipment_slot, looted gear only item_type: core's gear_slot
         # reads both, as EquipAction does (ore may carry bonuses but isn't equippable).
         # Reading equipment_slot alone left every looted weapon and armor unworn (VB-73).
-        from core.actions.drop_action import gear_slot
+        from core.equipment import gear_bonus, gear_slot, worn_item
         for item in player.inventory:
             equipment_slot = gear_slot(item)
-            is_equipped_stat = item.get_stat('equipped', False)
-
-            if equipment_slot:
-                # Skip if item has 'equipped' stat set to True
-                if is_equipped_stat:
-                    continue
-
-                # FIX EQUIP SPAM: Also check if this exact item is already equipped
-                # by comparing to actor.equipped_weapon or actor.equipped_armor
-                # (Some items may not have 'equipped' stat but are still equipped)
-                if equipment_slot == 'weapon':
-                    # Skip if this item is already the equipped weapon
-                    if hasattr(player, 'equipped_weapon') and player.equipped_weapon:
-                        if player.equipped_weapon.entity_id == item.entity_id:
-                            continue
-                        # NEW: Check if this is an upgrade (only equip better weapons)
-                        current_attack = player.equipped_weapon.get_stat('attack_bonus', 0)
-                        new_attack = item.get_stat('attack_bonus', 0)
-                        if new_attack <= current_attack:
-                            continue  # Not an upgrade, skip it
-
-                elif equipment_slot == 'armor':
-                    # Skip if this item is already the equipped armor
-                    if hasattr(player, 'equipped_armor') and player.equipped_armor:
-                        if player.equipped_armor.entity_id == item.entity_id:
-                            continue
-                        # NEW: Check if this is an upgrade (only equip better armor)
-                        current_defense = player.equipped_armor.get_stat('defense_bonus', 0)
-                        new_defense = item.get_stat('defense_bonus', 0)
-                        if new_defense <= current_defense:
-                            continue  # Not an upgrade, skip it
-
-                # This item passed all checks - it's an upgrade!
-                return item
+            if not equipment_slot or item.get_stat('equipped', False):
+                continue
+            worn = worn_item(player, equipment_slot)
+            # Wear it only if it beats what is worn in its slot (no equip spam)
+            if worn is not None and gear_bonus(item, equipment_slot) <= gear_bonus(worn, equipment_slot):
+                continue
+            return item
 
         return None
 
@@ -411,7 +384,7 @@ class PerceptionService:
                 continue
             stats = recipe_manager.preview_stats(recipe.recipe_id, player.inventory)
             new = (stats or {}).get('attack_bonus' if slot == 'weapon' else 'defense_bonus', 0)
-            worn = player.equipped_weapon if slot == 'weapon' else player.equipped_armor
+            worn = player.equipped_weapon if slot == 'weapon' else player.equipped_armor   # recipes make weapon/armor only
             gain = new - (gear_bonus(worn, slot) if worn is not None else 0)
             if gain > best_gain:
                 best, best_gain = recipe.recipe_id, gain

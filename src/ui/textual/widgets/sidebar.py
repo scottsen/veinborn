@@ -43,7 +43,9 @@ class Sidebar(Static):
         weapon = getattr(player, 'equipped_weapon', None)
         armor = getattr(player, 'equipped_armor', None)
         text.append(f"Weapon: {weapon.name if weapon else '-'}\n")
-        text.append(f"Armor: {armor.name if armor else '-'}\n\n")
+        shield = getattr(player, 'equipped_shield', None)
+        text.append(f"Armor: {armor.name if armor else '-'}\n")
+        text.append(f"Shield: {shield.name if shield else '-'}\n\n")
 
         # Show inventory only if InventoryWidget is hidden (for default layout)
         # Skip if using split-sidebars layout (InventoryWidget has its own panel on left)

@@ -3,7 +3,7 @@ import pytest
 
 from core.actions import ACTION_TYPES
 from core.actions.drop_action import (
-    DropAction, HEALING, NO_USE, ORE, WORSE_GEAR, least_useful_item, usefulness,
+    DropAction, HEALING, NO_USE, ORE, OTHER, WORSE_GEAR, least_useful_item, usefulness,
 )
 from core.base.entity import EntityType
 from core.game import Game
@@ -71,7 +71,7 @@ def test_autopickup_leaves_your_own_drop_but_pickup_takes_it(game):
 
 def test_usefulness_tiers(game):
     p = game.state.player
-    assert usefulness(p, give(game, 'shield')) == NO_USE          # no slot exists (VB-72)
+    assert usefulness(p, give(game, 'shield')) == OTHER           # nothing in the off-hand: worth wearing
     assert usefulness(p, give(game, 'scroll_identify')) == NO_USE  # effect not built
     assert usefulness(p, give(game, 'gold_pile_small')) == NO_USE
     assert usefulness(p, give(game, 'potion_healing')) == HEALING
@@ -82,7 +82,7 @@ def test_usefulness_tiers(game):
 
 def test_least_useful_drops_junk_before_gear_ore_and_healing(game):
     potion = give(game, 'potion_healing')
-    shield = give(game, 'shield')                     # value 25
+    shield = give(game, 'scroll_identify')            # effect not built: no use
     gold = give(game, 'gold_pile_small')
     p = game.state.player
     first = least_useful_item(p)
