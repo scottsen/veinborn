@@ -13,6 +13,7 @@ from ..base.action import Action, ActionOutcome
 from ..base.game_context import GameContext
 from ..base.entity import EntityType
 from ..entities import Player
+from .pickup_action import items_at, take_item
 
 logger = logging.getLogger(__name__)
 
@@ -217,14 +218,7 @@ class MoveAction(Action):
         autopickup_types_str = config.get('game.autopickup_types', 'ore,food,weapon')
         autopickup_types = [t.strip().lower() for t in autopickup_types_str.split(',')]
 
-        # Find items at current position
-        items_at_position = [
-            e for e in context.game_state.entities.values()
-            if e.entity_type == EntityType.ITEM and e.x == x and e.y == y and e.is_alive
-        ]
-
-        # Pickup matching items
-        for item in items_at_position:
+        for item in items_at(context, x, y):
             item_type = item.get_stat('item_type', 'unknown').lower()
 
             # Something this player dropped on purpose stays put ('g' still takes it)
@@ -236,16 +230,8 @@ class MoveAction(Action):
                 logger.debug(f"Skipping item {item.name} (type {item_type} not in autopickup types)")
                 continue
 
-            # Try to add to inventory
-            if actor.add_to_inventory(item):
+            if take_item(actor, item, outcome, (x, y)):
                 outcome.messages.append(f"Picked up {item.name}")
-                outcome.events.append({
-                    'type': 'item_picked_up',
-                    'actor_id': self.actor_id,
-                    'item_id': item.entity_id,
-                    'item_name': item.name,
-                    'position': (x, y),
-                })
                 logger.info(f"Autopickup: {actor.name} picked up {item.name}")
             else:
                 outcome.messages.append(f"Inventory full! Could not pick up {item.name}")
