@@ -4,11 +4,10 @@ Tests for entity rendering to prevent invisible entity bugs.
 Ensures every EntityType has proper rendering logic in MapWidget.
 """
 import pytest
-from unittest.mock import Mock, MagicMock
-from dataclasses import dataclass
-
 from core.base.entity import EntityType, Entity
 from core.entities import Player, Monster, OreVein, Forge
+from core.game import Game
+from core.snapshot import build_snapshot
 from ui.textual.widgets.map_widget import MapWidget
 
 
@@ -16,12 +15,18 @@ from ui.textual.widgets.map_widget import MapWidget
 TERRAIN_SYMBOLS = {'·', '█', '+', '<', '>', ' ', '?'}
 
 
-@dataclass
-class MockGameState:
-    """Minimal game state for rendering tests."""
-    player: Entity
-    entities: dict
-    dungeon_map: Mock
+def cell(player, *entities, x=5, y=5):
+    """Render map cell (x, y) of a real game state holding `player` and `entities`."""
+    game = Game()
+    game.start_new_game(seed=3)
+    state = game.state
+    state.entities.clear()
+    state.player = player
+    state.entities[player.entity_id] = player
+    for ent in entities:
+        state.entities[ent.entity_id] = ent
+    widget = MapWidget(game_state=state)
+    return widget._render_cell(x, y, build_snapshot(state))
 
 
 def create_entity_by_type(entity_type: EntityType, x: int = 5, y: int = 5) -> Entity:
@@ -82,26 +87,7 @@ def test_all_entity_types_have_visible_symbols(entity_type):
     player = Player(name="Player", x=0, y=0, hp=20, max_hp=20, attack=5, defense=2)
     entity = create_entity_by_type(entity_type, x=5, y=5)
 
-    # Mock map with tiles grid
-    mock_tile = Mock()
-    mock_tile.tile_type = Mock()
-    mock_tile.tile_type.name = 'FLOOR'
-
-    mock_map = Mock()
-    mock_map.width = 50
-    mock_map.height = 50
-    mock_map.tiles = [[mock_tile for _ in range(50)] for _ in range(50)]
-
-    game_state = MockGameState(
-        player=player,
-        entities={entity.entity_id: entity},
-        dungeon_map=mock_map
-    )
-
-    widget = MapWidget(game_state=game_state)
-
-    # Render the cell containing the entity
-    segment = widget._render_cell(5, 5, player, mock_map)
+    segment = cell(player, entity)
 
     # Assertions
     assert segment.text not in TERRAIN_SYMBOLS, \
@@ -121,24 +107,7 @@ def test_player_renders_distinctly():
     """Player must always render as '@' in bright yellow."""
     player = Player(name="Player", x=5, y=5, hp=20, max_hp=20, attack=5, defense=2)
 
-    # Mock map with tiles grid
-    mock_tile = Mock()
-    mock_tile.tile_type = Mock()
-    mock_tile.tile_type.name = 'FLOOR'
-
-    mock_map = Mock()
-    mock_map.width = 50
-    mock_map.height = 50
-    mock_map.tiles = [[mock_tile for _ in range(50)] for _ in range(50)]
-
-    game_state = MockGameState(
-        player=player,
-        entities={player.entity_id: player},
-        dungeon_map=mock_map
-    )
-
-    widget = MapWidget(game_state=game_state)
-    segment = widget._render_cell(5, 5, player, mock_map)
+    segment = cell(player)
 
     assert segment.text == '@', "Player must render as '@'"
     assert 'yellow' in segment.style.color.name.lower(), "Player must be yellow/bright_yellow"
@@ -153,24 +122,7 @@ def test_forge_visibility_regression():
     player = Player(name="Player", x=0, y=0, hp=20, max_hp=20, attack=5, defense=2)
     forge = Forge(forge_type="basic_forge", x=5, y=5)
 
-    # Mock map with tiles grid
-    mock_tile = Mock()
-    mock_tile.tile_type = Mock()
-    mock_tile.tile_type.name = 'FLOOR'
-
-    mock_map = Mock()
-    mock_map.width = 50
-    mock_map.height = 50
-    mock_map.tiles = [[mock_tile for _ in range(50)] for _ in range(50)]
-
-    game_state = MockGameState(
-        player=player,
-        entities={forge.entity_id: forge},
-        dungeon_map=mock_map
-    )
-
-    widget = MapWidget(game_state=game_state)
-    segment = widget._render_cell(5, 5, player, mock_map)
+    segment = cell(player, forge)
 
     # Forges should render as '&' (from forges.yaml spec)
     assert segment.text == '&', f"Forge should render as '&', got '{segment.text}'"
@@ -186,25 +138,7 @@ def test_multiple_entities_same_cell_priority():
     player = Player(name="Player", x=5, y=5, hp=20, max_hp=20, attack=5, defense=2)
     monster = Monster(name="Goblin", x=5, y=5, hp=10, max_hp=10, attack=3, defense=1, xp_reward=5)
 
-    # Mock map with tiles grid
-    mock_tile = Mock()
-    mock_tile.tile_type = Mock()
-    mock_tile.tile_type.name = 'FLOOR'
-
-    mock_map = Mock()
-    mock_map.width = 50
-    mock_map.height = 50
-    mock_map.tiles = [[mock_tile for _ in range(50)] for _ in range(50)]
-
-    # Both player and monster at (5,5)
-    game_state = MockGameState(
-        player=player,
-        entities={player.entity_id: player, monster.entity_id: monster},
-        dungeon_map=mock_map
-    )
-
-    widget = MapWidget(game_state=game_state)
-    segment = widget._render_cell(5, 5, player, mock_map)
+    segment = cell(player, monster)
 
     # Player should render (higher priority)
     assert segment.text == '@', "Player should have rendering priority over monsters"
@@ -222,25 +156,27 @@ def test_ore_vein_colors(ore_type, expected_color):
     ore = OreVein(ore_type=ore_type, x=5, y=5, hardness=50, conductivity=50,
                   malleability=50, purity=50, density=50)
 
-    # Mock map with tiles grid
-    mock_tile = Mock()
-    mock_tile.tile_type = Mock()
-    mock_tile.tile_type.name = 'FLOOR'
-
-    mock_map = Mock()
-    mock_map.width = 50
-    mock_map.height = 50
-    mock_map.tiles = [[mock_tile for _ in range(50)] for _ in range(50)]
-
-    game_state = MockGameState(
-        player=player,
-        entities={ore.entity_id: ore},
-        dungeon_map=mock_map
-    )
-
-    widget = MapWidget(game_state=game_state)
-    segment = widget._render_cell(5, 5, player, mock_map)
+    segment = cell(player, ore)
 
     assert segment.text == '*', f"{ore_type} ore should render as '*'"
     assert expected_color in segment.style.color.name.lower(), \
         f"{ore_type} ore should be {expected_color}, got {segment.style.color}"
+
+
+def test_bare_cells_render_the_terrain_from_the_snapshot():
+    """Terrain comes from snapshot tiles: walls as blocks, floor as dots, off-map as blank."""
+    game = Game()
+    game.start_new_game(seed=3)
+    state = game.state
+    state.entities.clear()
+    state.entities[state.player.entity_id] = state.player
+    m = state.dungeon_map
+    widget = MapWidget(game_state=state)
+    snap = build_snapshot(state)
+    seen = set()
+    for y in range(m.height):
+        for x in range(m.width):
+            if (x, y) != (state.player.x, state.player.y):
+                seen.add(widget._render_cell(x, y, snap).text)
+    assert seen == {'█', '·'} | (seen & {'+', '<', '>'})
+    assert widget._render_cell(m.width, 0, snap).text == ' '

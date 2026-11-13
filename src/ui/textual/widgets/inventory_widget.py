@@ -3,6 +3,8 @@ import logging
 from textual.widgets import Static
 from rich.text import Text
 
+from core.snapshot import build_snapshot
+
 logger = logging.getLogger(__name__)
 
 
@@ -32,7 +34,7 @@ class InventoryWidget(Static):
             return Text("Loading...")
 
         text = Text()
-        player = self.game_state.player
+        player = build_snapshot(self.game_state).player
         logger.debug(f"  Player inventory: {len(player.inventory)} items")
 
         # Inventory header
@@ -42,11 +44,11 @@ class InventoryWidget(Static):
         max_display = 10  # Show up to 10 items in dedicated window
 
         if inventory:
-            capacity = player.get_stat('inventory_capacity', 20)
+            capacity = player.inventory_capacity
             text.append(f"({len(inventory)}/{capacity} items)\n\n", style="dim")
 
             for idx, item in enumerate(inventory[:max_display], 1):
-                item_type = item.get_stat('item_type', 'unknown')
+                item_type = item.item_type
                 # Truncate long names
                 name = item.name[:18] if len(item.name) > 18 else item.name
                 text.append(f"{idx:2}. {name}\n", style="bright_white")

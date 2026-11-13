@@ -4,8 +4,8 @@ from textual.strip import Strip
 from rich.segment import Segment
 from rich.style import Style
 
+from core.snapshot import build_snapshot
 from core.world import TileType
-from core.base.entity import EntityType
 
 
 # Terrain display styles
@@ -40,86 +40,79 @@ class MapWidget(Widget):
     }
     """
 
+    # Draw order when entities share a tile: first match wins (the player is drawn before all).
+    ENTITY_PRIORITY = ('monster', 'ore_vein', 'forge', 'item', 'npc')
+
     def __init__(self, game_state=None, **kwargs):
         super().__init__(**kwargs)
         self.game_state = game_state
+        self.snapshot = None
+
+    def update_snapshot(self) -> None:
+        """Re-read the game into a snapshot and redraw. Called once per UI refresh,
+        not per line, so a redraw walks the entities once."""
+        if self.game_state:
+            self.snapshot = build_snapshot(self.game_state)
+        self.refresh()
 
     def render_line(self, y: int) -> Strip:
         """Render a single line of the map."""
         # Use actual widget size for viewport (dynamic)
         viewport_width = self.size.width
-        viewport_height = self.size.height
 
         if not self.game_state:
             return Strip([Segment(" " * viewport_width)])
+        if self.snapshot is None:
+            self.snapshot = build_snapshot(self.game_state)
 
-        player = self.game_state.player
-        game_map = self.game_state.dungeon_map
+        snap = self.snapshot
 
         # Calculate viewport offset
-        start_x, start_y = self._get_viewport_offset(player, game_map)
+        start_x, start_y = self._get_viewport_offset(snap)
         world_y = start_y + y
 
         # Check if line is out of bounds
-        if world_y >= game_map.height:
+        if world_y >= snap.map.height:
             return Strip([Segment(" " * viewport_width)])
 
         # Render each cell in the line
-        segments = []
-        for x in range(viewport_width):
-            world_x = start_x + x
-            segments.append(self._render_cell(world_x, world_y, player, game_map))
+        return Strip([self._render_cell(start_x + x, world_y, snap) for x in range(viewport_width)])
 
-        return Strip(segments)
-
-    def _get_viewport_offset(self, player, game_map):
+    def _get_viewport_offset(self, snap):
         """Calculate viewport offset centered on player."""
         viewport_width = self.size.width
         viewport_height = self.size.height
 
-        start_x = max(0, min(player.x - viewport_width // 2,
-                            game_map.width - viewport_width))
-        start_y = max(0, min(player.y - viewport_height // 2,
-                            game_map.height - viewport_height))
+        start_x = max(0, min(snap.player.x - viewport_width // 2,
+                            snap.map.width - viewport_width))
+        start_y = max(0, min(snap.player.y - viewport_height // 2,
+                            snap.map.height - viewport_height))
         return start_x, start_y
 
-    def _render_cell(self, world_x, world_y, player, game_map):
+    def _render_cell(self, world_x, world_y, snap):
         """Render a single map cell."""
         # Out of bounds
-        if world_x >= game_map.width:
+        if world_x >= snap.map.width:
             return Segment(" ")
 
         # Player position (priority rendering)
+        player = snap.player
         if world_x == player.x and world_y == player.y:
-            symbol = player.display_symbol
-            color = player.display_color
-            return Segment(symbol, Style(color=color, bold=True))
+            return Segment(player.symbol, Style(color=player.color, bold=True))
 
-        # Check for entities at this position (render in priority order)
-        # Priority: MONSTER > ORE_VEIN > FORGE > ITEM > NPC
-        for entity_type in [EntityType.MONSTER, EntityType.ORE_VEIN, EntityType.FORGE,
-                           EntityType.ITEM, EntityType.NPC]:
-            entity = self._get_entity_at(world_x, world_y, entity_type)
+        # Entities at this position, in priority order
+        for entity_type in self.ENTITY_PRIORITY:
+            entity = snap.entity_at(world_x, world_y, entity_type)
             if entity:
-                symbol = entity.display_symbol
-                color = entity.display_color
-                return Segment(symbol, Style(color=color, bold=True))
+                return Segment(entity.symbol, Style(color=entity.color, bold=True))
 
         # Render terrain
-        if 0 <= world_x < game_map.width and 0 <= world_y < game_map.height:
-            tile = game_map.tiles[world_x][world_y]
-            char = self.MAP_CHARS.get(tile.tile_type, '?')
-            style = self._get_terrain_style(tile.tile_type)
-            return Segment(char, style)
+        if 0 <= world_x < snap.map.width and 0 <= world_y < snap.map.height:
+            tile_type = TileType(snap.map.tiles[world_y][world_x])
+            char = self.MAP_CHARS.get(tile_type, '?')
+            return Segment(char, self._get_terrain_style(tile_type))
 
         return Segment(" ")
-
-    def _get_entity_at(self, x, y, entity_type):
-        """Find entity of given type at position."""
-        for entity in self.game_state.entities.values():
-            if entity.entity_type == entity_type and entity.x == x and entity.y == y:
-                return entity
-        return None
 
     def _get_terrain_style(self, tile_type):
         """Get display style for terrain tile."""

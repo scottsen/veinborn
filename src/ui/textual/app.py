@@ -531,7 +531,7 @@ class VeinbornApp(App):
         """Refresh all UI components."""
         logger.debug("refresh_ui() called")
         if self.map_widget:
-            self.map_widget.refresh()
+            self.map_widget.update_snapshot()
         if self.status_bar:
             self.status_bar.refresh()
         if self.sidebar:

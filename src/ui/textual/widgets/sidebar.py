@@ -2,8 +2,7 @@
 from textual.widgets import Static
 from rich.text import Text
 
-from core.base.entity import EntityType
-from core.extensions import abilities
+from core.snapshot import build_snapshot
 
 
 class Sidebar(Static):
@@ -26,26 +25,21 @@ class Sidebar(Static):
             return Text("Loading...")
 
         text = Text()
-        player = self.game_state.player
+        snap = build_snapshot(self.game_state)
+        player = snap.player
 
         # Player info
         text.append("=== PLAYER ===\n", style="bold bright_green")
         text.append(f"Health: {player.hp}/{player.max_hp}\n")
         # Totals include equipped gear (starting kit, crafted or found)
-        attack = player.get_total_attack() if hasattr(player, 'get_total_attack') else player.attack
-        defense = player.get_total_defense() if hasattr(player, 'get_total_defense') else player.defense
-        text.append(f"Attack: {attack}\n")
-        text.append(f"Defense: {defense}\n")
-        next_xp = player.xp_for_next_level() if hasattr(player, 'xp_for_next_level') else None
-        xp_line = f"{player.get_stat('xp', 0)}/{next_xp}" if next_xp else f"{player.get_stat('xp', 0)}"
+        text.append(f"Attack: {player.attack}\n")
+        text.append(f"Defense: {player.defense}\n")
+        xp_line = f"{player.xp}/{player.xp_next}" if player.xp_next else f"{player.xp}"
         text.append(f"XP: {xp_line}\n")
-        text.append(f"Level: {player.get_stat('level', 1)}\n")
-        weapon = getattr(player, 'equipped_weapon', None)
-        armor = getattr(player, 'equipped_armor', None)
-        text.append(f"Weapon: {weapon.name if weapon else '-'}\n")
-        shield = getattr(player, 'equipped_shield', None)
-        text.append(f"Armor: {armor.name if armor else '-'}\n")
-        text.append(f"Shield: {shield.name if shield else '-'}\n\n")
+        text.append(f"Level: {player.level}\n")
+        text.append(f"Weapon: {player.weapon.name if player.weapon else '-'}\n")
+        text.append(f"Armor: {player.armor.name if player.armor else '-'}\n")
+        text.append(f"Shield: {player.shield.name if player.shield else '-'}\n\n")
 
         # Show inventory only if InventoryWidget is hidden (for default layout)
         # Skip if using split-sidebars layout (InventoryWidget has its own panel on left)
@@ -63,8 +57,7 @@ class Sidebar(Static):
             text.append("\n")
 
         # Monster info
-        monsters = [e for e in self.game_state.entities.values()
-                   if e.entity_type == EntityType.MONSTER]
+        monsters = [e for e in snap.entities if e.entity_type == 'monster']
         if monsters:
             text.append("=== MONSTERS ===\n", style="bold bright_red")
             for monster in monsters[:5]:  # Show up to 5
@@ -91,13 +84,11 @@ class Sidebar(Static):
 
     def _ability_line(self, player):
         """'Z: Force bolt (ready)' / '(5t)' for the player's first active ability, else None."""
-        known = [a for a in player.get_stat('abilities', []) if a in abilities]
-        if not known:
+        if not player.abilities:
             return None
-        name = known[0]
-        wait = player.get_stat('cooldowns', {}).get(name, 0) - self.game_state.turn_count
-        status = "ready" if wait <= 0 else f"{wait}t"
-        return f"Z: {name.replace('_', ' ').capitalize()} ({status})"
+        ability = player.abilities[0]
+        status = "ready" if ability.ready else f"{ability.cooldown_remaining}t"
+        return f"Z: {ability.name.replace('_', ' ').capitalize()} ({status})"
 
     def update_content(self):
         """Update the sidebar content."""

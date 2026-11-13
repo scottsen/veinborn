@@ -2,6 +2,8 @@
 from textual.widget import Widget
 from rich.text import Text
 
+from core.snapshot import build_snapshot
+
 
 class StatusBar(Widget):
     """Top status bar showing HP, turn count, etc."""
@@ -17,14 +19,15 @@ class StatusBar(Widget):
         if not self.game_state:
             return Text("Veinborn - Loading...", style="bold")
 
-        player = self.game_state.player
+        snap = build_snapshot(self.game_state)
+        player = snap.player
         parts = [
             f"HP: {player.hp}/{player.max_hp}",
-            f"Turn: {self.game_state.turn_count}",
+            f"Turn: {snap.turn}",
             f"Pos: ({player.x}, {player.y})",
         ]
 
-        if self.game_state.game_over:
+        if snap.game_over:
             parts.append("GAME OVER")
 
         status_text = Text(" | ".join(parts))
