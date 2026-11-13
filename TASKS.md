@@ -2204,20 +2204,24 @@ notes_next: 2
 ## TASK-VB-91 · MP plan 2c: FloorManager.descend_floor places/keeps the whole party; delete MultiplayerGameState descend/spawn/clear; MP gets floor_changed
 
 ```yaml
-status: backlog
+status: done
 priority: high
 effort: 3h
 tags: [multiplayer, architecture]
 created: '2026-11-13T22:10:01Z'
-updated: '2026-11-13T22:32:06Z'
+updated: '2026-11-13T22:37:32Z'
 session: letorera-1113
 depends_on: [VB-90]
-notes_next: 2
+links:
+  commits:
+  - c0e9bc175af9d3fa6fc2de4a2235915b96444d8b
+notes_next: 3
 ```
 
 <!-- notes: append-only log; each has a stable #id (see CLI §5) -->
 ### Notes
 - [#1 2026-11-13T22:32:06Z session:letorera-1113] VB-90 done: MP world tick is TurnProcessor.process_turn, so FloorManager is the next copy to remove.
+- [#2 2026-11-13T22:37:32Z session:letorera-1113] FloorManager._place_party (one player: stairs up as before; party: per-member spawn positions) + clear_floor_entities(keep_ids=all players); GameSession._descend_floor publishes floor_changed; MP copy deleted (MultiplayerGameState keeps only its initial floor-1 spawn, VB-93). Gate: suite 1479 passed, SP A/B identical 40/40 on both sets.
 
 
 ## TASK-VB-92 · MP plan 2d: engine publishes player_died/run_ended/game_started; GameSession subscribes co-op scoring; content handlers installed for MP (closes VB-55)
@@ -2247,11 +2251,12 @@ priority: medium
 effort: 1d
 tags: [multiplayer, architecture]
 created: '2026-11-13T22:10:04Z'
-updated: '2026-11-13T22:10:07Z'
+updated: '2026-11-13T22:37:32Z'
 session: letorera-1113
 depends_on: [VB-91, VB-92]
+notes_next: 2
 ```
 
 <!-- notes: append-only log; each has a stable #id (see CLI §5) -->
 ### Notes
-_(no notes yet)_
+- [#1 2026-11-13T22:37:32Z session:letorera-1113] Leftovers for the engine extraction: MultiplayerGameState._spawn_floor_entities (initial floor-1 spawn in add_player) and GameSession._descend_floor/_finish_action duplicate Game's wrappers.
