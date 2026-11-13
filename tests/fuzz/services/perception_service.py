@@ -254,6 +254,15 @@ class PerceptionService:
     # ========================================================================
 
     
+    def find_materials(self, game) -> List:
+        """Boss materials on the floor (items.yaml materials): legendary recipes consume them."""
+        from core.base.entity import EntityType
+        return [
+            e for e in game.state.entities.values()
+            if e.entity_type == EntityType.ITEM and e.x is not None and e.is_alive
+            and e.get_stat('item_type') == 'material'
+        ]
+
     def find_usable_items(self, game) -> List:
         """Items on the floor whose effect the game can apply (potions, food)."""
         if 'usable_items' in self._cache:

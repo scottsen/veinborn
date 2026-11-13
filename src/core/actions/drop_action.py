@@ -63,17 +63,24 @@ def usefulness(actor, item) -> int:
     return NO_USE
 
 
+BOSS_MATERIAL_WORTH = 1000   # above any ore purity (0-100)
+
+
 def least_useful_item(actor, max_tier: int = HEALING):
     """The carried item to drop first, or None if nothing is at or below `max_tier`.
 
     Lowest tier first; within a tier the lowest items.yaml `value` (ore: lowest
-    purity), so the rare and good stays.
+    purity; a boss material outranks every ore, it cannot be mined again), so the
+    rare and good stays.
     """
     candidates = []
     for item in getattr(actor, 'inventory', []):
         tier = usefulness(actor, item)
         if tier <= max_tier:
-            worth = item.get_stat('purity', 0) if tier == ORE else item.get_stat('value', 0)
+            if tier == ORE:
+                worth = BOSS_MATERIAL_WORTH if item.get_stat('item_type') == 'material' else item.get_stat('purity', 0)
+            else:
+                worth = item.get_stat('value', 0)
             candidates.append((tier, worth, item))
     if not candidates:
         return None

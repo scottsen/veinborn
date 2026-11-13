@@ -32,6 +32,8 @@ ORE_SEEK_TURNS = 20
 # Healing items (potions, food) the bot keeps; past this it stops collecting them and,
 # with a full pack, drops the cheapest, so food and potions cannot crowd out ore (VB-73)
 HEALING_RESERVE = 6
+# A boss material (VB-75) is worth a longer walk than a potion: legendary recipes need it
+MATERIAL_REACH = 12
 
 
 class ActionPlanner:
@@ -165,6 +167,7 @@ class ActionPlanner:
         3b. If an active class ability is ready and useful → USE IT (force bolt, heal)
         3c. If HP is low and a potion/food is carried → DRINK/EAT IT
         4. If monster adjacent → FIGHT (forced combat)
+        4b. If a boss material lies nearby and safe → FETCH IT (dropping ore if full)
         5. If jackpot ore nearby and safe → MINE IT!
         6. If low health and monster nearby → FLEE TO STAIRS
         6b. If a potion/food lies nearby → PICK IT UP
@@ -240,6 +243,12 @@ class ActionPlanner:
             player = game.state.player
             self.log(f"⚔️  Fighting {adjacent.name} ({threat}) at ({adjacent.x},{adjacent.y})")
             return self.move_towards(game, adjacent)
+
+        # Priority 4b: a boss material nearby, even when leaving: legendary recipes need it
+        # and a human always takes it (VB-75). Makes room in a full pack first.
+        material = self.material_action(game)
+        if material:
+            return material
 
         # Once the rooms are swept or the floor's turn budget is spent, only the stairs
         # matter: optional detours (ore, surveys, pickups, pursuits) would otherwise keep
@@ -386,6 +395,37 @@ class ActionPlanner:
             return None
         self.log(f"🧪 Using {item.name} (HP: {player.hp}/{player.max_hp})")
         return ('use', {'item_id': item.entity_id})
+
+    def material_action(self, game) -> Optional[Tuple[str, dict]]:
+        """Fetch a boss material within MATERIAL_REACH with no monster near it or us.
+
+        With a full pack, first drop the least useful item up to ore (lowest-purity ore;
+        never a material, least_useful_item ranks those above every ore).
+        """
+        materials = self.perception.find_materials(game)
+        if not materials:
+            return None
+        player = game.state.player
+        cheb = lambda e: max(abs(e.x - player.x), abs(e.y - player.y))  # noqa: E731
+        nearest = min(materials, key=cheb)
+        if cheb(nearest) > MATERIAL_REACH:
+            return None
+        for m in self.perception.find_monsters(game):
+            for x, y in ((player.x, player.y), (nearest.x, nearest.y)):
+                if max(abs(m.x - x), abs(m.y - y)) <= ITEM_SAFE_RADIUS:
+                    return None
+        if len(getattr(player, 'inventory', [])) >= INVENTORY_MAX:
+            from core.actions.drop_action import ORE, least_useful_item
+            room = least_useful_item(player, max_tier=ORE)
+            if room is None or room.get_stat('item_type') == 'material':
+                return None
+            self.log(f"🗑️  Dropping {room.name} to make room for {nearest.name}")
+            return ('drop', {'item_id': room.entity_id})
+        if cheb(nearest) == 0:
+            self.log(f"💠 Picking up {nearest.name}")
+            return ('pickup', {})
+        self.log(f"💠 Going for {nearest.name} at ({nearest.x},{nearest.y})")
+        return self.move_towards(game, nearest)
 
     def collect_action(self, game) -> Optional[Tuple[str, dict]]:
         """Pick up a usable consumable underfoot, or walk to one within ITEM_REACH."""

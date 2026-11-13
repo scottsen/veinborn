@@ -106,6 +106,20 @@ def test_ore_goes_lowest_purity_first(game):
     assert usefulness(p, ores[1]) == ORE
 
 
+def test_boss_material_outlasts_every_ore(game):
+    """Same tier as ore, but a phylactery cannot be mined again: drop all ore first."""
+    p = game.state.player
+    phylactery = give(game, 'lich_phylactery')
+    ore = LootGenerator.get_instance().create_item('dagger')
+    ore.set_stat('ore_type', 'adamantite')
+    ore.set_stat('purity', 100)
+    p.add_to_inventory(ore)
+    assert usefulness(p, phylactery) == ORE
+    assert least_useful_item(p) is ore
+    p.remove_from_inventory(ore)
+    assert least_useful_item(p) is phylactery          # still droppable when it is all there is
+
+
 def test_drop_round_trips_for_multiplayer():
     action = DropAction('p1', 'i1')
     assert ACTION_TYPES['DropAction'].from_dict(action.to_dict()) == action
