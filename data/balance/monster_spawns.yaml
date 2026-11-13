@@ -41,6 +41,17 @@ monster_counts:
     max: 12
     description: "Caps at 12 monsters per floor"
 
+# Monster strength by floor (VB-75). Each listed stat is multiplied by
+#   1 + per_floor * (floor - 1)
+# and rounded, for every monster spawned, wandering in or summoned on that floor.
+# Why: crafted gear stops improving around floor 12 and player level around 50,
+# but the game runs to floor 100, so without this deeper floors are no harder.
+# A monster with `floor_scaling: false` in monsters.yaml keeps its own stats (a boss).
+# Measured with scripts/sim_duels.py and bot long runs; see VB-75 in TASKS.md.
+floor_scaling:
+  per_floor: 0.0
+  stats: [hp, attack, defense]
+
 # Monster spawn weights by floor
 # Weight determines spawn probability
 # Example: goblin: 70, orc: 30 = 70% Goblins, 30% Orcs

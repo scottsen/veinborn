@@ -513,7 +513,9 @@ class AISystem(System):
         """
         from ..spawning.entity_spawner import EntitySpawner
 
-        minion = self.entity_loader.create_monster(monster_id, monster.x, monster.y)
+        minion = self.entity_loader.create_monster(
+            monster_id, monster.x, monster.y, floor=self.context.get_floor()
+        )
         occupied = {
             (e.x, e.y) for e in self.context.game_state.entities.values() if e.x is not None
         }

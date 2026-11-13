@@ -94,7 +94,7 @@ class EntitySpawner:
         for x, y in positions:
             # Choose monster type based on weights
             monster_type = self._weighted_random_choice(spawn_weights, dungeon_map.rng)
-            monster = self.entity_loader.create_monster(monster_type, x, y)
+            monster = self.entity_loader.create_monster(monster_type, x, y, floor=floor)
             monsters.append(monster)
 
             logger.debug(
@@ -153,7 +153,7 @@ class EntitySpawner:
         monster_type = self._weighted_random_choice(
             self.config.get_monster_spawn_weights(tier), rng
         )
-        monster = self.entity_loader.create_monster(monster_type, x, y)
+        monster = self.entity_loader.create_monster(monster_type, x, y, floor=floor)
         logger.debug(f"Wandering {monster.name} appeared at ({x}, {y}) [floor {floor}, tier {tier}]")
         return monster
 
@@ -462,7 +462,7 @@ class EntitySpawner:
                 continue
 
             monster_type = self._weighted_random_choice(spawn_weights, rng)
-            monster = self.entity_loader.create_monster(monster_type, x, y)
+            monster = self.entity_loader.create_monster(monster_type, x, y, floor=floor)
 
             # Boost stats from config
             monster.max_hp = int(monster.max_hp * stat_boost)

@@ -823,6 +823,7 @@ monsters:
     description: "Eldritch abomination from beyond reality. The final challenge."
     symbol: "H"
     color: "magenta"
+    floor_scaling: false   # final boss: its stats are tuned as written, whatever the floor (VB-75)
 
     # Core stats
     stats:

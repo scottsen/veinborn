@@ -47,6 +47,31 @@ class GameConfig:
         validate_bands(self.monster_spawns['monster_counts'], 'monster_spawns.yaml monster_counts')
         validate_bands(self.monster_spawns['spawn_weights'], 'monster_spawns.yaml spawn_weights')
         validate_bands(self.ore_veins['spawn_weights'], 'ore_veins.yaml spawn_weights')
+        self.get_monster_floor_scaling()   # fail at load, not on the first deep spawn
+
+    SCALABLE_MONSTER_STATS = ('hp', 'attack', 'defense')
+
+    def get_monster_floor_scaling(self) -> Dict[str, Any]:
+        """monster_spawns.yaml floor_scaling: {'per_floor': float, 'stats': [...]}.
+
+        A monster's listed stats are multiplied by 1 + per_floor * (floor - 1)
+        (VB-75). Missing section = no scaling.
+        """
+        section = self.monster_spawns.get('floor_scaling') or {}
+        per_floor = section.get('per_floor', 0.0)
+        stats = section.get('stats', list(self.SCALABLE_MONSTER_STATS))
+        if not isinstance(per_floor, (int, float)) or per_floor < 0:
+            raise ContentValidationError(
+                f"monster_spawns.yaml floor_scaling.per_floor must be a number >= 0, got {per_floor!r}")
+        unknown = set(stats) - set(self.SCALABLE_MONSTER_STATS)
+        if unknown:
+            raise ContentValidationError(
+                f"monster_spawns.yaml floor_scaling.stats: {sorted(unknown)} not in {list(self.SCALABLE_MONSTER_STATS)}")
+        return {'per_floor': float(per_floor), 'stats': list(stats)}
+
+    def monster_floor_multiplier(self, floor: int) -> float:
+        """How much stronger a floor-scaled monster is on `floor` (1.0 on floor 1)."""
+        return 1.0 + self.get_monster_floor_scaling()['per_floor'] * (max(1, floor) - 1)
 
     def get_monster_count_for_floor(self, floor: int) -> int:
         """

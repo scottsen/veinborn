@@ -167,7 +167,7 @@ class EntityLoader:
             self.ores = {}
             self.ore_generation_config = {}
 
-    def create_monster(self, monster_id: str, x: int, y: int) -> Monster:
+    def create_monster(self, monster_id: str, x: int, y: int, floor: int = 1) -> Monster:
         """
         Create a monster instance from YAML definition.
 
@@ -179,6 +179,9 @@ class EntityLoader:
         Args:
             monster_id: Monster ID (e.g., "goblin", "orc", "troll")
             x, y: Position coordinates
+            floor: Floor it appears on; its stats scale with it per
+                monster_spawns.yaml floor_scaling unless the monster sets
+                floor_scaling: false (a boss with tuned stats)
 
         Returns:
             Monster instance
@@ -204,6 +207,8 @@ class EntityLoader:
         attack = stats.get("attack", 5)
         defense = stats.get("defense", 1)
         xp_reward = stats.get("xp_reward", 10)
+        if definition.get("floor_scaling", True) and floor > 1:
+            hp, attack, defense = self._scaled_for_floor(floor, hp=hp, attack=attack, defense=defense)
 
         # Get display name
         name = definition.get("name", monster_id.title())
@@ -238,6 +243,18 @@ class EntityLoader:
         )
 
         return monster
+
+    @staticmethod
+    def _scaled_for_floor(floor: int, **stats: int):
+        """(hp, attack, defense) multiplied per monster_spawns.yaml floor_scaling (VB-75)."""
+        from .config.config_loader import ConfigLoader
+        config = ConfigLoader.get_config()
+        mult = config.monster_floor_multiplier(floor)
+        scaled = config.get_monster_floor_scaling()['stats']
+        return tuple(
+            max(1, round(value * mult)) if name in scaled else value
+            for name, value in stats.items()
+        )
 
     def create_ore_vein(
         self,
