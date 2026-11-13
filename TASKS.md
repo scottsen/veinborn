@@ -1844,18 +1844,20 @@ notes_next: 3
 ## TASK-VB-77 · Move game logic out of the Textual UI into core (equip list/cycle, look-at-ground, inventory listing, UI-authored messages)
 
 ```yaml
-status: backlog
+status: done
 priority: medium
 effort: 3-4h
 tags: [architecture, refactor, ui]
 created: '2026-11-13T01:46:24Z'
-updated: '2026-11-13T19:23:11Z'
+updated: '2026-11-13T20:19:03Z'
 session: mustard-sunset-1112
 links:
   references:
   - src/ui/textual/app.py
   - docs/architecture/ARCHITECTURAL_ASSESSMENT.md
-notes_next: 2
+  commits:
+  - 91c929fea47681aaef60122a0ccf74b5771d9716
+notes_next: 5
 ```
 
 Found 2026-11-12 (session mustard-sunset-1112, TIA, investigating 'can we have a graphical UI'). src/core has zero UI imports, but src/ui/textual/app.py still holds game rules that any second frontend (graphical client, web client, multiplayer client) would have to copy:
@@ -1868,6 +1870,9 @@ Proposed: intent-level core calls (e.g. Game.equippable_items(), Game.cycle_equi
 <!-- notes: append-only log; each has a stable #id (see CLI §5) -->
 ### Notes
 - [#1 2026-11-13T19:23:11Z session:unexplored-thruster-1113] f8f2876 did the equip part: core/equipment.py equipment_listing() (worn + wearable pack rows with change vs worn), UnequipAction, and the TUI 'w' screen (ui/textual/equipment_screen.py) reads it; the W-cycle and the duplicated listing code in app.py are gone. Still open here: look-at-ground, inventory listing, UI-authored messages.
+- [#2 2026-11-13T20:18:17Z session:chartreuse-filter-1113] Look-at-ground and inventory listing done (core/item_listing.py, tests/unit/test_item_listing.py). Still open: UI-authored messages (use_item/drop_item 'nothing to...' texts, debug dump) should come from core outcomes. Full suite needs /usr/bin/python3 (has pytest_asyncio); the python3 wrapper errors on test_chat_system.
+- [#3 2026-11-13T20:19:03Z session:chartreuse-filter-1113] quick_use/quick_drop moved into Game (messages now come from core). Left: debug-dump message in app.py (UI-only, fine to keep) and action_wait/survey/ability/descend bodies, which were not audited. Likely ready to close VB-77 after a glance at those.
+- [#4 2026-11-13T20:19:03Z session:chartreuse-filter-1113] Equip list (f8f2876), look-at-ground + inventory (item_listing.py), use/drop messages (Game.quick_*) all in core; suite 1453 passed
 
 
 ## TASK-VB-78 · Introduce a render snapshot (view model) shared by the TUI widgets and the server state
