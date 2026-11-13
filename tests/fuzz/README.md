@@ -173,8 +173,9 @@ Bots ignore `~/.veinbornrc`: each game runs on built-in user preferences
 (`ConfigManager.use_defaults()`, VB-76), because autopickup reads them and a developer's
 `autopickup_types` changed what bots collected. To test a preference on purpose, set it
 in the environment, e.g. `VEINBORN_GAME_AUTOPICKUP_TYPES=ore,food,weapon`. Runs made
-before 1fcbdfd used the machine's rc file and do not pair with later runs; gold became an
-autopickup default after that, so pair only runs from the same side of that change.
+before 1fcbdfd used the machine's rc file; on a machine whose rc lists
+`ore,food,weapon,gold` (the default since 0d1b700) they replay exactly (the a336011
+baseline matched a 0d1b700 run in 128/128 games).
 
 ```bash
 # before the change (one file per class)
