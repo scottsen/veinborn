@@ -179,6 +179,9 @@ baseline matched a 0d1b700 run in 128/128 games). Monster floor scaling (bfe5d1f
 changes every game past floor 1, so runs from before it do not pair with later ones;
 the baselines at bfe5d1f are `/var/tmp/vb75_base_bfe5d1f` (3000 turns) and
 `/var/tmp/vb75_long_r02_e25e163` (20000 turns, same data).
+Later changes that move bot games: phoenix weight 15 (c9d40a7) and shields worn (e6984a5, +0.15 floors in a 3000-turn
+paired run, so the 3000-turn baseline still serves). The current 20000-turn baseline with phoenix 15 is
+`/var/tmp/vb87_w15/logs/long_*.json` (seeds 3000+; it predates shields).
 
 ```bash
 # before the change (one file per class)
