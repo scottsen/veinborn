@@ -225,9 +225,9 @@ def equip(ctx, player, gear):
         action.execute(ctx)
 
 
-def duel(cls, level, monster_id, loader, game_map, max_rounds=500, start_distance=1, gear=()):
+def duel(cls, level, monster_id, loader, game_map, max_rounds=500, start_distance=1, gear=(), floor=1):
     player = make_player(cls, level)
-    monster = loader.create_monster(monster_id, PLAYER_X + start_distance, PLAYER_Y)
+    monster = loader.create_monster(monster_id, PLAYER_X + start_distance, PLAYER_Y, floor=floor)
     state = GameState(player=player)
     state.dungeon_map = game_map
     state.entities[player.entity_id] = player
@@ -332,6 +332,8 @@ def main():
     ap.add_argument("--abilities", default=None, help="off | on | both | monster.ability,... (see top)")
     ap.add_argument("--set", action="append", default=[], metavar="MONSTER.ABILITY.KEY=VALUE")
     ap.add_argument("--seed", type=int, default=1)
+    ap.add_argument("--floor", type=int, default=1,
+                    help="floor the monster appears on: its stats scale per monster_spawns.yaml floor_scaling (default 1)")
     ap.add_argument("--max-rounds", type=int, default=500)
     ap.add_argument("--start-distance", type=int, default=1,
                     help="tiles between player and monster at the start (1 = adjacent); farther "
@@ -381,7 +383,7 @@ def main():
             for level in levels:
                 for cls in classes:
                     fights = [duel(cls, level, monster_id, loader, game_map,
-                                   max_rounds=args.max_rounds, start_distance=args.start_distance,
+                                   max_rounds=args.max_rounds, start_distance=args.start_distance, floor=args.floor,
                                    gear=gear)
                               for _ in range(args.fights)]
                     c = summarise(label, monster_id, cls, level, fights)
