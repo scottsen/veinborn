@@ -2,7 +2,7 @@
 project: veinborn
 schema_version: '1.0'
 id_prefix: VB
-next_id: 89
+next_id: 94
 archival: inline
 areas: {}
 ---
@@ -1247,15 +1247,16 @@ status: backlog
 priority: low
 tags: [content, multiplayer]
 created: '2026-11-12T05:11:48Z'
-updated: '2026-11-13T21:10:10Z'
+updated: '2026-11-13T22:10:08Z'
 session: turquoise-mosaic-1111
-notes_next: 3
+notes_next: 4
 ```
 
 <!-- notes: append-only log; each has a stable #id (see CLI §5) -->
 ### Notes
 - [#1 2026-11-12T19:08:18Z session:vevine-1112] 2026-11-12: the server's AISystem now receives the session event bus (VB-60), so monster provocation and monster attack events (VB-66) work in multiplayer. Content handlers (achievements/quests) and turn_ended/floor_changed/game_started are still single-player only.
 - [#2 2026-11-13T21:10:10Z session:chartreuse-filter-1113] Plan: docs/architecture/MULTIPLAYER_ARCHITECTURE_PLAN.md places this task in a phase (see section 4); read it before starting.
+- [#3 2026-11-13T22:10:08Z session:letorera-1113] Slice 2d = VB-92.
 
 
 ## TASK-VB-56 · Kill streaks announce but grant nothing: decide whether streaks (and quests) should give real rewards, e.g. an extra LootGenerator roll at the kill
@@ -2152,3 +2153,93 @@ docs/architecture/MULTIPLAYER_ARCHITECTURE_PLAN.md sections D3, D6 and phase tab
 ### Notes
 - [#1 2026-11-13T21:28:09Z session:letorera-1113] Rulings confirmed 2026-11-13: strict per-player round; rejoin by auth token (name fallback); idle timer deferred (config.action_timeout/idle_timeout unread). Client should persist its token. See plan section 6.
 - [#2 2026-11-13T21:56:19Z session:letorera-1113] actor_id on ActionFactory.create (0 get_player() sites left but the default); intent message + GameSession.process_intent; MultiplayerClient.submit; connect from app on_mount (listener survives); 2 new test files. Gate: suite 1466 passed, 40-game seeded SP bot A/B identical 40/40. Old 'action' message kept.
+
+
+## TASK-VB-89 · MP plan 2a: party-aware TurnProcessor/FloorManager rules; run_ended/player_died events with SP subscribers (score, vault)
+
+```yaml
+status: backlog
+priority: high
+effort: 4h
+tags: [multiplayer, architecture]
+created: '2026-11-13T22:09:58Z'
+updated: '2026-11-13T22:10:07Z'
+session: letorera-1113
+notes_next: 2
+```
+
+<!-- notes: append-only log; each has a stable #id (see CLI §5) -->
+### Notes
+- [#1 2026-11-13T22:10:07Z session:letorera-1113] Plan section 4a has the slice breakdown, gates and risks. 'player_ids' dropped: get_all_players() already reads entities (VB-23).
+
+
+## TASK-VB-90 · MP plan 2b: RoundScheduler (one action per living seat, SP = one seat); server ticks via TurnProcessor; delete _process_monster_turn and actions_per_round
+
+```yaml
+status: backlog
+priority: high
+effort: 4h
+tags: [multiplayer, architecture]
+created: '2026-11-13T22:09:59Z'
+updated: '2026-11-13T22:10:07Z'
+session: letorera-1113
+depends_on: [VB-89]
+```
+
+<!-- notes: append-only log; each has a stable #id (see CLI §5) -->
+### Notes
+_(no notes yet)_
+
+
+## TASK-VB-91 · MP plan 2c: FloorManager.descend_floor places/keeps the whole party; delete MultiplayerGameState descend/spawn/clear; MP gets floor_changed
+
+```yaml
+status: backlog
+priority: high
+effort: 3h
+tags: [multiplayer, architecture]
+created: '2026-11-13T22:10:01Z'
+updated: '2026-11-13T22:10:07Z'
+session: letorera-1113
+depends_on: [VB-90]
+```
+
+<!-- notes: append-only log; each has a stable #id (see CLI §5) -->
+### Notes
+_(no notes yet)_
+
+
+## TASK-VB-92 · MP plan 2d: engine publishes player_died/run_ended/game_started; GameSession subscribes co-op scoring; content handlers installed for MP (closes VB-55)
+
+```yaml
+status: backlog
+priority: medium
+effort: 3h
+tags: [multiplayer, architecture]
+created: '2026-11-13T22:10:02Z'
+updated: '2026-11-13T22:10:07Z'
+session: letorera-1113
+depends_on: [VB-89]
+```
+
+<!-- notes: append-only log; each has a stable #id (see CLI §5) -->
+### Notes
+_(no notes yet)_
+
+
+## TASK-VB-93 · MP plan 2e: extract core Engine from Game; Game = SP shell, GameSession wraps it; MultiplayerGameState keeps seats only
+
+```yaml
+status: backlog
+priority: medium
+effort: 1d
+tags: [multiplayer, architecture]
+created: '2026-11-13T22:10:04Z'
+updated: '2026-11-13T22:10:07Z'
+session: letorera-1113
+depends_on: [VB-91, VB-92]
+```
+
+<!-- notes: append-only log; each has a stable #id (see CLI §5) -->
+### Notes
+_(no notes yet)_
