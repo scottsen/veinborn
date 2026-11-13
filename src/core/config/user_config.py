@@ -49,11 +49,12 @@ class ConfigManager:
         Path("/etc/broguerc"),                              # Legacy system-wide
     ]
 
-    def __init__(self):
-        """Initialize config manager and load configuration."""
+    def __init__(self, load_file: bool = True):
+        """Initialize config manager; load_file=False reads no config file."""
         self.config = configparser.ConfigParser()
         self.config_file: Optional[Path] = None
-        self.load()
+        if load_file:
+            self.load()
 
     @classmethod
     def get_instance(cls) -> 'ConfigManager':
@@ -71,6 +72,18 @@ class ConfigManager:
     def reset(cls):
         """Reset singleton (for testing)."""
         cls._instance = None
+
+    @classmethod
+    def use_defaults(cls) -> 'ConfigManager':
+        """Install a singleton that reads no config file: built-in defaults only.
+
+        For bots and tests, whose results must not depend on the machine's
+        ~/.veinbornrc (game.autopickup_types changes what a player collects;
+        VB-76). VEINBORN_* environment variables still apply, so a run can set
+        a preference on purpose.
+        """
+        cls._instance = cls(load_file=False)
+        return cls._instance
 
     def load(self) -> None:
         """Load config from first available file."""

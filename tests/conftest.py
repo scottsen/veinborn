@@ -444,6 +444,18 @@ def isolated_multiplayer_highscores(tmp_path):
 
 
 @pytest.fixture(autouse=True)
+def default_user_config():
+    """Run every test on built-in user preferences, not this machine's ~/.veinbornrc (VB-76).
+
+    Tests that exercise config loading call ConfigManager.reset() themselves.
+    """
+    from core.config.user_config import ConfigManager
+
+    yield ConfigManager.use_defaults()
+    ConfigManager.reset()
+
+
+@pytest.fixture(autouse=True)
 def isolated_singleplayer_highscores(tmp_path):
     """Keep any test that reaches game over off the real data/highscores.json.
 

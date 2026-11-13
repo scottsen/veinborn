@@ -59,6 +59,7 @@ src_path = Path(__file__).parent.parent.parent / "src"
 sys.path.insert(0, str(src_path))
 
 from core.game import Game
+from core.config.user_config import ConfigManager
 from core.entities import EntityType, OreVein
 from core.base.entity import Entity
 from core.entity_loader import EntityLoader
@@ -434,6 +435,7 @@ class VeinbornBot:
         self.perception._cache_turn = None   # turn numbers restart every game
 
         try:
+            ConfigManager.use_defaults()     # same game on every machine, whatever ~/.veinbornrc says (VB-76)
             game = Game()
             # Use character class if bot has one (specialized bots)
             character_class = getattr(self, 'character_class', None)
