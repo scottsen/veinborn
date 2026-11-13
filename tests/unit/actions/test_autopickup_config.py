@@ -38,14 +38,21 @@ def test_use_defaults_ignores_the_config_file(tmp_path, monkeypatch):
     assert ConfigManager.get_instance().config_file is None
 
 
-def test_default_autopickup_leaves_gold():
+def test_default_autopickup_takes_gold():
+    game, gold, (dx, dy) = gold_one_step_away()
+    game.handle_player_action('move', dx=dx, dy=dy)
+    assert gold in game.state.player.inventory
+
+
+def test_autopickup_types_preference_can_leave_gold(monkeypatch):
+    monkeypatch.setenv('VEINBORN_GAME_AUTOPICKUP_TYPES', 'ore,food,weapon')
     game, gold, (dx, dy) = gold_one_step_away()
     game.handle_player_action('move', dx=dx, dy=dy)
     assert gold not in game.state.player.inventory
 
 
-def test_autopickup_types_preference_takes_gold(monkeypatch):
-    monkeypatch.setenv('VEINBORN_GAME_AUTOPICKUP_TYPES', 'ore,food,weapon,gold')
-    game, gold, (dx, dy) = gold_one_step_away()
-    game.handle_player_action('move', dx=dx, dy=dy)
-    assert gold in game.state.player.inventory
+def test_default_config_file_writes_the_code_default(tmp_path):
+    from core.config.user_config import DEFAULT_AUTOPICKUP_TYPES
+    rc = tmp_path / ".veinbornrc"
+    ConfigManager.use_defaults().create_default_config(rc)
+    assert f"autopickup_types = {DEFAULT_AUTOPICKUP_TYPES}\n" in rc.read_text()

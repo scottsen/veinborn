@@ -21,6 +21,10 @@ from ..exceptions import DataError
 
 logger = logging.getLogger(__name__)
 
+# Item types picked up by walking over them, unless game.autopickup_types says otherwise.
+# The default config file writes the same list.
+DEFAULT_AUTOPICKUP_TYPES = "ore,food,weapon,gold"
+
 
 class ConfigManager:
     """
@@ -275,7 +279,7 @@ class ConfigManager:
         if path is None:
             path = Path.home() / ".veinbornrc"
 
-        default_config = """# Veinborn Configuration File
+        default_config = f"""# Veinborn Configuration File
 # Lines starting with # are comments
 
 [player]
@@ -291,7 +295,7 @@ default_seed =
 
 # Autopickup settings
 autopickup = true
-autopickup_types = ore,food,weapon,gold
+autopickup_types = {DEFAULT_AUTOPICKUP_TYPES}
 
 [display]
 # Show damage numbers in combat

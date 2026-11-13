@@ -209,13 +209,13 @@ class MoveAction(Action):
             return
 
         # Check if autopickup is enabled
-        from ..config.user_config import ConfigManager
+        from ..config.user_config import ConfigManager, DEFAULT_AUTOPICKUP_TYPES
         config = ConfigManager.get_instance()
         if not config.get_bool('game.autopickup', True):
             return
 
         # Get autopickup types
-        autopickup_types_str = config.get('game.autopickup_types', 'ore,food,weapon')
+        autopickup_types_str = config.get('game.autopickup_types', DEFAULT_AUTOPICKUP_TYPES)
         autopickup_types = [t.strip().lower() for t in autopickup_types_str.split(',')]
 
         for item in items_at(context, x, y):
