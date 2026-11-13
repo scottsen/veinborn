@@ -1727,15 +1727,16 @@ priority: medium
 effort: 1-2h
 tags: [bug, items, equipment, loot]
 created: '2026-11-12T21:31:34Z'
-updated: '2026-11-12T21:53:33Z'
+updated: '2026-11-13T19:23:11Z'
 session: serene-cyclone-1112
-notes_next: 3
+notes_next: 4
 ```
 
 <!-- notes: append-only log; each has a stable #id (see CLI §5) -->
 ### Notes
 - [#1 2026-11-12T21:31:41Z session:serene-cyclone-1112] Found 2026-11-12 (serene-cyclone-1112) adding sim_duels --gear. Runtime check: LootGenerator.create_item('shield') then EquipAction(...).validate(ctx) -> False, log 'invalid equipment slot' (chainmail -> True as control). reveal src --grep shield: 0 hits, so no off-hand slot exists anywhere. Drops: goblin armor 30%, orc 20%, troll 20% of armor rolls; each one is inventory clutter. Options: (a) off-hand slot (Player.equipped_shield, get_total_defense, save/load VB-19 path, TUI, bot equip logic), (b) retag shield as armor (it then competes with body armor, so nobody wears it), (c) drop shields from loot tables until (a). (a) is the real fix; (c) is a 2-line stopgap. Design call for Scott.
 - [#2 2026-11-12T21:53:33Z session:serene-cyclone-1112] VB-73 (d06ac7d) gives a stopgap: shields rank as 'no use' in least_useful_item, so players can drop them with 'd' and bots drop them when the pack is full. The equip slot itself is still open.
+- [#3 2026-11-13T19:23:11Z session:unexplored-thruster-1113] f8f2876 centralised the slot rule in core/equipment.py (SLOT_ATTR, gear_slot, GEAR_SLOTS) and the equipment screen lists only weapon/armor. An off-hand slot is now a data change there plus Player.equipped_shield, get_total_defense, save/load; still Scott's call.
 
 
 ## TASK-VB-73 · No way to drop items: the 20-slot pack fills with unusable things (gold piles, shields, scrolls, rings, worse weapons) and then mined ore is lost and crafting stops for the rest of the game
@@ -1844,12 +1845,13 @@ priority: medium
 effort: 3-4h
 tags: [architecture, refactor, ui]
 created: '2026-11-13T01:46:24Z'
-updated: '2026-11-13T01:46:24Z'
+updated: '2026-11-13T19:23:11Z'
 session: mustard-sunset-1112
 links:
   references:
   - src/ui/textual/app.py
   - docs/architecture/ARCHITECTURAL_ASSESSMENT.md
+notes_next: 2
 ```
 
 Found 2026-11-12 (session mustard-sunset-1112, TIA, investigating 'can we have a graphical UI'). src/core has zero UI imports, but src/ui/textual/app.py still holds game rules that any second frontend (graphical client, web client, multiplayer client) would have to copy:
@@ -1861,7 +1863,7 @@ Proposed: intent-level core calls (e.g. Game.equippable_items(), Game.cycle_equi
 
 <!-- notes: append-only log; each has a stable #id (see CLI §5) -->
 ### Notes
-_(no notes yet)_
+- [#1 2026-11-13T19:23:11Z session:unexplored-thruster-1113] f8f2876 did the equip part: core/equipment.py equipment_listing() (worn + wearable pack rows with change vs worn), UnequipAction, and the TUI 'w' screen (ui/textual/equipment_screen.py) reads it; the W-cycle and the duplicated listing code in app.py are gone. Still open here: look-at-ground, inventory listing, UI-authored messages.
 
 
 ## TASK-VB-78 · Introduce a render snapshot (view model) shared by the TUI widgets and the server state
