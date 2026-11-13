@@ -15,7 +15,7 @@ beth_topics:
 
 # Multiplayer architecture plan
 
-**Status:** proposed (2026-11-13, session chartreuse-filter-1113). Nothing in here is built
+**Status:** proposed (2026-11-13, session chartreuse-filter-1113); round, disconnect and fog rulings recorded in section 6. Nothing in here is built
 yet except what "Today" says. Decisions marked **(Scott)** need a ruling before the phase
 that depends on them.
 
@@ -55,7 +55,7 @@ VB-55, VB-54, VB-35 (`tt show <id>`).
 | State out | `Snapshot` | `get_state_dict`: hand-built dict + `Entity.to_dict()` + `Map.to_dict()` (per-player part now from the snapshot) | two descriptions of one state |
 | Sync | n/a | one `last_state` baseline **per session**, deltas without sequence numbers (VB-26) | a client that joins late or misses one delta is silently wrong forever |
 | Client | `VeinbornApp` owns a `Game` | `VeinbornApp` *still* starts a local `Game`; client listener dies with the first event loop (VB-44 note #2) | the multiplayer TUI cannot play |
-| Disconnected seat | n/a | `process_disconnected_player_action` exists, nothing calls it (VB-45) | dead code |
+| Disconnected seat | n/a | after 120 s the seat is deleted, the character stays standing in the world, and `can_join` refuses started games; `process_disconnected_player_action` has no caller (VB-45) | a dropped player can never come back; dead code |
 
 Stale ADRs: ADR-011 (NATS), ADR-013 (PostgreSQL), ADR-014 (Pydantic) are "Designed" and
 nothing implements them; the server is one process with a hand-rolled `Message` dataclass.
@@ -86,13 +86,13 @@ ends. The fix is structural: one loop.
  │ websocket + auth + lobby              │    │ GameDriver: snapshot(), submit(intent),     │
  │ GameSession = Engine + seats          │    │             on_update(cb)                   │
  │   seat: player_id -> entity_id,       │    │  LocalDriver(Engine)   RemoteDriver(ws)     │
- │         controller human | ai         │    │ Textual widgets render Snapshot only        │
+ │   connected | grace | dropped         │    │ Textual widgets render Snapshot only        │
  │ per-client seq, full snapshot on join │    └─────────────────────────────────────────────┘
  └───────────────────────────────────────┘
 ```
 
-Single-player is "an Engine with a party of one, a per-action scheduler, and a LocalDriver".
-Multiplayer is "the same Engine with N seats, a round scheduler, and RemoteDrivers".
+Single-player is "an Engine with a party of one and a LocalDriver" (with one seat, the round scheduler ticks after every action).
+Multiplayer is "the same Engine with N seats, the same round scheduler, and RemoteDrivers".
 
 ---
 
@@ -117,13 +117,22 @@ Multiplayer is "the same Engine with N seats, a round scheduler, and RemoteDrive
 class TurnScheduler(Protocol):
     def after_action(self, actor_id, took_turn: bool) -> bool: ...  # True = run world tick now
 ```
-- `EveryActionScheduler` (single-player today): tick after each turn-consuming action.
-- `PartyRoundScheduler(actions_per_round)` (ADR-016): tick after N actions by anyone.
+- **Ruled (Scott, 2026-11-13): one action per living player per round.** Monsters act once
+  every living, seated player has taken one turn-consuming action. This replaces ADR-016's
+  "4 actions, anyone can take them" (today's code: `actions_per_round = 4`).
+- `RoundScheduler`: holds the set of seats that still owe an action this round; ticks when
+  it is empty, then refills it with the living seats. Free actions (equip, unequip,
+  `took_turn=False`) never count. Single-player is the same scheduler with one seat, so
+  `EveryActionScheduler` is not needed: a party of one ticks after every action, as today.
+- A player who has already acted is told "waiting for the party" and the intent is rejected
+  (not queued), so the client can show who the round is waiting on. Snapshot carries
+  `round.waiting_on` for that.
+- Dead players and dropped seats (D7) leave the owed set immediately, so they never stall a round.
 - The world tick is always `TurnProcessor.process_turn`, so MP gains wanderers and
   `turn_ended`, and `_process_monster_turn` is deleted.
-- **(Scott)** `actions_per_round` is a fixed 4 today, so a solo MP player gets four moves per
-  monster turn and a pair gets two each. Proposal: default to the number of living seats
-  (1 player = SP pacing), keep 4 as a lobby option.
+- **(Scott, later)** a connected but idle player stalls the round. Options when it matters:
+  a per-round timer that auto-waits for them, or a party vote. Not needed for the first
+  playable build.
 
 ### D3. Intents on the wire, actions stay server-side
 - Client sends `{"type": "intent", "intent": "move", "args": {"dx": 1, "dy": 0}}`.
@@ -142,8 +151,14 @@ class TurnScheduler(Protocol):
   viewer: the viewer's `PlayerView`, other players as entities, monsters, map, messages.
 - The server sends snapshots; the client decodes with `Snapshot.from_dict` and the same
   widgets render it. `get_state_dict` and the hand-built player/monster dicts retire.
-- Fog of war, when wanted, is applied here per viewer (`core/perception.FogOfWar` exists and
-  is unused). **(Scott)** whether to turn fog on is a gameplay change, separate from this work.
+- **Ruled (Scott, 2026-11-13): fog of war is on by default**, applied here per viewer
+  (`core/perception.FogOfWar` exists and is unused today). A **development reveal switch**
+  turns it off to see and test map features: a config/CLI flag (e.g. `--reveal-map`) for
+  single-player and a per-game server option for MP dev games, both read by `build_snapshot`
+  and nowhere else, so the rules never depend on it. A sidebar marker shows when it is on.
+  Turning fog on changes what players see today (the TUI shows every monster on the floor,
+  VB-68 note #2), so it ships as its own step with the bot runs unaffected (bots use
+  `perception`, not the snapshot).
 - VB-79 (semantic render ids instead of terminal glyphs) slots in here later.
 
 ### D5. A shared protocol package, versioned and sequenced
@@ -174,12 +189,35 @@ class GameDriver(Protocol):
 - UI-only screens (equipment screen) read the snapshot and submit intents (`equip`,
   `unequip`), so they work remotely for free.
 
-### D7. Seats, not special cases
-- `GameSession` holds `seats: player_id -> Seat(entity_id, controller, connection)`.
-  `controller` is `human` or `ai`. A disconnected human seat switches to `ai` (or `idle`,
-  **(Scott)**), and the scheduler/AI system drives it like a monster ally. That replaces the
-  orphaned `process_disconnected_player_action` (VB-45) with a state change instead of a
-  second code path.
+### D7. Seats with a disconnect lifecycle
+**Ruled (Scott, 2026-11-13): on disconnect we wait a while; then the player is dropped, but
+can rejoin the party.** No AI control of absent players.
+
+`GameSession` holds `seats: player_id -> Seat(entity_id, state, character)`:
+
+```
+ connected ──disconnect──► grace (round waits; character stays on the map)
+     ▲                       │ reconnect within grace -> connected, nothing lost
+     │                       │ grace expires (today 120 s, PlayerInfo.reconnect_timeout_seconds)
+     │                       ▼
+     └────── rejoin ◄──── dropped (character leaves the floor; the round stops waiting;
+                                    character state kept in the session)
+```
+
+- **Grace:** the round waits for them (one action per living player), so the party sees
+  "waiting for <name> (disconnected, 1:45)". Same as today's reconnect path (VB-22).
+- **Dropped:** the character entity is removed from the world but its full state (hp, level,
+  inventory, gear) is kept on the seat; the scheduler no longer owes it an action. If every
+  seat is dropped the game ends as today.
+- **Rejoin:** the player authenticates again and joins the running game by id (or from the
+  lobby list, which shows "rejoinable" games). The character is placed near the party on the
+  *current* floor and is owed an action from the next round.
+- Changes from today: `can_join` refuses started games and `_remove_player_locked` deletes the
+  seat while leaving the character standing in the world. Both go.
+- `process_disconnected_player_action` and the AI-control idea are deleted (closes VB-45 as
+  "won't do, replaced by the drop/rejoin lifecycle").
+- **(Scott, later)** whether rejoin is open to anyone with the game id or only to the same
+  player identity. Default: same identity (the auth token / player name that held the seat).
 
 ### D8. Determinism and tests at each boundary
 - Engine: synchronous, seeded, no I/O. N-player tests run without a network.
@@ -197,10 +235,10 @@ class GameDriver(Protocol):
 |---|---|---|---|
 | **0. Unblock** | Fix the client event loop; add `RemoteDriver.submit` for the current `action` message; headless test. | VB-44 (partial) | S |
 | **1. Explicit actor** | `ActionFactory.create(intent, actor_id=None, **kw)`; server accepts `intent` messages and builds actions from the seat. Keep `action` working. | D3 | S-M |
-| **2. One engine** | (a) `player_ids` + N-player regen/game over in `TurnProcessor`; (b) `TurnScheduler` + `PartyRoundScheduler`, server uses `TurnProcessor`; (c) N-player placement in `FloorManager`, delete MP `descend_floor`; (d) `player_died`/`run_ended` events, high score/vault/co-op scores as subscribers, content handlers in MP; (e) extract `Engine` from `Game`, `GameSession` uses it, delete `MultiplayerGameState` rules. | D1, D2, VB-55, VB-54 groundwork | L (5 slices) |
+| **2. One engine** | (a) `player_ids` + N-player regen/game over in `TurnProcessor`; (b) `RoundScheduler` (one action per living seat; SP = one seat), server uses `TurnProcessor`; (c) N-player placement in `FloorManager`, delete MP `descend_floor`; (d) `player_died`/`run_ended` events, high score/vault/co-op scores as subscribers, content handlers in MP; (e) extract `Engine` from `Game`, `GameSession` uses it, delete `MultiplayerGameState` rules. | D1, D2, VB-55, VB-54 groundwork | L (5 slices) |
 | **3. Protocol** | `src/protocol/`, envelope with `v`/`seq`, server sends full per-viewer snapshots, client decodes `Snapshot.from_dict`; retire `get_state_dict` and the session baseline. | D4, D5, VB-26, VB-78 | M |
 | **4. Client** | `GameDriver`; `VeinbornApp` on a driver; `LocalDriver` for SP; RemoteDriver renders server snapshots; two-client playtest. | D6, VB-44 | M |
-| **5. Later** | AI seats (VB-45), fog per viewer, deltas if measured, MP persistence/leaderboard viewer (VB-35, VB-54), mark ADR-011/013/014 Deferred. | D7 | as needed |
+| **5. Later** | Drop/rejoin seat lifecycle (D7, closes VB-45), fog per viewer + dev reveal switch (D4), deltas if measured, MP persistence/leaderboard viewer (VB-35, VB-54), mark ADR-011/013/014 Deferred. | D7 | as needed |
 
 Phase 0 and 1 are independent of the rest and safe to do now. Phase 2 is the core of the
 plan and the riskiest; its slices each keep the full suite and the bot baselines green
@@ -223,8 +261,14 @@ means it is built on the final contracts; Phase 0 gives a playable smoke test me
   are where they would plug in later.
 - **Fairness of the round model** is a design choice, not a bug: flagged as **(Scott)** in D2.
 
-## 6. Open questions for Scott
-1. `actions_per_round`: fixed 4, or default to living party size? (D2)
-2. Disconnected seat: AI-controlled, or idle and skipped? (D7)
-3. Fog of war: on for multiplayer (and single-player) once snapshots are per viewer? (D4)
-4. Approve marking ADR-011/013/014 Deferred and adding this plan as ADR-020?
+## 6. Rulings and open questions
+
+Ruled by Scott, 2026-11-13:
+1. **Round:** one action per living player per round (D2). Supersedes ADR-016's "4 actions, anyone".
+2. **Disconnect:** wait a grace period, then drop; a dropped player can rejoin the party (D7).
+3. **Fog of war:** on by default, with a development reveal switch (D4).
+
+Still open:
+4. Mark ADR-011/013/014 Deferred, record this plan as ADR-020 and amend ADR-016?
+5. Idle (connected but not acting) players stalling a round: timer or vote, when it matters (D2).
+6. Rejoin identity: same player only, or anyone with the game id (D7).
