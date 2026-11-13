@@ -540,7 +540,7 @@ spawn_weights:           # relative weights, need not sum to 100
     imp: 10
   floors_61_plus:
     lich: 20
-    phoenix: 30
+    phoenix: 15
 
 floor_scaling:           # every spawned monster's stats x (1 + per_floor * (floor - 1))
   per_floor: 0.02

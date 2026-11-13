@@ -155,7 +155,7 @@ spawn_weights:
     basilisk: 15
     lich: 20
     demon: 25
-    phoenix: 30
+    phoenix: 15
     description: "The abyss: the strongest monsters only"
 
 # Combat balance validation
