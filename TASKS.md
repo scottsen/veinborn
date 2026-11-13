@@ -2,7 +2,7 @@
 project: veinborn
 schema_version: '1.0'
 id_prefix: VB
-next_id: 76
+next_id: 77
 archival: inline
 areas: {}
 ---
@@ -412,9 +412,9 @@ priority: urgent
 effort: medium
 tags: [multiplayer, bug, rng]
 created: '2026-09-23T05:25:50Z'
-updated: '2026-09-23T05:56:31Z'
+updated: '2026-11-13T01:09:07Z'
 session: earthly-god-0922
-notes_next: 2
+notes_next: 3
 ```
 
 GameRNG is a class-level singleton (core/rng.py:75-112). multiplayer_game_state.py:100-102 calls GameRNG.initialize(self.seed) unconditionally when the first player joins a new game, which replaces the shared process-wide instance. Every dungeon-gen/spawn/loot call site (world.py, entity_spawner.py, spawn_policy.py, entity_loader.py:242, entities.py:322) reads via GameRNG.get_instance() -- the same shared object. Two games running concurrently on one server stomp each other's RNG stream: starting game B mid-session silently rewires game A's in-flight combat rolls, loot, and future dungeon-gen to draw from game B's seed. Breaks per-game determinism/reproducibility. Fix: give each GameState its own GameRNG instance threaded through GameSession/MultiplayerGameState and exposed via ctx.rng; also remove ai_system.py's direct stdlib random module usage (lines ~436,441) which never replays from a seed either.
@@ -422,6 +422,7 @@ GameRNG is a class-level singleton (core/rng.py:75-112). multiplayer_game_state.
 <!-- notes: append-only log; each has a stable #id (see CLI §5) -->
 ### Notes
 - [#1 2026-09-23T05:56:31Z session:earthly-god-0922] Fixed: each game now gets its own dedicated GameRNG instance instead of every generation/spawn call reaching for the process-global GameRNG.get_instance() singleton. Map now holds self.rng (captured at construction, defaults to the singleton only for back-compat callers); world.py's split_node/create_rooms/connect_rooms, spawn_policy.py's ore-position/special-room functions, and entity_spawner.py's weighted-choice/treasure-room/monster-den/ore-chamber methods all read the owning map's .rng instead of calling GameRNG.get_instance() fresh. entity_loader.create_ore_vein() takes an explicit rng param now (falls back to the singleton only when omitted). multiplayer_game_state.add_player() constructs GameRNG(seed) directly and threads it through GameState.rng/dungeon_map.rng, instead of calling GameRNG.initialize(seed) which reassigned the shared class-level singleton out from under any other concurrent game; descend_floor() reuses the same instance for the next floor. Added GameState.rng field and GameContext.get_rng(); ai_system.py's _wander() now uses context.get_rng() instead of stdlib random (removed the direct import). save_load.py's _deserialize_state() restores RNG state into a dedicated per-load instance (state.rng/dungeon_map.rng) instead of writing into the global singleton, so a loaded game's continued play can't be corrupted by another concurrent game either -- required updating two existing tests (test_rng_state_restored, test_seeded_run_continues_correctly) that had asserted against GameRNG.get_instance() by design. Added test_concurrent_games_do_not_share_rng_stream (tests/unit/server/test_multiplayer_game_state.py) proving two concurrently-started MultiplayerGameStates get independent RNG streams and dungeon layouts. Full suite: 1102 tests pass (up from 1067 baseline; net new/updated tests from this work plus VB-16/17).
+- [#2 2026-11-13T01:09:07Z session:quantum-energy-1112] Leftover fixed 45ea525 (quantum-energy-1112): Player._level_up still rolled HP from GameRNG.get_instance(), so level-up HP after a load / in multiplayer came from the global stream (runtime-confirmed: global advanced, game RNG untouched). gain_xp now takes rng=context.get_rng(). Remaining global fallbacks are only when no rng is passed (generate_loot, create_ore_vein, Map) and create_player_from_class/create_item at character creation.
 
 
 ## TASK-VB-19 · Save/load silently drops inventory, equipment, run_type; Forge deserializes as plain Entity
@@ -1793,3 +1794,21 @@ notes_next: 4
 - [#1 2026-11-12T21:53:33Z session:serene-cyclone-1112] Measured 2026-11-12 (serene-cyclone-1112) after VB-73 let bots wear loot and craft upgrades: warrior/mage seed 3001 reach total attack 36-38 / defense 33 by floor 12 and plateau there (adamantite chestplate/weapon). Strongest shipped monster: ancient_horror attack 18 / defense 8; demon 13/6. With defense 33 most monsters hit for the minimum. Crafted stats come from recipes.yaml formulas on ore properties (hardness, purity, ...), so this is tunable in YAML. Design call: scale crafted gear down, scale monsters by floor, or gate high-tier recipes. Measure a change with paired bot runs. Limitation: sim_duels --gear takes items.yaml ids only, and crafted gear is not in items.yaml, so duels at crafted-gear strength need a --gear option for recipes (craft from synthetic ore of a given purity).
 - [#2 2026-11-12T21:54:29Z session:serene-cyclone-1112] sim_duels --gear now crafts recipes (recipe@quality, 83f767f). Level 10, adamantite_greatsword@80 + adamantite_plate@80, start distance 4, 200 fights: warrior and mage beat demon and ancient_horror 100% with 0% HP lost (gearless at level 10: ancient_horror 0% win, demon 20-88%). So with top crafted gear the final boss is harmless.
 - [#3 2026-11-12T22:12:00Z session:serene-cyclone-1112] Long runs (a336011, 96 games x 20000 turns) confirm: gear plateaus at median attack 38-40 / defense 33 from floor 12; 0 deaths past floor 3 in 96 games reaching median floor 75. The only real danger is floors 1-3 (3 rogue deaths to orcs on floor 2). Before VB-73 (pack locked, ebb2eb3 run) warriors had defense 3 for the whole game and 5/24 died deep, so the bot's gear loop, not monsters, was the difficulty.
+
+
+## TASK-VB-76 · Bot runs depend on the machine's ~/.veinbornrc: gameplay (MoveAction autopickup) reads per-user ConfigManager, so one seed plays differently per machine
+
+```yaml
+status: backlog
+priority: medium
+effort: 1h
+tags: [bots, reproducibility, config, play-testing]
+created: '2026-11-13T01:09:07Z'
+updated: '2026-11-13T01:09:16Z'
+session: quantum-energy-1112
+notes_next: 2
+```
+
+<!-- notes: append-only log; each has a stable #id (see CLI §5) -->
+### Notes
+- [#1 2026-11-13T01:09:16Z session:quantum-energy-1112] Found 2026-11-12 (quantum-energy-1112). MoveAction._handle_autopickup reads ConfigManager (~/.veinbornrc, ~/.config/veinborn/config, VEINBORN_* env) for game.autopickup / game.autopickup_types. Scott's rc has autopickup_types = ore,food,weapon,gold; code default is ore,food,weapon. Bots pick up only consumables explicitly (ActionPlanner.collect_action), so gold reaches the pack only via autopickup, i.e. only on this machine (relevant to VB-74 'gold fills slots'). Measured, warrior seeds 1000-1002 x 1500 turns at 45ea525^: rc vs VEINBORN_GAME_AUTOPICKUP_TYPES=ore,food,weapon -> ore mined 25/19/16 vs 15/21/19, floor 6/6/6 vs 6/7/7. So the /var/tmp/vb73_inv_a336011 baselines carry gold-autopickup. Options: (a) bot harness pins a hermetic config (ConfigManager.reset + defaults, or set the env var) and regenerate the baseline; (b) move autopickup rules into game data (game_constants.yaml) and keep only the on/off preference per user; multiplayer server currently applies its host's rc to every player. Scott's call on (a)/(b) and on whether gold should autopickup by default (ties to VB-74).
