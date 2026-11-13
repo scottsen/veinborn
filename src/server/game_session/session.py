@@ -9,7 +9,8 @@ from core.action_pipeline import process_action_outcome
 from core.actions.action_factory import ActionFactory
 from core.base.action import Action
 from core.base.game_context import GameContext
-from core.events import EventBus
+from core.events import EventBus, create_floor_changed_event
+from core.floor_manager import FloorManager
 from core.highscore import HighScoreEntry, HighScoreManager
 from core.systems.ai_system import AISystem
 from core.turn_processor import TurnProcessor
@@ -52,6 +53,7 @@ class GameSession:
 
         # Turn management (rounds live in mp_game_state.scheduler)
         self.turn_processor: Optional[TurnProcessor] = None
+        self.floor_manager: Optional[FloorManager] = None
         self.pending_actions: asyncio.Queue = asyncio.Queue()
 
         # State tracking for delta compression
@@ -315,6 +317,11 @@ class GameSession:
                     on_run_end=lambda game_state, victory: None,
                     defeat_message="All players have died. Game over!",
                 )
+                self.floor_manager = FloorManager(
+                    self.game_context,
+                    self.mp_game_state.spawner,
+                    on_run_end=lambda game_state, victory: None,
+                )
                 self.mp_game_state.scheduler.start(self.mp_game_state.living_entity_ids())
                 logger.info("Initialized GameContext, AISystem and TurnProcessor for multiplayer game")
             else:
@@ -338,9 +345,21 @@ class GameSession:
             outcome,
             action_type,
             add_message=self.mp_game_state.add_message,
-            on_descend_floor=self.mp_game_state.descend_floor,
+            on_descend_floor=self._descend_floor,
             event_bus=self.event_bus,
         )
+
+    def _descend_floor(self) -> None:
+        """Move the whole party down (the same FloorManager single-player uses), then announce it."""
+        state = self.mp_game_state.game_state
+        from_floor = state.current_floor
+        self.floor_manager.descend_floor()
+        if state.current_floor != from_floor:
+            living = self.mp_game_state.living_entity_ids()
+            self.event_bus.publish_dict(create_floor_changed_event(
+                from_floor, state.current_floor,
+                living[0] if living else state.player.entity_id, state.turn_count,
+            ))
 
     def _finish_action(self, entity_id: str, took_turn: bool) -> None:
         """Book a successful action with the round scheduler and tick the world if due.

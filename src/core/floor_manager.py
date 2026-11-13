@@ -88,7 +88,7 @@ class FloorManager:
         Process:
         1. Check for victory condition
         2. Generate new map
-        3. Move player to stairs up
+        3. Move the party to the new floor (one player: stairs up)
         4. Spawn new entities
         5. Send messages to player
 
@@ -109,11 +109,13 @@ class FloorManager:
         # Generate new map
         self._generate_new_floor()
 
-        # Place player at stairs up
-        self._place_player_at_stairs()
+        # Place the party (a party of one: at the stairs up)
+        self._place_party()
 
-        # Clear old entities (the player stays in the world)
-        self.game_state.clear_floor_entities()
+        # Clear old entities (every player stays in the world)
+        self.game_state.clear_floor_entities(
+            keep_ids=[p.entity_id for p in self.context.get_all_players()]
+        )
 
         # Spawn new entities
         monsters, ore_veins, forges = self._spawn_floor_entities(new_floor)
@@ -170,8 +172,30 @@ class FloorManager:
         )
         logger.debug("Generated new map")
 
+    def _place_party(self) -> None:
+        """Put every player on the new floor.
+
+        One player (single-player, or a party of one): at the stairs up, as always.
+        A party: each member on their own spawn position, the same ones a new
+        multiplayer game starts on.
+        """
+        players = self.context.get_all_players()
+        if len(players) <= 1:
+            self._place_player_at_stairs()
+            return
+
+        dungeon_map = self.game_state.dungeon_map
+        spawn_positions = dungeon_map.find_player_spawn_positions(len(players))
+        for index, player in enumerate(players):
+            if index < len(spawn_positions):
+                x, y = spawn_positions[index]
+            else:
+                x, y = dungeon_map.find_starting_position()
+            player.move_to(x, y)
+        logger.debug(f"Placed a party of {len(players)} on the new floor")
+
     def _place_player_at_stairs(self) -> None:
-        """Place player at stairs up position."""
+        """Place the player at the stairs up position."""
         stairs_up_pos = self.game_state.dungeon_map.place_stairs_up()
 
         if stairs_up_pos:

@@ -778,3 +778,30 @@ async def test_first_state_after_start_is_a_plain_full_state():
     assert state.get("type") not in ("delta", "full")
     assert state["is_started"] is True
     assert state["players"][0]["entity_id"]
+
+
+@pytest.mark.asyncio
+async def test_descend_moves_the_whole_party_and_publishes_floor_changed():
+    """VB-91: one FloorManager for single-player and the party; MP now gets floor_changed."""
+    from core.actions.descend_action import DescendAction
+    from core.events import GameEventType
+
+    game = GameSession("game1", "Test Game", max_players=4)
+    await game.add_player("player1", "Alice", "warrior")
+    await game.add_player("player2", "Bob", "rogue")
+    await game.start_game(seed=42)
+    seen = []
+    game.event_bus.subscribe(GameEventType.FLOOR_CHANGED, lambda e: seen.append(e.data))
+
+    mp = game.mp_game_state
+    alice = mp.player_slots["player1"].player_entity
+    bob = mp.player_slots["player2"].player_entity
+    alice.move_to(*mp.game_state.dungeon_map.find_stairs_down())
+
+    success, error = await game.process_action("player1", DescendAction(actor_id=alice.entity_id))
+
+    assert success, error
+    assert mp.game_state.current_floor == 2
+    assert alice.entity_id in mp.game_state.entities and bob.entity_id in mp.game_state.entities
+    assert (alice.x, alice.y) != (bob.x, bob.y)
+    assert [(d['from_floor'], d['to_floor']) for d in seen] == [(1, 2)]

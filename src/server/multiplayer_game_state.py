@@ -16,7 +16,6 @@ from core.world import Map
 from core.config import ConfigLoader
 from core.entity_loader import EntityLoader
 from core.spawning import EntitySpawner
-from core.floor_manager import generate_floor_map, get_victory_floor
 from core.turn_processor import apply_hp_regeneration
 from core.turn_scheduler import RoundScheduler
 
@@ -458,62 +457,3 @@ class MultiplayerGameState:
             f"Spawned floor {floor} entities: {len(monsters)} monsters, "
             f"{len(ore_veins)} ore veins, {len(forges)} forges"
         )
-
-    def _get_victory_floor(self) -> int:
-        """Get the floor number that triggers victory."""
-        return get_victory_floor(self.config)
-
-    def _clear_non_player_entities(self) -> None:
-        """Remove monsters/ore veins/forges from the previous floor.
-
-        Cannot use dict.clear() here (unlike single-player FloorManager) -
-        MP stores non-host players in game_state.entities too, and wiping
-        the whole dict would kick them from the game on every descent.
-        """
-        self.game_state.clear_floor_entities(keep_ids=self.entity_to_player.keys())
-
-    def _reposition_players_at_new_floor(self) -> None:
-        """Move every player to a spawn position on the newly generated floor."""
-        spawn_positions = self.game_state.dungeon_map.find_player_spawn_positions(
-            len(self.player_slots)
-        )
-        self.spawn_positions = spawn_positions
-
-        for index, slot in enumerate(self.player_slots.values()):
-            if index < len(spawn_positions):
-                x, y = spawn_positions[index]
-            else:
-                x, y = self.game_state.dungeon_map.find_starting_position()
-            slot.player_entity.move_to(x, y)
-
-    def descend_floor(self) -> None:
-        """Descend the whole party to the next floor.
-
-        Regenerates the map, repositions all players, and respawns floor
-        entities. Kept separate from core.floor_manager.FloorManager since
-        that class assumes a single player (entities.clear() would delete
-        other MP players) and has single-player-only side effects
-        (high scores, Legacy Vault) that don't apply to a shared session.
-        """
-        if not self.game_state:
-            return
-
-        old_floor = self.game_state.current_floor
-        new_floor = old_floor + 1
-
-        if new_floor >= self._get_victory_floor():
-            self.game_state.victory = True
-            self.game_state.game_over = True
-            self.add_message("🎉 VICTORY! The party has escaped the dungeon!")
-            logger.info(f"Multiplayer game reached victory floor {new_floor}")
-            return
-
-        self.game_state.current_floor = new_floor
-        self.game_state.dungeon_map = generate_floor_map(self.config, self.game_state.rng)
-
-        self._reposition_players_at_new_floor()
-        self._clear_non_player_entities()
-        self._spawn_floor_entities(new_floor)
-
-        self.add_message(f"The party descends to floor {new_floor}!")
-        logger.info(f"Multiplayer descended from floor {old_floor} to floor {new_floor}")

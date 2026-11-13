@@ -116,22 +116,32 @@ def test_get_state_dict_includes_monsters_and_map():
     assert monster_ids.isdisjoint(set(mp.entity_to_player.keys()))
 
 
+def _descend(mp):
+    """The party descends through the same FloorManager single-player uses."""
+    from core.base.game_context import GameContext
+    from core.floor_manager import FloorManager
+
+    FloorManager(
+        GameContext(mp.game_state), mp.spawner, on_run_end=lambda state, victory: None
+    ).descend_floor()
+
+
 def test_descend_floor_advances_floor_and_regenerates_map():
     mp = _make_two_player_game()
     old_map_id = id(mp.game_state.dungeon_map)
 
-    mp.descend_floor()
+    _descend(mp)
 
     assert mp.game_state.current_floor == 2
     assert id(mp.game_state.dungeon_map) != old_map_id
 
 
 def test_descend_floor_preserves_all_players():
-    """The bug this guards: FloorManager.entities.clear() would have wiped
+    """The bug this guards: clearing the old floor would have wiped
     non-host players since MP stores them in game_state.entities too."""
     mp = _make_two_player_game()
 
-    mp.descend_floor()
+    _descend(mp)
 
     assert len(mp.player_slots) == 2
     assert set(mp.player_slots.keys()) == {"p1", "p2"}
@@ -140,11 +150,22 @@ def test_descend_floor_preserves_all_players():
     assert bob_entity_id in mp.game_state.entities
 
 
+def test_descend_floor_puts_every_player_on_a_distinct_walkable_spawn():
+    mp = _make_two_player_game()
+
+    _descend(mp)
+
+    entities = [slot.player_entity for slot in mp.player_slots.values()]
+    positions = [(e.x, e.y) for e in entities]
+    assert len(set(positions)) == len(positions)
+    assert all(mp.game_state.dungeon_map.is_walkable(x, y) for x, y in positions)
+
+
 def test_descend_floor_respawns_entities_with_new_ids():
     mp = _make_two_player_game()
     old_entity_ids = _non_player_entity_ids(mp)
 
-    mp.descend_floor()
+    _descend(mp)
 
     new_entity_ids = _non_player_entity_ids(mp)
     assert len(new_entity_ids) > 0
@@ -153,11 +174,11 @@ def test_descend_floor_respawns_entities_with_new_ids():
 
 def test_descend_floor_at_victory_floor_ends_game(monkeypatch):
     mp = _make_two_player_game()
-    # ConfigLoader.load() is a process-wide singleton - patch the instance
-    # method instead of mutating shared game_constants
-    monkeypatch.setattr(mp, "_get_victory_floor", lambda: 2)
+    # ConfigLoader.load() is a process-wide singleton - patch the lookup
+    # instead of mutating shared game_constants
+    monkeypatch.setattr("core.floor_manager.get_victory_floor", lambda config: 2)
 
-    mp.descend_floor()
+    _descend(mp)
 
     assert mp.game_state.victory is True
     assert mp.game_state.game_over is True
