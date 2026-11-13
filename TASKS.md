@@ -2,7 +2,7 @@
 project: veinborn
 schema_version: '1.0'
 id_prefix: VB
-next_id: 77
+next_id: 81
 archival: inline
 areas: {}
 ---
@@ -999,20 +999,21 @@ status: backlog
 priority: high
 tags: [multiplayer, ui]
 created: '2026-09-23T17:41:24Z'
-updated: '2026-09-23T17:41:24Z'
+updated: '2026-11-13T01:46:46Z'
 session: crimson-jewel-0923
 links:
   references:
   - src/ui/multiplayer_client.py
   - src/ui/textual/app.py
   - src/server/test_client.py
+notes_next: 2
 ```
 
 The first real two-client playtest (scripted, headless) worked after VB-39..43, but the only thing that can send move/attack/mine over the wire is the dev tool src/server/test_client.py. ui/multiplayer_client.MultiplayerClient has connect/chat/create/join/ready and delta merging but no send_action; ui/textual/app.py only wires chat. A human two-client playtest needs a multiplayer game view in the TUI (render players/monsters/map from the merged state, send MoveAction/AttackAction/... with the entity_id from state). Design question: reuse the single-player map widget with a state adapter, or a new read-only renderer.
 
 <!-- notes: append-only log; each has a stable #id (see CLI §5) -->
 ### Notes
-_(no notes yet)_
+- [#1 2026-11-13T01:46:46Z session:mustard-sunset-1112] Design answer (2026-11-12, session mustard-sunset-1112): reuse the single-player map widget via a state adapter is the wrong shape; render from a shared snapshot instead (VB-78) so the TUI, server state and any future client use one contract. get_state_dict today omits derived stats (total attack/defense, equipment, XP, cooldowns) that the single-player sidebar shows, so a multiplayer view built on it would be incomplete. Suggest sequencing VB-77 -> VB-78 -> this task.
 
 
 ## TASK-VB-45 · Disconnected-player 'AI control' is never invoked (process_disconnected_player_action has no caller)
@@ -1784,12 +1785,12 @@ owner: scott
 effort: '-'
 tags: [balance, crafting, design]
 created: '2026-11-12T21:53:20Z'
-updated: '2026-11-13T00:36:26Z'
+updated: '2026-11-13T01:57:08Z'
 session: serene-cyclone-1112
 links:
   relates_to:
   - VB-69
-notes_next: 4
+notes_next: 5
 ```
 
 <!-- notes: append-only log; each has a stable #id (see CLI §5) -->
@@ -1797,6 +1798,7 @@ notes_next: 4
 - [#1 2026-11-12T21:53:33Z session:serene-cyclone-1112] Measured 2026-11-12 (serene-cyclone-1112) after VB-73 let bots wear loot and craft upgrades: warrior/mage seed 3001 reach total attack 36-38 / defense 33 by floor 12 and plateau there (adamantite chestplate/weapon). Strongest shipped monster: ancient_horror attack 18 / defense 8; demon 13/6. With defense 33 most monsters hit for the minimum. Crafted stats come from recipes.yaml formulas on ore properties (hardness, purity, ...), so this is tunable in YAML. Design call: scale crafted gear down, scale monsters by floor, or gate high-tier recipes. Measure a change with paired bot runs. Limitation: sim_duels --gear takes items.yaml ids only, and crafted gear is not in items.yaml, so duels at crafted-gear strength need a --gear option for recipes (craft from synthetic ore of a given purity).
 - [#2 2026-11-12T21:54:29Z session:serene-cyclone-1112] sim_duels --gear now crafts recipes (recipe@quality, 83f767f). Level 10, adamantite_greatsword@80 + adamantite_plate@80, start distance 4, 200 fights: warrior and mage beat demon and ancient_horror 100% with 0% HP lost (gearless at level 10: ancient_horror 0% win, demon 20-88%). So with top crafted gear the final boss is harmless.
 - [#3 2026-11-12T22:12:00Z session:serene-cyclone-1112] Long runs (a336011, 96 games x 20000 turns) confirm: gear plateaus at median attack 38-40 / defense 33 from floor 12; 0 deaths past floor 3 in 96 games reaching median floor 75. The only real danger is floors 1-3 (3 rogue deaths to orcs on floor 2). Before VB-73 (pack locked, ebb2eb3 run) warriors had defense 3 for the whole game and 5/24 died deep, so the bot's gear loop, not monsters, was the difficulty.
+- [#4 2026-11-13T01:57:08Z session:quantum-energy-1112] Lever study 2026-11-12 (quantum-energy-1112), sim_duels at the bots' curve checkpoints (gear reproduces measured atk/def: F5 L5 iron@55 ~15/9, F8 L6 mithril@75 ~24/17, F12/30/50 L7/10/11 adamantite@90 ~35-40/33), 200 fights/cell, abilities off, worst-class win% / mean HP lost on a win. Results + harness: /var/tmp/vb75_duels_6e7ad70 (levers_summary.txt, rate_sweep_summary.txt, run_matrix.py, run_sweep.py). (1) Halving crafted gear bonuses or diminishing-returns defense (to-hit def/2, damage roll*10/(10+def)) barely matter: from F5 on every common monster costs <=8% HP; only ancient_horror rises to ~20-29%. Monsters are weak against level growth alone, so gear is not the whole problem. (2) Monster floor scaling (hp/atk/def x (1 + r*(floor-1))) is the only lever that adds danger past F12, because the player stops growing (gear plateau F12, level ~11 from F50) while the game runs to F100. r=2%: F12-50 trivial, F75 demon 13% HP, F100 lich 94%/20%, demon 60%/51%. r=3%: F50 demon 13%, F75 lich 74%/34%, demon 25%/64%, F100 lich 10%. r=4%: F50 demon 64%/46%, F75 mostly unwinnable. Scaled ancient_horror is unwinnable from F50 (3%) / F75 (2%), so a final boss needs its own fixed stats. 6% (first pass) is a cliff (F30 demon 85%, F50 lich 10%). (3) Linear scaling vs a flat player always ends in a wall; the designed late growth is the legendary recipes (flaming_sword, titans_hammer, phoenix_armor ...), but RecipeManager._load_recipes loads only weapons+armor, so all 6 legendaries are dormant, and special_requirement (boss items) is read by nothing. Proposal for Scott: floor scaling ~2-3%/floor as a data knob (small spawner change), boss excluded/fixed; VB-69 placements for variety; legendary recipes + boss-item drops (VB-70) as the late player growth; then bot long runs for deaths by floor.
 
 
 ## TASK-VB-76 · Bot runs depend on the machine's ~/.veinbornrc: gameplay (MoveAction autopickup) reads per-user ConfigManager, so one seed plays differently per machine
@@ -1819,3 +1821,112 @@ notes_next: 3
 ### Notes
 - [#1 2026-11-13T01:09:16Z session:quantum-energy-1112] Found 2026-11-12 (quantum-energy-1112). MoveAction._handle_autopickup reads ConfigManager (~/.veinbornrc, ~/.config/veinborn/config, VEINBORN_* env) for game.autopickup / game.autopickup_types. Scott's rc has autopickup_types = ore,food,weapon,gold; code default is ore,food,weapon. Bots pick up only consumables explicitly (ActionPlanner.collect_action), so gold reaches the pack only via autopickup, i.e. only on this machine (relevant to VB-74 'gold fills slots'). Measured, warrior seeds 1000-1002 x 1500 turns at 45ea525^: rc vs VEINBORN_GAME_AUTOPICKUP_TYPES=ore,food,weapon -> ore mined 25/19/16 vs 15/21/19, floor 6/6/6 vs 6/7/7. So the /var/tmp/vb73_inv_a336011 baselines carry gold-autopickup. Options: (a) bot harness pins a hermetic config (ConfigManager.reset + defaults, or set the env var) and regenerate the baseline; (b) move autopickup rules into game data (game_constants.yaml) and keep only the on/off preference per user; multiplayer server currently applies its host's rc to every player. Scott's call on (a)/(b) and on whether gold should autopickup by default (ties to VB-74).
 - [#2 2026-11-13T01:22:38Z session:quantum-energy-1112] Option (a) shipped 1fcbdfd: ConfigManager.use_defaults(); bots (per game, covers forked workers) and every test (autouse conftest fixture) run on built-in preferences; VEINBORN_* env still applies on purpose. Then Scott made gold an autopickup default (0d1b700), which equals his rc for bots: a fresh run at 0d1b700 (/var/tmp/vb76_gold_0d1b700/logs/inv_*.json, 4 classes x 32 x 3000, seeds 1000+) is identical to the a336011 baseline in 128/128 games. So /var/tmp/vb73_inv_a336011 stays a valid baseline, and today's refactors and the level-up RNG fix change no fresh game. The intermediate no-gold run (1fcbdfd, deleted) differed in 127/128 games with no aggregate effect (floor -0.02 [-0.35,+0.31]). Not done: the multiplayer server still applies its host's rc to every player (option b: move autopickup rules to game data).
+
+
+## TASK-VB-77 · Move game logic out of the Textual UI into core (equip list/cycle, look-at-ground, inventory listing, UI-authored messages)
+
+```yaml
+status: backlog
+priority: medium
+effort: 3-4h
+tags: [architecture, refactor, ui]
+created: '2026-11-13T01:46:24Z'
+updated: '2026-11-13T01:46:24Z'
+session: mustard-sunset-1112
+links:
+  references:
+  - src/ui/textual/app.py
+  - docs/architecture/ARCHITECTURAL_ASSESSMENT.md
+```
+
+Found 2026-11-12 (session mustard-sunset-1112, TIA, investigating 'can we have a graphical UI'). src/core has zero UI imports, but src/ui/textual/app.py still holds game rules that any second frontend (graphical client, web client, multiplayer client) would have to copy:
+- action_equip_item / action_cycle_equip (~42 lines each, near-identical): both re-derive 'equippable' from inventory (equipment_slot or item_type in weapon/armor), build the listing text, and keep equip_index in the App. Also odd behavior: pressing W equips item 0 immediately and cycling equips each item in turn as it goes.
+- action_look_at_ground and action_show_inventory: query game.state.entities / inventory and format message text.
+- action_use_item / action_drop_item already delegate the choice to core (best_healing_item, least_useful_item) -- that is the pattern to copy.
+- The UI authors player-facing text by calling game.state.add_message(...) directly, so those messages exist only in the single-player game and never reach a server client.
+Proposed: intent-level core calls (e.g. Game.equippable_items(), Game.cycle_equipment(), Game.items_here(), Game.inventory_summary()) returning data; the TUI formats and displays. Message-producing UI paths become core actions/outcomes so they go through the same pipeline as everything else. Keep behavior identical; add unit tests for each new core function. Do this before the snapshot task so the snapshot has the right shape.
+
+<!-- notes: append-only log; each has a stable #id (see CLI §5) -->
+### Notes
+_(no notes yet)_
+
+
+## TASK-VB-78 · Introduce a render snapshot (view model) shared by the TUI widgets and the server state
+
+```yaml
+status: backlog
+priority: medium
+effort: 1-2d
+tags: [architecture, refactor, ui, multiplayer]
+created: '2026-11-13T01:46:32Z'
+updated: '2026-11-13T01:46:32Z'
+session: mustard-sunset-1112
+depends_on: [VB-77]
+links:
+  references:
+  - src/ui/textual/widgets/map_widget.py
+  - src/ui/textual/widgets/sidebar.py
+  - src/server/multiplayer_game_state.py
+  - src/server/state_delta.py
+  relates_to:
+  - VB-44
+  - VB-26
+  - VB-24
+```
+
+Found 2026-11-12 (session mustard-sunset-1112). Every Textual widget reads live domain objects (map_widget._get_entity_at walks game_state.entities; _render_cell reads game_map.tiles and imports TileType/EntityType; sidebar calls player.get_total_attack(), xp_for_next_level(), equipped_weapon, cooldowns). There is no render contract between core and UI. Separately, src/server/multiplayer_game_state.get_state_dict is a hand-rolled 85-line serializer that is a second, different description of the same state: it sends base attack/defense only (not totals including gear), no equipped weapon/armor, no XP/level/cooldowns, so a multiplayer client rendering it could not show what the single-player sidebar shows. Two state models also exist (core GameState vs MultiplayerGameState; see VB-24, VB-25 for earlier pipeline/floor duplication).
+Proposed: a core function (e.g. Game.snapshot() / a Snapshot dataclass with to_dict) returning plain serializable data for: map tiles and visibility, entities by semantic type + content_id, player stats including derived totals, equipment, inventory, cooldowns, recent messages, turn/floor/game_over. Both the Textual widgets and the server's get_state_dict consume it. Open design points: (1) visibility/fog -- VB-68 note #2 says the TUI map and sidebar show every monster on the floor, so the snapshot should apply what the player may see; (2) delta strategy -- keep StateDelta working on the snapshot dict (see VB-26 about apply_delta complexity); (3) single-player vs multiplayer = same snapshot, different viewer. Payoffs beyond graphics: renderer tests without a live Game, one contract for VB-44, no duplicated serialization. Acceptance: Textual widgets import nothing from core except the snapshot types; server get_state_dict is built from the snapshot; existing TUI and multiplayer tests pass; new tests cover derived stats appearing in the snapshot.
+
+<!-- notes: append-only log; each has a stable #id (see CLI §5) -->
+### Notes
+_(no notes yet)_
+
+
+## TASK-VB-79 · Emit semantic render IDs in the snapshot; make glyph/colour a per-frontend data mapping
+
+```yaml
+status: backlog
+priority: low
+effort: 4-6h
+tags: [architecture, ui, content]
+created: '2026-11-13T01:46:44Z'
+updated: '2026-11-13T01:46:44Z'
+session: mustard-sunset-1112
+depends_on: [VB-78]
+links:
+  references:
+  - src/core/base/entity.py
+  - data/ui/layouts/README.md
+```
+
+Found 2026-11-12 (session mustard-sunset-1112). Entities carry display_symbol/display_color, so core describes appearance as terminal glyph + colour and the TUI renders it verbatim; terrain glyphs live in MapWidget.MAP_CHARS. A graphical or web frontend needs sprite/tile IDs instead. Proposed: snapshot emits entity_type + content_id (and tile type); a data file (YAML, consistent with the content system) maps those to glyph/colour for the TUI; a future frontend ships its own mapping. Keep display_symbol/display_color as the TUI default mapping source so content files need no mass edit. Only worth doing when a second frontend is real, hence low priority and future-ish. Check data/ui/layouts for an existing data-driven rendering mechanism first (docs/development/DATA_DRIVEN_RENDERING_POC.md, ENTITY_RENDERING_IMPROVEMENTS.md) and extend it rather than inventing a parallel one.
+
+<!-- notes: append-only log; each has a stable #id (see CLI §5) -->
+### Notes
+_(no notes yet)_
+
+
+## TASK-VB-80 · Spike: graphical frontend prototype on the snapshot (decide pygame/in-process vs browser over websocket)
+
+```yaml
+status: backlog
+priority: low
+effort: 1-2d
+tags: [architecture, ui, design]
+created: '2026-11-13T01:46:46Z'
+updated: '2026-11-13T01:46:46Z'
+session: mustard-sunset-1112
+depends_on: [VB-78]
+links:
+  references:
+  - src/server/README.md
+  - src/ui/multiplayer_client.py
+  relates_to:
+  - VB-44
+```
+
+Found 2026-11-12 (session mustard-sunset-1112). Question from Scott: how possible is a fancy graphics UI. Finding: feasible; core has no UI imports, Game.handle_player_action(action_type, **kwargs) is the single input seam, EventBus has typed serializable events for animation, and a websocket server with JSON messages and StateDelta already exists. Blockers are VB-77 (logic in app.py), VB-78 (no render contract), VB-44 (client cannot send actions). Spike scope after those: pick between (a) in-process pygame/arcade/raylib calling Game directly and (b) a browser canvas/WebGL client over the existing websocket protocol (richest graphics, shareable, but needs the VB-44 action path and the server to host single-player). Output: a short decision note in docs/design/ with a thin vertical slice (map + player move + one monster) proving the snapshot is enough, plus whether the EventBus needs a client-facing animation feed. Do not start before VB-78 lands.
+
+<!-- notes: append-only log; each has a stable #id (see CLI §5) -->
+### Notes
+_(no notes yet)_
