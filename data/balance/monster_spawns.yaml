@@ -52,6 +52,13 @@ floor_scaling:
   per_floor: 0.0
   stats: [hp, attack, defense]
 
+# Bosses (VB-75): exactly one of this monster is placed on that floor, on top of the
+# floor's normal monsters (monster dens and wanderers never draw it). The victory
+# floor (game_constants.yaml progression.victory_floor, 100) is reached, not played,
+# so the final boss guards floor 99.
+boss_floors:
+  99: ancient_horror
+
 # Monster spawn weights by floor
 # Weight determines spawn probability
 # Example: goblin: 70, orc: 30 = 70% Goblins, 30% Orcs
@@ -94,15 +101,57 @@ spawn_weights:
     troll: 15
     ogre: 10
     imp: 10
-    description: "Mid-late game variety"
+    wraith: 5
+    mimic: 5
+    description: "Mid-late game variety; first wraiths (Shadow Cloak material, recipe floor 10+)"
 
-  floors_16_plus:
-    orc: 10
-    spider: 10
-    troll: 30
-    ogre: 25
-    imp: 25
-    description: "High difficulty - elite and magical enemies"
+  # Floors 16+ (VB-69): the deep roster in rising base strength
+  # (mimic, wraith, golem < wyvern, vampire < basilisk, lich < demon, phoenix).
+  # Each boss-material monster appears around or after its legendary recipe unlocks
+  # (recipes.yaml min_floor): wyvern 16+ (Dragon Bow 18), lich 26+ (Arcane Staff 12),
+  # phoenix 41+ (Flaming Sword / Phoenix Armor 15). floor_scaling makes every band
+  # stronger as floors go deeper.
+  floors_16_25:
+    troll: 20
+    ogre: 15
+    imp: 15
+    wraith: 15
+    mimic: 10
+    golem: 10
+    wyvern: 10
+    vampire: 5
+    description: "Deep floors begin: undead, constructs and the first wyverns"
+
+  floors_26_40:
+    troll: 10
+    ogre: 10
+    imp: 10
+    wraith: 10
+    golem: 10
+    wyvern: 15
+    vampire: 15
+    basilisk: 10
+    lich: 10
+    description: "Vampires, basilisks and the first liches"
+
+  floors_41_60:
+    ogre: 5
+    imp: 5
+    wyvern: 10
+    vampire: 15
+    basilisk: 15
+    lich: 20
+    demon: 15
+    phoenix: 15
+    description: "Demons and phoenixes join"
+
+  floors_61_plus:
+    vampire: 10
+    basilisk: 15
+    lich: 20
+    demon: 25
+    phoenix: 30
+    description: "The abyss: the strongest monsters only"
 
 # Combat balance validation
 # These values verify that floors are beatable

@@ -62,6 +62,11 @@ class EntitySpawner:
             ('ore_veins.yaml', self.config.ore_veins['spawn_weights'],
              set(self.entity_loader.get_ore_ids())),
         )
+        unknown_bosses = sorted(set(self.config.get_boss_floors().values())
+                                - set(self.entity_loader.get_monster_ids()))
+        if unknown_bosses:
+            raise ContentValidationError(
+                f"monster_spawns.yaml boss_floors names undefined monsters: {unknown_bosses}")
         for filename, bands, known in checks:
             for band, weights in bands.items():
                 unknown = sorted(k for k, v in weights.items()
@@ -86,11 +91,16 @@ class EntitySpawner:
         # Get spawn configuration
         monster_count = self.config.get_monster_count_for_floor(floor)
         spawn_weights = self.config.get_monster_spawn_weights(floor)
+        boss = self.config.get_boss_for_floor(floor)
 
-        # Find positions
-        positions = dungeon_map.find_monster_positions(monster_count)
+        # Find positions (one more for a boss floor's boss)
+        positions = dungeon_map.find_monster_positions(monster_count + (1 if boss else 0))
 
         monsters = []
+        if boss and positions:
+            x, y = positions.pop()
+            monsters.append(self.entity_loader.create_monster(boss, x, y, floor=floor))
+            logger.info(f"Boss {boss} placed at ({x}, {y}) on floor {floor}")
         for x, y in positions:
             # Choose monster type based on weights
             monster_type = self._weighted_random_choice(spawn_weights, dungeon_map.rng)

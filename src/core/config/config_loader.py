@@ -48,6 +48,19 @@ class GameConfig:
         validate_bands(self.monster_spawns['spawn_weights'], 'monster_spawns.yaml spawn_weights')
         validate_bands(self.ore_veins['spawn_weights'], 'ore_veins.yaml spawn_weights')
         self.get_monster_floor_scaling()   # fail at load, not on the first deep spawn
+        self.get_boss_floors()
+
+    def get_boss_floors(self) -> Dict[int, str]:
+        """monster_spawns.yaml boss_floors: {floor: monster_id}, one boss placed on that floor."""
+        bosses = self.monster_spawns.get('boss_floors') or {}
+        for floor in bosses:
+            if not isinstance(floor, int) or floor < 1:
+                raise ContentValidationError(
+                    f"monster_spawns.yaml boss_floors: floor keys must be integers >= 1, got {floor!r}")
+        return dict(bosses)
+
+    def get_boss_for_floor(self, floor: int) -> Optional[str]:
+        return self.get_boss_floors().get(floor)
 
     SCALABLE_MONSTER_STATS = ('hp', 'attack', 'defense')
 

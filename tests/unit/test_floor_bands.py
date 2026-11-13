@@ -52,23 +52,31 @@ def test_shipped_tables_cover_every_floor_to_victory():
         assert config.get_ore_spawn_weights(floor)
 
 
+def open_band(weights):
+    """(key, first floor) of the shipped open-ended band, e.g. ('floors_61_plus', 61)."""
+    key = next(k for k in weights if k.endswith('_plus'))
+    return key, int(key.split('_')[1])
+
+
 def test_a_new_band_needs_only_yaml():
-    """Splitting floors_16_plus into two bands changes the deep floors with no code change."""
+    """Splitting the open-ended band in two changes the deep floors with no code change."""
     base = ConfigLoader.get_config()
     spawns = copy.deepcopy(base.monster_spawns)
     weights = spawns['spawn_weights']
-    weights['floors_16_30'] = weights.pop('floors_16_plus')
-    weights['floors_31_plus'] = {'golem': 1}
+    key, first = open_band(weights)
+    weights[f'floors_{first}_{first + 14}'] = weights.pop(key)
+    weights[f'floors_{first + 15}_plus'] = {'golem': 1}
     config = GameConfig(**{**base.__dict__, 'monster_spawns': spawns})
-    assert config.get_monster_spawn_weights(20) == base.get_monster_spawn_weights(20)
-    assert config.get_monster_spawn_weights(31) == {'golem': 1}
+    assert config.get_monster_spawn_weights(first + 4) == base.get_monster_spawn_weights(first + 4)
+    assert config.get_monster_spawn_weights(first + 15) == {'golem': 1}
 
 
 def test_config_rejects_a_gap_at_load():
     base = ConfigLoader.get_config()
     spawns = copy.deepcopy(base.monster_spawns)
-    spawns['spawn_weights']['floors_17_plus'] = spawns['spawn_weights'].pop('floors_16_plus')
-    with pytest.raises(ContentValidationError, match='floors 16-16 uncovered'):
+    key, first = open_band(spawns['spawn_weights'])
+    spawns['spawn_weights'][f'floors_{first + 1}_plus'] = spawns['spawn_weights'].pop(key)
+    with pytest.raises(ContentValidationError, match=f'floors {first}-{first} uncovered'):
         GameConfig(**{**base.__dict__, 'monster_spawns': spawns})
 
 
