@@ -1027,12 +1027,12 @@ status: backlog
 priority: low
 tags: [multiplayer]
 created: '2026-09-23T17:43:16Z'
-updated: '2026-11-13T21:14:22Z'
+updated: '2026-11-13T21:28:09Z'
 session: crimson-jewel-0923
 links:
   references:
   - src/server/game_session/session.py
-notes_next: 3
+notes_next: 4
 ```
 
 GameSession.process_disconnected_player_action (a defensive WaitAction) is called from nowhere in src, yet process_action tells rejected clients 'AI is controlling this character'. In a headless playtest a dropped player's character just stood still and died. Either wire it into a timer/round hook (what should the AI do beyond wait? retreat to stairs?) or delete it and fix the message. Product call.
@@ -1041,6 +1041,7 @@ GameSession.process_disconnected_player_action (a defensive WaitAction) is calle
 ### Notes
 - [#1 2026-11-13T21:10:10Z session:chartreuse-filter-1113] Plan: docs/architecture/MULTIPLAYER_ARCHITECTURE_PLAN.md places this task in a phase (see section 4); read it before starting.
 - [#2 2026-11-13T21:14:22Z session:chartreuse-filter-1113] Scott 2026-11-13: no AI control of absent players. Replaced by a grace -> dropped -> rejoin seat lifecycle (plan D7, docs/architecture/MULTIPLAYER_ARCHITECTURE_PLAN.md). Close as won't-do when that lands; delete process_disconnected_player_action then.
+- [#3 2026-11-13T21:28:09Z session:letorera-1113] Closed by decision: AI control rejected, replaced by drop/rejoin (plan D7, ADR-020).
 
 
 ## TASK-VB-46 · Spawner stacks ore veins, forges and (rarely) monsters on one tile
@@ -2136,12 +2137,13 @@ priority: high
 effort: 4h
 tags: [multiplayer, architecture, protocol]
 created: '2026-11-13T21:19:35Z'
-updated: '2026-11-13T21:19:35Z'
+updated: '2026-11-13T21:28:09Z'
 session: chartreuse-filter-1113
+notes_next: 2
 ```
 
 docs/architecture/MULTIPLAYER_ARCHITECTURE_PLAN.md sections D3, D6 and phase table (phases 0+1 done together, intents first so the client never learns the built-action format). Replace 15 context.get_player() sites in core/actions/action_factory.py with an actor_id param defaulting to the player; SP suite + bot A/B must be identical. Keep the old 'action' message working for server/test_client.py. Client: connect inside Textual's loop (run_multiplayer.py currently asyncio.run()s the connect, which cancels MultiplayerClient._listen).
 
 <!-- notes: append-only log; each has a stable #id (see CLI §5) -->
 ### Notes
-_(no notes yet)_
+- [#1 2026-11-13T21:28:09Z session:letorera-1113] Rulings confirmed 2026-11-13: strict per-player round; rejoin by auth token (name fallback); idle timer deferred (config.action_timeout/idle_timeout unread). Client should persist its token. See plan section 6.
