@@ -47,7 +47,7 @@ class CharacterClass(Enum):
             CharacterClass enum
 
         Raises:
-            ValueError: If class name is invalid
+            DataError: If class name is invalid
 
         Example:
             >>> CharacterClass.from_string("warrior")
@@ -321,7 +321,7 @@ def get_class_from_choice(choice: int) -> CharacterClass:
         CharacterClass enum
 
     Raises:
-        ValueError: If choice is out of range
+        DataError: If choice is out of range
 
     Example:
         >>> get_class_from_choice(1)
