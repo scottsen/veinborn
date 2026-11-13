@@ -999,14 +999,14 @@ status: backlog
 priority: high
 tags: [multiplayer, ui]
 created: '2026-09-23T17:41:24Z'
-updated: '2026-11-13T01:46:46Z'
+updated: '2026-11-13T21:00:27Z'
 session: crimson-jewel-0923
 links:
   references:
   - src/ui/multiplayer_client.py
   - src/ui/textual/app.py
   - src/server/test_client.py
-notes_next: 2
+notes_next: 3
 ```
 
 The first real two-client playtest (scripted, headless) worked after VB-39..43, but the only thing that can send move/attack/mine over the wire is the dev tool src/server/test_client.py. ui/multiplayer_client.MultiplayerClient has connect/chat/create/join/ready and delta merging but no send_action; ui/textual/app.py only wires chat. A human two-client playtest needs a multiplayer game view in the TUI (render players/monsters/map from the merged state, send MoveAction/AttackAction/... with the entity_id from state). Design question: reuse the single-player map widget with a state adapter, or a new read-only renderer.
@@ -1014,6 +1014,7 @@ The first real two-client playtest (scripted, headless) worked after VB-39..43, 
 <!-- notes: append-only log; each has a stable #id (see CLI §5) -->
 ### Notes
 - [#1 2026-11-13T01:46:46Z session:mustard-sunset-1112] Design answer (2026-11-12, session mustard-sunset-1112): reuse the single-player map widget via a state adapter is the wrong shape; render from a shared snapshot instead (VB-78) so the TUI, server state and any future client use one contract. get_state_dict today omits derived stats (total attack/defense, equipment, XP, cooldowns) that the single-player sidebar shows, so a multiplayer view built on it would be incomplete. Suggest sequencing VB-77 -> VB-78 -> this task.
+- [#2 2026-11-13T21:00:27Z session:chartreuse-filter-1113] Investigation (chartreuse-filter-1113), all verified in code: (1) run_multiplayer.py connects inside asyncio.run(connect_to_server) then runs app.run() in a second loop; MultiplayerClient._listen is a task of the first loop, which asyncio.run cancels on exit (probe: listener task.cancelled()==True after the first asyncio.run), so the TUI client never receives state/chat/delta from the server. Needs one loop (Textual's: connect from on_mount, or app.run_async). (2) VeinbornApp.compose() always start_new_game()s a LOCAL Game, even with multiplayer_client set; multiplayer mode today = a private single-player game with chat attached. Moves go to the local game. (3) Client has no send_action; wire format is Message(type='action', data={'action_data': {'action_type': 'MoveAction','actor_id': <entity_id>, ...}}), the server checks actor_id == the player's entity id and replies with a broadcast of full/delta state (websocket_server.handle_action). The entity id comes from state['players'][i]['entity_id'] where player_id matches client.state.player_id (test_client.py does this). (4) Rendering: state dict has players[], monsters[] (Entity.to_dict), map{width,height,tiles rows}; VB-78 stage 2 added gear totals/equipment/abilities per player. No snapshot-from-dict path yet. Proposed order: a) fix the loop (tiny, testable with the in-process server tests), b) MultiplayerClient.send_action + entity-id lookup + tests, c) Snapshot.from_state_dict(state, player_id) so the existing widgets render server state (this is where VB-78's remaining wire work gets decided), d) app multiplayer mode: no local Game, key handlers send actions, redraw on on_state_update, e) a headless two-client pilot test.
 
 
 ## TASK-VB-45 · Disconnected-player 'AI control' is never invoked (process_disconnected_player_action has no caller)
