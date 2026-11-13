@@ -2089,16 +2089,17 @@ NetHack's special levels (Oracle, big rooms, branches) give floors identity. Vei
 ## TASK-VB-87 · Deep balance after VB-75: phoenix is 41 of 59 deaths at 2% floor scaling; Phoenix Armor never crafted; final boss on floor 99 untested
 
 ```yaml
-status: backlog
+status: in_progress
 priority: medium
 effort: 2-3h
 tags: [balance, monsters, crafting, bots]
 created: '2026-11-13T04:43:37Z'
-updated: '2026-11-13T04:43:48Z'
+updated: '2026-11-13T18:47:30Z'
 session: quantum-energy-1112
-notes_next: 2
+notes_next: 3
 ```
 
 <!-- notes: append-only log; each has a stable #id (see CLI §5) -->
 ### Notes
 - [#1 2026-11-13T04:43:48Z session:quantum-energy-1112] From the VB-75 long runs at 2% (/var/tmp/vb75_long_r02_e25e163, 4 classes x 24 x 20000 turns, instrumented: logs/long_*.jsonl has material drops, pickups, crafts). (1) Phoenix kills 41 of 59 (demon 11, lich 4): base attack 14 (highest after the boss) and weight 30 of 115 in floors_61_plus; candidates: lower its weight or attack, or start it later. Mages die most (22/24), healers least (3/24). (2) No bot crafted Phoenix Armor in any run (needs 6 adamantite at once; bots craft adamantite_plate x4 first); Flaming Sword 15, Arcane Staff 25, Dragon Bow 94. Either the bot needs to save ore for it or 6 is too many. (3) No bot reaches floor 99 in 20000 turns (max 76), so the ancient_horror boss is unmeasured: use --start-floor 98 runs and sim_duels at the curve's level and legendary gear. (4) xp_reward does not scale with floor_scaling; level plateaus ~11 from the doubling curve anyway. (5) Titan's Hammer needs the floor-99 boss's core and the game is won on 100, so it is a trophy unless the core comes from elsewhere. (6) dragon_bone comes from the wyvern (no dragon exists).
+- [#2 2026-11-13T18:47:30Z session:unexplored-thruster-1113] Done in cb8ad90 + next commit: (1) phoenix weight 30->15, paired long run (seeds 3000+, 4 classes x 24 x 20000 turns, /var/tmp/vb87_w15/logs): deaths 59->52, phoenix kills 41->34, median floor 65.5->67; phoenix is still the top killer, so the weight is a weak lever. (3) Boss: sim_duels --floor now scales monsters; at level 11 with flaming_sword@90+adamantite_plate@90 ancient_horror (floor_scaling false) is 100% win/0% HP lost, phoenix/demon/lich at floors 61-95 are 88-100% wins. A geared player crushes the late game; bots die for lack of that gear. Open: (2) bots never craft Phoenix Armor (needs 6 adamantite at once), (4) xp unscaled, (5) Titan's Hammer trophy.
