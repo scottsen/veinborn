@@ -244,6 +244,56 @@ troll:
         weight: 40
 
 # =============================================================================
+# BOSS MATERIALS (VB-75) - the drops legendary recipes need
+# (recipes.yaml legendary, requirements.special_requirement). Only the material
+# is set here; what else these monsters drop is VB-70.
+# =============================================================================
+lich:
+  description: "Its phylactery, for the Arcane Staff"
+  material:
+    drop_chance: 1.0
+    items:
+      - id: lich_phylactery
+        weight: 100
+
+phoenix:
+  description: "Essence (Flaming Sword) and feather (Phoenix Armor)"
+  essence:
+    drop_chance: 1.0
+    items:
+      - id: phoenix_essence
+        weight: 100
+  feather:
+    drop_chance: 1.0
+    items:
+      - id: phoenix_feather
+        weight: 100
+
+wraith:
+  description: "Essence for the Shadow Cloak; it takes more than one kill on average"
+  material:
+    drop_chance: 0.5
+    items:
+      - id: wraith_essence
+        weight: 100
+
+wyvern:
+  description: "Dragon bone for the Dragon Bow (no true dragon exists; the wyvern is its kin)"
+  material:
+    drop_chance: 0.5
+    items:
+      - id: dragon_bone
+        weight: 100
+
+ancient_horror:
+  description: "Its core, for the Titan's Hammer"
+  material:
+    drop_chance: 1.0
+    items:
+      - id: ancient_horror_core
+        weight: 100
+
+# =============================================================================
 # LOOT SYSTEM DESIGN NOTES
 # =============================================================================
 #

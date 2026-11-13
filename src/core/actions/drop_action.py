@@ -43,11 +43,11 @@ def usefulness(actor, item) -> int:
 
     NO_USE      no built effect, not equippable, not ore (gold, shields, scrolls, rings)
     WORSE_GEAR  a weapon or armor no better than what is equipped in its slot
-    ORE         crafting material
+    ORE         crafting material (raw ore, boss materials for legendary recipes)
     OTHER       better gear, other usable items
     HEALING     potions and food that heal
     """
-    if item.get_stat('ore_type'):
+    if item.get_stat('ore_type') or item.get_stat('item_type') == 'material':
         return ORE
     slot = gear_slot(item)
     if slot:

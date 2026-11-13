@@ -106,7 +106,7 @@ class LootGenerator:
         items = {}
 
         # Extract items from each category
-        for category in ['weapons', 'armor', 'potions', 'scrolls', 'food', 'rings', 'currency']:
+        for category in ['weapons', 'armor', 'potions', 'scrolls', 'food', 'rings', 'currency', 'materials']:
             if category in data:
                 for item_id, item_def in data[category].items():
                     items[item_id] = item_def

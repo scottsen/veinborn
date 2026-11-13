@@ -549,6 +549,77 @@ currency:
     value: 50
 
 # =============================================================================
+# MATERIALS - Boss drops consumed by legendary recipes (recipes.yaml legendary,
+# requirements.special_requirement). Dropped by the monster named in each tag.
+# =============================================================================
+materials:
+  phoenix_essence:
+    name: "phoenix_essence"
+    display_name: "Phoenix Essence"
+    description: "A flickering ember that never cools. Forges the Flaming Sword."
+    symbol: "*"
+    color: "red"
+    item_type: "material"
+    tags: ["material", "boss_drop", "phoenix"]
+    weight: 0
+    value: 200
+
+  phoenix_feather:
+    name: "phoenix_feather"
+    display_name: "Phoenix Feather"
+    description: "A feather that smoulders without burning. Forges Phoenix Armor."
+    symbol: "*"
+    color: "red"
+    item_type: "material"
+    tags: ["material", "boss_drop", "phoenix"]
+    weight: 0
+    value: 200
+
+  lich_phylactery:
+    name: "lich_phylactery"
+    display_name: "Lich Phylactery"
+    description: "The vessel that held a lich's soul. Forges the Arcane Staff."
+    symbol: "*"
+    color: "magenta"
+    item_type: "material"
+    tags: ["material", "boss_drop", "lich"]
+    weight: 0
+    value: 200
+
+  wraith_essence:
+    name: "wraith_essence"
+    display_name: "Wraith Essence"
+    description: "Cold, shifting shadow-stuff. Forges the Shadow Cloak."
+    symbol: "*"
+    color: "gray"
+    item_type: "material"
+    tags: ["material", "boss_drop", "wraith"]
+    weight: 0
+    value: 200
+
+  dragon_bone:
+    name: "dragon_bone"
+    display_name: "Dragon Bone"
+    description: "A wyvern's dense, hollow bone. Forges the Dragon Bow."
+    symbol: "*"
+    color: "white"
+    item_type: "material"
+    tags: ["material", "boss_drop", "wyvern"]
+    weight: 0
+    value: 200
+
+  ancient_horror_core:
+    name: "ancient_horror_core"
+    display_name: "Ancient Horror Core"
+    description: "A pulsing shard of the thing beyond reality. Forges the Titan's Hammer."
+    symbol: "*"
+    color: "magenta"
+    item_type: "material"
+    tags: ["material", "boss_drop", "ancient_horror"]
+    weight: 0
+    value: 200
+
+# =============================================================================
 # MODDING SUPPORT
 # =============================================================================
 # To add new items:

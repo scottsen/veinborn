@@ -259,7 +259,7 @@ legendary:
       ore_type: "adamantite"
       ore_count: 5
       min_floor: 15
-      special_requirement: "phoenix_essence"  # Future: requires phoenix kill
+      special_requirement: "phoenix_essence"  # dropped by phoenix (loot_tables.yaml), consumed by the craft
 
     stat_formulas:
       attack_bonus: "hardness * 0.25 + purity * 0.12 + 10"  # 40-55 for adamantite
@@ -282,7 +282,7 @@ legendary:
       ore_type: "mithril"
       ore_count: 4
       min_floor: 12
-      special_requirement: "lich_phylactery"  # Future: requires lich kill
+      special_requirement: "lich_phylactery"  # dropped by lich (loot_tables.yaml), consumed by the craft
 
     stat_formulas:
       attack_bonus: "conductivity * 0.2 + purity * 0.1"  # 18-28 for mithril
@@ -305,7 +305,7 @@ legendary:
       ore_type: "adamantite"
       ore_count: 3
       min_floor: 18
-      special_requirement: "dragon_bone"  # Future: requires dragon kill
+      special_requirement: "dragon_bone"  # dropped by wyvern (50%) (loot_tables.yaml), consumed by the craft
 
     stat_formulas:
       attack_bonus: "hardness * 0.22 + purity * 0.15"  # 29-44 for adamantite
@@ -329,7 +329,7 @@ legendary:
       ore_type: "adamantite"
       ore_count: 6
       min_floor: 15
-      special_requirement: "phoenix_feather"  # Future: requires phoenix kill
+      special_requirement: "phoenix_feather"  # dropped by phoenix (loot_tables.yaml), consumed by the craft
 
     stat_formulas:
       attack_bonus: 0
@@ -353,7 +353,7 @@ legendary:
       ore_type: "mithril"
       ore_count: 4
       min_floor: 10
-      special_requirement: "wraith_essence"  # Future: requires wraith kills
+      special_requirement: "wraith_essence"  # dropped by wraith (50%) (loot_tables.yaml), consumed by the craft
 
     stat_formulas:
       attack_bonus: "purity * 0.05"  # 3-4 for mithril
@@ -377,7 +377,7 @@ legendary:
       ore_type: "adamantite"
       ore_count: 8
       min_floor: 20
-      special_requirement: "ancient_horror_core"  # Future: requires final boss kill
+      special_requirement: "ancient_horror_core"  # dropped by ancient_horror (loot_tables.yaml), consumed by the craft
 
     stat_formulas:
       attack_bonus: "hardness * 0.35 + purity * 0.2 + 15"  # 58-78 for adamantite

@@ -114,10 +114,16 @@ class CraftAction(Action):
         recipe_manager = self.get_recipe_manager()
         recipe = recipe_manager.get_recipe(self.recipe_id)
 
+        special = recipe_manager.special_item_for(recipe, actor.inventory)
+        if recipe.get_special_requirement() and special is None:
+            logger.error(f"Missing {recipe.get_special_requirement()} for {self.recipe_id}")
+            return None
         ore_items = self._find_and_remove_ore(actor, recipe)
         if not ore_items:
             logger.error("Failed to find required ore in inventory")
             return None
+        if special is not None:
+            actor.remove_from_inventory(special)
 
         equipment = recipe_manager.create_equipment(self.recipe_id, ore_items)
         if not equipment:

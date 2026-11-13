@@ -101,6 +101,10 @@ class CraftingRecipe:
         """Get the ore count required by this recipe."""
         return self.requirements.get('ore_count', 1)
 
+    def get_special_requirement(self) -> Optional[str]:
+        """Item id (items.yaml) a craft also consumes, e.g. a boss drop; None if none."""
+        return self.requirements.get('special_requirement')
+
     def get_min_floor(self) -> int:
         """Get the minimum floor where this recipe is available."""
         return self.requirements.get('min_floor', 1)
@@ -212,21 +216,18 @@ class RecipeManager:
             extra={'recipe_count': len(self.recipes), 'recipes_path': str(self.recipes_path)}
         )
 
+    RECIPE_SECTIONS = ('weapons', 'armor', 'legendary')
+
     def _load_recipes(self):
         """Load all recipes from YAML file."""
         try:
             with open(self.recipes_path, 'r') as f:
                 data = yaml.safe_load(f)
 
-            # Load weapons
-            weapons = data.get('weapons', {})
-            for recipe_id, recipe_data in weapons.items():
-                self.recipes[recipe_id] = self._create_recipe(recipe_id, recipe_data)
-
-            # Load armor
-            armor = data.get('armor', {})
-            for recipe_id, recipe_data in armor.items():
-                self.recipes[recipe_id] = self._create_recipe(recipe_id, recipe_data)
+            # Legendary recipes also need a boss drop (requirements.special_requirement)
+            for section in self.RECIPE_SECTIONS:
+                for recipe_id, recipe_data in (data.get(section) or {}).items():
+                    self.recipes[recipe_id] = self._create_recipe(recipe_id, recipe_data)
 
             logger.info(
                 f"Loaded {len(self.recipes)} recipes from {self.recipes_path}",
@@ -293,27 +294,8 @@ class RecipeManager:
         Returns:
             List of craftable recipes
         """
-        # Count ore by type in inventory
-        ore_counts = {}
-        for item in player_inventory:
-            if is_ore_item(item):
-                ore_type = item.get_stat('ore_type')
-                ore_counts[ore_type] = ore_counts.get(ore_type, 0) + 1
-
-        # Filter recipes by requirements
-        craftable = []
-        for recipe in self.recipes.values():
-            # Check floor requirement
-            if current_floor < recipe.get_min_floor():
-                continue
-
-            # Check ore requirement
-            required_type = recipe.get_required_ore_type()
-            required_count = recipe.get_required_ore_count()
-            if ore_counts.get(required_type, 0) >= required_count:
-                craftable.append(recipe)
-
-        return craftable
+        return [recipe for recipe in self.recipes.values()
+                if self.can_craft(recipe.recipe_id, player_inventory, current_floor)[0]]
 
     def suggest_recipe(
         self,
@@ -420,7 +402,19 @@ class RecipeManager:
         if available < required_count:
             return False, f"Requires {required_count}x {required_type} ore (have {available})"
 
+        special = recipe.get_special_requirement()
+        if special and self.special_item_for(recipe, player_inventory) is None:
+            return False, f"Requires {special}"
+
         return True, None
+
+    @staticmethod
+    def special_item_for(recipe: 'CraftingRecipe', player_inventory: List[Any]) -> Optional[Any]:
+        """The inventory item a craft of `recipe` consumes besides ore (a boss drop), or None."""
+        special = recipe.get_special_requirement()
+        if not special:
+            return None
+        return next((i for i in player_inventory if getattr(i, 'content_id', None) == special), None)
 
     def ore_for(self, recipe: 'CraftingRecipe', player_inventory: List[Any]) -> List[Any]:
         """The ore a craft of `recipe` consumes: the first N ore of its type, in inventory order.

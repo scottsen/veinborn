@@ -23,7 +23,7 @@ logger = logging.getLogger(__name__)
 
 # Item types picked up by walking over them, unless game.autopickup_types says otherwise.
 # The default config file writes the same list.
-DEFAULT_AUTOPICKUP_TYPES = "ore,food,weapon,gold"
+DEFAULT_AUTOPICKUP_TYPES = "ore,food,weapon,gold,material"
 
 
 class ConfigManager:
