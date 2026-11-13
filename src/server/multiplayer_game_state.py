@@ -5,10 +5,11 @@ while maintaining compatibility with existing single-player code.
 """
 
 from typing import Dict, List, Optional
-from dataclasses import dataclass
+from dataclasses import dataclass, asdict
 import logging
 
 from core.game_state import GameState
+from core.snapshot import build_snapshot
 from core.entities import Player
 from core.rng import GameRNG
 from core.world import Map
@@ -274,6 +275,8 @@ class MultiplayerGameState:
             player_class = player_entity.stats.get('class', 'Warrior') if hasattr(player_entity, 'stats') else 'Warrior'
             class_type = player_entity.stats.get('class_type', 'warrior') if hasattr(player_entity, 'stats') else 'warrior'
 
+            view = build_snapshot(self.game_state, viewer=player_entity).player
+
             # Serialize inventory
             inventory_data = []
             if hasattr(player_entity, 'inventory'):
@@ -303,10 +306,21 @@ class MultiplayerGameState:
                         "current": player_entity.hp,
                         "max": player_entity.max_hp,
                     },
+                    # Derived numbers come from the render snapshot, the same
+                    # ones the single-player sidebar shows (VB-78): totals
+                    # include equipped gear.
                     "stats": {
-                        "attack": player_entity.attack,
-                        "defense": player_entity.defense,
+                        "attack": view.attack,
+                        "defense": view.defense,
+                        "level": view.level,
+                        "xp": view.xp,
+                        "xp_next": view.xp_next,
                     },
+                    "equipment": {
+                        slot: asdict(item) if item else None
+                        for slot, item in (("weapon", view.weapon), ("armor", view.armor), ("shield", view.shield))
+                    },
+                    "abilities": [asdict(ab) for ab in view.abilities],
                     "inventory": inventory_data
                 }
             )

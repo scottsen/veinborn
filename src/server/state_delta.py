@@ -179,6 +179,11 @@ class StateDelta:
         if old_stats != new_stats:
             delta["stats"] = new_stats
 
+        # Worn gear and ability cooldowns (VB-78: same data the sidebar shows)
+        for key in ("equipment", "abilities"):
+            if old_player.get(key) != new_player.get(key):
+                delta[key] = new_player.get(key)
+
         # Check inventory (for personal loot system)
         old_inventory = old_player.get("inventory", [])
         new_inventory = new_player.get("inventory", [])

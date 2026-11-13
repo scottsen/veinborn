@@ -194,3 +194,31 @@ def test_concurrent_games_do_not_share_rng_stream():
     replay_layout = [[t.tile_type for t in col] for col in mp_a_replay.game_state.dungeon_map.tiles]
     assert replay_layout == layout_a_before
     assert mp_a_replay.game_state.rng.randint(1, 1_000_000) == rng_a_next_before
+
+
+def test_state_dict_players_carry_the_sidebar_numbers():
+    """VB-78: totals include gear; equipment, level, xp and ability cooldowns are sent."""
+    mp = _make_two_player_game()
+    by_id = {p["player_id"]: p for p in mp.get_state_dict()["players"]}
+    for slot in mp.player_slots.values():
+        entity = slot.player_entity
+        info = by_id[slot.player_id]
+        assert info["stats"]["attack"] == entity.get_total_attack()
+        assert info["stats"]["defense"] == entity.get_total_defense()
+        assert info["stats"]["level"] == entity.get_stat('level', 1)
+        assert info["stats"]["xp_next"] == entity.xp_for_next_level()
+        weapon = entity.equipped_weapon
+        assert (info["equipment"]["weapon"] or {}).get("name") == (weapon.name if weapon else None)
+    assert [a["name"] for a in by_id["p2"]["abilities"]]   # the mage has an ability
+
+
+def test_equipment_change_travels_in_the_delta():
+    from server.state_delta import StateDelta
+    mp = _make_two_player_game()
+    old = mp.get_state_dict()
+    mp.player_slots["p1"].player_entity.equipped_weapon = None
+    mp.player_slots["p1"].player_entity.equipped_armor = None
+    new = mp.get_state_dict()
+    delta = StateDelta.compute_delta(old, new)
+    assert delta is not None and "equipment" in str(delta)
+    assert StateDelta.apply_delta(old, delta)["players"] == new["players"]
