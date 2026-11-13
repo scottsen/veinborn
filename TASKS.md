@@ -2000,7 +2000,7 @@ priority: medium
 owner: scott
 tags: [design, balance]
 created: '2026-11-13T01:57:30Z'
-updated: '2026-11-13T01:57:30Z'
+updated: '2026-11-13T18:11:31Z'
 session: mustard-sunset-1112
 parent: VB-81
 links:
@@ -2008,13 +2008,14 @@ links:
   - VB-75
   - VB-70
   - VB-68
+notes_next: 2
 ```
 
 Evidence (VB-75 notes #1-#3, VB-69 note #2): 96 bot games, median floor 75, 0 deaths past floor 3; the only danger is floors 1-3. NetHack's hunger clock is what stops turtling and makes every spent turn (here: mining, crafting, resting) a cost. Veinborn has food but only as healing (UseItemAction). Design call for Scott: (a) gentle hunger: nutrition drains per turn, food restores it, starvation damages rather than instakills; mining costs extra nutrition, so greedy mining is the risk; (b) no clock, fix pressure through monsters/gear only (VB-75); (c) a softer clock such as monsters spawning faster the longer you stay on a floor (spawn_wandering_monster already exists). Hunger also gives food drops (VB-70 'beasts drop meat') a second purpose. Warning from NetHack: a tedious hunger loop is the version to avoid; prototype (c) first as it is cheapest, measure with paired bot runs on turns-per-floor and deaths.
 
 <!-- notes: append-only log; each has a stable #id (see CLI §5) -->
 ### Notes
-_(no notes yet)_
+- [#1 2026-11-13T18:11:31Z session:quantum-energy-1112] Context from VB-75 (bfe5d1f, quantum-energy-1112): monsters now get 2% stronger per floor and all 19 spawn, so floors 41-98 kill bots (59/96 long-run games die there; 0% scaling: 3/96, all floors 1-3). Floors 4-40 are unchanged: still no pressure there, which is the part this task's clock would address. Measure any clock against /var/tmp/vb75_base_bfe5d1f (3000 turns) and /var/tmp/vb75_long_r02_e25e163 (20000 turns).
 
 
 ## TASK-VB-84 · Shrines/altars/fountains: gold sink and risk-reward gambles

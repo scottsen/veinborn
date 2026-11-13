@@ -129,7 +129,16 @@ With 8+ veins guaranteed on floor 1 alone, ore starvation before troll encounter
 Floor 1: **80% Goblins** → Tutorial floor ✅
 Floor 2: **50% Goblins, 20% Orcs** → Difficulty ramp ✅
 Floors 6-10: **5% Trolls** → Skill check (requires crafting) ⚠️
-Floors 16+: **30% Trolls** → Late game, expect good gear ✅
+Floors 16-60: wraith, golem, wyvern, vampire, basilisk, lich, demon, phoenix join in bands (VB-69) ✅
+Floors 61+: only the strongest (lich, demon, phoenix, basilisk, vampire); floor 99: the ancient_horror boss ✅
+
+### Monster Stats by Floor (VB-75, 2026-11-12)
+
+Every monster's hp/attack/defense is multiplied by `1 + 0.02 * (floor - 1)`
+(`monster_spawns.yaml floor_scaling`), x1.2 by floor 11, x2 by floor 51. Bot long runs:
+no added danger before about floor 40; 59 of 96 games die on floors 41-98. The early and
+mid game (floors 4-40) is still easy for a crafting player: see VB-83 (pacing clock) and
+VB-87 (deep balance).
 
 ---
 
