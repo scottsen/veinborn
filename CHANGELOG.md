@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed — Deep floors get harder; every monster spawns; legendary gear (VB-75, VB-69, 2026-11-12)
+- Monsters get 2% stronger per floor (`monster_spawns.yaml floor_scaling`), so the back half of the game is no longer harmless once crafted gear plateaus: bots die on floors 41-98 in 59 of 96 long runs (3/96 before, all on floors 1-3). All 19 monsters now spawn in floor bands, with ancient_horror as a single floor-99 boss (`boss_floors`).
+- The six legendary recipes are live, each needing a boss material (lich phylactery, phoenix essence, ...) that the craft consumes; boss monsters drop them. Bots fetch materials and craft legendaries. Follow-ups: `VB-87`.
+
 ### Added — Drop items; bots that progress (VB-73, VB-68, 2026-11-12)
 - Items can be dropped (key `d`, `DropAction`): the least useful goes first (gold, shields, scrolls, then worse gear, then low-purity ore). Before, the 20-slot pack filled by floor 4 and mining and crafting stopped for the rest of the game. Spawn floor bands and shared loot tables are now plain YAML, validated at load.
 - Bots no longer stall on a floor, wear looted gear and craft only upgrades; they reach floor ~75 of 100 in 20,000 turns with 0 deaths past floor 3. Finding: crafted gear (attack ~38 / defense 33 by floor 12) outscales every monster (`VB-75`). Bots can start deep (`--start-floor`), and `scripts/bot_progression.py` prints level and gear by floor.

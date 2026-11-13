@@ -222,14 +222,14 @@ python3 src/server/test_client.py
 | ~~Sidebar showed base Attack/Defense (ignored equipped gear); quest/achievement lines printed before "X died!"; `--class healer` rejected~~ | ~~🟢 Low~~ | ✅ Fixed 2026-11-11 (playtest) |
 | ~~Fuzz bots never descended once wandering spawns existed (they waited for an empty floor)~~ | ~~🟢 Low~~ | ✅ Fixed 2026-11-11 — `RoomSweeper`: clear each room, then take the stairs. 2026-11-12: bots also stalled forever between an ore goal and the sweep (fixed `69c59c0`), and their pack locked by floor 4 (`VB-73`); now ~11 floors in 3000 turns, ~75 in 20,000 |
 | ~~No way to drop items: the pack filled with unusable loot and mining/crafting stopped~~ | ~~🟠 High~~ | ✅ Fixed 2026-11-12 — `VB-73`: `DropAction`, key `d` |
-| Crafted gear outscales every monster (attack ~38 / defense 33 by floor 12; final boss harmless) | 🟠 High | Open — `VB-75` (balance design; do before placing monsters, `VB-69`) |
+| ~~Crafted gear outscales every monster~~ | ~~🟠 High~~ | ✅ Fixed — `VB-75` (2% monster floor scaling, legendary recipes, all monsters placed); deep-balance follow-ups `VB-87` |
 | Shields drop but cannot be equipped; gold drops but has no use | 🟡 Medium | Open — `VB-72`, `VB-74` (both droppable with `d`) |
 | Monster abilities all disabled in `monsters.yaml` (the engine can use them now) | 🟢 Low | Engine done — `VB-47` umbrella; done: one range metric, per-monster params + validation, perception (sight/memory/provocation, `passive` -> `neutral`), engine morale, monster speed, abilities for any actor, wander no longer bump-attacks (`VB-58`..`VB-63`, `VB-66`); next `VB-64` (enable abilities: needs play-test), `VB-65` (status effects). [AI_ARCHITECTURE.md](architecture/AI_ARCHITECTURE.md), ADR-019 |
 | No gameplay client: `MultiplayerClient` can't send actions, TUI only does chat/lobby | 🟠 High | Open — `VB-44` |
 | Dead-code candidates (`perception.py` module, `GameTelemetry.log_*`) | 🟢 Low | Held — `VB-32`: need a wire-in-or-delete decision |
 | No tutorial for new players | 🟢 Low | Planned for Phase 3 |
 
-**Critical and urgent issues:** 0 open — `VB-1` through `VB-19` all fixed. High-priority open work: `VB-44` (gameplay client) and `VB-75` (crafted gear vs monsters); the live list is `tt list --project veinborn --actionable` / `TASKS.md`.
+**Critical and urgent issues:** 0 open — `VB-1` through `VB-19` all fixed. High-priority open work: `VB-44` (gameplay client); the live list is `tt list --project veinborn --actionable` / `TASKS.md`.
 
 ---
 

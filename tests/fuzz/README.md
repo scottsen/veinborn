@@ -175,7 +175,10 @@ Bots ignore `~/.veinbornrc`: each game runs on built-in user preferences
 in the environment, e.g. `VEINBORN_GAME_AUTOPICKUP_TYPES=ore,food,weapon`. Runs made
 before 1fcbdfd used the machine's rc file; on a machine whose rc lists
 `ore,food,weapon,gold` (the default since 0d1b700) they replay exactly (the a336011
-baseline matched a 0d1b700 run in 128/128 games).
+baseline matched a 0d1b700 run in 128/128 games). Monster floor scaling (bfe5d1f)
+changes every game past floor 1, so runs from before it do not pair with later ones;
+the baselines at bfe5d1f are `/var/tmp/vb75_base_bfe5d1f` (3000 turns) and
+`/var/tmp/vb75_long_r02_e25e163` (20000 turns, same data).
 
 ```bash
 # before the change (one file per class)
