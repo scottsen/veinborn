@@ -2,7 +2,7 @@
 project: veinborn
 schema_version: '1.0'
 id_prefix: VB
-next_id: 88
+next_id: 89
 archival: inline
 areas: {}
 ---
@@ -1000,8 +1000,9 @@ status: backlog
 priority: high
 tags: [multiplayer, ui]
 created: '2026-09-23T17:41:24Z'
-updated: '2026-11-13T21:10:10Z'
+updated: '2026-11-13T21:19:38Z'
 session: crimson-jewel-0923
+depends_on: [VB-88]
 links:
   references:
   - src/ui/multiplayer_client.py
@@ -1884,12 +1885,12 @@ Proposed: intent-level core calls (e.g. Game.equippable_items(), Game.cycle_equi
 ## TASK-VB-78 · Introduce a render snapshot (view model) shared by the TUI widgets and the server state
 
 ```yaml
-status: backlog
+status: in_progress
 priority: medium
 effort: 1-2d
 tags: [architecture, refactor, ui, multiplayer]
 created: '2026-11-13T01:46:32Z'
-updated: '2026-11-13T21:10:10Z'
+updated: '2026-11-13T21:19:28Z'
 session: mustard-sunset-1112
 depends_on: [VB-77]
 links:
@@ -1902,7 +1903,7 @@ links:
   - VB-44
   - VB-26
   - VB-24
-notes_next: 4
+notes_next: 5
 ```
 
 Found 2026-11-12 (session mustard-sunset-1112). Every Textual widget reads live domain objects (map_widget._get_entity_at walks game_state.entities; _render_cell reads game_map.tiles and imports TileType/EntityType; sidebar calls player.get_total_attack(), xp_for_next_level(), equipped_weapon, cooldowns). There is no render contract between core and UI. Separately, src/server/multiplayer_game_state.get_state_dict is a hand-rolled 85-line serializer that is a second, different description of the same state: it sends base attack/defense only (not totals including gear), no equipped weapon/armor, no XP/level/cooldowns, so a multiplayer client rendering it could not show what the single-player sidebar shows. Two state models also exist (core GameState vs MultiplayerGameState; see VB-24, VB-25 for earlier pipeline/floor duplication).
@@ -1913,6 +1914,7 @@ Proposed: a core function (e.g. Game.snapshot() / a Snapshot dataclass with to_d
 - [#1 2026-11-13T20:55:49Z session:chartreuse-filter-1113] Stage 1 done: core/snapshot.py (build_snapshot -> Snapshot/PlayerView/EntityView/MapView, to_dict, JSON-safe; no fog, same view as before; viewer arg is the hook) and the 4 TUI widgets render from it (map caches one snapshot per refresh_ui). entity-rendering tests rewritten on real state. Stage 2 open: server get_state_dict from the snapshot + state_delta (wire format: players/monsters/map keys are consumed by ui/multiplayer_client + server/test_client). Fog (perception.FogOfWar exists, TUI does not use it) is a gameplay decision, deliberately not in v1.
 - [#2 2026-11-13T20:57:03Z session:chartreuse-filter-1113] Stage 2 done (partial): get_state_dict players now built with build_snapshot(viewer=player): stats are gear-inclusive totals + level/xp/xp_next, new equipment + abilities keys, StateDelta diffs them. Existing keys kept so test_client/MultiplayerClient are unchanged. NOT done: monsters/map still Entity.to_dict()/Map.to_dict() (not snapshot), no client renders from it yet (VB-44). Decide whether to close VB-78 or keep it open until get_state_dict's monsters/map also come from the snapshot.
 - [#3 2026-11-13T21:10:10Z session:chartreuse-filter-1113] Plan: docs/architecture/MULTIPLAYER_ARCHITECTURE_PLAN.md places this task in a phase (see section 4); read it before starting.
+- [#4 2026-11-13T21:19:28Z session:chartreuse-filter-1113] Stages 1-2 done this session (snapshot + widgets; server player numbers). Remainder folds into plan Phase 3 (snapshots on the wire).
 
 
 ## TASK-VB-79 · Emit semantic render IDs in the snapshot; make glyph/colour a per-frontend data mapping
@@ -2124,3 +2126,22 @@ notes_next: 4
 - [#1 2026-11-13T04:43:48Z session:quantum-energy-1112] From the VB-75 long runs at 2% (/var/tmp/vb75_long_r02_e25e163, 4 classes x 24 x 20000 turns, instrumented: logs/long_*.jsonl has material drops, pickups, crafts). (1) Phoenix kills 41 of 59 (demon 11, lich 4): base attack 14 (highest after the boss) and weight 30 of 115 in floors_61_plus; candidates: lower its weight or attack, or start it later. Mages die most (22/24), healers least (3/24). (2) No bot crafted Phoenix Armor in any run (needs 6 adamantite at once; bots craft adamantite_plate x4 first); Flaming Sword 15, Arcane Staff 25, Dragon Bow 94. Either the bot needs to save ore for it or 6 is too many. (3) No bot reaches floor 99 in 20000 turns (max 76), so the ancient_horror boss is unmeasured: use --start-floor 98 runs and sim_duels at the curve's level and legendary gear. (4) xp_reward does not scale with floor_scaling; level plateaus ~11 from the doubling curve anyway. (5) Titan's Hammer needs the floor-99 boss's core and the game is won on 100, so it is a trophy unless the core comes from elsewhere. (6) dragon_bone comes from the wyvern (no dragon exists).
 - [#2 2026-11-13T18:47:30Z session:unexplored-thruster-1113] Done in cb8ad90 + next commit: (1) phoenix weight 30->15, paired long run (seeds 3000+, 4 classes x 24 x 20000 turns, /var/tmp/vb87_w15/logs): deaths 59->52, phoenix kills 41->34, median floor 65.5->67; phoenix is still the top killer, so the weight is a weak lever. (3) Boss: sim_duels --floor now scales monsters; at level 11 with flaming_sword@90+adamantite_plate@90 ancient_horror (floor_scaling false) is 100% win/0% HP lost, phoenix/demon/lich at floors 61-95 are 88-100% wins. A geared player crushes the late game; bots die for lack of that gear. Open: (2) bots never craft Phoenix Armor (needs 6 adamantite at once), (4) xp unscaled, (5) Titan's Hammer trophy.
 - [#3 2026-11-13T19:56:27Z session:unexplored-thruster-1113] Baseline moved: the current 20000-turn baseline is /var/tmp/vb87_w15/logs (phoenix weight 15, before shields); /var/tmp/vb75_long_r02_e25e163 is the phoenix-30 one. Next: bots to save 6 adamantite for Phoenix Armor, then decide boss tuning (floor-99 horror is a pushover at level 11 with adamantite gear).
+
+
+## TASK-VB-88 · MP plan Phase 1: ActionFactory takes explicit actor_id; server accepts 'intent' messages (actor from the session seat); client event-loop fix + MultiplayerClient.submit; two-client headless test
+
+```yaml
+status: backlog
+priority: high
+effort: 4h
+tags: [multiplayer, architecture, protocol]
+created: '2026-11-13T21:19:35Z'
+updated: '2026-11-13T21:19:35Z'
+session: chartreuse-filter-1113
+```
+
+docs/architecture/MULTIPLAYER_ARCHITECTURE_PLAN.md sections D3, D6 and phase table (phases 0+1 done together, intents first so the client never learns the built-action format). Replace 15 context.get_player() sites in core/actions/action_factory.py with an actor_id param defaulting to the player; SP suite + bot A/B must be identical. Keep the old 'action' message working for server/test_client.py. Client: connect inside Textual's loop (run_multiplayer.py currently asyncio.run()s the connect, which cancels MultiplayerClient._listen).
+
+<!-- notes: append-only log; each has a stable #id (see CLI §5) -->
+### Notes
+_(no notes yet)_
