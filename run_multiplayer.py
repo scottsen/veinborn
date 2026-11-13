@@ -6,7 +6,6 @@ Launch a multiplayer Veinborn client that connects to a game server
 and supports chat functionality.
 """
 import sys
-import asyncio
 import argparse
 from pathlib import Path
 
@@ -90,50 +89,33 @@ Chat:
     return parser.parse_args()
 
 
-async def connect_to_server(args):
-    """Connect to the multiplayer server.
+def make_setup(args):
+    """Build the coroutine that connects and joins a game.
 
-    Args:
-        args: Command-line arguments
-
-    Returns:
-        MultiplayerClient instance if successful, None otherwise
+    It must run inside the Textual app's event loop (VeinbornApp's
+    ``multiplayer_setup``): MultiplayerClient._listen is a task of the loop that
+    connected, and an earlier ``asyncio.run`` would cancel it when it returned.
     """
-    print(f"Connecting to server at {args.host}:{args.port}...")
 
-    client = MultiplayerClient(host=args.host, port=args.port)
+    async def setup(client) -> bool:
+        success = await client.connect(args.name)
+        if not success:
+            return False
 
-    success = await client.connect(args.name)
+        if args.create_game:
+            await client.create_game(
+                game_name=args.game_name,
+                player_class=args.char_class,
+                max_players=4
+            )
+        elif args.game_id:
+            await client.join_game(
+                game_id=args.game_id,
+                player_class=args.char_class
+            )
+        return True
 
-    if not success:
-        print("Failed to connect to server")
-        return None
-
-    print(f"✓ Connected as '{args.name}'")
-
-    # Create or join game
-    if args.create_game:
-        print(f"Creating game '{args.game_name}'...")
-        await client.create_game(
-            game_name=args.game_name,
-            player_class=args.char_class,
-            max_players=4
-        )
-        # Wait a moment for the game to be created
-        await asyncio.sleep(0.5)
-    elif args.game_id:
-        print(f"Joining game '{args.game_id}'...")
-        await client.join_game(
-            game_id=args.game_id,
-            player_class=args.char_class
-        )
-        # Wait a moment for join confirmation
-        await asyncio.sleep(0.5)
-    else:
-        print("\nWaiting for game assignment...")
-        print("(You can create a game with --create-game or join with --game-id)")
-
-    return client
+    return setup
 
 
 def main():
@@ -150,29 +132,22 @@ def main():
     print("╚" + "=" * 66 + "╝")
     print()
 
-    # Connect to server (synchronously start the async connection)
     try:
-        client = asyncio.run(connect_to_server(args))
-
-        if not client:
-            sys.exit(1)
-
-        print("\n✓ Ready to play!")
+        print(f"Connecting to server at {args.host}:{args.port} (inside the game window)...")
         print("\nPress 'c' or Enter to chat with your party")
         print("Press 'Q' to quit\n")
 
-        # Create and run the app with multiplayer client
+        client = MultiplayerClient(host=args.host, port=args.port)
+
+        # The app connects from on_mount, in its own event loop, and disconnects on unmount
         app = VeinbornApp(
             player_name=args.name,
             character_class=None,  # Will be set by server
-            multiplayer_client=client
+            multiplayer_client=client,
+            multiplayer_setup=make_setup(args),
         )
 
-        # Run the app
         app.run(mouse=False)
-
-        # Cleanup on exit
-        asyncio.run(client.disconnect())
 
     except KeyboardInterrupt:
         print("\n\nInterrupted by user")

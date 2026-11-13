@@ -169,7 +169,7 @@ class VeinbornApp(App):
 
     TITLE = "Veinborn: Walking in Big Brother's Footsteps"
 
-    def __init__(self, player_name=None, character_class=None, seed=None, withdrawn_ore=None, is_legacy_run=False, multiplayer_client=None):
+    def __init__(self, player_name=None, character_class=None, seed=None, withdrawn_ore=None, is_legacy_run=False, multiplayer_client=None, multiplayer_setup=None):
         """
         Initialize Veinborn app.
 
@@ -180,6 +180,9 @@ class VeinbornApp(App):
             withdrawn_ore: LegacyOre from vault (optional)
             is_legacy_run: Whether this is a legacy run (used vault ore)
             multiplayer_client: Optional MultiplayerClient for multiplayer games
+            multiplayer_setup: Optional async callable(client) -> bool that connects the
+                client. Run from on_mount so the websocket listener lives in Textual's
+                event loop (a separate asyncio.run() cancels it when that loop ends).
         """
         logger.info("VeinbornApp.__init__() starting")
 
@@ -208,6 +211,7 @@ class VeinbornApp(App):
 
         # Multiplayer support
         self.multiplayer_client = multiplayer_client
+        self._multiplayer_setup = multiplayer_setup
         self.is_multiplayer = multiplayer_client is not None
 
         self.map_widget = None
@@ -483,7 +487,7 @@ class VeinbornApp(App):
             self.message_log.add_system_message(message)
         logger.info(f"System message: {message}")
 
-    def on_mount(self) -> None:
+    async def on_mount(self) -> None:
         """Called when app is mounted."""
         logger.info("on_mount() called - app is mounting")
 
@@ -492,6 +496,17 @@ class VeinbornApp(App):
             logger.info("Setting up multiplayer client callbacks")
             self.multiplayer_client.on_chat_message = self._handle_chat_message
             self.multiplayer_client.on_system_message = self._handle_system_message
+
+            if self._multiplayer_setup:
+                # Connect inside this loop so the listener task survives
+                if not await self._multiplayer_setup(self.multiplayer_client):
+                    logger.error("Multiplayer setup failed; exiting")
+                    self.exit(message="Failed to connect to the multiplayer server")
+
+    async def on_unmount(self) -> None:
+        """Close the multiplayer connection in the loop that owns it."""
+        if self.multiplayer_client:
+            await self.multiplayer_client.disconnect()
 
     def on_ready(self) -> None:
         """Called when app is ready."""

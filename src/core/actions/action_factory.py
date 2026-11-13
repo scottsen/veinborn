@@ -79,12 +79,14 @@ class ActionFactory:
 
         logger.debug("ActionFactory initialized with standard actions")
 
-    def create(self, action_type: str, **kwargs) -> Optional[Action]:
+    def create(self, action_type: str, actor_id: Optional[str] = None, **kwargs) -> Optional[Action]:
         """
         Create an action from string type.
 
         Args:
             action_type: Type of action ('move', 'mine', 'survey', etc.)
+            actor_id: Entity performing the action. Defaults to the player
+                (single-player); the multiplayer server passes the seat's entity.
             **kwargs: Action-specific parameters
 
         Returns:
@@ -96,6 +98,12 @@ class ActionFactory:
             logger.warning(f"Unknown action type: {action_type}")
             self.context.game_state.add_message(f"Unknown action: {action_type}")
             return None
+
+        actor = self.context.get_entity(actor_id) if actor_id is not None else self.context.get_player()
+        if actor is None or not actor.is_alive:
+            logger.warning(f"Cannot create {action_type}: unknown or dead actor {actor_id!r}")
+            return None
+        kwargs['actor_id'] = actor.entity_id
 
         try:
             action = handler.create_fn(self.context, kwargs)
@@ -241,7 +249,7 @@ class ActionFactory:
         Returns:
             MoveAction or None
         """
-        actor_id = context.get_player().entity_id
+        actor_id = self._actor(context, kwargs).entity_id
         dx = kwargs.get('dx', 0)
         dy = kwargs.get('dy', 0)
 
@@ -266,11 +274,13 @@ class ActionFactory:
         Returns:
             SurveyAction or None if no adjacent ore vein
         """
-        actor_id = context.get_player().entity_id
+        actor = self._actor(context, kwargs)
+        actor_id = actor.entity_id
 
         # Find adjacent ore vein
         ore_vein = self._find_adjacent_ore_vein(
             context,
+            actor,
             ore_vein_id=kwargs.get('ore_vein_id'),
             prefer=lambda vein: not vein.get_stat('surveyed'),
         )
@@ -278,7 +288,7 @@ class ActionFactory:
         if not ore_vein:
             logger.debug(
                 "Survey action failed: no adjacent ore vein",
-                extra={'player_pos': (context.get_player().x, context.get_player().y)}
+                extra={'player_pos': (actor.x, actor.y)}
             )
             context.game_state.add_message("No ore vein nearby to survey")
             return None
@@ -302,8 +312,8 @@ class ActionFactory:
         Returns:
             MineAction or None if no adjacent ore vein
         """
-        actor_id = context.get_player().entity_id
-        player = context.get_player()
+        player = self._actor(context, kwargs)
+        actor_id = player.entity_id
 
         # Resume an in-progress mining action -- but only while the player is still
         # next to that vein. If they walked away, or the vein is gone, the saved
@@ -320,7 +330,7 @@ class ActionFactory:
             player.set_stat('mining_action', None)
 
         # Find adjacent ore vein
-        ore_vein = self._find_adjacent_ore_vein(context, ore_vein_id=kwargs.get('ore_vein_id'))
+        ore_vein = self._find_adjacent_ore_vein(context, player, ore_vein_id=kwargs.get('ore_vein_id'))
 
         if not ore_vein:
             logger.debug(
@@ -347,7 +357,7 @@ class ActionFactory:
         Returns:
             DescendAction
         """
-        actor_id = context.get_player().entity_id
+        actor_id = self._actor(context, kwargs).entity_id
         return DescendAction(actor_id)
 
     def _create_attack_action(
@@ -365,7 +375,7 @@ class ActionFactory:
         Returns:
             AttackAction or None
         """
-        actor_id = context.get_player().entity_id
+        actor_id = self._actor(context, kwargs).entity_id
         target_id = kwargs.get('target_id')
 
         if not target_id:
@@ -391,7 +401,7 @@ class ActionFactory:
         Returns:
             AbilityAction or None if the player has no active ability
         """
-        player = context.get_player()
+        player = self._actor(context, kwargs)
         ability = kwargs.get('ability')
         if not ability:
             known = [a for a in player.get_stat('abilities', []) if a in abilities]
@@ -416,7 +426,7 @@ class ActionFactory:
         Returns:
             CraftAction or None
         """
-        actor_id = context.get_player().entity_id
+        actor_id = self._actor(context, kwargs).entity_id
         forge_id = kwargs.get('forge_id')
         recipe_id = kwargs.get('recipe_id')
 
@@ -442,7 +452,7 @@ class ActionFactory:
         Returns:
             EquipAction or None
         """
-        actor_id = context.get_player().entity_id
+        actor_id = self._actor(context, kwargs).entity_id
         item_id = kwargs.get('item_id')
 
         if not item_id:
@@ -458,7 +468,7 @@ class ActionFactory:
         if not slot:
             context.game_state.add_message("Nothing to remove")
             return None
-        return UnequipAction(context.get_player().entity_id, slot)
+        return UnequipAction(self._actor(context, kwargs).entity_id, slot)
 
     def _create_use_action(self, context: GameContext, kwargs: dict) -> Optional[Action]:
         """Create a use-item action. kwargs must contain 'item_id'."""
@@ -466,7 +476,7 @@ class ActionFactory:
         if not item_id:
             context.game_state.add_message("Nothing to use")
             return None
-        return UseItemAction(context.get_player().entity_id, item_id)
+        return UseItemAction(self._actor(context, kwargs).entity_id, item_id)
 
     def _create_drop_action(self, context: GameContext, kwargs: dict) -> Optional[Action]:
         """Create a drop action. kwargs must contain 'item_id'."""
@@ -474,7 +484,7 @@ class ActionFactory:
         if not item_id:
             context.game_state.add_message("Nothing to drop")
             return None
-        return DropAction(context.get_player().entity_id, item_id)
+        return DropAction(self._actor(context, kwargs).entity_id, item_id)
 
     def _create_pickup_action(
         self,
@@ -491,21 +501,29 @@ class ActionFactory:
         Returns:
             PickupAction
         """
-        actor_id = context.get_player().entity_id
+        actor_id = self._actor(context, kwargs).entity_id
         return PickupAction(actor_id)
 
     # ============================================================================
     # Helper Methods
     # ============================================================================
 
-    def _find_adjacent_ore_vein(self, context: GameContext, ore_vein_id=None, prefer=None):
+    @staticmethod
+    def _actor(context: GameContext, kwargs: dict):
+        """The acting entity: kwargs['actor_id'] (set by create), else the player."""
+        actor_id = kwargs.get('actor_id')
+        actor = context.get_entity(actor_id) if actor_id is not None else None
+        return actor if actor is not None else context.get_player()
+
+    def _find_adjacent_ore_vein(self, context: GameContext, actor, ore_vein_id=None, prefer=None):
         """
-        Find ore vein adjacent to player.
+        Find ore vein adjacent to the actor.
 
         Helper method for survey and mine actions.
 
         Args:
             context: Game context
+            actor: Entity looking for a vein
             ore_vein_id: If given and that vein is adjacent, return exactly it
             prefer: Optional predicate; the first adjacent vein satisfying it wins,
                 falling back to the first adjacent vein
@@ -513,7 +531,7 @@ class ActionFactory:
         Returns:
             OreVein entity or None
         """
-        player = context.get_player()
+        player = actor
         adjacent = [
             ore_vein for ore_vein in context.get_entities_by_type(EntityType.ORE_VEIN)
             if player.is_adjacent(ore_vein)

@@ -252,6 +252,8 @@ class VeinbornServer:
             await self.handle_ready(session_id, session, message)
         elif msg_type == MessageType.ACTION.value:
             await self.handle_action(session_id, session, message)
+        elif msg_type == MessageType.INTENT.value:
+            await self.handle_intent(session_id, session, message)
         elif msg_type == MessageType.CHAT.value:
             await self.handle_chat(session_id, session, message)
         else:
@@ -421,6 +423,29 @@ class VeinbornServer:
             )
 
         await self.broadcast_game_state(session.game_id)
+
+    async def handle_intent(self, session_id: str, session: Session, message: Message):
+        """Handle a player intent. The actor comes from the session's seat, not the payload."""
+        if not session.game_id:
+            await self.send_error(session_id, "Not in a game")
+            return
+
+        game = await self.game_manager.get_game(session.game_id)
+        if not game or not game.is_started:
+            await self.send_error(session_id, "Game not active")
+            return
+
+        intent = message.data.get("intent")
+        args = message.data.get("args") or {}
+        if not isinstance(intent, str) or not intent or not isinstance(args, dict):
+            await self.send_error(session_id, "Invalid intent")
+            return
+
+        success, error = await game.process_intent(session.player_id, intent, args)
+        if not success:
+            await self.send_error(session_id, error or "Action failed")
+        else:
+            await self.broadcast_game_state(session.game_id)
 
     async def handle_action(self, session_id: str, session: Session, message: Message):
         """Handle player action."""

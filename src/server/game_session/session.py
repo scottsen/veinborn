@@ -6,6 +6,7 @@ import logging
 from typing import Dict, List, Optional
 
 from core.action_pipeline import process_action_outcome
+from core.actions.action_factory import ActionFactory
 from core.actions.wait_action import WaitAction
 from core.base.action import Action
 from core.base.game_context import GameContext
@@ -382,6 +383,31 @@ class GameSession:
                     f"Failed to record co-op high score for {slot.player_name}: {e}",
                     exc_info=True,
                 )
+
+    async def process_intent(
+        self, player_id: str, intent: str, args: Optional[dict] = None
+    ) -> tuple[bool, Optional[str]]:
+        """Build the action for an intent and run it for this player's seat.
+
+        The actor is always the seat's entity (never taken from the client), and
+        the action is built by the same ActionFactory single-player uses.
+        """
+        args = dict(args or {})
+        args.pop("actor_id", None)  # never accept an actor from the wire
+        if not self.mp_game_state or not self.mp_game_state.game_state:
+            return False, "Game state not initialized"
+        entity_id = self.mp_game_state.get_player_entity_id(player_id)
+        if not entity_id:
+            return False, "Player not in game"
+
+        # No await between building and handing over: factory reads state synchronously
+        state = self.mp_game_state.game_state
+        before = state.message_count
+        action = ActionFactory(GameContext(state)).create(intent, actor_id=entity_id, **args)
+        if action is None:
+            added = state.message_count - before
+            return False, (state.messages[-1] if added > 0 else f"Cannot {intent}")
+        return await self.process_action(player_id, action)
 
     async def process_action(
         self, player_id: str, action: Action

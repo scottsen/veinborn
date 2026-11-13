@@ -211,6 +211,19 @@ class MultiplayerClient:
         await self.ws.send(msg.to_json())
         logger.info(f"Sent join game request: {game_id}")
 
+    async def submit(self, intent: str, **args) -> bool:
+        """Send a player intent (e.g. ``submit('move', dx=1, dy=0)``).
+
+        The server decides who acts from this session's seat, so no actor id is
+        sent. Returns False if not connected.
+        """
+        if not self.ws or not self.state.is_connected:
+            logger.warning(f"Cannot submit {intent!r}: not connected")
+            return False
+
+        await self.ws.send(Message.intent(intent, **args).to_json())
+        return True
+
     async def send_ready(self):
         """Send ready status to start the game."""
         if not self.ws or not self.state.is_connected:

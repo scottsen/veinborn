@@ -13,6 +13,7 @@ class MessageType(Enum):
     AUTH = "auth"
     RECONNECT = "reconnect"
     ACTION = "action"
+    INTENT = "intent"
     CHAT = "chat"
     QUICK_COMMAND = "quick_command"
     JOIN_GAME = "join_game"
@@ -101,6 +102,18 @@ class Message:
                 "action_type": action_type,
                 "action_data": action_data,
             },
+        )
+
+    @classmethod
+    def intent(cls, intent: str, **args: Any) -> "Message":
+        """Create intent message: what the player wants, never who acts.
+
+        The server takes the actor from the session's seat, so the payload
+        carries no actor id (nothing to spoof).
+        """
+        return cls(
+            type=MessageType.INTENT.value,
+            data={"intent": intent, "args": args},
         )
 
     @classmethod
