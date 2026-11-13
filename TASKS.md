@@ -1638,7 +1638,7 @@ priority: medium
 owner: scott
 tags: [balance, content, spawning]
 created: '2026-11-12T19:31:16Z'
-updated: '2026-11-13T01:22:38Z'
+updated: '2026-11-13T01:35:38Z'
 session: warming-squall-1112
 links:
   references:
@@ -1658,7 +1658,7 @@ Found 2026-11-12 (VB-68) while measuring monster abilities: data/balance/monster
 ### Notes
 - [#1 2026-11-12T21:21:40Z session:serene-cyclone-1112] Prep done (serene-cyclone-1112): spawn bands are keyed by floor range (floor_N/floors_A_B/floors_A_plus, core/config/floor_bands.py), validated at load (cover every floor once, ids defined), so placing monsters is YAML only (28f9d9e). Bots can start deep: --start-floor/--start-level (bd1e44e). Baseline at floors 16+ (seeds 2000-2015, 1500 turns, start floor 16 level 8, starting gear only, 64 games): 2 deaths (mage, both troll), 0 crashes/errors; damage mostly troll then ogre; bots descend 0-4 floors. Results /var/tmp/vb69_deep_bd1e44e/logs/deep16_*.json. sim_duels (abilities off, level 7 / 10 win%): mimic/wraith/golem 98-100 at L7; wyvern/vampire 52-100 at L7, ~100 at L10; basilisk/lich 16-96 at L7; phoenix/demon 0-29 at L7, 20-89 at L10; ancient_horror 0 at both. Note wandering monsters use the band for (floor+level)//2, so deep-floor wanderers come from shallower bands.
 - [#2 2026-11-12T22:12:00Z session:serene-cyclone-1112] Level/gear-by-floor curve, bots at a336011 (stall + inventory fixed), 24 games x 4 classes, 20000 turns, seeds 3000-3023 (bot_progression; /var/tmp/vb73_inv_a336011/logs/curve.json). Median on arrival: floor 5 L5 atk16/def7; floor 8 L6 26/18; floor 12 L7 36/33; floor 20 L9 38/33; floor 30 L10 39/33; floor 50 L11 40/33; floor 70 (turn ~18.5k) L11. Gear plateaus by floor 12, level ~11 from floor 50 (doubling XP curve). Reached floors: median 75, max 80, of 100. Deaths: 3 of 96, all rogues on floor 2 (orc); none past floor 3 in 1.8M bot turns. Use for placements: sim_duels --levels <curve level> --gear adamantite_greatsword@80,adamantite_plate@80 for floors 12+ (and see VB-75: at that gear every shipped monster is harmless, so placement alone cannot add danger).
-- [#3 2026-11-13T01:22:38Z session:quantum-energy-1112] Bot A/B baseline moved to /var/tmp/vb76_base_1fcbdfd/logs/inv_*.json (bots now ignore ~/.veinbornrc, VB-76). The a336011 curve/long runs used Scott's rc (gold autopickup); the paired check showed no aggregate effect (floor -0.02 [-0.35,+0.31]), so the curve still describes the game, but re-run long runs before pairing against them.
+- [#3 2026-11-13T01:22:38Z session:quantum-energy-1112] Bots now ignore ~/.veinbornrc (VB-76) and gold autopicks by default (0d1b700); together these reproduce the a336011 runs exactly (128/128 identical games), so /var/tmp/vb73_inv_a336011 (inv_*, curve, long runs) remains the valid baseline. Fresh copy: /var/tmp/vb76_gold_0d1b700/logs/inv_*.json.
 
 
 ## TASK-VB-70 · Loot tables: only goblin, orc, troll drop anything; 16 of 19 monsters (bat, skeleton, ogre, wolf, spider, imp, ...) have no loot table
@@ -1760,18 +1760,19 @@ owner: scott
 effort: '-'
 tags: [design, items, loot, economy]
 created: '2026-11-12T21:53:19Z'
-updated: '2026-11-13T01:15:54Z'
+updated: '2026-11-13T01:31:47Z'
 session: serene-cyclone-1112
 links:
   relates_to:
   - VB-73
-notes_next: 3
+notes_next: 4
 ```
 
 <!-- notes: append-only log; each has a stable #id (see CLI §5) -->
 ### Notes
 - [#1 2026-11-12T21:53:33Z session:serene-cyclone-1112] Found 2026-11-12 (serene-cyclone-1112) chasing why bot gear stalled (VB-73). reveal src --grep 'gold_amount': only core/loot.py sets it; highscore, game_state, UI never read it. Gold piles take one of 20 slots each (a mage carried 8 by floor 4). Since d06ac7d least_useful_item ranks gold as 'no use' so 'd' drops it first. Options for Scott: (a) purse: pickup adds gold_amount to a player stat, no slot, shown in sidebar and counted in score; (b) remove gold from loot tables; (c) a use for it (shop, shrine, forge fee). (a) is the NetHack convention and cheap; what gold buys is the design question.
 - [#2 2026-11-13T01:15:54Z session:quantum-energy-1112] Autopickup and gold (quantum-energy-1112): code default game.autopickup_types is ore,food,weapon, so gold reaches a pack only by manual 'g' (or a user rc adding gold). Bot runs before 1fcbdfd used Scott's ~/.veinbornrc (adds gold), so the 'gold fills slots' evidence in VB-73 came from that config; bots now run on defaults (VB-76). Part of this decision: should gold autopickup by default (game_constants or user default), and does it take a slot at all if it becomes a purse.
+- [#3 2026-11-13T01:31:47Z session:quantum-energy-1112] Decided by Scott 2026-11-12: gold autopicks by default. 0d1b700: DEFAULT_AUTOPICKUP_TYPES = ore,food,weapon,gold feeds both the code fallback and the generated config file (they disagreed before). So gold now fills pack slots for every player and bot, as on Scott's machine; the purse question (does gold take a slot) stays open here.
 
 
 ## TASK-VB-75 · Crafted gear outscales every monster: bots reach attack ~37 / defense ~33 by floor 12 (monsters top out at defense 8, attack 18), so nothing threatens a crafting player past the early floors
@@ -1806,7 +1807,7 @@ priority: medium
 effort: 1h
 tags: [bots, reproducibility, config, play-testing]
 created: '2026-11-13T01:09:07Z'
-updated: '2026-11-13T01:22:38Z'
+updated: '2026-11-13T01:35:38Z'
 session: quantum-energy-1112
 links:
   commits:
@@ -1817,4 +1818,4 @@ notes_next: 3
 <!-- notes: append-only log; each has a stable #id (see CLI §5) -->
 ### Notes
 - [#1 2026-11-13T01:09:16Z session:quantum-energy-1112] Found 2026-11-12 (quantum-energy-1112). MoveAction._handle_autopickup reads ConfigManager (~/.veinbornrc, ~/.config/veinborn/config, VEINBORN_* env) for game.autopickup / game.autopickup_types. Scott's rc has autopickup_types = ore,food,weapon,gold; code default is ore,food,weapon. Bots pick up only consumables explicitly (ActionPlanner.collect_action), so gold reaches the pack only via autopickup, i.e. only on this machine (relevant to VB-74 'gold fills slots'). Measured, warrior seeds 1000-1002 x 1500 turns at 45ea525^: rc vs VEINBORN_GAME_AUTOPICKUP_TYPES=ore,food,weapon -> ore mined 25/19/16 vs 15/21/19, floor 6/6/6 vs 6/7/7. So the /var/tmp/vb73_inv_a336011 baselines carry gold-autopickup. Options: (a) bot harness pins a hermetic config (ConfigManager.reset + defaults, or set the env var) and regenerate the baseline; (b) move autopickup rules into game data (game_constants.yaml) and keep only the on/off preference per user; multiplayer server currently applies its host's rc to every player. Scott's call on (a)/(b) and on whether gold should autopickup by default (ties to VB-74).
-- [#2 2026-11-13T01:22:38Z session:quantum-energy-1112] Option (a) shipped 1fcbdfd: ConfigManager.use_defaults(); bots (per game, covers forked workers) and every test (autouse conftest fixture) run on built-in preferences; VEINBORN_* env still applies on purpose. New A/B baseline /var/tmp/vb76_base_1fcbdfd/logs/inv_*.json (4 classes x 32 games x 3000 turns, seeds 1000+). Paired vs the rc-file baseline /var/tmp/vb73_inv_a336011 (128 pairs): 127/128 games differ, but no aggregate effect: floor -0.02 [-0.35,+0.31], level -0.06 [-0.20,+0.08], damage taken -0.41 [-3.85,+3.02], deaths 1->2 (compare_vs_a336011.json beside it). So VB-75/VB-69 conclusions stand; old runs just do not pair game-by-game with new ones. Not done: the multiplayer server still applies its host's rc to every player (option b: move autopickup rules to game data); gold-by-default question noted on VB-74.
+- [#2 2026-11-13T01:22:38Z session:quantum-energy-1112] Option (a) shipped 1fcbdfd: ConfigManager.use_defaults(); bots (per game, covers forked workers) and every test (autouse conftest fixture) run on built-in preferences; VEINBORN_* env still applies on purpose. Then Scott made gold an autopickup default (0d1b700), which equals his rc for bots: a fresh run at 0d1b700 (/var/tmp/vb76_gold_0d1b700/logs/inv_*.json, 4 classes x 32 x 3000, seeds 1000+) is identical to the a336011 baseline in 128/128 games. So /var/tmp/vb73_inv_a336011 stays a valid baseline, and today's refactors and the level-up RNG fix change no fresh game. The intermediate no-gold run (1fcbdfd, deleted) differed in 127/128 games with no aggregate effect (floor -0.02 [-0.35,+0.31]). Not done: the multiplayer server still applies its host's rc to every player (option b: move autopickup rules to game data).
