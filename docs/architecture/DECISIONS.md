@@ -181,7 +181,7 @@
 
 ### ADR-011: NATS Messaging Infrastructure
 **Date**: 2025-10-21
-**Status**: 📋 Designed
+**Status**: ⏸ Deferred (2026-11-13: nothing imports it; the server is plain websockets with in-memory state, see ADR-020)
 **Decision**: Use NATS for service-to-service messaging
 **Rationale**:
 - Fast pub/sub performance
@@ -211,7 +211,7 @@
 
 ### ADR-013: PostgreSQL Database
 **Date**: 2025-10-22
-**Status**: 📋 Designed
+**Status**: ⏸ Deferred (2026-11-13: nothing imports it; the server is plain websockets with in-memory state, see ADR-020)
 **Decision**: PostgreSQL over MongoDB/MySQL
 **Rationale**:
 - ACID guarantees (critical for trades, inventory)
@@ -226,7 +226,7 @@
 
 ### ADR-014: Pydantic for Messages
 **Date**: 2025-10-22
-**Status**: 📋 Designed
+**Status**: ⏸ Deferred (2026-11-13: nothing imports it; the server is plain websockets with in-memory state, see ADR-020)
 **Decision**: Use Pydantic v2 for all messages
 **Rationale**:
 - Runtime validation (catches bugs)
@@ -256,8 +256,8 @@
 
 ### ADR-016: Simultaneous Turn Allocation
 **Date**: 2025-10-21
-**Status**: 📋 Designed
-**Decision**: "4 actions per round, anyone can take them"
+**Status**: ⛔ Superseded by ADR-020 (2026-11-13)
+**Decision**: "4 actions per round, anyone can take them" (now: one action per living player per round)
 **Rationale**:
 - Simple rule, infinite strategic depth
 - Cooperative gameplay (healer takes 4 turns)
@@ -313,6 +313,19 @@
 - Line of sight, real aggro ranges and speeds change balance; each step ends with a bot comparison, and enabling monster abilities needs a play-test.
 **Docs**: `docs/architecture/AI_ARCHITECTURE.md`
 **Impact**: New monsters become mostly data (tactics + abilities + parameters); knobs can no longer be declared without being read.
+
+---
+
+### ADR-020: One Engine, Intents In, Snapshots Out (multiplayer architecture)
+**Date**: 2026-11-13
+**Status**: 📋 Designed (phases tracked as VB-88, VB-44 and the plan's phase table)
+**Decision**: Single-player and multiplayer share one engine that supports N players natively. Clients send intents (the server takes the actor from the session seat), the server sends per-viewer snapshots, and a shared protocol package is versioned and sequenced. Rounds: one action per living player per round (free actions never count). Disconnect: grace period, then the seat is dropped and the player can rejoin with the same identity (auth token, name as fallback). Fog of war on by default with a dev reveal switch. No AI control of absent players.
+**Rationale**:
+- The server re-implemented the SP turn/floor/start loop and each copy drifted (VB-26, VB-44, VB-55).
+- A full 4-player snapshot is ~7 KB, so full snapshots replace deltas.
+- A per-player quota stops one player taking the whole round and makes "waiting on" displayable; it supersedes ADR-016.
+**Docs**: `docs/architecture/MULTIPLAYER_ARCHITECTURE_PLAN.md`
+**Impact**: One place for rules; a playable multiplayer client; ADR-011/013/014 deferred.
 
 ---
 
@@ -391,15 +404,17 @@
 - **Implemented/Accepted**: 2 (Textual UI, Podman)
 - **Planned**: 8 (Entity, Action, System, Lua-ready (superseded by ADR-018), YAML, Events, Context, Containers)
 
-### Phase 2 (Multiplayer) - 9 Decisions
-- **Designed**: 7 (NATS, Server-authoritative, PostgreSQL, Pydantic, Instances, Turns, WebSocket)
+### Phase 2 (Multiplayer) - 10 Decisions
+- **Designed**: 4 (Server-authoritative, Instances, WebSocket, ADR-020 one engine/intents/snapshots)
+- **Deferred**: 3 (NATS, PostgreSQL, Pydantic)
+- **Superseded**: 1 (ADR-016, by ADR-020)
 - **Implemented**: 1 (ADR-018 Python content registries)
 - **In progress**: 1 (ADR-019 AI in three layers)
 
 ### Rejected - 4 Decisions
 - All properly documented with rationale
 
-**Total**: 23 major architectural decisions tracked
+**Total**: 24 major architectural decisions tracked
 
 ---
 

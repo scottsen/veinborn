@@ -23,7 +23,7 @@ that depends on them.
 async shell around it; clients send intents and render snapshots; every boundary is a small
 typed interface with tests on both sides.
 
-Related: [DECISIONS.md](DECISIONS.md) (ADR-012 server-authoritative, ADR-016 4-actions-per-round),
+Related: [DECISIONS.md](DECISIONS.md) (ADR-012 server-authoritative, ADR-016 4-actions-per-round, superseded by ADR-020),
 [MULTIPLAYER_DESIGN_2025.md](../design/MULTIPLAYER_DESIGN_2025.md) (the original vision),
 [ARCHITECTURAL_ASSESSMENT.md](ARCHITECTURAL_ASSESSMENT.md), tasks VB-44, VB-78, VB-26, VB-45,
 VB-55, VB-54, VB-35 (`tt show <id>`).
@@ -216,8 +216,8 @@ can rejoin the party.** No AI control of absent players.
   seat while leaving the character standing in the world. Both go.
 - `process_disconnected_player_action` and the AI-control idea are deleted (closes VB-45 as
   "won't do, replaced by the drop/rejoin lifecycle").
-- **(Scott, later)** whether rejoin is open to anyone with the game id or only to the same
-  player identity. Default: same identity (the auth token / player name that held the seat).
+- **Ruled (Scott, 2026-11-13):** rejoin is for the same identity: the auth token resumes the seat; with no
+  token, a name match is allowed only while exactly one dropped seat has that name.
 
 ### D8. Determinism and tests at each boundary
 - Engine: synchronous, seeded, no I/O. N-player tests run without a network.
@@ -238,7 +238,7 @@ can rejoin the party.** No AI control of absent players.
 | **2. One engine** | (a) `player_ids` + N-player regen/game over in `TurnProcessor`; (b) `RoundScheduler` (one action per living seat; SP = one seat), server uses `TurnProcessor`; (c) N-player placement in `FloorManager`, delete MP `descend_floor`; (d) `player_died`/`run_ended` events, high score/vault/co-op scores as subscribers, content handlers in MP; (e) extract `Engine` from `Game`, `GameSession` uses it, delete `MultiplayerGameState` rules. | D1, D2, VB-55, VB-54 groundwork | L (5 slices) |
 | **3. Protocol** | `src/protocol/`, envelope with `v`/`seq`, server sends full per-viewer snapshots, client decodes `Snapshot.from_dict`; retire `get_state_dict` and the session baseline. | D4, D5, VB-26, VB-78 | M |
 | **4. Client** | `GameDriver`; `VeinbornApp` on a driver; `LocalDriver` for SP; RemoteDriver renders server snapshots; two-client playtest. | D6, VB-44 | M |
-| **5. Later** | Drop/rejoin seat lifecycle (D7, closes VB-45), fog per viewer + dev reveal switch (D4), deltas if measured, MP persistence/leaderboard viewer (VB-35, VB-54), mark ADR-011/013/014 Deferred. | D7 | as needed |
+| **5. Later** | Drop/rejoin seat lifecycle (D7, closes VB-45), fog per viewer + dev reveal switch (D4), deltas if measured, MP persistence/leaderboard viewer (VB-35, VB-54). | D7 | as needed |
 
 Phase 0 and 1 are independent of the rest and safe to do now. Phase 2 is the core of the
 plan and the riskiest; its slices each keep the full suite and the bot baselines green
@@ -268,7 +268,11 @@ Ruled by Scott, 2026-11-13:
 2. **Disconnect:** wait a grace period, then drop; a dropped player can rejoin the party (D7).
 3. **Fog of war:** on by default, with a development reveal switch (D4).
 
-Still open:
-4. Mark ADR-011/013/014 Deferred, record this plan as ADR-020 and amend ADR-016?
-5. Idle (connected but not acting) players stalling a round: timer or vote, when it matters (D2).
-6. Rejoin identity: same player only, or anyone with the game id (D7).
+Confirmed by Scott, 2026-11-13 (later):
+4. **ADRs:** ADR-011/013/014 Deferred, ADR-016 Superseded, plan recorded as ADR-020 (done in `DECISIONS.md`).
+5. **Round quota is strict per player:** each living player gets exactly one turn-consuming action per round.
+6. **Idle players:** deferred. When it matters, use a per-round timer that auto-waits for the idle seat
+   (`config.action_timeout = 60` and `idle_timeout = 300` exist but nothing reads them; `Session.is_idle` is never called).
+7. **Rejoin identity:** same identity. The auth token resumes the seat; with no token, a name match is allowed
+   only while exactly one dropped seat has that name. Auth is in-memory and name-only today, so the client
+   should persist its token.
