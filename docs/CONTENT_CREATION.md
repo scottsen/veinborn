@@ -20,14 +20,14 @@
 ## 📋 Current Content Status
 
 ### What We Have
-- **Monsters:** 9 types (need 15-20 for launch)
-- **Recipes:** 17 items (good coverage, could use legendary tier)
+- **Monsters:** 19 types, all spawning (floor bands to 61+, ancient_horror as the floor-99 boss)
+- **Recipes:** 16 (10 ore tiers + 6 legendary, each legendary gated on a boss material)
 - **Ore Types:** 4 tiers (copper → iron → mithril → adamantite)
-- **Loot Tables:** 9 tables (one per monster)
+- **Loot Tables:** 8 (goblin, orc, troll; boss materials for lich, phoenix, wraith, wyvern, ancient_horror)
 
 ### What We Need
-- **6-11 more monster types** (HIGH PRIORITY)
-- **5-10 legendary recipes** (medium priority)
+- **Loot tables for the other 11 monsters** (VB-70)
+- **Monster abilities switched on** (VB-64; built, disabled)
 - **Special room types** (medium priority)
 - **More item variety** (low priority)
 
@@ -110,22 +110,22 @@ Floor 10+ (Expert):  HP: 80-200, Attack: 20-40, Defense: 10-20
 
 Open `data/balance/monster_spawns.yaml` and add the monster to the `spawn_weights` band(s)
 for the floors it belongs on. Each key names its floors (`floor_1`, `floors_6_10`,
-`floors_16_plus`); weights are relative and need not sum to 100.
+`floors_61_plus`); weights are relative and need not sum to 100.
 
 ```yaml
 spawn_weights:
-  floors_16_plus:
-    orc: 10
-    spider: 10
-    troll: 30
-    ogre: 25
-    imp: 25
-    wyvern: 20     # NEW
+  floors_26_40:
+    troll: 10
+    wyvern: 15
+    lich: 10
+    my_monster: 10     # NEW
 ```
 
-To give it floors of its own, split a band (`floors_16_plus` into `floors_16_30` and
-`floors_31_plus`); the game checks at load that the bands still cover every floor once.
-See [DATA_FILES_GUIDE.md](DATA_FILES_GUIDE.md#-monster_spawnsyaml).
+To give it floors of its own, split a band (`floors_26_40` into `floors_26_30` and
+`floors_31_40`); the game checks at load that the bands still cover every floor once.
+Its stats grow with depth through `floor_scaling` (set `floor_scaling: false` on the
+monster to keep them as written); a one-per-floor boss goes in `boss_floors` instead of
+the weights. See [DATA_FILES_GUIDE.md](DATA_FILES_GUIDE.md#-monster_spawnsyaml).
 
 ### Step 4: Create Loot Table
 

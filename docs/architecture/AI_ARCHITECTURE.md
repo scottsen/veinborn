@@ -227,14 +227,13 @@ minion. `--set monster.ability.key=value` tries a number without editing YAML (V
 player first; without it the player has starting gear only, which understates anyone past
 the first floors.
 
-**Spawn gap:** of the monsters above with built abilities, only the imp is in
-`data/balance/monster_spawns.yaml` (floors 11+). Wyvern, vampire, lich, demon, phoenix and
-ancient_horror (and wraith, mimic, golem, basilisk) are in no spawn table, so enabling their
-abilities changes nothing in a real game until they are placed (VB-69). Placing one is a YAML edit
-(spawn bands are keyed by their floors, `floors_16_30`; see
-[../DATA_FILES_GUIDE.md](../DATA_FILES_GUIDE.md#-monster_spawnsyaml)), and bots can start
-on the floor in question (`--start-floor/--start-level`,
-[../../tests/fuzz/README.md](../../tests/fuzz/README.md)) to measure it.
+**Where they spawn:** every monster is placed since VB-69 (867b6a4): wraith and mimic from
+floor 11, golem, wyvern and vampire from 16, basilisk and lich from 26, demon and phoenix
+from 41, and ancient_horror as the single floor-99 boss (`boss_floors`). Monster stats also
+grow with depth (`floor_scaling`, VB-75). So enabling an ability now changes real games on
+its monster's floors; measure with bots started there (`--start-floor/--start-level`,
+`tests/fuzz/README.md`) and `sim_duels --gear` at the level and gear the bots carry on that
+floor ([../DATA_FILES_GUIDE.md](../DATA_FILES_GUIDE.md#-monster_spawnsyaml)).
 
 Goblin, orc, bat, skeleton, ogre, wolf and golem declare none. Wolf "pack tactics" appears only in
 flavour text; it would be a tactic, and is not planned.
@@ -258,7 +257,7 @@ Player abilities (VB-53) can use the same system.
 | 5 | VB-62 speed | Yes | Bot before/after | Done |
 | 6 | VB-63 abilities for any actor | No | Tests | Done |
 | — | VB-66 monster attack events + telemetry attribution | No (telemetry only) | Tests | Done |
-| 7 | VB-64 enable monster abilities | Yes, per ability | sim_duels + paired bots + play-test | 9 active abilities built, disabled; blocked on Scott's choices; only imp spawns today (VB-69) |
+| 7 | VB-64 enable monster abilities | Yes, per ability | sim_duels + paired bots + play-test | 9 active abilities built, disabled; blocked on Scott's choices; all their monsters spawn since VB-69 |
 | later | VB-67 passive triggers (regen, auras, drain, rebirth, teleport) | Enables 13 more | — | Open |
 | later | VB-65 status effects | Enables poison/stun/root | — | Open |
 

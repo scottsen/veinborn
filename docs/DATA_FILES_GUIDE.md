@@ -165,7 +165,7 @@ python3 run_textual.py
 ### Schema
 
 ```yaml
-weapons:  # or armor, accessories
+weapons:  # sections loaded: weapons, armor, legendary (RecipeManager.RECIPE_SECTIONS)
   recipe_id:
     # Display
     display_name: "Item Name"
@@ -173,14 +173,14 @@ weapons:  # or armor, accessories
     symbol: ")"
     color: "silver"
     item_type: "weapon"
-    equipment_slot: "weapon"  # weapon, body, head, hands, feet, ring
+    equipment_slot: "weapon"  # weapon or armor (the only slots that exist)
 
-    # Recipe requirements
+    # Recipe requirements (crafting always happens next to a forge)
     requirements:
       ore_type: "iron"      # copper, iron, mithril, adamantite
       ore_count: 2          # How many ores needed
-      min_floor: 4          # Minimum floor to discover/craft
-      requires_forge: true  # Must be at forge to craft
+      min_floor: 4          # Must be on this floor or deeper to craft
+      special_requirement: "lich_phylactery"   # optional: an items.yaml id the craft also consumes
 
     # Stat formulas (evaluated at craft time)
     stat_formulas:
@@ -188,12 +188,13 @@ weapons:  # or armor, accessories
       defense_bonus: 0
       durability: "malleability * 0.5"
       weight: "density * 0.02"
-
-    # Class bonuses (optional)
-    class_bonuses:
-      warrior: 1.2  # Warriors get 20% bonus to all stats
-      rogue: 1.0
 ```
+
+**Legendary recipes** (`legendary:` section) each need a boss material as
+`special_requirement`: an item in the `items.yaml` `materials` category that a boss drops
+(`loot_tables.yaml`, e.g. lich -> `lich_phylactery`). The craft consumes it with the ore.
+They are the player's late-game growth, after adamantite gear stops improving
+(VB-75). A test checks that every requirement is a material some loot table drops.
 
 ### Formula Syntax
 
@@ -500,6 +501,9 @@ beast:
   kill: that warning means a content gap.
 - Checked at load (`ContentValidationError`): a `loot_table` naming an undefined table, and
   any table item that is not in `items.yaml`.
+- Boss materials: `lich`, `phoenix`, `wraith`, `wyvern` and `ancient_horror` have tables that
+  drop the `items.yaml` `materials` their legendary recipes need (`recipes.yaml`
+  `special_requirement`); the rest of those monsters' drops is still open (VB-70).
 
 ---
 
@@ -517,7 +521,7 @@ Both sections are **floor bands**: each key names its floor range
 |---|---|
 | `floor_1` | 1 only |
 | `floors_3_5` | 3 to 5 |
-| `floors_16_plus` | 16 and deeper |
+| `floors_61_plus` | 61 and deeper |
 
 ```yaml
 monster_counts:          # base + floor // divisor, capped by optional max
@@ -534,10 +538,26 @@ spawn_weights:           # relative weights, need not sum to 100
     skeleton: 20
     troll: 15
     imp: 10
-  floors_16_plus:
-    troll: 30
-    ogre: 25
+  floors_61_plus:
+    lich: 20
+    phoenix: 30
+
+floor_scaling:           # every spawned monster's stats x (1 + per_floor * (floor - 1))
+  per_floor: 0.02
+  stats: [hp, attack, defense]
+
+boss_floors:             # exactly one of this monster on that floor, on top of the normal ones
+  99: ancient_horror
 ```
+
+**floor_scaling** (VB-75): monsters spawned, wandering in or summoned on a floor get
+stronger with its number. Crafted gear stops improving around floor 12 and player level
+around 50, so without it the floors after that are no harder. A monster with
+`floor_scaling: false` in `monsters.yaml` keeps its written stats (the final boss).
+
+**boss_floors**: places exactly one boss on that floor, taking the first spawn position.
+A boss must not appear in any `spawn_weights` band: monster dens and wanderers draw
+from the weights. Floor 100 is reached, not played, so the final boss guards floor 99.
 
 Add or split a band by adding a key; no code change. At load the game checks that each
 section's bands start at floor 1, leave no gaps, do not overlap and end with a `_plus` band
@@ -551,7 +571,7 @@ from shallower bands than the floor's own monsters.
 
 ### Measuring a placement
 
-Bots reach about floor 10 in 3000 turns. To see a deep band at all, start the bots there
+Bots reach about floor 11 in 3000 turns. To see a deep band at all, start the bots there
 (`--start-floor 16 --start-level 8`, `tests/fuzz/README.md`) and compare before/after with
 `scripts/compare_bot_runs.py`; `scripts/sim_duels.py` gives the one-on-one numbers.
 
