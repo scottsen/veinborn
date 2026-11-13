@@ -2,7 +2,7 @@
 project: veinborn
 schema_version: '1.0'
 id_prefix: VB
-next_id: 87
+next_id: 88
 archival: inline
 areas: {}
 ---
@@ -1788,18 +1788,20 @@ notes_next: 5
 ## TASK-VB-75 · Crafted gear outscales every monster: bots reach attack ~37 / defense ~33 by floor 12 (monsters top out at defense 8, attack 18), so nothing threatens a crafting player past the early floors
 
 ```yaml
-status: backlog
+status: done
 priority: high
 owner: scott
 effort: '-'
 tags: [balance, crafting, design]
 created: '2026-11-12T21:53:20Z'
-updated: '2026-11-13T01:57:45Z'
+updated: '2026-11-13T04:43:49Z'
 session: serene-cyclone-1112
 links:
   relates_to:
   - VB-69
-notes_next: 6
+  commits:
+  - bfe5d1fcae13e0a73f9fb95d5f14aedf021437bf
+notes_next: 7
 ```
 
 <!-- notes: append-only log; each has a stable #id (see CLI §5) -->
@@ -1809,6 +1811,7 @@ notes_next: 6
 - [#3 2026-11-12T22:12:00Z session:serene-cyclone-1112] Long runs (a336011, 96 games x 20000 turns) confirm: gear plateaus at median attack 38-40 / defense 33 from floor 12; 0 deaths past floor 3 in 96 games reaching median floor 75. The only real danger is floors 1-3 (3 rogue deaths to orcs on floor 2). Before VB-73 (pack locked, ebb2eb3 run) warriors had defense 3 for the whole game and 5/24 died deep, so the bot's gear loop, not monsters, was the difficulty.
 - [#4 2026-11-13T01:57:08Z session:quantum-energy-1112] Lever study 2026-11-12 (quantum-energy-1112), sim_duels at the bots' curve checkpoints (gear reproduces measured atk/def: F5 L5 iron@55 ~15/9, F8 L6 mithril@75 ~24/17, F12/30/50 L7/10/11 adamantite@90 ~35-40/33), 200 fights/cell, abilities off, worst-class win% / mean HP lost on a win. Results + harness: /var/tmp/vb75_duels_6e7ad70 (levers_summary.txt, rate_sweep_summary.txt, run_matrix.py, run_sweep.py). (1) Halving crafted gear bonuses or diminishing-returns defense (to-hit def/2, damage roll*10/(10+def)) barely matter: from F5 on every common monster costs <=8% HP; only ancient_horror rises to ~20-29%. Monsters are weak against level growth alone, so gear is not the whole problem. (2) Monster floor scaling (hp/atk/def x (1 + r*(floor-1))) is the only lever that adds danger past F12, because the player stops growing (gear plateau F12, level ~11 from F50) while the game runs to F100. r=2%: F12-50 trivial, F75 demon 13% HP, F100 lich 94%/20%, demon 60%/51%. r=3%: F50 demon 13%, F75 lich 74%/34%, demon 25%/64%, F100 lich 10%. r=4%: F50 demon 64%/46%, F75 mostly unwinnable. Scaled ancient_horror is unwinnable from F50 (3%) / F75 (2%), so a final boss needs its own fixed stats. 6% (first pass) is a cliff (F30 demon 85%, F50 lich 10%). (3) Linear scaling vs a flat player always ends in a wall; the designed late growth is the legendary recipes (flaming_sword, titans_hammer, phoenix_armor ...), but RecipeManager._load_recipes loads only weapons+armor, so all 6 legendaries are dormant, and special_requirement (boss items) is read by nothing. Proposal for Scott: floor scaling ~2-3%/floor as a data knob (small spawner change), boss excluded/fixed; VB-69 placements for variety; legendary recipes + boss-item drops (VB-70) as the late player growth; then bot long runs for deaths by floor.
 - [#5 2026-11-13T01:57:45Z session:mustard-sunset-1112] Design options to add (mustard-sunset-1112, from the NetHack review, umbrella VB-81): besides scaling gear down or monsters up, give crafting downsides as NetHack does for power (impure ore lowers durability or adds a curse chance, gear degrades, high tier needs rare ore). Related: the missing pressure past floor 3 is tracked as VB-83 (pacing clock). Measure any of these with paired bot runs.
+- [#6 2026-11-13T04:43:49Z session:quantum-energy-1112] Done. Monster floor scaling (96443a3, rate 2% in bfe5d1f), legendary recipes live and gated on boss materials (8b5cb77), all monsters placed with a floor-99 boss (867b6a4), bots fetch materials and keep one of each (a18c7ab, e25e163). Long runs on e25e163, 4 classes x 24 x 20000 turns: 0% 3/96 deaths (floors 1-3), 2% 59/96 (16 on 41-60, 39 on 61-98, median floor 65.5), 3% 95/96 (85 on 41-60, median 48). Crafted gear still dominates floors 4-40 (same as before; the early game is unchanged on purpose). Follow-ups in VB-87. A/B baseline at bfe5d1f: /var/tmp/vb75_base_bfe5d1f (3000 turns); long baseline: /var/tmp/vb75_long_r02_e25e163 (data identical to bfe5d1f).
 
 
 ## TASK-VB-76 · Bot runs depend on the machine's ~/.veinbornrc: gameplay (MoveAction autopickup) reads per-user ConfigManager, so one seed plays differently per machine
@@ -2065,13 +2068,13 @@ status: future
 priority: low
 tags: [design, content, spawning]
 created: '2026-11-13T01:57:35Z'
-updated: '2026-11-13T01:57:45Z'
+updated: '2026-11-13T04:43:48Z'
 session: mustard-sunset-1112
 parent: VB-81
 links:
   relates_to:
   - VB-69
-notes_next: 2
+notes_next: 3
 ```
 
 NetHack's special levels (Oracle, big rooms, branches) give floors identity. Veinborn floors are BSP rooms + corridors from data/balance/dungeon_generation.yaml; assign_special_rooms already exists (core/spawning/spawn_policy.py) and the VB-69 note says ancient_horror as final boss placement is undecided. Proposed: a small set of named floor templates keyed by floor band (floor_bands.py validated config), e.g. vault floor with guarded ore, shrine floor (Shrines task), boss floor with fixed layout. Mostly YAML plus a template generator hook; check docs/DUNGEON_CONFIGURATION.md first. Future-ish: do not start before the identification and pacing tasks settle.
@@ -2079,3 +2082,22 @@ NetHack's special levels (Oracle, big rooms, branches) give floors identity. Vei
 <!-- notes: append-only log; each has a stable #id (see CLI §5) -->
 ### Notes
 - [#1 2026-11-13T01:57:45Z session:mustard-sunset-1112] Idea stage; do after identification (VB-82) and pacing (VB-83).
+- [#2 2026-11-13T04:43:48Z session:quantum-energy-1112] VB-75 (867b6a4) added monster_spawns.yaml boss_floors: {floor: monster_id} places exactly one boss on that floor on top of its normal monsters (ancient_horror on 99). A designed boss floor here can build on it.
+
+
+## TASK-VB-87 · Deep balance after VB-75: phoenix is 41 of 59 deaths at 2% floor scaling; Phoenix Armor never crafted; final boss on floor 99 untested
+
+```yaml
+status: backlog
+priority: medium
+effort: 2-3h
+tags: [balance, monsters, crafting, bots]
+created: '2026-11-13T04:43:37Z'
+updated: '2026-11-13T04:43:48Z'
+session: quantum-energy-1112
+notes_next: 2
+```
+
+<!-- notes: append-only log; each has a stable #id (see CLI §5) -->
+### Notes
+- [#1 2026-11-13T04:43:48Z session:quantum-energy-1112] From the VB-75 long runs at 2% (/var/tmp/vb75_long_r02_e25e163, 4 classes x 24 x 20000 turns, instrumented: logs/long_*.jsonl has material drops, pickups, crafts). (1) Phoenix kills 41 of 59 (demon 11, lich 4): base attack 14 (highest after the boss) and weight 30 of 115 in floors_61_plus; candidates: lower its weight or attack, or start it later. Mages die most (22/24), healers least (3/24). (2) No bot crafted Phoenix Armor in any run (needs 6 adamantite at once; bots craft adamantite_plate x4 first); Flaming Sword 15, Arcane Staff 25, Dragon Bow 94. Either the bot needs to save ore for it or 6 is too many. (3) No bot reaches floor 99 in 20000 turns (max 76), so the ancient_horror boss is unmeasured: use --start-floor 98 runs and sim_duels at the curve's level and legendary gear. (4) xp_reward does not scale with floor_scaling; level plateaus ~11 from the doubling curve anyway. (5) Titan's Hammer needs the floor-99 boss's core and the game is won on 100, so it is a trophy unless the core comes from elsewhere. (6) dragon_bone comes from the wyvern (no dragon exists).
