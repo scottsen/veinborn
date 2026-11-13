@@ -125,8 +125,9 @@ class ActionPlanner:
         return [i for i in getattr(player, 'inventory', []) if usefulness(player, i) == HEALING]
 
     def junk_to_drop(self, game):
-        """With a full pack: junk or worse gear first, then healing beyond HEALING_RESERVE
-        (cheapest first); never ore or the reserve. None when the pack has room."""
+        """With a full pack: junk or worse gear first, then extra copies of a boss material,
+        then healing beyond HEALING_RESERVE (cheapest first); never ore, the first copy of a
+        material or the reserve. None when the pack has room."""
         from core.actions.drop_action import WORSE_GEAR, least_useful_item
         player = game.state.player
         if len(getattr(player, 'inventory', [])) < INVENTORY_MAX:
@@ -134,6 +135,12 @@ class ActionPlanner:
         junk = least_useful_item(player, max_tier=WORSE_GEAR)
         if junk:
             return junk
+        seen = set()
+        for item in player.inventory:                     # a second copy of a boss material
+            if item.get_stat('item_type') == 'material':
+                if item.content_id in seen:
+                    return item
+                seen.add(item.content_id)
         healing = self.healing_items(game)
         if len(healing) > HEALING_RESERVE:
             return min(healing, key=lambda i: i.get_stat('value', 0))
@@ -397,15 +404,19 @@ class ActionPlanner:
         return ('use', {'item_id': item.entity_id})
 
     def material_action(self, game) -> Optional[Tuple[str, dict]]:
-        """Fetch a boss material within MATERIAL_REACH with no monster near it or us.
+        """Fetch a boss material it does not carry yet, within MATERIAL_REACH, with no
+        monster near it or us.
 
-        With a full pack, first drop the least useful item up to ore (lowest-purity ore;
-        never a material, least_useful_item ranks those above every ore).
+        One of each is enough (a legendary craft consumes one); taking every copy filled
+        packs with materials and left no room for the 5-6 ore a legendary needs. With a
+        full pack, first drop the least useful item up to ore (lowest-purity ore; never a
+        material, least_useful_item ranks those above every ore).
         """
-        materials = self.perception.find_materials(game)
+        player = game.state.player
+        carried = {getattr(i, 'content_id', None) for i in getattr(player, 'inventory', [])}
+        materials = [m for m in self.perception.find_materials(game) if m.content_id not in carried]
         if not materials:
             return None
-        player = game.state.player
         cheb = lambda e: max(abs(e.x - player.x), abs(e.y - player.y))  # noqa: E731
         nearest = min(materials, key=cheb)
         if cheb(nearest) > MATERIAL_REACH:

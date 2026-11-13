@@ -174,7 +174,7 @@ def test_full_pack_drops_its_worst_ore_for_a_boss_material():
     player = game.state.player
     player.inventory.clear()
     worst = ore(10)
-    player.add_to_inventory(potion('wraith_essence'))     # a material already carried stays
+    player.add_to_inventory(potion("wraith_essence"))     # a material already carried stays
     player.add_to_inventory(worst)
     while len(player.inventory) < planner_module.INVENTORY_MAX:
         player.add_to_inventory(ore(80))
@@ -198,3 +198,22 @@ def test_no_detour_for_a_material_with_a_monster_near():
     orc = game.entity_loader.create_monster("orc", item.x, item.y + 1)
     game.context.add_entity(orc)
     assert planner.material_action(game) is None
+
+
+def test_does_not_fetch_a_material_it_already_carries():
+    game, planner = warrior()
+    game.state.player.add_to_inventory(potion('dragon_bone'))
+    drop_beside_player(game, potion('dragon_bone'))
+    assert planner.material_action(game) is None
+
+
+def test_full_pack_drops_a_second_copy_of_a_material():
+    game, planner = warrior()
+    player = game.state.player
+    player.inventory.clear()
+    first, second = potion('wraith_essence'), potion('wraith_essence')
+    player.add_to_inventory(first)
+    player.add_to_inventory(second)
+    while len(player.inventory) < planner_module.INVENTORY_MAX:
+        player.add_to_inventory(ore(80))
+    assert planner.junk_to_drop(game) is second
