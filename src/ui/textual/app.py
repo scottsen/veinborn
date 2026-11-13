@@ -8,10 +8,10 @@ from textual.app import App, ComposeResult
 from textual.binding import Binding
 
 from core.game import Game
-from core.base.entity import EntityType
 from core.config.user_config import ConfigManager
 from ui.textual.widgets import MapWidget, StatusBar, Sidebar, InventoryWidget, ChatInput
 from ui.textual.widgets.message_log import MessageLog
+from core.item_listing import ground_messages, inventory_messages, items_here
 from ui.textual.equipment_screen import EquipmentScreen
 
 # Setup logging
@@ -351,17 +351,8 @@ class VeinbornApp(App):
         if self.game.state.game_over:
             return
 
-        player = self.game.state.player
-        inventory = player.inventory
-
-        if not inventory:
-            self.game.state.add_message("Your inventory is empty.")
-        else:
-            self.game.state.add_message(f"=== Full Inventory ({len(inventory)}/{player.get_stat('inventory_capacity', 20)} items) ===")
-            for idx, item in enumerate(inventory, 1):
-                item_type = item.get_stat('item_type', 'unknown')
-                self.game.state.add_message(f"  {idx}. {item.name} ({item_type})")
-            self.game.state.add_message("========================================")
+        for line in inventory_messages(self.game.state.player):
+            self.game.state.add_message(line)
 
         self.refresh_ui()
 
@@ -422,22 +413,8 @@ class VeinbornApp(App):
         if self.game.state.game_over:
             return
 
-        player = self.game.state.player
-
-        # Find items at player's position
-        items_here = [
-            e for e in self.game.state.entities.values()
-            if e.entity_type == EntityType.ITEM and e.x == player.x and e.y == player.y and e.is_alive
-        ]
-
-        if not items_here:
-            self.game.state.add_message("There are no items on the ground here.")
-        else:
-            self.game.state.add_message(f"=== Items on the ground ({len(items_here)}) ===")
-            for item in items_here:
-                item_type = item.get_stat('item_type', 'unknown')
-                self.game.state.add_message(f"  - {item.name} ({item_type})")
-            self.game.state.add_message("==============================")
+        for line in ground_messages(items_here(self.game.state)):
+            self.game.state.add_message(line)
 
         self.refresh_ui()
 
