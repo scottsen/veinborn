@@ -1026,12 +1026,12 @@ status: backlog
 priority: low
 tags: [multiplayer]
 created: '2026-09-23T17:43:16Z'
-updated: '2026-11-13T21:10:10Z'
+updated: '2026-11-13T21:14:22Z'
 session: crimson-jewel-0923
 links:
   references:
   - src/server/game_session/session.py
-notes_next: 2
+notes_next: 3
 ```
 
 GameSession.process_disconnected_player_action (a defensive WaitAction) is called from nowhere in src, yet process_action tells rejected clients 'AI is controlling this character'. In a headless playtest a dropped player's character just stood still and died. Either wire it into a timer/round hook (what should the AI do beyond wait? retreat to stairs?) or delete it and fix the message. Product call.
@@ -1039,6 +1039,7 @@ GameSession.process_disconnected_player_action (a defensive WaitAction) is calle
 <!-- notes: append-only log; each has a stable #id (see CLI §5) -->
 ### Notes
 - [#1 2026-11-13T21:10:10Z session:chartreuse-filter-1113] Plan: docs/architecture/MULTIPLAYER_ARCHITECTURE_PLAN.md places this task in a phase (see section 4); read it before starting.
+- [#2 2026-11-13T21:14:22Z session:chartreuse-filter-1113] Scott 2026-11-13: no AI control of absent players. Replaced by a grace -> dropped -> rejoin seat lifecycle (plan D7, docs/architecture/MULTIPLAYER_ARCHITECTURE_PLAN.md). Close as won't-do when that lands; delete process_disconnected_player_action then.
 
 
 ## TASK-VB-46 · Spawner stacks ore veins, forges and (rarely) monsters on one tile
