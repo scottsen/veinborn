@@ -15,6 +15,7 @@ from .survey_action import SurveyAction
 from .descend_action import DescendAction
 from .craft_action import CraftAction
 from .equip_action import EquipAction
+from .unequip_action import UnequipAction
 from .pickup_action import PickupAction
 from .wait_action import WaitAction
 from .ability_action import AbilityAction
@@ -29,6 +30,7 @@ __all__ = [
     'DescendAction',
     'CraftAction',
     'EquipAction',
+    'UnequipAction',
     'PickupAction',
     'WaitAction',
     'AbilityAction',
@@ -51,6 +53,7 @@ ACTION_TYPES: Dict[str, Type[Action]] = {
     'DescendAction': DescendAction,
     'CraftAction': CraftAction,
     'EquipAction': EquipAction,
+    'UnequipAction': UnequipAction,
     'PickupAction': PickupAction,
     'WaitAction': WaitAction,
     'AbilityAction': AbilityAction,

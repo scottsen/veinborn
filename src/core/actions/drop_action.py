@@ -17,25 +17,13 @@ from typing import Optional
 
 from ..base.action import Action, ActionOutcome
 from ..base.game_context import GameContext
+from ..equipment import GEAR_SLOTS, gear_bonus, gear_slot  # noqa: F401 (re-exported for the bots)
 from .use_item_action import usable_effect
 
 logger = logging.getLogger(__name__)
 
-GEAR_SLOTS = ('weapon', 'armor')
-
 # least_useful_item tiers, most droppable first
 NO_USE, WORSE_GEAR, ORE, OTHER, HEALING = range(5)
-
-
-def gear_slot(item) -> Optional[str]:
-    """'weapon' or 'armor' if the item can be equipped (EquipAction's rule), else None."""
-    slot = item.get_stat('equipment_slot') or item.get_stat('item_type')
-    return slot if slot in GEAR_SLOTS else None
-
-
-def gear_bonus(item, slot) -> int:
-    """The bonus that makes gear better in its slot: attack for weapons, defense for armor."""
-    return item.get_stat('attack_bonus' if slot == 'weapon' else 'defense_bonus', 0)
 
 
 def usefulness(actor, item) -> int:

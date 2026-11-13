@@ -12,6 +12,7 @@ from core.base.entity import EntityType
 from core.config.user_config import ConfigManager
 from ui.textual.widgets import MapWidget, StatusBar, Sidebar, InventoryWidget, ChatInput
 from ui.textual.widgets.message_log import MessageLog
+from ui.textual.equipment_screen import EquipmentScreen
 
 # Setup logging
 logger = logging.getLogger('veinborn.app')
@@ -143,8 +144,7 @@ class VeinbornApp(App):
         Binding("z", "ability", "Class Ability (cast/heal)", show=True),
         # Inventory and inspection
         Binding("i", "show_inventory", "Show Inventory", show=True),
-        Binding("w", "equip_item", "Wield/Wear Item", show=True),
-        Binding("W", "cycle_equip", "Cycle Equipment", show=False),
+        Binding("w", "equip_item", "Equipment (wield/wear/remove)", show=True),
         Binding("g", "pickup", "Pick up Items", show=True),
         Binding("e", "use_item", "Eat/Drink (heal)", show=True),
         Binding("d", "drop_item", "Drop least useful item", show=True),
@@ -217,8 +217,6 @@ class VeinbornApp(App):
         self.message_log = None
         self.chat_input = None
 
-        # Equipment cycling state
-        self.equip_index = 0  # Track which item to equip when cycling
 
         logger.info("VeinbornApp.__init__() complete")
 
@@ -407,91 +405,17 @@ class VeinbornApp(App):
         # Update all widgets
         self.refresh_ui()
 
+    def check_action(self, action: str, parameters) -> bool | None:
+        """While the equipment screen is open the map keys must not move or hit anything."""
+        if isinstance(self.screen, EquipmentScreen):
+            return action in ('quit', 'debug_ui')
+        return True
+
     async def action_equip_item(self) -> None:
-        """Equip an item from inventory (async Textual handler)."""
+        """Open the equipment screen: wear, remove and compare gear from one list."""
         if self.game.state.game_over:
             return
-
-        player = self.game.state.player
-
-        # Find equippable items (weapons and armor)
-        equippable = []
-        for item in player.inventory:
-            # Check equipment_slot first, fallback to item_type
-            slot = item.get_stat('equipment_slot') or item.get_stat('item_type')
-            if slot in ['weapon', 'armor']:
-                equippable.append((item, slot))
-
-        if not equippable:
-            self.game.state.add_message("You have no weapons or armor to equip!")
-            self.refresh_ui()
-            return
-
-        # Reset equip index when starting fresh
-        self.equip_index = 0
-
-        # Show all equippable items
-        self.game.state.add_message("=== Equippable Items ===")
-        for idx, (item, slot) in enumerate(equippable, 1):
-            bonus_stat = 'attack_bonus' if slot == 'weapon' else 'defense_bonus'
-            bonus_val = item.get_stat(bonus_stat, 0)
-            stat_name = 'attack' if slot == 'weapon' else 'defense'
-            marker = "→" if idx == 1 else " "
-            self.game.state.add_message(f"{marker} {idx}. {item.name} ({slot}, +{bonus_val} {stat_name})")
-        self.game.state.add_message("===================")
-
-        # Equip the current item
-        item, slot = equippable[self.equip_index]
-        self.game.state.add_message(f"Equipping {item.name}... (Press 'W' to cycle)")
-
-        # Call synchronous game logic
-        self.game.handle_player_action('equip', item_id=item.entity_id)
-
-        # Update all widgets
-        self.refresh_ui()
-
-    async def action_cycle_equip(self) -> None:
-        """Cycle through equippable items (Shift+W)."""
-        if self.game.state.game_over:
-            return
-
-        player = self.game.state.player
-
-        # Find equippable items
-        equippable = []
-        for item in player.inventory:
-            # Check equipment_slot first, fallback to item_type
-            slot = item.get_stat('equipment_slot') or item.get_stat('item_type')
-            if slot in ['weapon', 'armor']:
-                equippable.append((item, slot))
-
-        if not equippable:
-            self.game.state.add_message("You have no weapons or armor to equip!")
-            self.refresh_ui()
-            return
-
-        # Cycle to next item
-        self.equip_index = (self.equip_index + 1) % len(equippable)
-
-        # Show all equippable items with arrow on current
-        self.game.state.add_message("=== Equippable Items ===")
-        for idx, (item, slot) in enumerate(equippable):
-            bonus_stat = 'attack_bonus' if slot == 'weapon' else 'defense_bonus'
-            bonus_val = item.get_stat(bonus_stat, 0)
-            stat_name = 'attack' if slot == 'weapon' else 'defense'
-            marker = "→" if idx == self.equip_index else " "
-            self.game.state.add_message(f"{marker} {idx+1}. {item.name} ({slot}, +{bonus_val} {stat_name})")
-        self.game.state.add_message("===================")
-
-        # Equip the selected item
-        item, slot = equippable[self.equip_index]
-        self.game.state.add_message(f"Equipping {item.name}...")
-
-        # Call synchronous game logic
-        self.game.handle_player_action('equip', item_id=item.entity_id)
-
-        # Update all widgets
-        self.refresh_ui()
+        self.push_screen(EquipmentScreen(self.game, on_change=self.refresh_ui))
 
     async def action_look_at_ground(self) -> None:
         """Look at items on the ground at player's position."""

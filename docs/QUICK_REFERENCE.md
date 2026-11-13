@@ -22,7 +22,7 @@
 - `s`: Survey nearby ore (check properties)
 - `g`: Pick up items
 - `i`: View inventory
-- `w`: Wield/wear (equip) — `W` cycles equipment
+- `w`: Equipment screen — ↑/↓ select, `Enter` wield/wear or remove, `x` remove worn, `Esc` close
 - `:`: Look at ground
 - `.` or `space`: Wait / pass turn
 - `c` or `enter`: Chat (multiplayer)

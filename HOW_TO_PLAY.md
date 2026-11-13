@@ -47,7 +47,7 @@ b   n
   rings), then weapons/armor worse than what you wear, then the lowest-purity ore. Press again
   to drop the next. Walking over something you dropped does not pick it back up; **g** does.
 - **i** = View inventory
-- **w** = Wield/wear (equip) an item — **W** cycles equipment
+- **w** = Equipment screen: what you wear and the weapons/armor in your pack, with each pack item's change vs what you wear. ↑/↓ select, **Enter** wields/wears a pack item or removes a worn one, **x** removes the worn item, **Esc** closes. Swapping and removing take no turn.
 - **:** = Look at what's on the ground
 - **.** or **space** = Wait / pass turn
 - **c** or **enter** = Chat (multiplayer)
@@ -362,8 +362,8 @@ Both are valid! The vault helps you learn without being OP.
 ```
 MOVEMENT          COMBAT / MINING         ITEMS
 ↑ k    y  u       Walk into enemy         i - Inventory
-← h @ l →         = Attack                w - Wield/equip
-↓ j    b  n       Walk into ore vein      W - Cycle equipment
+← h @ l →         = Attack                w - Equipment (wear/remove)
+↓ j    b  n       Walk into ore vein
                   = Mine (bump-to-mine)   g - Pick up
                   s - Survey ore          e - Eat/drink (heal)
                   z - Class ability       d - Drop (least useful)

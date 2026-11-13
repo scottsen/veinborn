@@ -62,6 +62,7 @@ class GameEventType(Enum):
     LOOT_DROPPED = "loot_dropped"
     PERSONAL_LOOT_DROPPED = "personal_loot_dropped"
     EQUIPMENT_EQUIPPED = "equipment_equipped"
+    EQUIPMENT_UNEQUIPPED = "equipment_unequipped"
     EQUIPMENT_CRAFTED = "equipment_crafted"
 
     # Floor events

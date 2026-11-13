@@ -67,6 +67,12 @@ class Player(Entity):
         self.set_stat('xp', 0)
         self.set_stat('level', 1)
 
+    MAX_INVENTORY = 20
+
+    def has_room(self) -> bool:
+        """True if the pack can take one more item."""
+        return len(self.inventory) < self.MAX_INVENTORY
+
     def add_to_inventory(self, item: Entity) -> bool:
         """
         Add item to inventory.
@@ -74,7 +80,7 @@ class Player(Entity):
         Returns:
             True if added successfully
         """
-        if len(self.inventory) >= 20:  # Max inventory size
+        if not self.has_room():
             return False
 
         self.inventory.append(item)

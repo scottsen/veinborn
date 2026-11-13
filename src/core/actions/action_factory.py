@@ -25,6 +25,7 @@ from .descend_action import DescendAction
 from .attack_action import AttackAction
 from .craft_action import CraftAction
 from .equip_action import EquipAction
+from .unequip_action import UnequipAction
 from .pickup_action import PickupAction
 from .ability_action import AbilityAction
 from .use_item_action import UseItemAction
@@ -189,6 +190,12 @@ class ActionFactory:
             name='equip',
             create_fn=self._create_equip_action,
             description='Equip an item from inventory'
+        )
+
+        self._handlers['unequip'] = ActionHandler(
+            name='unequip',
+            create_fn=self._create_unequip_action,
+            description="Take off the worn weapon or armor ('slot')"
         )
 
         self._handlers['ability'] = ActionHandler(
@@ -444,6 +451,14 @@ class ActionFactory:
             return None
 
         return EquipAction(actor_id, item_id)
+
+    def _create_unequip_action(self, context: GameContext, kwargs: dict) -> Optional[Action]:
+        """Create an unequip action. kwargs must contain 'slot' ('weapon' or 'armor')."""
+        slot = kwargs.get('slot')
+        if not slot:
+            context.game_state.add_message("Nothing to remove")
+            return None
+        return UnequipAction(context.get_player().entity_id, slot)
 
     def _create_use_action(self, context: GameContext, kwargs: dict) -> Optional[Action]:
         """Create a use-item action. kwargs must contain 'item_id'."""

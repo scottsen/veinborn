@@ -20,6 +20,7 @@ from dataclasses import dataclass
 from ..base.action import Action, ActionOutcome
 from ..base.game_context import GameContext
 from ..entities import Player
+from ..equipment import SLOT_ATTR, SLOT_STAT, gear_bonus, gear_slot
 
 logger = logging.getLogger(__name__)
 
@@ -73,25 +74,15 @@ class EquipAction(Action):
         return None
 
     def _validate_equipment_slot(self, item) -> str:
-        """Validate item has a valid equipment slot."""
-        # Check equipment_slot first, fallback to item_type
-        equipment_slot = item.get_stat('equipment_slot') or item.get_stat('item_type')
+        """The item's wearable slot ('weapon' or 'armor'), or None (and a logged reason)."""
+        equipment_slot = gear_slot(item)
         if not equipment_slot:
             self._log_validation_failure(
                 "item is not equippable",
                 item_id=self.item_id,
-                item_name=item.name
+                item_name=item.name,
+                item_type=item.get_stat('item_type')
             )
-            return None
-
-        if equipment_slot not in ['weapon', 'armor']:
-            self._log_validation_failure(
-                "invalid equipment slot",
-                item_id=self.item_id,
-                equipment_slot=equipment_slot
-            )
-            return None
-
         return equipment_slot
 
     def execute(self, context: GameContext) -> ActionOutcome:
@@ -111,8 +102,7 @@ class EquipAction(Action):
                          'item_id': self.item_id, 'item_name': item.name})
 
         # Handle equipping based on slot
-        # Check equipment_slot first, fallback to item_type
-        equipment_slot = item.get_stat('equipment_slot') or item.get_stat('item_type')
+        equipment_slot = gear_slot(item)
         messages = self._equip_item(actor, item, equipment_slot)
 
         # Add total stats summary
@@ -125,50 +115,26 @@ class EquipAction(Action):
         return outcome
 
     def _equip_item(self, actor, item, equipment_slot: str) -> list:
-        """Equip item to appropriate slot, handling unequip of old item."""
-        messages = []
+        """Wear `item`; the item worn in that slot goes back to the pack.
 
-        if equipment_slot == 'weapon':
-            messages.extend(self._equip_weapon(actor, item))
-        elif equipment_slot == 'armor':
-            messages.extend(self._equip_armor(actor, item))
+        The new item leaves the pack first, so the old one always has a slot:
+        the other order dropped the old gear when the pack was full.
+        """
+        attr = SLOT_ATTR[equipment_slot]
+        stat = SLOT_STAT[equipment_slot]
+        old = getattr(actor, attr)
 
-        return messages
-
-    def _equip_weapon(self, actor, item) -> list:
-        """Equip weapon, unequipping old weapon if present."""
-        messages = []
-
-        if actor.equipped_weapon:
-            old_weapon = actor.equipped_weapon
-            actor.add_to_inventory(old_weapon)
-            messages.append(f"Unequipped {old_weapon.name}")
-            logger.debug(f"Unequipped weapon: {old_weapon.name}")
-
-        actor.equipped_weapon = item
         actor.remove_from_inventory(item)
-        attack_bonus = item.get_stat('attack_bonus', 0)
-        messages.append(f"Equipped {item.name} (+{attack_bonus} attack)")
-        logger.info(f"Equipped weapon: {item.name} with +{attack_bonus} attack")
-
-        return messages
-
-    def _equip_armor(self, actor, item) -> list:
-        """Equip armor, unequipping old armor if present."""
         messages = []
+        if old:
+            actor.add_to_inventory(old)
+            messages.append(f"Unequipped {old.name}")
+            logger.debug(f"Unequipped {equipment_slot}: {old.name}")
 
-        if actor.equipped_armor:
-            old_armor = actor.equipped_armor
-            actor.add_to_inventory(old_armor)
-            messages.append(f"Unequipped {old_armor.name}")
-            logger.debug(f"Unequipped armor: {old_armor.name}")
-
-        actor.equipped_armor = item
-        actor.remove_from_inventory(item)
-        defense_bonus = item.get_stat('defense_bonus', 0)
-        messages.append(f"Equipped {item.name} (+{defense_bonus} defense)")
-        logger.info(f"Equipped armor: {item.name} with +{defense_bonus} defense")
-
+        setattr(actor, attr, item)
+        bonus = gear_bonus(item, equipment_slot)
+        messages.append(f"Equipped {item.name} (+{bonus} {stat})")
+        logger.info(f"Equipped {equipment_slot}: {item.name} with +{bonus} {stat}")
         return messages
 
     def _add_equip_event(self, outcome: ActionOutcome, equipment_slot: str):

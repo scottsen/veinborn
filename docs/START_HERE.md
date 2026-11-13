@@ -86,7 +86,7 @@ python3 run_textual.py
 - Press `s` next to ore veins (◆) to survey properties
 - Press `m` to mine ore (takes 3-5 turns, you're vulnerable!)
 - Find forges, press `c` to craft equipment
-- Press `e` to equip crafted gear
+- Press `w` to open the equipment screen and wear crafted gear (`Enter`), or take it off
 - Watch your HP in the status bar
 - Die and learn (it's a roguelike!)
 
