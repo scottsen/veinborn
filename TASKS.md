@@ -2,7 +2,7 @@
 project: veinborn
 schema_version: '1.0'
 id_prefix: VB
-next_id: 81
+next_id: 87
 archival: inline
 areas: {}
 ---
@@ -1493,11 +1493,11 @@ Design/balance work, needs Scott: which abilities, in what order, at what number
 
 ```yaml
 status: backlog
-priority: low
+priority: medium
 effort: 1d
 tags: [architecture, abilities, content]
 created: '2026-11-12T17:40:22Z'
-updated: '2026-11-12T20:47:40Z'
+updated: '2026-11-13T01:57:45Z'
 session: vevine-1112
 parent: VB-47
 links:
@@ -1506,7 +1506,7 @@ links:
   relates_to:
   - VB-64
   - VB-53
-notes_next: 2
+notes_next: 3
 ```
 
 About 6 declared monster abilities need timed effects on the target: spider poison, wyvern poison_sting, basilisk petrifying_gaze + poison_bite, mimic adhesive. No status-effect primitive exists. Shape: per-entity effects list (name, turns_left, magnitude) ticked by the turn loop in single-player and multiplayer, an @status_effect registry, effects that gate actions (stun/root) checked in the action pipeline, persisted in saves via entity stats. See AI_ARCHITECTURE.md 'Later: status effects'.
@@ -1514,6 +1514,7 @@ About 6 declared monster abilities need timed effects on the target: spider pois
 <!-- notes: append-only log; each has a stable #id (see CLI §5) -->
 ### Notes
 - [#1 2026-11-12T20:47:40Z session:warming-squall-1112] Consumables (52eb525): potion_strength (buff_attack), potion_speed (buff_speed), potion_invisibility have no @item_effect yet; they wait on this system. Add them in src/core/content/items/ (see docs/EXTENDING.md 'Add an item effect'); UseItemAction keeps an item whose effect is unregistered.
+- [#2 2026-11-13T01:57:45Z session:mustard-sunset-1112] Priority raised low->medium 2026-11-12 (mustard-sunset-1112): the NetHack-depth review (umbrella VB-81) found status effects are the foundation for identification (VB-82: potion effects), shrines (VB-84) and counterplay monsters. Still no urgency to start before VB-82's scroll effects.
 
 
 ## TASK-VB-66 · AISystem.attack drops the monster attack's outcome.events: monster attacks never reach the event bus
@@ -1550,11 +1551,11 @@ AISystem.attack executes AttackAction and adds outcome.messages to the log but d
 
 ```yaml
 status: backlog
-priority: low
+priority: medium
 effort: 1d
 tags: [ai, architecture, abilities, content]
 created: '2026-11-12T18:21:49Z'
-updated: '2026-11-12T18:21:49Z'
+updated: '2026-11-13T01:57:45Z'
 session: vevine-1112
 depends_on: [VB-63]
 parent: VB-47
@@ -1566,13 +1567,14 @@ links:
   - VB-64
   - VB-65
   - VB-53
+notes_next: 2
 ```
 
 13 of the 27 abilities declared in monsters.yaml are not actions, so the VB-63 engine ability step cannot express them: per-turn (troll/ancient_horror regeneration, demon fire_aura, phoenix flame_aura, ancient_horror phase_two enrage), on-hit (wraith/vampire life_drain; spider poison, wyvern poison_sting, basilisk poison_bite/petrifying_gaze, mimic adhesive need VB-65 too), on-death intercept before removal (phoenix rebirth, lich phylactery), movement (imp/demon teleport, wraith phase_shift through walls) and mimic disguise. Today only @damage_modifier exists (attacker-side, player-only via the abilities stat). Design one trigger mechanism (e.g. @passive(name, on='turn'|'hit'|'death') run by the engine for any actor whose resolved abilities include it, in core so MP gets it), keep it data-driven like abilities_for. Player regeneration/teleport (VB-53) should reuse it. See AI_ARCHITECTURE.md 'Monster ability inventory'.
 
 <!-- notes: append-only log; each has a stable #id (see CLI §5) -->
 ### Notes
-_(no notes yet)_
+- [#1 2026-11-13T01:57:45Z session:mustard-sunset-1112] Priority raised low->medium 2026-11-12 (mustard-sunset-1112): passive triggers (regeneration, auras, enrage) are what give monsters distinct learnable rules; see umbrella VB-81.
 
 
 ## TASK-VB-68 · Automated play-testing: duel sim through AISystem, seeded paired bot runs, bot realism, fairness metrics
@@ -1583,7 +1585,7 @@ priority: medium
 effort: 8-12h total (steps 1+2 ~half day)
 tags: [fuzz, bots, balance, ai, tests]
 created: '2026-11-12T19:21:49Z'
-updated: '2026-11-12T21:41:41Z'
+updated: '2026-11-13T03:05:56Z'
 session: warming-squall-1112
 parent: VB-47
 links:
@@ -1598,7 +1600,7 @@ links:
   - VB-64
   - VB-57
   - VB-32
-notes_next: 7
+notes_next: 8
 ```
 
 Goal: turn most of 'play-test' into measurement so VB-64 (and later VB-65/67) become data decisions, and Scott's play-test shrinks to feel questions (fun, fairness feel, message readability, boss feel) on monsters the numbers already call balanced.
@@ -1629,17 +1631,18 @@ Steps 1+2 are the high-value half: do them before asking Scott for VB-64 numbers
 - [#4 2026-11-12T20:41:40Z session:warming-squall-1112] A/B results (seeds 1000-1031, 3000 turns, 4 classes = 128 pairs, scripts/compare_bot_runs.py). base 76222a4 -> potions d4a2505: deaths unchanged overall but MAGE deaths 7->14/32; rogue +1.3 floors. potions -> fight model (9480506): 125/128 games identical (fights start adjacent, verdict rarely flips with current monsters). Mage ablation: drink-only 6/32 deaths, collect-only 15/32 -> item detours into monsters were the killer; also stuck detection counted melee as stuck (1-HP bot took random 'wait'). Fixed in 15c0fba. base -> fixed 15c0fba: floor 8.44->9.12 (+0.68, CI +0.05..+1.31), deaths 10->7 (mage 7->6, rogue 3->1), rogue +1.31 floors, 0 crashes/errors, 0 burst deaths, 0.91 potions/game. Balance signal: warrior and healer 0/64 deaths in 3000 turns; mage ~20%; orcs deal the most damage (4689 of ~12.7k). Run copies with results JSON: /var/tmp/vb68_base_76222a4, /var/tmp/vb68_fixed_15c0fba (logs/*.json).
 - [#5 2026-11-12T21:21:45Z session:serene-cyclone-1112] serene-cyclone-1112: per-monster breakdown in compare report done (paired damage taken per monster type with CI, bd1e44e). Deep starts (--start-floor/--start-level, tests/fuzz/scenario.py) for floors bots never reach; default runs unchanged (6/6 identical seeded games vs 1b5c10d). Remaining: bot response to ranged monsters, which matters once a ranged ability is enabled (VB-64).
 - [#6 2026-11-12T21:41:41Z session:serene-cyclone-1112] Floor-stall fix 69c59c0, paired A/B (seeds 1000-1031, 3000 turns, 128 pairs, before 07667a7): floor 9.12 -> 11.70 (+2.59 [+2.16, +3.01]*), level 6.66 -> 7.41*, every class significant (mage +2.12, rogue +3.00, warrior +2.53, healer +2.69); deaths 6 -> 9 of 128 (+0.02 [-0.03, +0.06], mage 6 -> 9 of 32 as it reaches deeper floors), 0 crashes, 0 errors. All earlier floor numbers (incl. 'bots reach ~floor 10') were stall-limited. Results /var/tmp/vb68_stall_{before_07667a7,after_69c59c0}/logs/, compare.json in the after dir. New baseline for future A/Bs: the after_* files.
+- [#7 2026-11-13T03:05:56Z session:quantum-energy-1112] a18c7ab: bots fetch boss materials (planner step 4b, MATERIAL_REACH 12, makes room by dropping the lowest-value item up to ore, never a material). Before it, an instrumented 3% run saw 995 material drops but 10 pickups and 2 legendary crafts in 12 warrior games, so the legendary path was unmeasured. Instrumented runner (logs drops, pickups, crafts): /var/tmp/vb75_long_r*_a18c7ab/instrumented.py.
 
 
 ## TASK-VB-69 · Spawn tables: 10 of 19 monsters never spawn (wyvern, vampire, lich, demon, phoenix, ancient_horror, wraith, mimic, golem, basilisk)
 
 ```yaml
-status: backlog
+status: done
 priority: medium
 owner: scott
 tags: [balance, content, spawning]
 created: '2026-11-12T19:31:16Z'
-updated: '2026-11-13T01:35:38Z'
+updated: '2026-11-13T03:05:56Z'
 session: warming-squall-1112
 links:
   references:
@@ -1650,7 +1653,9 @@ links:
   - VB-64
   - VB-47
   - VB-68
-notes_next: 4
+  commits:
+  - 867b6a418c23ca0df128b542aae6a8b7c0b4f164
+notes_next: 6
 ```
 
 Found 2026-11-12 (VB-68) while measuring monster abilities: data/balance/monster_spawns.yaml spawn_weights only names goblin, bat, orc, skeleton, wolf, spider, troll, ogre, imp. The other 10 monsters (all defined in monsters.yaml, several with ADR-019 abilities built) appear in no spawn table and no other data/balance file except recipe flavour (recipes.yaml 'requires lich/phoenix/ancient_horror kill'). So of the 9 built VB-64 abilities only imp fire_bolt (floors 11+) can affect a real game. Design call for Scott: which floors each monster belongs to, boss placement (ancient_horror as final boss?), weights. Measure each placement with scripts/sim_duels.py at the player level expected on that floor, plus seeded bot runs (VB-68 step 2).
@@ -1660,6 +1665,8 @@ Found 2026-11-12 (VB-68) while measuring monster abilities: data/balance/monster
 - [#1 2026-11-12T21:21:40Z session:serene-cyclone-1112] Prep done (serene-cyclone-1112): spawn bands are keyed by floor range (floor_N/floors_A_B/floors_A_plus, core/config/floor_bands.py), validated at load (cover every floor once, ids defined), so placing monsters is YAML only (28f9d9e). Bots can start deep: --start-floor/--start-level (bd1e44e). Baseline at floors 16+ (seeds 2000-2015, 1500 turns, start floor 16 level 8, starting gear only, 64 games): 2 deaths (mage, both troll), 0 crashes/errors; damage mostly troll then ogre; bots descend 0-4 floors. Results /var/tmp/vb69_deep_bd1e44e/logs/deep16_*.json. sim_duels (abilities off, level 7 / 10 win%): mimic/wraith/golem 98-100 at L7; wyvern/vampire 52-100 at L7, ~100 at L10; basilisk/lich 16-96 at L7; phoenix/demon 0-29 at L7, 20-89 at L10; ancient_horror 0 at both. Note wandering monsters use the band for (floor+level)//2, so deep-floor wanderers come from shallower bands.
 - [#2 2026-11-12T22:12:00Z session:serene-cyclone-1112] Level/gear-by-floor curve, bots at a336011 (stall + inventory fixed), 24 games x 4 classes, 20000 turns, seeds 3000-3023 (bot_progression; /var/tmp/vb73_inv_a336011/logs/curve.json). Median on arrival: floor 5 L5 atk16/def7; floor 8 L6 26/18; floor 12 L7 36/33; floor 20 L9 38/33; floor 30 L10 39/33; floor 50 L11 40/33; floor 70 (turn ~18.5k) L11. Gear plateaus by floor 12, level ~11 from floor 50 (doubling XP curve). Reached floors: median 75, max 80, of 100. Deaths: 3 of 96, all rogues on floor 2 (orc); none past floor 3 in 1.8M bot turns. Use for placements: sim_duels --levels <curve level> --gear adamantite_greatsword@80,adamantite_plate@80 for floors 12+ (and see VB-75: at that gear every shipped monster is harmless, so placement alone cannot add danger).
 - [#3 2026-11-13T01:22:38Z session:quantum-energy-1112] Bots now ignore ~/.veinbornrc (VB-76) and gold autopicks by default (0d1b700); together these reproduce the a336011 runs exactly (128/128 identical games), so /var/tmp/vb73_inv_a336011 (inv_*, curve, long runs) remains the valid baseline. Fresh copy: /var/tmp/vb76_gold_0d1b700/logs/inv_*.json.
+- [#4 2026-11-13T01:57:45Z session:mustard-sunset-1112] Design principle to apply when placing monsters (mustard-sunset-1112, umbrella VB-81): prefer fewer monsters that each teach one learnable counterplay rule (like NetHack's floating eye) over enabling all 19 by stat alone; placement by stats cannot add danger while VB-75 stands. VB-64 abilities and VB-67 passives are the way to give monsters rules.
+- [#5 2026-11-13T03:05:56Z session:quantum-energy-1112] All 19 monsters spawn (867b6a4): floors_16_plus split into 16-25 / 26-40 / 41-60 / 61+ by rising base strength; wraith and mimic join 11-15; boss-material monsters appear around their legendary recipe floors (wyvern 16+, lich 26+, phoenix 41+). ancient_horror is a single boss on floor 99 via the new monster_spawns.yaml boss_floors (not in any weight band, so dens and wanderers never draw it). Deep-start smoke: 0 errors, every new monster fights. Difficulty past floor 12 comes from VB-75's floor_scaling (rate chosen by long runs).
 
 
 ## TASK-VB-70 · Loot tables: only goblin, orc, troll drop anything; 16 of 19 monsters (bat, skeleton, ogre, wolf, spider, imp, ...) have no loot table
@@ -1670,7 +1677,7 @@ priority: medium
 owner: scott
 tags: [balance, content, loot]
 created: '2026-11-12T20:14:28Z'
-updated: '2026-11-12T21:21:41Z'
+updated: '2026-11-13T03:05:56Z'
 session: warming-squall-1112
 links:
   references:
@@ -1679,7 +1686,7 @@ links:
   relates_to:
   - VB-69
   - VB-68
-notes_next: 2
+notes_next: 3
 ```
 
 Found 2026-11-12 (VB-68) in bot logs: every kill of a monster without a table logs WARNING 'No loot table found for monster type: X' (core/loot.py generate_loot). data/balance/loot_tables.yaml has goblin, orc, troll only. Consequence now that potions and food are usable (52eb525): potion supply comes only from goblins/orcs/trolls, which thin out from floor 3 (skeleton/wolf/spider/ogre take over). Design call for Scott: which monsters drop what (animals: meat? undead: nothing?). Once decided, a monster that intentionally drops nothing should have an empty table or a flag so the WARNING means a real gap. Measure with seeded bot runs (scripts/compare_bot_runs.py: potions used, deaths).
@@ -1687,6 +1694,7 @@ Found 2026-11-12 (VB-68) in bot logs: every kill of a monster without a table lo
 <!-- notes: append-only log; each has a stable #id (see CLI §5) -->
 ### Notes
 - [#1 2026-11-12T21:21:41Z session:serene-cyclone-1112] Prep done (9f225e7): monsters.yaml loot_table names a shared table (null = own id), checked at load with every table item id; a description-only table drops nothing without the warning. So 'beasts drop meat' is one table plus loot_table: beast on bat/wolf/spider. Usable drops today: healing potions and food only; potion_strength and every scroll have no @item_effect (UseItemAction refuses them), so putting them in new tables adds dead weight until VB-65 / scroll effects exist.
+- [#2 2026-11-13T03:05:56Z session:quantum-energy-1112] Boss materials done (8b5cb77, VB-75): lich, phoenix (essence + feather), ancient_horror always drop theirs; wraith and wyvern 50% (dragon_bone from the wyvern: no dragon exists; Scott may prefer another source). Those tables hold only the material. Still open here: drops for the other 11 monsters, and anything else the bosses drop.
 
 
 ## TASK-VB-71 · Balance knobs nobody reads: spawning.yaml monster_density (global + tier multipliers), ore_veins.yaml ore_types, ores.yaml floor_range; ore vein count grows without bound (8 + floor - 1 = 107 on floor 100)
@@ -1761,12 +1769,12 @@ owner: scott
 effort: '-'
 tags: [design, items, loot, economy]
 created: '2026-11-12T21:53:19Z'
-updated: '2026-11-13T01:31:47Z'
+updated: '2026-11-13T01:57:45Z'
 session: serene-cyclone-1112
 links:
   relates_to:
   - VB-73
-notes_next: 4
+notes_next: 5
 ```
 
 <!-- notes: append-only log; each has a stable #id (see CLI §5) -->
@@ -1774,6 +1782,7 @@ notes_next: 4
 - [#1 2026-11-12T21:53:33Z session:serene-cyclone-1112] Found 2026-11-12 (serene-cyclone-1112) chasing why bot gear stalled (VB-73). reveal src --grep 'gold_amount': only core/loot.py sets it; highscore, game_state, UI never read it. Gold piles take one of 20 slots each (a mage carried 8 by floor 4). Since d06ac7d least_useful_item ranks gold as 'no use' so 'd' drops it first. Options for Scott: (a) purse: pickup adds gold_amount to a player stat, no slot, shown in sidebar and counted in score; (b) remove gold from loot tables; (c) a use for it (shop, shrine, forge fee). (a) is the NetHack convention and cheap; what gold buys is the design question.
 - [#2 2026-11-13T01:15:54Z session:quantum-energy-1112] Autopickup and gold (quantum-energy-1112): code default game.autopickup_types is ore,food,weapon, so gold reaches a pack only by manual 'g' (or a user rc adding gold). Bot runs before 1fcbdfd used Scott's ~/.veinbornrc (adds gold), so the 'gold fills slots' evidence in VB-73 came from that config; bots now run on defaults (VB-76). Part of this decision: should gold autopickup by default (game_constants or user default), and does it take a slot at all if it becomes a purse.
 - [#3 2026-11-13T01:31:47Z session:quantum-energy-1112] Decided by Scott 2026-11-12: gold autopicks by default. 0d1b700: DEFAULT_AUTOPICKUP_TYPES = ore,food,weapon,gold feeds both the code fallback and the generated config file (they disagreed before). So gold now fills pack slots for every player and bot, as on Scott's machine; the purse question (does gold take a slot) stays open here.
+- [#4 2026-11-13T01:57:45Z session:mustard-sunset-1112] Option (c) detail (mustard-sunset-1112): a gold sink via shrines/altars is filed as VB-84 (child of umbrella VB-81). Decide purse vs slot here first; VB-84 depends on that.
 
 
 ## TASK-VB-75 · Crafted gear outscales every monster: bots reach attack ~37 / defense ~33 by floor 12 (monsters top out at defense 8, attack 18), so nothing threatens a crafting player past the early floors
@@ -1785,12 +1794,12 @@ owner: scott
 effort: '-'
 tags: [balance, crafting, design]
 created: '2026-11-12T21:53:20Z'
-updated: '2026-11-13T01:57:08Z'
+updated: '2026-11-13T01:57:45Z'
 session: serene-cyclone-1112
 links:
   relates_to:
   - VB-69
-notes_next: 5
+notes_next: 6
 ```
 
 <!-- notes: append-only log; each has a stable #id (see CLI §5) -->
@@ -1799,6 +1808,7 @@ notes_next: 5
 - [#2 2026-11-12T21:54:29Z session:serene-cyclone-1112] sim_duels --gear now crafts recipes (recipe@quality, 83f767f). Level 10, adamantite_greatsword@80 + adamantite_plate@80, start distance 4, 200 fights: warrior and mage beat demon and ancient_horror 100% with 0% HP lost (gearless at level 10: ancient_horror 0% win, demon 20-88%). So with top crafted gear the final boss is harmless.
 - [#3 2026-11-12T22:12:00Z session:serene-cyclone-1112] Long runs (a336011, 96 games x 20000 turns) confirm: gear plateaus at median attack 38-40 / defense 33 from floor 12; 0 deaths past floor 3 in 96 games reaching median floor 75. The only real danger is floors 1-3 (3 rogue deaths to orcs on floor 2). Before VB-73 (pack locked, ebb2eb3 run) warriors had defense 3 for the whole game and 5/24 died deep, so the bot's gear loop, not monsters, was the difficulty.
 - [#4 2026-11-13T01:57:08Z session:quantum-energy-1112] Lever study 2026-11-12 (quantum-energy-1112), sim_duels at the bots' curve checkpoints (gear reproduces measured atk/def: F5 L5 iron@55 ~15/9, F8 L6 mithril@75 ~24/17, F12/30/50 L7/10/11 adamantite@90 ~35-40/33), 200 fights/cell, abilities off, worst-class win% / mean HP lost on a win. Results + harness: /var/tmp/vb75_duels_6e7ad70 (levers_summary.txt, rate_sweep_summary.txt, run_matrix.py, run_sweep.py). (1) Halving crafted gear bonuses or diminishing-returns defense (to-hit def/2, damage roll*10/(10+def)) barely matter: from F5 on every common monster costs <=8% HP; only ancient_horror rises to ~20-29%. Monsters are weak against level growth alone, so gear is not the whole problem. (2) Monster floor scaling (hp/atk/def x (1 + r*(floor-1))) is the only lever that adds danger past F12, because the player stops growing (gear plateau F12, level ~11 from F50) while the game runs to F100. r=2%: F12-50 trivial, F75 demon 13% HP, F100 lich 94%/20%, demon 60%/51%. r=3%: F50 demon 13%, F75 lich 74%/34%, demon 25%/64%, F100 lich 10%. r=4%: F50 demon 64%/46%, F75 mostly unwinnable. Scaled ancient_horror is unwinnable from F50 (3%) / F75 (2%), so a final boss needs its own fixed stats. 6% (first pass) is a cliff (F30 demon 85%, F50 lich 10%). (3) Linear scaling vs a flat player always ends in a wall; the designed late growth is the legendary recipes (flaming_sword, titans_hammer, phoenix_armor ...), but RecipeManager._load_recipes loads only weapons+armor, so all 6 legendaries are dormant, and special_requirement (boss items) is read by nothing. Proposal for Scott: floor scaling ~2-3%/floor as a data knob (small spawner change), boss excluded/fixed; VB-69 placements for variety; legendary recipes + boss-item drops (VB-70) as the late player growth; then bot long runs for deaths by floor.
+- [#5 2026-11-13T01:57:45Z session:mustard-sunset-1112] Design options to add (mustard-sunset-1112, from the NetHack review, umbrella VB-81): besides scaling gear down or monsters up, give crafting downsides as NetHack does for power (impure ore lowers durability or adds a curse chance, gear degrades, high tier needs rare ore). Related: the missing pressure past floor 3 is tracked as VB-83 (pacing clock). Measure any of these with paired bot runs.
 
 
 ## TASK-VB-76 · Bot runs depend on the machine's ~/.veinbornrc: gameplay (MoveAction autopickup) reads per-user ConfigManager, so one seed plays differently per machine
@@ -1930,3 +1940,142 @@ Found 2026-11-12 (session mustard-sunset-1112). Question from Scott: how possibl
 <!-- notes: append-only log; each has a stable #id (see CLI §5) -->
 ### Notes
 _(no notes yet)_
+
+
+## TASK-VB-81 · Umbrella: NetHack-style interaction depth (identification, pressure clock, shrines, bones, counterplay monsters)
+
+```yaml
+status: backlog
+priority: medium
+tags: [design, architecture]
+created: '2026-11-13T01:57:27Z'
+updated: '2026-11-13T01:57:27Z'
+session: mustard-sunset-1112
+```
+
+Filed 2026-11-12 (session mustard-sunset-1112) from a design review of what makes NetHack durable. The consolidated design's 'NetHack Part' (docs/VEINBORN_CONSOLIDATED_DESIGN.md) is a generic roguelike checklist; what is thin is interaction depth, knowledge-over-reflexes, and pressure. Key measured fact behind the priorities (VB-75 / VB-69 notes): with crafted gear no shipped monster threatens a bot past floor 3 (0 deaths past floor 3 in 96 games reaching median floor 75), so the game currently has no pressure after the opening. Children carry the work; existing tasks that already cover part of this: VB-65 (status effects), VB-67 (passive triggers), VB-69/VB-64 (monsters), VB-74 (gold use), VB-75 (gear outscales monsters), VB-35 (Legacy Vault in MP). NOT to copy from NetHack: multi-hour runs (Veinborn is quick-restart plus meta-progression), cheap instadeath, wiki-dependence. Close this when its children are done or dropped.
+
+<!-- notes: append-only log; each has a stable #id (see CLI §5) -->
+### Notes
+_(no notes yet)_
+
+
+## TASK-VB-82 · Consumable identification: randomize potion/scroll appearances per run, give scrolls real effects, add a discoveries log
+
+```yaml
+status: backlog
+priority: medium
+effort: 2-3d
+tags: [design, items, content]
+created: '2026-11-13T01:57:29Z'
+updated: '2026-11-13T01:57:29Z'
+session: mustard-sunset-1112
+parent: VB-81
+links:
+  references:
+  - data/entities/items.yaml
+  - src/core/content/items/healing.py
+  - docs/EXTENDING.md
+  relates_to:
+  - VB-65
+  - VB-70
+  - VB-68
+```
+
+NetHack's core knowledge loop: unidentified potions/scrolls with per-run random appearances, learned by testing, risk and price. Veinborn half-has it: ore properties are hidden and Survey is an identification verb, but consumables are just named. Today potion_strength/speed/invisibility and every scroll have no @item_effect, so UseItemAction refuses them (VB-70 note #1, VB-65 note #1) and they only fill pack slots. Proposed: (1) give scrolls real effects (start with cheap ones: teleport, magic mapping, enchant gear, identify, plus one risky: aggravate/summon); potion effects that need status effects wait on VB-65; (2) per-run seeded mapping of item id -> appearance (e.g. 'murky potion'), stored in the run state and saves, deterministic from the run seed so bot runs stay reproducible (VB-68); (3) first use identifies that item type for the rest of the run; a risky unknown item is the gamble; (4) a discoveries list in the UI. Bots (VB-68) must either drink-test or ignore unknowns; measure with paired seeded runs. Do not bundle with loot-table work: VB-70 decides who drops what, this decides what the items are.
+
+<!-- notes: append-only log; each has a stable #id (see CLI §5) -->
+### Notes
+_(no notes yet)_
+
+
+## TASK-VB-83 · No pressure past floor 3: add a pacing clock (hunger/food) so mining and crafting trade against time
+
+```yaml
+status: backlog
+priority: medium
+owner: scott
+tags: [design, balance]
+created: '2026-11-13T01:57:30Z'
+updated: '2026-11-13T01:57:30Z'
+session: mustard-sunset-1112
+parent: VB-81
+links:
+  relates_to:
+  - VB-75
+  - VB-70
+  - VB-68
+```
+
+Evidence (VB-75 notes #1-#3, VB-69 note #2): 96 bot games, median floor 75, 0 deaths past floor 3; the only danger is floors 1-3. NetHack's hunger clock is what stops turtling and makes every spent turn (here: mining, crafting, resting) a cost. Veinborn has food but only as healing (UseItemAction). Design call for Scott: (a) gentle hunger: nutrition drains per turn, food restores it, starvation damages rather than instakills; mining costs extra nutrition, so greedy mining is the risk; (b) no clock, fix pressure through monsters/gear only (VB-75); (c) a softer clock such as monsters spawning faster the longer you stay on a floor (spawn_wandering_monster already exists). Hunger also gives food drops (VB-70 'beasts drop meat') a second purpose. Warning from NetHack: a tedious hunger loop is the version to avoid; prototype (c) first as it is cheapest, measure with paired bot runs on turns-per-floor and deaths.
+
+<!-- notes: append-only log; each has a stable #id (see CLI §5) -->
+### Notes
+_(no notes yet)_
+
+
+## TASK-VB-84 · Shrines/altars/fountains: gold sink and risk-reward gambles
+
+```yaml
+status: backlog
+priority: low
+tags: [design, content, economy]
+created: '2026-11-13T01:57:32Z'
+updated: '2026-11-13T01:57:32Z'
+session: mustard-sunset-1112
+parent: VB-81
+links:
+  relates_to:
+  - VB-74
+```
+
+NetHack gives gold and spare items risk/reward outlets (altars, fountains, prayer). Veinborn gold has no use (VB-74, option c names 'shrine'). Proposed as a special-room type via the existing assign_special_rooms / spawn policy (core/spawning): shrine takes gold for a gamble (blessing, heal, enchant, or a curse); fountain quaff = small random effect; an altar identifies cursed/enchanted state if item curses are added (see VB-75 note about crafting downsides). Start with one shrine type that spends gold for a random buff; it also closes VB-74's 'what does gold buy'. Depends on a decision in VB-74 whether gold is a purse. Needs status effects (VB-65) for most buffs.
+
+<!-- notes: append-only log; each has a stable #id (see CLI §5) -->
+### Notes
+_(no notes yet)_
+
+
+## TASK-VB-85 · Bones: ghost and gear of a dead run appear on a floor of a later run
+
+```yaml
+status: backlog
+priority: low
+tags: [design, multiplayer, legacy]
+created: '2026-11-13T01:57:34Z'
+updated: '2026-11-13T01:57:34Z'
+session: mustard-sunset-1112
+parent: VB-81
+links:
+  relates_to:
+  - VB-35
+```
+
+NetHack's bones files turn each death into content for the next player. Fits the existing Legacy Vault (rare ore saved on death) and adds asynchronous multiplayer with no live server. Proposed: on death, write a small record (floor, position, name, class, gear snapshot, killer) to a local bones file under the user data dir; a later run may place a ghost/tombstone monster guarding that gear on the matching floor, with a seeded chance so runs stay reproducible; killing it returns the loot. Keep the file format versioned (saves already serialize entities; see core/save_load.py and legacy_vault.py). Decisions: single-player only first (VB-35 notes the Legacy Vault singleton is not MP-safe); whether bones are shared between users is out of scope. Low priority: do after identification and pacing.
+
+<!-- notes: append-only log; each has a stable #id (see CLI §5) -->
+### Notes
+_(no notes yet)_
+
+
+## TASK-VB-86 · Distinct special floors (vault, shrine, boss floor) instead of uniform floors
+
+```yaml
+status: future
+priority: low
+tags: [design, content, spawning]
+created: '2026-11-13T01:57:35Z'
+updated: '2026-11-13T01:57:45Z'
+session: mustard-sunset-1112
+parent: VB-81
+links:
+  relates_to:
+  - VB-69
+notes_next: 2
+```
+
+NetHack's special levels (Oracle, big rooms, branches) give floors identity. Veinborn floors are BSP rooms + corridors from data/balance/dungeon_generation.yaml; assign_special_rooms already exists (core/spawning/spawn_policy.py) and the VB-69 note says ancient_horror as final boss placement is undecided. Proposed: a small set of named floor templates keyed by floor band (floor_bands.py validated config), e.g. vault floor with guarded ore, shrine floor (Shrines task), boss floor with fixed layout. Mostly YAML plus a template generator hook; check docs/DUNGEON_CONFIGURATION.md first. Future-ish: do not start before the identification and pacing tasks settle.
+
+<!-- notes: append-only log; each has a stable #id (see CLI §5) -->
+### Notes
+- [#1 2026-11-13T01:57:45Z session:mustard-sunset-1112] Idea stage; do after identification (VB-82) and pacing (VB-83).
