@@ -1,0 +1,230 @@
+---
+title: "Multiplayer architecture plan: one engine, intents in, snapshots out"
+type: architecture
+status: proposed
+date: 2026-11-13
+beth_topics:
+  - veinborn
+  - multiplayer
+  - architecture
+  - server
+  - protocol
+  - snapshot
+  - turn-scheduler
+---
+
+# Multiplayer architecture plan
+
+**Status:** proposed (2026-11-13, session chartreuse-filter-1113). Nothing in here is built
+yet except what "Today" says. Decisions marked **(Scott)** need a ruling before the phase
+that depends on them.
+
+**Goal:** single-player and multiplayer run the *same* rules code; the server is a thin
+async shell around it; clients send intents and render snapshots; every boundary is a small
+typed interface with tests on both sides.
+
+Related: [DECISIONS.md](DECISIONS.md) (ADR-012 server-authoritative, ADR-016 4-actions-per-round),
+[MULTIPLAYER_DESIGN_2025.md](../design/MULTIPLAYER_DESIGN_2025.md) (the original vision),
+[ARCHITECTURAL_ASSESSMENT.md](ARCHITECTURAL_ASSESSMENT.md), tasks VB-44, VB-78, VB-26, VB-45,
+VB-55, VB-54, VB-35 (`tt show <id>`).
+
+---
+
+## 1. Today (verified in code, 2026-11-13)
+
+### What is already right
+- **Server-authoritative** (ADR-012): actions run on the server; clients only receive state.
+- **Rules are shared at the action level**: the server executes the same `core.actions`
+  classes, and both sides call `core.action_pipeline.process_action_outcome` (VB-24 slice 1).
+- **Floor helpers are shared** (VB-25): `generate_floor_map`, `spawn_all_for_floor`,
+  `clear_floor_entities`, `get_victory_floor`, `apply_hp_regeneration`.
+- **Per-game RNG** (VB-18), session lock around action processing, reconnect handling (VB-22),
+  a co-op leaderboard, and solid server unit tests (236).
+- **Render snapshot** exists (`core/snapshot.py`, VB-78) and the TUI widgets render from it.
+
+### Where the two paths still diverge
+
+| Concern | Single-player | Multiplayer | Consequence |
+|---|---|---|---|
+| Who the players are | `GameState.player` (privileged) | first player *is* `state.player` (id `"player"`), the rest are only in `entities` (`MultiplayerGameState.add_player`) | 41 `state.player`/`get_player()` sites in core assume one player |
+| Turn tick | `TurnProcessor.process_turn`: regen, **wanderer spawns**, AI, cleanup, game over, `turn_ended` event | `GameSession._process_monster_turn`: AI, turn++, regen, cleanup | MP has no wanderers (VB-52), no `turn_ended` |
+| Floor change | `FloorManager.descend_floor` + `floor_changed` event | `MultiplayerGameState.descend_floor` | MP has no `floor_changed`; two victory checks |
+| Game start | `Game.start_new_game` + `game_started`, content handlers installed | `GameSession.start_game` | achievements/quests SP-only (VB-55) |
+| End of run | high score + Legacy Vault inside TurnProcessor/FloorManager | `_record_scores` in the session | end hooks hard-coded on each side |
+| Intent -> action | `ActionFactory.create('move', dx=..)` resolves targets (adjacent ore, item here, ...) with `context.get_player()` as actor (15 sites) | client sends a *built* action: `{"action_type": "MoveAction", "actor_id": ...}`; server deserializes with `ActionRegistry` | client must know entity ids and Python class names; actor is client-supplied (then checked) |
+| State out | `Snapshot` | `get_state_dict`: hand-built dict + `Entity.to_dict()` + `Map.to_dict()` (per-player part now from the snapshot) | two descriptions of one state |
+| Sync | n/a | one `last_state` baseline **per session**, deltas without sequence numbers (VB-26) | a client that joins late or misses one delta is silently wrong forever |
+| Client | `VeinbornApp` owns a `Game` | `VeinbornApp` *still* starts a local `Game`; client listener dies with the first event loop (VB-44 note #2) | the multiplayer TUI cannot play |
+| Disconnected seat | n/a | `process_disconnected_player_action` exists, nothing calls it (VB-45) | dead code |
+
+Stale ADRs: ADR-011 (NATS), ADR-013 (PostgreSQL), ADR-014 (Pydantic) are "Designed" and
+nothing implements them; the server is one process with a hand-rolled `Message` dataclass.
+They should be marked **Deferred** so they stop reading as the plan.
+
+**Pattern:** every MP gap above is the same bug: MP re-implements a step of the SP loop and
+the copy lags. Fixing gaps one by one (VB-4, VB-24, VB-25, VB-55, ...) has worked but never
+ends. The fix is structural: one loop.
+
+---
+
+## 2. Target architecture
+
+```
+                 ┌──────────────────────── src/core (pure, sync, seeded, no I/O) ─────────┐
+ intents ──────► │ Engine.submit(actor_id, Intent) -> Outcome                             │
+                 │   ActionFactory(actor) -> Action.execute -> process_action_outcome     │
+                 │   TurnScheduler.after_action(took_turn) -> maybe world_tick()          │
+                 │   world_tick = TurnProcessor (N players) ; FloorManager (N players)    │
+                 │   events: game_started, turn_ended, floor_changed, run_ended, ...      │
+ snapshots ◄──── │ Engine.snapshot(viewer_id) -> Snapshot                                 │
+                 └────────────────────────────────────────────────────────────────────────┘
+                        ▲                                   ▲
+      src/protocol (pure data, imported by both sides): Envelope{v, seq, type}, Intent,
+      Snapshot.to_dict/from_dict, (later) snapshot delta
+                        ▲                                   ▲
+ ┌── src/server (async shell) ───────────┐    ┌── src/client (frontends) ──────────────────┐
+ │ websocket + auth + lobby              │    │ GameDriver: snapshot(), submit(intent),     │
+ │ GameSession = Engine + seats          │    │             on_update(cb)                   │
+ │   seat: player_id -> entity_id,       │    │  LocalDriver(Engine)   RemoteDriver(ws)     │
+ │         controller human | ai         │    │ Textual widgets render Snapshot only        │
+ │ per-client seq, full snapshot on join │    └─────────────────────────────────────────────┘
+ └───────────────────────────────────────┘
+```
+
+Single-player is "an Engine with a party of one, a per-action scheduler, and a LocalDriver".
+Multiplayer is "the same Engine with N seats, a round scheduler, and RemoteDrivers".
+
+---
+
+## 3. Decisions
+
+### D1. One engine, N players natively
+- `GameState` gains an ordered `player_ids` list; `state.player` stays only as a
+  compatibility property (first player) during migration, then goes away in core rules.
+- `GameContext.get_player()` is replaced at each call site by an explicit actor or
+  `get_alive_players()`. Single-player behaviour is unchanged because the party has one member.
+- `TurnProcessor` and `FloorManager` take the party: regen every living player (already the
+  shared `apply_hp_regeneration`), game over = no living player, placement = N spawn
+  positions (MP's `_reposition_players_at_new_floor` logic moves into core).
+- End-of-run side effects (SP high score, Legacy Vault, MP co-op leaderboard) stop being
+  hard-coded: the engine publishes `player_died` / `run_ended`, and each host subscribes the
+  handlers it wants. Same for content handlers (achievements, quests): installed by the
+  engine, so MP gets them (closes VB-55).
+- `MultiplayerGameState` dissolves: rules go to core, seat bookkeeping goes to `GameSession`.
+
+### D2. Turn scheduling is a policy object
+```python
+class TurnScheduler(Protocol):
+    def after_action(self, actor_id, took_turn: bool) -> bool: ...  # True = run world tick now
+```
+- `EveryActionScheduler` (single-player today): tick after each turn-consuming action.
+- `PartyRoundScheduler(actions_per_round)` (ADR-016): tick after N actions by anyone.
+- The world tick is always `TurnProcessor.process_turn`, so MP gains wanderers and
+  `turn_ended`, and `_process_monster_turn` is deleted.
+- **(Scott)** `actions_per_round` is a fixed 4 today, so a solo MP player gets four moves per
+  monster turn and a pair gets two each. Proposal: default to the number of living seats
+  (1 player = SP pacing), keep 4 as a lobby option.
+
+### D3. Intents on the wire, actions stay server-side
+- Client sends `{"type": "intent", "intent": "move", "args": {"dx": 1, "dy": 0}}`.
+  The server takes the actor from the **session seat**, never from the payload, and calls
+  `ActionFactory.create(intent, actor_id=seat.entity_id, **args)`, the exact call
+  single-player makes.
+- `ActionFactory` gets an explicit `actor_id` parameter (replaces 15 `context.get_player()`).
+- Wins: no actor spoofing by construction; the client needs no target ids (mine/attack/
+  pickup are resolved server-side, as in SP); the wire format is not Python class names;
+  SP and MP share one input path.
+- `Action.to_dict/from_dict` and `ActionRegistry` remain for replay logs and saves, not for
+  client input. The old `action` message is accepted during migration, then removed.
+
+### D4. Snapshot is the only read contract
+- `Engine.snapshot(viewer_id)` builds a `Snapshot` (already in `core/snapshot.py`) for that
+  viewer: the viewer's `PlayerView`, other players as entities, monsters, map, messages.
+- The server sends snapshots; the client decodes with `Snapshot.from_dict` and the same
+  widgets render it. `get_state_dict` and the hand-built player/monster dicts retire.
+- Fog of war, when wanted, is applied here per viewer (`core/perception.FogOfWar` exists and
+  is unused). **(Scott)** whether to turn fog on is a gameplay change, separate from this work.
+- VB-79 (semantic render ids instead of terminal glyphs) slots in here later.
+
+### D5. A shared protocol package, versioned and sequenced
+- `src/protocol/`: `Envelope{v, seq, type, data}`, the message types, the intent schema,
+  snapshot (de)serialization. Server and client import it; the client imports nothing else
+  from core except snapshot types. `server/messages.py` and `server/state_delta.py` move here.
+- Every server->client state message carries `seq`. Each connection tracks its own last
+  acknowledged state.
+- **Full snapshots first, deltas later.** Measured 2026-11-13: a full 4-player state message
+  is ~11 KB (snapshot ~7 KB); at human action rates that is nothing. Sending full snapshots
+  deletes the shared-baseline bug and most of VB-26's complexity. Reintroduce deltas only if
+  a measurement shows a need, and then as snapshot diffs with `base_seq` + resync on gap.
+- Pydantic (ADR-014) is not needed for this; dataclasses with explicit `to_dict/from_dict`
+  and round-trip tests are enough. Revisit if a non-Python client appears.
+
+### D6. Client driver interface
+```python
+class GameDriver(Protocol):
+    def snapshot(self) -> Snapshot: ...
+    async def submit(self, intent: str, **args) -> None: ...
+    def on_update(self, callback) -> None: ...
+```
+- `VeinbornApp` takes a driver, not a `Game`; key bindings call `driver.submit('move', dx=..)`;
+  redraw on update. `LocalDriver` wraps an Engine (today's behaviour); `RemoteDriver` wraps
+  the websocket client.
+- The remote client connects inside Textual's event loop (on mount / `run_async`), so there
+  is one loop and the listener lives (VB-44 note #2).
+- UI-only screens (equipment screen) read the snapshot and submit intents (`equip`,
+  `unequip`), so they work remotely for free.
+
+### D7. Seats, not special cases
+- `GameSession` holds `seats: player_id -> Seat(entity_id, controller, connection)`.
+  `controller` is `human` or `ai`. A disconnected human seat switches to `ai` (or `idle`,
+  **(Scott)**), and the scheduler/AI system drives it like a monster ally. That replaces the
+  orphaned `process_disconnected_player_action` (VB-45) with a state change instead of a
+  second code path.
+
+### D8. Determinism and tests at each boundary
+- Engine: synchronous, seeded, no I/O. N-player tests run without a network.
+- Protocol: round-trip tests for every message and for `Snapshot.to_dict/from_dict`.
+- Server: in-process tests (the existing pattern) plus one test with two `RemoteDriver`s
+  playing a few rounds headless.
+- Replay: log `(seq, player_id, intent, args)` per game. Replaying the log on a fresh seeded
+  engine must reproduce the final snapshot: a golden test for "SP and MP are the same rules".
+
+---
+
+## 4. Migration plan (each step lands green, behaviour-preserving unless stated)
+
+| Phase | Work | Closes / unblocks | Size |
+|---|---|---|---|
+| **0. Unblock** | Fix the client event loop; add `RemoteDriver.submit` for the current `action` message; headless test. | VB-44 (partial) | S |
+| **1. Explicit actor** | `ActionFactory.create(intent, actor_id=None, **kw)`; server accepts `intent` messages and builds actions from the seat. Keep `action` working. | D3 | S-M |
+| **2. One engine** | (a) `player_ids` + N-player regen/game over in `TurnProcessor`; (b) `TurnScheduler` + `PartyRoundScheduler`, server uses `TurnProcessor`; (c) N-player placement in `FloorManager`, delete MP `descend_floor`; (d) `player_died`/`run_ended` events, high score/vault/co-op scores as subscribers, content handlers in MP; (e) extract `Engine` from `Game`, `GameSession` uses it, delete `MultiplayerGameState` rules. | D1, D2, VB-55, VB-54 groundwork | L (5 slices) |
+| **3. Protocol** | `src/protocol/`, envelope with `v`/`seq`, server sends full per-viewer snapshots, client decodes `Snapshot.from_dict`; retire `get_state_dict` and the session baseline. | D4, D5, VB-26, VB-78 | M |
+| **4. Client** | `GameDriver`; `VeinbornApp` on a driver; `LocalDriver` for SP; RemoteDriver renders server snapshots; two-client playtest. | D6, VB-44 | M |
+| **5. Later** | AI seats (VB-45), fog per viewer, deltas if measured, MP persistence/leaderboard viewer (VB-35, VB-54), mark ADR-011/013/014 Deferred. | D7 | as needed |
+
+Phase 0 and 1 are independent of the rest and safe to do now. Phase 2 is the core of the
+plan and the riskiest; its slices each keep the full suite and the bot baselines green
+(`tests/fuzz/README.md`: a single-player bot A/B before and after slice (a)-(c) should be
+identical, since a party of one must behave exactly as before).
+
+**Order rationale:** fixing the engine (2) before the protocol (3) means the protocol
+describes the real model once, instead of being reshaped after. Doing the client (4) last
+means it is built on the final contracts; Phase 0 gives a playable smoke test meanwhile.
+
+---
+
+## 5. Risks and how the plan handles them
+- **Single-player regressions during Phase 2.** Party-of-one equivalence is checked with the
+  seeded bot runs (identical results expected), not just unit tests.
+- **`state.player` blast radius** (41 core sites, ~437 test references to `.player`). Keep
+  the property as "first player" until the last slice; convert core call sites first, tests last.
+- **Scope creep into design-doc features** (tactical mode, pause, NATS, Postgres). Out of
+  scope until two humans can play; the seams above (scheduler, seats, protocol envelope)
+  are where they would plug in later.
+- **Fairness of the round model** is a design choice, not a bug: flagged as **(Scott)** in D2.
+
+## 6. Open questions for Scott
+1. `actions_per_round`: fixed 4, or default to living party size? (D2)
+2. Disconnected seat: AI-controlled, or idle and skipped? (D7)
+3. Fog of war: on for multiplayer (and single-player) once snapshots are per viewer? (D4)
+4. Approve marking ADR-011/013/014 Deferred and adding this plan as ADR-020?

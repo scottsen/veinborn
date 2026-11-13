@@ -73,6 +73,13 @@
 
 ---
 
+### [MULTIPLAYER_ARCHITECTURE_PLAN.md](MULTIPLAYER_ARCHITECTURE_PLAN.md) (20 min)
+   - One engine for single-player and multiplayer: intents in, per-viewer snapshots out, turn scheduler policy, seats, shared protocol package
+   - Status: proposed; phases map to `VB-44`, `VB-78`, `VB-26`, `VB-45`, `VB-55`
+   - **Read before touching `src/server/`, `src/ui/multiplayer_client.py` or the turn/floor loop**
+
+---
+
 ## 📋 Optional but Useful
 
 ### 6. [BASE_CLASS_ARCHITECTURE.md](BASE_CLASS_ARCHITECTURE.md) (45 min)
