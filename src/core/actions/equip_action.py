@@ -29,6 +29,8 @@ logger = logging.getLogger(__name__)
 class EquipAction(Action):
     """Equip or unequip an item."""
 
+    free = True  # never uses up the player's action for the round
+
     actor_id: str
     item_id: str  # Item to equip from inventory
 

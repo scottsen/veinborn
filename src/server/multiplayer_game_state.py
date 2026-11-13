@@ -18,6 +18,7 @@ from core.entity_loader import EntityLoader
 from core.spawning import EntitySpawner
 from core.floor_manager import generate_floor_map, get_victory_floor
 from core.turn_processor import apply_hp_regeneration
+from core.turn_scheduler import RoundScheduler
 
 logger = logging.getLogger(__name__)
 
@@ -69,8 +70,7 @@ class MultiplayerGameState:
 
         # Multiplayer state
         self.is_multiplayer = True
-        self.actions_this_round = 0
-        self.round_number = 0
+        self.scheduler = RoundScheduler()
 
         # Spawn positions (calculated after dungeon generation)
         self.spawn_positions: List[tuple] = []
@@ -346,6 +346,8 @@ class MultiplayerGameState:
             "current_floor": self.game_state.current_floor,
             "round_number": self.round_number,
             "actions_this_round": self.actions_this_round,
+            "actions_per_round": self.actions_this_round + len(self.scheduler.owed),
+            "waiting_on": self.waiting_on(),
             "game_over": self.game_state.game_over,
             "victory": self.game_state.victory,
             "recent_messages": self.game_state.get_recent_messages(20),
@@ -367,20 +369,28 @@ class MultiplayerGameState:
         if self.game_state:
             self.game_state.add_message(message)
 
-    def increment_round(self) -> None:
-        """Increment the round counter and reset actions."""
-        self.round_number += 1
-        self.actions_this_round = 0
-        logger.debug(f"Round {self.round_number} started")
+    @property
+    def round_number(self) -> int:
+        return self.scheduler.round_number
 
-    def increment_actions(self) -> int:
-        """Increment action counter and return current count.
+    @property
+    def actions_this_round(self) -> int:
+        """Seats that have taken their action this round."""
+        return len(self.scheduler.acted)
 
-        Returns:
-            Current action count for this round
-        """
-        self.actions_this_round += 1
-        return self.actions_this_round
+    def waiting_on(self) -> List[str]:
+        """player_ids the round is still waiting for."""
+        return [
+            self.entity_to_player[eid]
+            for eid in self.scheduler.waiting_on()
+            if eid in self.entity_to_player
+        ]
+
+    def living_entity_ids(self) -> List[str]:
+        return [
+            slot.entity_id for slot in self.player_slots.values()
+            if slot.player_entity and slot.player_entity.is_alive
+        ]
 
     def update_player_alive_status(self) -> List[PlayerSlot]:
         """Update alive status for all players based on their entities.
@@ -400,7 +410,7 @@ class MultiplayerGameState:
                     newly_dead.append(slot)
 
         # Check if all players are dead
-        if self.game_state and all(
+        if self.game_state and not self.game_state.game_over and all(
             not slot.is_alive for slot in self.player_slots.values()
         ):
             self.game_state.game_over = True

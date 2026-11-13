@@ -22,14 +22,12 @@ class GameSessionManager:
         self,
         game_name: str,
         max_players: int = 4,
-        actions_per_round: int = 4,
     ) -> GameSession:
         """Create a new game session.
 
         Args:
             game_name: Name of the game
             max_players: Maximum number of players
-            actions_per_round: Number of actions before monster turn
 
         Returns:
             Created game session
@@ -40,7 +38,6 @@ class GameSessionManager:
                 game_id=game_id,
                 game_name=game_name,
                 max_players=max_players,
-                actions_per_round=actions_per_round,
             )
             self._games[game_id] = game
             return game

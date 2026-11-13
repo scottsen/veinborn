@@ -60,7 +60,6 @@ class ServerConfig:
     idle_timeout: int = 300  # 5 minutes
 
     # Game settings
-    actions_per_round: int = 4
     min_players: int = 1
     max_players: int = 4
 

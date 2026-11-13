@@ -57,7 +57,8 @@ class TurnProcessor:
     """
 
     def __init__(self, context: 'GameContext', hp_regen_interval: int = 10, hp_regen_amount: int = 1, spawner=None,
-                 on_run_end: Optional[Callable[['GameState', bool], None]] = None):
+                 on_run_end: Optional[Callable[['GameState', bool], None]] = None,
+                 defeat_message: str = "You died! Press 'r' to restart."):
         """
         Initialize turn processor.
 
@@ -68,6 +69,7 @@ class TurnProcessor:
             spawner: EntitySpawner for ongoing spawns (VB-52); None disables them
             on_run_end: Called as (game_state, victory) when the run is lost; defaults
                 to the single-player score/vault records
+            defeat_message: Logged to the message log when every player is dead
         """
         self.context = context
         self.game_state = context.game_state
@@ -75,6 +77,7 @@ class TurnProcessor:
         self.hp_regen_amount = hp_regen_amount
         self.spawner = spawner
         self.on_run_end = on_run_end or record_single_player_run_end
+        self.defeat_message = defeat_message
         logger.debug(f"TurnProcessor initialized (HP regen: {hp_regen_amount} per {hp_regen_interval} turns)")
 
     def process_turn(self) -> None:
@@ -199,7 +202,7 @@ class TurnProcessor:
         if not self.context.get_alive_players():
             self.on_run_end(self.game_state, False)
 
-            self.game_state.add_message("You died! Press 'r' to restart.")
+            self.game_state.add_message(self.defeat_message)
             self.game_state.game_over = True
 
             logger.info(

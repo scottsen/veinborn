@@ -14,6 +14,8 @@ class _FreeAction:
     Action.__subclasses__() and would flag a test-only stub.
     """
 
+    free = True
+
     def __init__(self, actor_id):
         self.actor_id = actor_id
 
@@ -25,7 +27,7 @@ class _FreeAction:
 
 
 async def _started_session():
-    game = GameSession("game1", "Test Game", max_players=4, actions_per_round=4)
+    game = GameSession("game1", "Test Game", max_players=4)
     await game.add_player("player1", "Alice", "warrior")
     await game.start_game(seed=42)
     return game
@@ -56,35 +58,26 @@ async def test_action_events_are_published_to_session_event_bus():
 
 
 @pytest.mark.asyncio
-async def test_turn_taking_action_counts_toward_round_quota():
+async def test_turn_taking_action_completes_the_round_for_a_party_of_one():
     game = await _started_session()
 
     await game.process_action("player1", WaitAction(actor_id="player"))
 
-    assert game.mp_game_state.actions_this_round == 1
+    assert game.mp_game_state.round_number == 1
+    assert game.mp_game_state.actions_this_round == 0
+    assert game.mp_game_state.game_state.turn_count == 1  # the world ticked once
 
 
 @pytest.mark.asyncio
-async def test_free_action_does_not_consume_round_quota():
+async def test_free_action_does_not_use_up_the_players_action():
     game = await _started_session()
 
     success, error = await game.process_action("player1", _FreeAction(actor_id="player"))
 
     assert success, error
     assert game.mp_game_state.actions_this_round == 0
-
-
-@pytest.mark.asyncio
-async def test_disconnected_player_wait_goes_through_pipeline():
-    game = await _started_session()
-    await game.disconnect_player("player1")
-    before = game.mp_game_state.game_state.message_count
-
-    success, error = await game.process_disconnected_player_action("player1")
-
-    assert success, error
-    assert game.mp_game_state.game_state.message_count == before + 1
-    assert game.mp_game_state.actions_this_round == 1
+    assert game.mp_game_state.round_number == 0
+    assert game.mp_game_state.game_state.turn_count == 0
 
 
 @pytest.mark.asyncio

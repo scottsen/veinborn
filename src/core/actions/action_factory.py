@@ -30,6 +30,7 @@ from .pickup_action import PickupAction
 from .ability_action import AbilityAction
 from .use_item_action import UseItemAction
 from .drop_action import DropAction
+from .wait_action import WaitAction
 from ..extensions import abilities
 
 logger = logging.getLogger(__name__)
@@ -162,6 +163,12 @@ class ActionFactory:
             name='move',
             create_fn=self._create_move_action,
             description='Move in a direction'
+        )
+
+        self._handlers['wait'] = ActionHandler(
+            name='wait',
+            create_fn=lambda context, kwargs: WaitAction(self._actor(context, kwargs).entity_id),
+            description='Do nothing this turn (rest)'
         )
 
         self._handlers['survey'] = ActionHandler(

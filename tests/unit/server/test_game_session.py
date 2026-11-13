@@ -33,13 +33,11 @@ def test_game_session_creation():
         game_id="game1",
         game_name="Test Game",
         max_players=4,
-        actions_per_round=4
     )
 
     assert game.game_id == "game1"
     assert game.game_name == "Test Game"
     assert game.max_players == 4
-    assert game.actions_per_round == 4
     assert len(game.players) == 0
     assert not game.is_started
     assert not game.is_finished
@@ -50,7 +48,6 @@ def test_game_session_default_values():
     game = GameSession("game1", "Test")
 
     assert game.max_players == 4
-    assert game.actions_per_round == 4
 
 
 # ============================================================================
@@ -332,7 +329,7 @@ async def test_all_players_ready_empty_game():
 
 def test_get_state_dict_before_start():
     """Test getting state dict before game starts."""
-    game = GameSession("game1", "Test Game", max_players=4, actions_per_round=4)
+    game = GameSession("game1", "Test Game", max_players=4)
 
     state = game.get_state_dict()
 
@@ -340,7 +337,6 @@ def test_get_state_dict_before_start():
     assert state["game_name"] == "Test Game"
     assert not state["is_started"]
     assert not state["is_finished"]
-    assert state["actions_per_round"] == 4
     assert "players" in state
 
 
@@ -505,7 +501,7 @@ async def test_manager_create_game():
     """Test manager creates game."""
     manager = GameSessionManager()
 
-    game = await manager.create_game("Test Game", max_players=4, actions_per_round=4)
+    game = await manager.create_game("Test Game", max_players=4)
 
     assert game.game_name == "Test Game"
     assert game.max_players == 4

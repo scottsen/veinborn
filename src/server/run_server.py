@@ -36,7 +36,6 @@ async def async_main():
     logger.info(f"Host: {config.host}")
     logger.info(f"Port: {config.port}")
     logger.info(f"Max connections: {config.max_connections}")
-    logger.info(f"Actions per round: {config.actions_per_round}")
     logger.info("=" * 60)
 
     server = VeinbornServer(config.host, config.port)

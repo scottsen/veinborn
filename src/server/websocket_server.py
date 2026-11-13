@@ -270,7 +270,6 @@ class VeinbornServer:
         game = await self.game_manager.create_game(
             game_name=game_name,
             max_players=max_players,
-            actions_per_round=config.actions_per_round,
         )
 
         # Auto-join creator with their selected class

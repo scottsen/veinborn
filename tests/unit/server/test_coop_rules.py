@@ -8,7 +8,7 @@ from server.game_session import GameSession
 
 
 async def _started_session(names=("Alice", "Bob")):
-    game = GameSession("game1", "Test Game", max_players=4, actions_per_round=4)
+    game = GameSession("game1", "Test Game", max_players=4)
     for i, name in enumerate(names):
         await game.add_player(f"player{i}", name, "warrior")
     await game.start_game(seed=42)
@@ -49,7 +49,7 @@ async def test_game_ends_when_every_player_is_dead():
     await _wait(game, "player1")
     _kill(game, "player1")
 
-    await game._advance_round_if_complete()
+    game._finish_action('player', False)
 
     assert game.mp_game_state.game_state.game_over
     assert game.is_finished
@@ -73,8 +73,8 @@ async def test_survivors_are_scored_when_the_game_ends():
     await _wait(game, "player1")
     _kill(game, "player1")
 
-    await game._advance_round_if_complete()
-    await game._advance_round_if_complete()
+    game._finish_action('player', False)
+    game._finish_action('player', False)
 
     assert sorted(_scores()) == ["Alice", "Bob"]
 
@@ -88,7 +88,7 @@ async def test_victory_scores_survivors_with_victory_bonus():
     state.victory = True
     state.game_over = True
 
-    await game._advance_round_if_complete()
+    game._finish_action('player', False)
 
     by_name = {s.player_name: s for s in _scores(names_only=False)}
     assert by_name["Bob"].victory and not by_name["Alice"].victory
@@ -137,10 +137,10 @@ async def test_regen_heals_every_living_player_not_the_dead():
     bob.hp = bob.max_hp - 5
     _kill(game, "player1")
     mp.update_player_alive_status()
-    game.ai_system = None  # keep monsters from hitting anyone mid-test
+    game.game_context.systems.pop('ai')  # keep monsters from hitting anyone mid-test
     mp.game_state.turn_count = 9  # next monster turn lands on the regen interval (10)
 
-    await game._process_monster_turn()
+    game._world_tick()
 
     assert alice.hp == alice.max_hp - 5 + 1
     assert bob.hp == 0 and not bob.is_alive
@@ -151,10 +151,10 @@ async def test_regen_only_on_the_configured_interval():
     game = await _started_session()
     alice = game.mp_game_state.player_slots["player0"].player_entity
     alice.hp = alice.max_hp - 5
-    game.ai_system = None
+    game.game_context.systems.pop('ai')
     game.mp_game_state.game_state.turn_count = 0  # -> 1, not a multiple of 10
 
-    await game._process_monster_turn()
+    game._world_tick()
 
     assert alice.hp == alice.max_hp - 5
 
@@ -169,7 +169,7 @@ async def test_each_player_is_scored_on_their_own_run_stats():
     _kill(game, "player0")
     await _wait(game, "player1")
     _kill(game, "player1")
-    await game._advance_round_if_complete()
+    game._finish_action('player', False)
 
     by_name = {s.player_name: s for s in _scores(names_only=False)}
     assert by_name["Alice"].monsters_killed == 3

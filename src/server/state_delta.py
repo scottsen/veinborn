@@ -13,7 +13,8 @@ logger = logging.getLogger(__name__)
 class StateDelta:
     """Computes and applies state deltas for efficient updates."""
 
-    _COUNTER_KEYS = ("turn_count", "message_count", "round_number", "actions_this_round")
+    _COUNTER_KEYS = ("turn_count", "message_count", "round_number", "actions_this_round",
+                     "actions_per_round", "waiting_on")
     _REPLACED_KEYS = ("current_floor", "map", "game_over", "victory")
     # State a delta has no way to express (lobby fields, entity ids, ...): if any of
     # these change, resend everything instead of silently dropping the change.
@@ -50,6 +51,8 @@ class StateDelta:
             "turn_count": new_state.get("turn_count", 0),
             "round_number": new_state.get("round_number", 0),
             "actions_this_round": new_state.get("actions_this_round", 0),
+            "actions_per_round": new_state.get("actions_per_round", 0),
+            "waiting_on": new_state.get("waiting_on", []),
             "message_count": new_state.get("message_count", 0),
         }
 

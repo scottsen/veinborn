@@ -21,6 +21,8 @@ logger = logging.getLogger(__name__)
 class UnequipAction(Action):
     """Remove the item worn in one slot ('weapon' or 'armor')."""
 
+    free = True  # never uses up the player's action for the round
+
     actor_id: str
     slot: str
 

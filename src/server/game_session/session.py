@@ -7,12 +7,12 @@ from typing import Dict, List, Optional
 
 from core.action_pipeline import process_action_outcome
 from core.actions.action_factory import ActionFactory
-from core.actions.wait_action import WaitAction
 from core.base.action import Action
 from core.base.game_context import GameContext
 from core.events import EventBus
 from core.highscore import HighScoreEntry, HighScoreManager
 from core.systems.ai_system import AISystem
+from core.turn_processor import TurnProcessor
 from server.multiplayer_game_state import MultiplayerGameState
 from server.state_delta import StateDelta
 
@@ -29,13 +29,11 @@ class GameSession:
         game_id: str,
         game_name: str,
         max_players: int = 4,
-        actions_per_round: int = 4,
         high_scores: Optional[HighScoreManager] = None,
     ):
         self.game_id = game_id
         self.game_name = game_name
         self.max_players = max_players
-        self.actions_per_round = actions_per_round
 
         # Player management
         self.players: Dict[str, PlayerInfo] = {}
@@ -52,8 +50,8 @@ class GameSession:
         self.ai_system: Optional[AISystem] = None
         self.event_bus = EventBus()
 
-        # Turn management
-        self.actions_this_round = 0
+        # Turn management (rounds live in mp_game_state.scheduler)
+        self.turn_processor: Optional[TurnProcessor] = None
         self.pending_actions: asyncio.Queue = asyncio.Queue()
 
         # State tracking for delta compression
@@ -306,7 +304,19 @@ class GameSession:
             if self.mp_game_state.game_state:
                 self.game_context = GameContext(self.mp_game_state.game_state)
                 self.ai_system = AISystem(self.game_context, event_bus=self.event_bus)
-                logger.info("Initialized GameContext and AISystem for multiplayer game")
+                self.game_context.register_system('ai', self.ai_system)
+                regen = self.mp_game_state.config.game_constants['player']['health_regeneration']
+                self.turn_processor = TurnProcessor(
+                    self.game_context,
+                    regen['interval_turns'],
+                    regen['amount'],
+                    spawner=self.mp_game_state.spawner,
+                    # Co-op scores are recorded per player by _record_scores, not as one SP run
+                    on_run_end=lambda game_state, victory: None,
+                    defeat_message="All players have died. Game over!",
+                )
+                self.mp_game_state.scheduler.start(self.mp_game_state.living_entity_ids())
+                logger.info("Initialized GameContext, AISystem and TurnProcessor for multiplayer game")
             else:
                 logger.error("Failed to initialize game state for multiplayer game")
 
@@ -332,23 +342,34 @@ class GameSession:
             event_bus=self.event_bus,
         )
 
-    async def _advance_round_if_complete(self) -> None:
-        """Run the monster turn and roll the round counter once the action quota is hit.
+    def _finish_action(self, entity_id: str, took_turn: bool) -> None:
+        """Book a successful action with the round scheduler and tick the world if due.
 
-        Also updates alive status and propagates game-over into session state
-        so the session stops accepting actions and can be cleaned up.
+        The scheduler decides when the round is complete (every living player has
+        taken a turn-consuming action); the tick is the same TurnProcessor
+        single-player uses, so multiplayer gets wanderers and regen from one place.
+        Also updates alive status and propagates game-over into session state so
+        the session stops accepting actions and can be cleaned up.
         """
-        if self.mp_game_state.actions_this_round >= self.actions_per_round:
-            await self._process_monster_turn()
-            self.mp_game_state.increment_round()
+        mp = self.mp_game_state
+        if mp.scheduler.after_action(entity_id, took_turn, mp.living_entity_ids()):
+            self._world_tick()
+            mp.scheduler.next_round(mp.living_entity_ids())
 
-        newly_dead = self.mp_game_state.update_player_alive_status()
+        newly_dead = mp.update_player_alive_status()
         self._record_scores(newly_dead)
 
-        if self.mp_game_state.game_state.game_over:
+        if mp.game_state.game_over:
             self.is_finished = True
             # Survivors are scored when the run ends (victory or wipe)
-            self._record_scores(self.mp_game_state.player_slots.values())
+            self._record_scores(mp.player_slots.values())
+
+    def _world_tick(self) -> None:
+        """Monsters act, time passes. Errors are logged so a bad tick cannot wedge the session."""
+        try:
+            self.turn_processor.process_turn()
+        except Exception as e:
+            logger.error(f"Error processing world turn: {e}", exc_info=True)
 
     def _record_scores(self, slots) -> None:
         """Record each given player's run on the multiplayer leaderboard, once.
@@ -445,6 +466,14 @@ class GameSession:
             if player_info.entity_id and action.actor_id != player_info.entity_id:
                 return False, "Action actor does not match player entity"
 
+            # One turn-consuming action per living player per round
+            if not action.free and not self.mp_game_state.scheduler.can_act(action.actor_id):
+                waiting = [
+                    self.players[pid].player_name
+                    for pid in self.mp_game_state.waiting_on() if pid in self.players
+                ]
+                return False, "Waiting for the party" + (f": {', '.join(waiting)}" if waiting else "")
+
             # Execute action against a GameContext (not raw GameState)
             try:
                 context = GameContext(self.mp_game_state.game_state)
@@ -452,74 +481,14 @@ class GameSession:
                 if not outcome.is_success:
                     return False, "; ".join(outcome.messages) or "Action failed"
 
-                if self._apply_action_outcome(outcome, action.get_action_type()):
-                    self.mp_game_state.increment_actions()
-                await self._advance_round_if_complete()
+                took_turn = self._apply_action_outcome(outcome, action.get_action_type())
+                self._finish_action(action.actor_id, took_turn)
 
                 return True, None
 
             except Exception as e:
                 logger.error(f"Action execution error: {e}", exc_info=True)
                 return False, f"Action execution failed: {str(e)}"
-
-    async def process_disconnected_player_action(
-        self, player_id: str
-    ) -> tuple[bool, Optional[str]]:
-        """Process an AI-controlled action for a disconnected player.
-
-        This method generates a defensive "wait" action for disconnected players.
-
-        Args:
-            player_id: Disconnected player ID
-
-        Returns:
-            Tuple of (success, error_message)
-        """
-        async with self._lock:
-            if not self.is_started or self.is_finished:
-                return False, "Game is not active"
-
-            if player_id not in self.players:
-                return False, "Player not in game"
-
-            player_info = self.players[player_id]
-
-            if not player_info.is_disconnected():
-                return False, "Player is not disconnected"
-
-            if not self.mp_game_state or not self.mp_game_state.game_state:
-                return False, "Game state not initialized"
-
-            try:
-                wait_action = WaitAction(actor_id=player_info.entity_id)
-                context = GameContext(self.mp_game_state.game_state)
-                outcome = wait_action.execute(context)
-
-                if not outcome.is_success:
-                    message = "; ".join(outcome.messages) or "AI wait action failed"
-                    logger.warning(
-                        f"AI action for disconnected player {player_info.player_name} "
-                        f"failed: {message}"
-                    )
-                    return False, message
-
-                if self._apply_action_outcome(outcome, "wait"):
-                    self.mp_game_state.increment_actions()
-
-                logger.debug(
-                    f"AI executed wait action for disconnected player {player_info.player_name}"
-                )
-
-                await self._advance_round_if_complete()
-
-                return True, None
-
-            except Exception as e:
-                logger.error(
-                    f"Error processing AI action for disconnected player: {e}",
-                    exc_info=True
-                )
-                return False, f"AI action failed: {str(e)}"
 
     def get_disconnected_players(self) -> List[str]:
         """Get list of disconnected player IDs.
@@ -532,30 +501,6 @@ class GameSession:
             for player_id, player_info in self.players.items()
             if player_info.is_disconnected() and player_info.is_alive
         ]
-
-    async def _process_monster_turn(self) -> None:
-        """Process all monster actions for the current round."""
-        if not self.mp_game_state or not self.mp_game_state.game_state:
-            return
-
-        # Run AI system to process monster turns
-        if self.ai_system:
-            try:
-                self.ai_system.update()
-                logger.debug("Processed monster turns via AI system")
-            except Exception as e:
-                logger.error(f"Error processing monster turns: {e}", exc_info=True)
-        else:
-            logger.warning("AI system not initialized, skipping monster turn")
-
-        # Increment turn count
-        self.mp_game_state.game_state.turn_count += 1
-
-        # Natural HP regeneration for every living player
-        self.mp_game_state.apply_hp_regeneration()
-
-        # Clean up dead entities
-        self.mp_game_state.game_state.cleanup_dead_entities()
 
     def get_state_dict(self, use_delta: Optional[bool] = None) -> Dict:
         """Get the current game state as a dictionary.
@@ -571,7 +516,6 @@ class GameSession:
             "game_name": self.game_name,
             "is_started": self.is_started,
             "is_finished": self.is_finished,
-            "actions_per_round": self.actions_per_round,
         }
 
         if self.mp_game_state:

@@ -80,6 +80,9 @@ class Action(ABC):
     - Return structured outcomes (event-ready pattern)
     """
 
+    #: Free actions (equip, unequip) never use up a player's action for the round.
+    free = False
+
     def __init__(self, actor_id: str):
         """
         Args:

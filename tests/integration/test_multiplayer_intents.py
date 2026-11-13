@@ -73,3 +73,43 @@ async def test_unknown_or_malformed_intent_gets_an_error_not_a_crash():
             if c and getattr(c, "ws", None):
                 await c.ws.close()
         await server.stop()
+
+
+@pytest.mark.asyncio
+async def test_round_waits_for_the_whole_party_and_refuses_a_second_action():
+    server = VeinbornServer("127.0.0.1", 0)
+    await server.start()
+    port = server.server.sockets[0].getsockname()[1]
+    alice = bob = None
+    try:
+        alice, bob = await _start_two(server, port)
+        game = await server.game_manager.get_game(alice.game_id)
+        mp = game.mp_game_state
+        assert mp.round_number == 0
+
+        await alice.send(Message.intent("wait"))
+        await _until(lambda: mp.actions_this_round == 1)
+        assert mp.round_number == 0  # Bob still owes his action
+        assert mp.waiting_on() == [bob.player_id]
+
+        # Alice tries to act again before Bob has: refused, not queued
+        await alice.send(Message.intent("wait"))
+        await _until(lambda: any("Waiting for the party" in e for e in alice.errors))
+        assert any("Bob" in e for e in alice.errors)
+        assert mp.actions_this_round == 1
+
+        # Bob acts: monsters move once, the round rolls over, both are owed again
+        turn_before = mp.game_state.turn_count
+        await bob.send(Message.intent("wait"))
+        await _until(lambda: mp.round_number == 1)
+        assert mp.game_state.turn_count == turn_before + 1
+        assert sorted(mp.waiting_on()) == sorted([alice.player_id, bob.player_id])
+
+        # The clients see who the round is waiting on
+        await _until(lambda: alice.state and alice.state.get("round_number") == 1)
+        assert sorted(alice.state["waiting_on"]) == sorted([alice.player_id, bob.player_id])
+    finally:
+        for c in (alice, bob):
+            if c and getattr(c, "ws", None):
+                await c.ws.close()
+        await server.stop()
