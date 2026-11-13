@@ -818,20 +818,21 @@ status: backlog
 priority: low
 tags: [events, singleplayer]
 created: '2026-09-23T17:19:57Z'
-updated: '2026-09-23T17:19:57Z'
+updated: '2026-11-13T22:32:06Z'
 session: crimson-jewel-0923
 links:
   references:
   - VB-24
   - VB-33
   - src/core/game.py
+notes_next: 2
 ```
 
 Game.handle_player_action special-cases 'wait' (calls _process_turn directly), so SP wait emits no actor_waited event or 'X waits.' message unlike MP's WaitAction path. Routing it through WaitAction would add a message per rest keypress - decide whether that log spam is wanted.
 
 <!-- notes: append-only log; each has a stable #id (see CLI §5) -->
 ### Notes
-_(no notes yet)_
+- [#1 2026-11-13T22:32:06Z session:letorera-1113] 'wait' is now a registered ActionFactory action (VB-90); Game.handle_player_action still special-cases it, so SP wait is unchanged.
 
 
 ## TASK-VB-37 · Damage formula never evaluates: 'max' passed as a name, simpleeval needs functions=
@@ -1028,12 +1029,12 @@ status: backlog
 priority: low
 tags: [multiplayer]
 created: '2026-09-23T17:43:16Z'
-updated: '2026-11-13T21:28:09Z'
+updated: '2026-11-13T22:32:06Z'
 session: crimson-jewel-0923
 links:
   references:
   - src/server/game_session/session.py
-notes_next: 4
+notes_next: 5
 ```
 
 GameSession.process_disconnected_player_action (a defensive WaitAction) is called from nowhere in src, yet process_action tells rejected clients 'AI is controlling this character'. In a headless playtest a dropped player's character just stood still and died. Either wire it into a timer/round hook (what should the AI do beyond wait? retreat to stairs?) or delete it and fix the message. Product call.
@@ -1043,6 +1044,7 @@ GameSession.process_disconnected_player_action (a defensive WaitAction) is calle
 - [#1 2026-11-13T21:10:10Z session:chartreuse-filter-1113] Plan: docs/architecture/MULTIPLAYER_ARCHITECTURE_PLAN.md places this task in a phase (see section 4); read it before starting.
 - [#2 2026-11-13T21:14:22Z session:chartreuse-filter-1113] Scott 2026-11-13: no AI control of absent players. Replaced by a grace -> dropped -> rejoin seat lifecycle (plan D7, docs/architecture/MULTIPLAYER_ARCHITECTURE_PLAN.md). Close as won't-do when that lands; delete process_disconnected_player_action then.
 - [#3 2026-11-13T21:28:09Z session:letorera-1113] Closed by decision: AI control rejected, replaced by drop/rejoin (plan D7, ADR-020).
+- [#4 2026-11-13T22:32:06Z session:letorera-1113] Dead path process_disconnected_player_action deleted in VB-90; remaining AI-control idea is rejected (plan D7).
 
 
 ## TASK-VB-46 · Spawner stacks ore veins, forges and (rarely) monsters on one tile
@@ -2180,19 +2182,23 @@ notes_next: 3
 ## TASK-VB-90 · MP plan 2b: RoundScheduler (one action per living seat, SP = one seat); server ticks via TurnProcessor; delete _process_monster_turn and actions_per_round
 
 ```yaml
-status: backlog
+status: done
 priority: high
 effort: 4h
 tags: [multiplayer, architecture]
 created: '2026-11-13T22:09:59Z'
-updated: '2026-11-13T22:10:07Z'
+updated: '2026-11-13T22:32:06Z'
 session: letorera-1113
 depends_on: [VB-89]
+links:
+  commits:
+  - 1a79ded754e87b5d3e8a8437c1461f60c0c08b15
+notes_next: 2
 ```
 
 <!-- notes: append-only log; each has a stable #id (see CLI §5) -->
 ### Notes
-_(no notes yet)_
+- [#1 2026-11-13T22:32:06Z session:letorera-1113] core/turn_scheduler.py RoundScheduler on MultiplayerGameState; session._finish_action ticks via TurnProcessor (MP gains wanderers, regen from one place); Action.free (equip/unequip); 'wait' registered in ActionFactory; second action refused with 'Waiting for the party: <names>'; state carries waiting_on + actions_this_round/actions_per_round (acted / living seats). Removed actions_per_round config/arg, _process_monster_turn, process_disconnected_player_action (VB-45 dead path). Gate: suite 1476 passed, SP A/B identical 40/40 on both sets, real-socket round test.
 
 
 ## TASK-VB-91 · MP plan 2c: FloorManager.descend_floor places/keeps the whole party; delete MultiplayerGameState descend/spawn/clear; MP gets floor_changed
@@ -2203,14 +2209,15 @@ priority: high
 effort: 3h
 tags: [multiplayer, architecture]
 created: '2026-11-13T22:10:01Z'
-updated: '2026-11-13T22:10:07Z'
+updated: '2026-11-13T22:32:06Z'
 session: letorera-1113
 depends_on: [VB-90]
+notes_next: 2
 ```
 
 <!-- notes: append-only log; each has a stable #id (see CLI §5) -->
 ### Notes
-_(no notes yet)_
+- [#1 2026-11-13T22:32:06Z session:letorera-1113] VB-90 done: MP world tick is TurnProcessor.process_turn, so FloorManager is the next copy to remove.
 
 
 ## TASK-VB-92 · MP plan 2d: engine publishes player_died/run_ended/game_started; GameSession subscribes co-op scoring; content handlers installed for MP (closes VB-55)
