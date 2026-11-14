@@ -2,7 +2,7 @@
 project: veinborn
 schema_version: '1.0'
 id_prefix: VB
-next_id: 106
+next_id: 107
 archival: inline
 areas: {}
 ---
@@ -730,9 +730,9 @@ priority: low
 effort: small
 tags: [cleanup, quality]
 created: '2026-09-23T05:26:58Z'
-updated: '2026-11-14T02:32:53Z'
+updated: '2026-11-14T04:25:20Z'
 session: earthly-god-0922
-notes_next: 4
+notes_next: 5
 ```
 
 Static-analysis heuristic flagged 33 uncalled functions; most (action_factory.py 8 _create_* methods, ai_system.py 5 _behavior_* methods) are almost certainly dict/registry-dispatched and not actually dead -- confirm via reveal 'calls://src?target=_create_move_action&depth=2' before touching. Genuinely worth investigating: telemetry.py:311/349 (log_combat, log_player_death -- hooks that may just not be wired up yet) and perception.py:205-268 (four get_visible_*/get_nearby_ore/get_entities_at_distance helpers, all uncalled -- possibly superseded by update_visibility's internal logic, or dead API surface left from a refactor). run_server.py flagged as 'not imported anywhere' is a false positive (CLI entry point) -- ignore.
@@ -742,6 +742,7 @@ Static-analysis heuristic flagged 33 uncalled functions; most (action_factory.py
 - [#1 2026-09-23T16:54:07Z session:sultry-drizzle-0923] Investigated 2026-09-23, nothing deleted -- each remaining item needs a product call. (1) src/core/perception.py: FogOfWar/TileVisibility/PerceptionSystem have NO production caller (only referenced inside the file); tests/unit/test_perception.py (786 lines) tests it, and docs/development/BOT_* describe it, but the fuzz bots use their own tests/fuzz/services/perception_service.py. So get_visible_monsters/get_nearby_ore/get_entities_at_distance are dead as part of a wholly unwired module: decide wire-in (fog of war / bot API) vs delete module+tests. (2) telemetry.py GameTelemetry.log_combat/log_player_death: never called; Game builds game_telemetry but nothing writes to it. StatsTracker IS wired via EventBus subscribers, but see VB-33 -- most action events fail to publish, so even that is mostly silent. Decide alongside VB-33. (3) Action-factory _create_* and ai_system _behavior_* are registry-dispatched, not dead; run_server.py is a CLI entry point. Not dead.
 - [#2 2026-11-12T20:14:10Z session:warming-squall-1112] Design question surfaced 2026-11-12 (VB-68): players have no fog of war (TUI draws every monster), while monsters since ADR-019 need LOS + memory. FogOfWar/PerceptionSystem here are the unused implementation; deciding whether players get FOV is Scott's call before deleting them.
 - [#3 2026-11-14T02:32:53Z session:warming-sunshine-1113] Item (1) is decided by plan ruling 3 (2026-11-13): fog of war is on by default with a dev reveal switch, so perception.py is the candidate implementation for VB-105, not dead code to delete. Item (2) telemetry stays open.
+- [#4 2026-11-14T04:25:20Z session:acidic-lens-1113] VB-105 built fog in core/fog.py, not on perception.FogOfWar (per-instance arrays, no per-viewer memory). perception.FogOfWar is now dead code: delete or reuse.
 
 
 ## TASK-VB-33 · Action events mostly fail to publish to EventBus: flat dicts lack 'data', some types not in GameEventType
@@ -2534,19 +2535,39 @@ _(no notes yet)_
 ## TASK-VB-105 · MP plan phase 5 / D4: fog of war per viewer (explored memory per viewer per floor, filtered in build_snapshot), on by default with a dev reveal switch
 
 ```yaml
-status: backlog
+status: done
 priority: medium
 effort: 1d
 tags: [multiplayer, architecture, perception]
 created: '2026-11-14T02:32:42Z'
-updated: '2026-11-14T02:32:52Z'
+updated: '2026-11-14T04:25:19Z'
 session: warming-sunshine-1113
 links:
   relates_to:
   - VB-32
-notes_next: 2
+  commits:
+  - d3bcff4f8807a081cb14ac5f2b2f734fa519e347
+notes_next: 3
 ```
 
 <!-- notes: append-only log; each has a stable #id (see CLI §5) -->
 ### Notes
 - [#1 2026-11-14T02:32:52Z session:warming-sunshine-1113] Context: plan ruling 3 (fog on by default, dev reveal switch); Tile.explored is shared, so per-viewer memory is needed; core/perception.py FogOfWar/PerceptionSystem is the unwired candidate (VB-32 item 1). build_snapshot(state, viewer) is already per viewer (VB-97). Bots: VB-68 note #2 (bots see the whole floor like players do today).
+- [#2 2026-11-14T04:25:19Z session:acidic-lens-1113] core/fog.py; explored memory per viewer on Map.explored_by (saved); build_snapshot hides unseen tiles/out-of-sight monsters+items; --reveal-map (SP + create_game); protocol 4; 1547 tests pass; bots don't use snapshots
+
+
+## TASK-VB-106 · Fog follow-ups: allies share no vision; remembered ore veins can be stale; vision radius 9 is a constant (core/fog.py), no per-class or light source
+
+```yaml
+status: backlog
+priority: low
+effort: 2h
+tags: [multiplayer, perception]
+created: '2026-11-14T04:25:21Z'
+updated: '2026-11-14T04:25:21Z'
+session: acidic-lens-1113
+```
+
+<!-- notes: append-only log; each has a stable #id (see CLI §5) -->
+### Notes
+_(no notes yet)_
