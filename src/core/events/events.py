@@ -80,6 +80,8 @@ class GameEventType(Enum):
     # Game events
     GAME_STARTED = "game_started"
     GAME_OVER = "game_over"
+    PLAYER_DIED = "player_died"  # one player's character died (the run may go on)
+    RUN_ENDED = "run_ended"      # the run is over: every player dead, or the party won
 
 
 @dataclass
@@ -465,6 +467,26 @@ def create_game_started_event(player_id: str, floor: int) -> dict:
         'data': {'player_id': player_id, 'floor': floor},
         'timestamp': time.time(),
         'turn': 0,
+    }
+
+
+def create_player_died_event(entity_id: str, entity_name: str, floor: int, turn: int) -> dict:
+    """Create player died event (published once per player, before dead entities are purged)."""
+    return {
+        'type': GameEventType.PLAYER_DIED.value,
+        'data': {'entity_id': entity_id, 'entity_name': entity_name, 'floor': floor},
+        'timestamp': time.time(),
+        'turn': turn,
+    }
+
+
+def create_run_ended_event(victory: bool, floor: int, turn: int) -> dict:
+    """Create run ended event (published once: the party won, or no player is left alive)."""
+    return {
+        'type': GameEventType.RUN_ENDED.value,
+        'data': {'victory': victory, 'floor': floor},
+        'timestamp': time.time(),
+        'turn': turn,
     }
 
 

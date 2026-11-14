@@ -87,7 +87,8 @@ async def test_victory_scores_survivors_with_victory_bonus():
     state = game.mp_game_state.game_state
     state.victory = True
     state.game_over = True
-
+    from core.events import create_run_ended_event
+    game.event_bus.publish_dict(create_run_ended_event(True, state.current_floor, state.turn_count))
     game._finish_action('player', False)
 
     by_name = {s.player_name: s for s in _scores(names_only=False)}

@@ -9,7 +9,10 @@ from core.action_pipeline import process_action_outcome
 from core.actions.action_factory import ActionFactory
 from core.base.action import Action
 from core.base.game_context import GameContext
-from core.events import EventBus, create_floor_changed_event
+from core.events import (
+    EventBus, GameEventType, create_floor_changed_event, create_game_started_event,
+)
+from core.extensions import install_event_handlers
 from core.floor_manager import FloorManager
 from core.highscore import HighScoreEntry, HighScoreManager
 from core.systems.ai_system import AISystem
@@ -54,6 +57,7 @@ class GameSession:
         # Turn management (rounds live in mp_game_state.scheduler)
         self.turn_processor: Optional[TurnProcessor] = None
         self.floor_manager: Optional[FloorManager] = None
+        self.event_handlers: list = []
         self.pending_actions: asyncio.Queue = asyncio.Queue()
 
         # State tracking for delta compression
@@ -313,21 +317,31 @@ class GameSession:
                     regen['interval_turns'],
                     regen['amount'],
                     spawner=self.mp_game_state.spawner,
-                    # Co-op scores are recorded per player by _record_scores, not as one SP run
-                    on_run_end=lambda game_state, victory: None,
+                    event_bus=self.event_bus,
                     defeat_message="All players have died. Game over!",
                 )
                 self.floor_manager = FloorManager(
                     self.game_context,
                     self.mp_game_state.spawner,
-                    on_run_end=lambda game_state, victory: None,
+                    event_bus=self.event_bus,
                 )
+                # Same content (achievements, quests, kill streaks) as single-player
+                self.event_handlers = install_event_handlers(self.game_context, self.event_bus)
+                # Co-op scores are recorded per player as they die, survivors when the run ends
+                self.event_bus.subscribe(GameEventType.PLAYER_DIED, self._on_player_died)
+                self.event_bus.subscribe(GameEventType.RUN_ENDED, self._on_run_ended)
                 self.mp_game_state.scheduler.start(self.mp_game_state.living_entity_ids())
                 logger.info("Initialized GameContext, AISystem and TurnProcessor for multiplayer game")
             else:
                 logger.error("Failed to initialize game state for multiplayer game")
 
             self.is_started = True
+            if self.game_context:
+                first = self.mp_game_state.living_entity_ids()
+                self.event_bus.publish_dict(create_game_started_event(
+                    first[0] if first else "player",
+                    self.mp_game_state.game_state.current_floor,
+                ))
             logger.info(f"Game {self.game_id} started with {len(self.players)} players")
 
             return True
@@ -375,13 +389,25 @@ class GameSession:
             self._world_tick()
             mp.scheduler.next_round(mp.living_entity_ids())
 
-        newly_dead = mp.update_player_alive_status()
-        self._record_scores(newly_dead)
+        # Deaths and the end of the run are announced by the engine; scoring subscribes
+        self.turn_processor.announce_deaths()
+        mp.update_player_alive_status()
+        self.turn_processor.check_game_over()
 
         if mp.game_state.game_over:
             self.is_finished = True
-            # Survivors are scored when the run ends (victory or wipe)
-            self._record_scores(mp.player_slots.values())
+
+    def _slot_for_entity(self, entity_id):
+        player_id = self.mp_game_state.entity_to_player.get(entity_id)
+        return self.mp_game_state.player_slots.get(player_id)
+
+    def _on_player_died(self, event) -> None:
+        slot = self._slot_for_entity(event.data.get('entity_id'))
+        if slot:
+            self._record_scores([slot])
+
+    def _on_run_ended(self, event) -> None:
+        self._record_scores(self.mp_game_state.player_slots.values())
 
     def _world_tick(self) -> None:
         """Monsters act, time passes. Errors are logged so a bad tick cannot wedge the session."""

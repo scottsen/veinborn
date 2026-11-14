@@ -12,6 +12,8 @@ from .events import (
     create_floor_changed_event,
     create_turn_ended_event,
     create_game_started_event,
+    create_player_died_event,
+    create_run_ended_event,
 )
 
 __all__ = [
@@ -26,4 +28,6 @@ __all__ = [
     'create_floor_changed_event',
     'create_turn_ended_event',
     'create_game_started_event',
+    'create_player_died_event',
+    'create_run_ended_event',
 ]

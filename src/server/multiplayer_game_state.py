@@ -394,8 +394,8 @@ class MultiplayerGameState:
     def update_player_alive_status(self) -> List[PlayerSlot]:
         """Update alive status for all players based on their entities.
 
-        The party plays on while at least one player is alive; the game ends
-        only when every player is dead.
+        Only syncs the slots; ending the run (every player dead) is the engine's
+        job (TurnProcessor.check_game_over publishes run_ended).
 
         Returns:
             Slots whose player died since the last call (for per-player scoring).
@@ -407,13 +407,6 @@ class MultiplayerGameState:
                 slot.is_alive = slot.player_entity.is_alive
                 if was_alive and not slot.is_alive:
                     newly_dead.append(slot)
-
-        # Check if all players are dead
-        if self.game_state and not self.game_state.game_over and all(
-            not slot.is_alive for slot in self.player_slots.values()
-        ):
-            self.game_state.game_over = True
-            self.add_message("All players have died. Game over!")
 
         return newly_dead
 

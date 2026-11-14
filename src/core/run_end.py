@@ -1,17 +1,43 @@
 """Single-player end-of-run records: high score and Legacy Vault.
 
-These used to be hard-coded in TurnProcessor (death) and FloorManager (victory).
-They are one seam now: both take an `on_run_end(game_state, victory)` hook whose
-default is `record_single_player_run_end`. A multiplayer host passes its own
-(co-op leaderboard, no vault); VB-92 turns the hook into engine events.
+The engine publishes RUN_ENDED (TurnProcessor on defeat, FloorManager on victory);
+who records what is the host's choice. Single-player installs
+`SinglePlayerRunRecorder` (personal high score + Legacy Vault); a multiplayer
+session subscribes its own co-op scoring instead.
 """
 
 import logging
 
+from .events import EventBus, GameEventType
 from .highscore import HighScoreManager, HighScoreEntry
 from .legacy import get_vault
 
 logger = logging.getLogger(__name__)
+
+
+class SinglePlayerRunRecorder:
+    """Records the finished run, in the order the single-player game always has."""
+
+    def __init__(self, game_state):
+        self.game_state = game_state
+
+    def on_run_ended(self, event) -> None:
+        record_single_player_run_end(self.game_state, bool(event.data.get('victory')))
+
+    def install(self, event_bus: EventBus) -> "SinglePlayerRunRecorder":
+        event_bus.subscribe(GameEventType.RUN_ENDED, self.on_run_ended,
+                            subscriber_name="SinglePlayerRunRecorder.on_run_ended")
+        return self
+
+    def uninstall(self, event_bus: EventBus) -> None:
+        event_bus.unsubscribe(GameEventType.RUN_ENDED, self.on_run_ended)
+
+
+def single_player_bus(game_state) -> EventBus:
+    """A bus with the single-player recorder already subscribed (tests, headless runs)."""
+    bus = EventBus()
+    SinglePlayerRunRecorder(game_state).install(bus)
+    return bus
 
 
 def record_single_player_run_end(game_state, victory: bool) -> None:

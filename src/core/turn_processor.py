@@ -12,14 +12,13 @@ following Single Responsibility Principle.
 """
 
 import logging
-from typing import TYPE_CHECKING, Callable, Iterable, Optional
+from typing import TYPE_CHECKING, Iterable, Optional
 
 from .base.entity import EntityType
-from .run_end import record_single_player_run_end
+from .events import EventBus, create_player_died_event, create_run_ended_event, create_turn_ended_event
 
 if TYPE_CHECKING:
     from .base.game_context import GameContext
-    from .game_state import GameState
 
 logger = logging.getLogger(__name__)
 
@@ -57,7 +56,7 @@ class TurnProcessor:
     """
 
     def __init__(self, context: 'GameContext', hp_regen_interval: int = 10, hp_regen_amount: int = 1, spawner=None,
-                 on_run_end: Optional[Callable[['GameState', bool], None]] = None,
+                 event_bus: Optional[EventBus] = None,
                  defeat_message: str = "You died! Press 'r' to restart."):
         """
         Initialize turn processor.
@@ -67,8 +66,7 @@ class TurnProcessor:
             hp_regen_interval: Number of turns between HP regeneration (default: 10)
             hp_regen_amount: Amount of HP restored per regeneration tick (default: 1)
             spawner: EntitySpawner for ongoing spawns (VB-52); None disables them
-            on_run_end: Called as (game_state, victory) when the run is lost; defaults
-                to the single-player score/vault records
+            event_bus: Receives player_died, run_ended and turn_ended; None publishes nothing
             defeat_message: Logged to the message log when every player is dead
         """
         self.context = context
@@ -76,7 +74,8 @@ class TurnProcessor:
         self.hp_regen_interval = hp_regen_interval
         self.hp_regen_amount = hp_regen_amount
         self.spawner = spawner
-        self.on_run_end = on_run_end or record_single_player_run_end
+        self.event_bus = event_bus
+        self._announced_dead: set = set()
         self.defeat_message = defeat_message
         logger.debug(f"TurnProcessor initialized (HP regen: {hp_regen_amount} per {hp_regen_interval} turns)")
 
@@ -116,11 +115,34 @@ class TurnProcessor:
         # Run AI system (monsters take turns)
         self._run_ai_systems()
 
+        # Announce deaths before dead entities are purged
+        self.announce_deaths()
+
         # Cleanup dead entities
         self._cleanup_dead_entities()
 
         # Check game over conditions
-        self._check_game_over()
+        self.check_game_over()
+
+        self._publish(create_turn_ended_event(self.game_state.turn_count))
+
+    def _publish(self, event: dict) -> None:
+        if self.event_bus is not None:
+            self.event_bus.publish_dict(event)
+
+    def announce_deaths(self) -> None:
+        """Publish player_died once for each player who has died since the last call.
+
+        A host calls this after every action too, so a death is announced even if
+        the dead player's entity is purged at the next world tick.
+        """
+        for player in self.context.get_all_players():
+            if not player.is_alive and player.entity_id not in self._announced_dead:
+                self._announced_dead.add(player.entity_id)
+                self._publish(create_player_died_event(
+                    player.entity_id, player.name,
+                    self.game_state.current_floor, self.game_state.turn_count,
+                ))
 
     def _apply_hp_regeneration(self) -> None:
         """
@@ -197,19 +219,26 @@ class TurnProcessor:
             logger.debug(f"Cleaning up {dead_count} dead entities")
             self.game_state.cleanup_dead_entities()
 
-    def _check_game_over(self) -> None:
-        """The run is lost when no player is left alive (a party of one: the player died)."""
-        if not self.context.get_alive_players():
-            self.on_run_end(self.game_state, False)
+    def check_game_over(self) -> None:
+        """The run is lost when no player is left alive (a party of one: the player died).
 
-            self.game_state.add_message(self.defeat_message)
-            self.game_state.game_over = True
+        Publishes run_ended once; recording scores is the host's subscriber's job.
+        """
+        if self.game_state.game_over or self.context.get_alive_players():
+            return
+        self.announce_deaths()
+        self._publish(create_run_ended_event(
+            False, self.game_state.current_floor, self.game_state.turn_count
+        ))
 
-            logger.info(
-                "Game over - every player died",
-                extra={
-                    'turn': self.game_state.turn_count,
-                    'floor': self.game_state.current_floor,
-                    'player_level': self.game_state.player.get_stat('level', 1),
-                }
-            )
+        self.game_state.add_message(self.defeat_message)
+        self.game_state.game_over = True
+
+        logger.info(
+            "Game over - every player died",
+            extra={
+                'turn': self.game_state.turn_count,
+                'floor': self.game_state.current_floor,
+                'player_level': self.game_state.player.get_stat('level', 1),
+            }
+        )

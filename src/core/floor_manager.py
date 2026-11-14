@@ -12,16 +12,15 @@ following Single Responsibility Principle.
 """
 
 import logging
-from typing import TYPE_CHECKING, Callable, List, Optional
+from typing import TYPE_CHECKING, List, Optional
 
 from .world import Map
 from .entities import Monster, OreVein, Forge
 from .spawning import EntitySpawner
-from .run_end import record_single_player_run_end
+from .events import EventBus, create_run_ended_event
 
 if TYPE_CHECKING:
     from .base.game_context import GameContext
-    from .game_state import GameState
 
 logger = logging.getLogger(__name__)
 
@@ -65,20 +64,19 @@ class FloorManager:
     """
 
     def __init__(self, context: 'GameContext', spawner: EntitySpawner,
-                 on_run_end: Optional[Callable[['GameState', bool], None]] = None):
+                 event_bus: Optional[EventBus] = None):
         """
         Initialize floor manager.
 
         Args:
             context: Game context for safe state access
             spawner: Entity spawner for creating entities
-            on_run_end: Called as (game_state, victory) when the party wins; defaults
-                to the single-player score/vault records
+            event_bus: Receives run_ended when the party wins; None publishes nothing
         """
         self.context = context
         self.game_state = context.game_state
         self.spawner = spawner
-        self.on_run_end = on_run_end or record_single_player_run_end
+        self.event_bus = event_bus
         logger.debug("FloorManager initialized")
 
     def descend_floor(self) -> None:
@@ -148,8 +146,12 @@ class FloorManager:
             self.game_state.victory = True
             self.game_state.game_over = True
 
-            # High score with victory bonus (Phase 5) and Legacy Vault tally (Phase 6)
-            self.on_run_end(self.game_state, True)
+            # The host records the win (single-player: high score with victory bonus
+            # and Legacy Vault tally; multiplayer: co-op scores)
+            if self.event_bus is not None:
+                self.event_bus.publish_dict(create_run_ended_event(
+                    True, floor, self.game_state.turn_count
+                ))
 
             self.game_state.add_message("🎉 VICTORY! You've escaped the dungeon!")
 

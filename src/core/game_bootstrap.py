@@ -132,14 +132,15 @@ class GameBootstrapper:
             state.add_message("This is a Legacy run. Good luck!")
 
     def initialize_subsystems(
-        self, context: GameContext
+        self, context: GameContext, event_bus=None
     ) -> Tuple[EntitySpawner, TurnProcessor, FloorManager, ActionFactory]:
         """
         Build the per-game subsystems (spawner, turn processor, floor
         manager, action factory) once state/context exist.
 
         Used by both Game.start_new_game() (after creating new state) and
-        Game.load_game() (after loading saved state).
+        Game.load_game() (after loading saved state). `event_bus` receives the
+        turn processor's and floor manager's events (turn_ended, player_died, run_ended).
         """
         spawner = EntitySpawner(self.config, self.entity_loader)
 
@@ -147,8 +148,9 @@ class GameBootstrapper:
         hp_regen_interval = hp_regen_config['interval_turns']
         hp_regen_amount = hp_regen_config['amount']
 
-        turn_processor = TurnProcessor(context, hp_regen_interval, hp_regen_amount, spawner=spawner)
-        floor_manager = FloorManager(context, spawner)
+        turn_processor = TurnProcessor(context, hp_regen_interval, hp_regen_amount, spawner=spawner,
+                                       event_bus=event_bus)
+        floor_manager = FloorManager(context, spawner, event_bus=event_bus)
         action_factory = ActionFactory(context)
 
         return spawner, turn_processor, floor_manager, action_factory

@@ -17,6 +17,7 @@ from core.entities import Player, Monster, OreVein
 from core.legacy import get_vault, reset_vault, LegacyVault
 from core.turn_processor import TurnProcessor
 from core.floor_manager import FloorManager
+from core.run_end import single_player_bus
 from core.base.game_context import GameContext
 
 
@@ -115,14 +116,14 @@ def test_death_saves_rare_ore_to_vault(temp_vault_for_integration, player_with_r
 
     # Create context and turn processor
     context = GameContext(game_state=game_state)
-    turn_processor = TurnProcessor(context)
+    turn_processor = TurnProcessor(context, event_bus=single_player_bus(context.game_state))
 
     # Kill the player
     player_with_rare_ore.hp = 0
     player_with_rare_ore.is_alive = False
 
     # Check game over (this should save rare ore)
-    turn_processor._check_game_over()
+    turn_processor.check_game_over()
 
     # Verify ore was saved to vault
     vault = temp_vault_for_integration
@@ -149,12 +150,12 @@ def test_death_with_multiple_rare_ores(temp_vault_for_integration, player_with_l
     )
 
     context = GameContext(game_state=game_state)
-    turn_processor = TurnProcessor(context)
+    turn_processor = TurnProcessor(context, event_bus=single_player_bus(context.game_state))
 
     # Kill player
     player_with_legendary_ore.hp = 0
     player_with_legendary_ore.is_alive = False
-    turn_processor._check_game_over()
+    turn_processor.check_game_over()
 
     # All 3 legendary ores should be saved
     vault = temp_vault_for_integration
@@ -187,12 +188,12 @@ def test_death_with_no_rare_ore(temp_vault_for_integration, simple_room_map):
     )
 
     context = GameContext(game_state=game_state)
-    turn_processor = TurnProcessor(context)
+    turn_processor = TurnProcessor(context, event_bus=single_player_bus(context.game_state))
 
     # Kill player
     player.hp = 0
     player.is_alive = False
-    turn_processor._check_game_over()
+    turn_processor.check_game_over()
 
     # No ore should be saved
     vault = temp_vault_for_integration
@@ -213,12 +214,12 @@ def test_death_messages(temp_vault_for_integration, player_with_rare_ore, simple
     )
 
     context = GameContext(game_state=game_state)
-    turn_processor = TurnProcessor(context)
+    turn_processor = TurnProcessor(context, event_bus=single_player_bus(context.game_state))
 
     # Kill player
     player_with_rare_ore.hp = 0
     player_with_rare_ore.is_alive = False
-    turn_processor._check_game_over()
+    turn_processor.check_game_over()
 
     # Check messages
     messages = game_state.messages
@@ -245,7 +246,7 @@ def test_pure_victory_recorded(temp_vault_for_integration, simple_room_map):
 
     context = GameContext(game_state=game_state)
     mock_spawner = MagicMock()
-    floor_manager = FloorManager(context, mock_spawner)
+    floor_manager = FloorManager(context, mock_spawner, event_bus=single_player_bus(context.game_state))
 
     # Trigger victory
     floor_manager._check_victory(100)
@@ -275,7 +276,7 @@ def test_legacy_victory_recorded(temp_vault_for_integration, simple_room_map):
 
     context = GameContext(game_state=game_state)
     mock_spawner = MagicMock()
-    floor_manager = FloorManager(context, mock_spawner)
+    floor_manager = FloorManager(context, mock_spawner, event_bus=single_player_bus(context.game_state))
 
     # Trigger victory
     floor_manager._check_victory(100)
@@ -306,7 +307,7 @@ def test_multiple_runs_tracking(temp_vault_for_integration, simple_room_map):
         run_type="pure"
     )
     context1 = GameContext(game_state=game_state1)
-    TurnProcessor(context1)._check_game_over()
+    TurnProcessor(context1, event_bus=single_player_bus(context1.game_state)).check_game_over()
 
     # Run 2: Legacy defeat
     player2 = Player(x=10, y=10, hp=0, max_hp=20, attack=5, defense=2)
@@ -318,7 +319,7 @@ def test_multiple_runs_tracking(temp_vault_for_integration, simple_room_map):
         run_type="legacy"
     )
     context2 = GameContext(game_state=game_state2)
-    TurnProcessor(context2)._check_game_over()
+    TurnProcessor(context2, event_bus=single_player_bus(context2.game_state)).check_game_over()
 
     # Run 3: Pure victory
     player3 = Player(x=10, y=10, hp=50, max_hp=50, attack=10, defense=5)
@@ -330,7 +331,7 @@ def test_multiple_runs_tracking(temp_vault_for_integration, simple_room_map):
         run_type="pure"
     )
     context3 = GameContext(game_state=game_state3)
-    FloorManager(context3, MagicMock())._check_victory(100)
+    FloorManager(context3, MagicMock(), event_bus=single_player_bus(context3.game_state))._check_victory(100)
 
     # Run 4: Legacy victory
     player4 = Player(x=10, y=10, hp=50, max_hp=50, attack=10, defense=5)
@@ -342,7 +343,7 @@ def test_multiple_runs_tracking(temp_vault_for_integration, simple_room_map):
         run_type="legacy"
     )
     context4 = GameContext(game_state=game_state4)
-    FloorManager(context4, MagicMock())._check_victory(100)
+    FloorManager(context4, MagicMock(), event_bus=single_player_bus(context4.game_state))._check_victory(100)
 
     # Verify stats
     assert vault.total_runs == 4
@@ -387,7 +388,7 @@ def test_vault_error_doesnt_crash_game(temp_vault_for_integration, player_with_r
     )
 
     context = GameContext(game_state=game_state)
-    turn_processor = TurnProcessor(context)
+    turn_processor = TurnProcessor(context, event_bus=single_player_bus(context.game_state))
 
     # Mock vault to raise exception
     with patch('core.run_end.get_vault') as mock_vault:
@@ -396,7 +397,7 @@ def test_vault_error_doesnt_crash_game(temp_vault_for_integration, player_with_r
         # Kill player - should not crash
         player_with_rare_ore.hp = 0
         player_with_rare_ore.is_alive = False
-        turn_processor._check_game_over()
+        turn_processor.check_game_over()
 
         # Game should still be over
         assert game_state.game_over is True
@@ -417,10 +418,10 @@ def test_death_with_empty_inventory(temp_vault_for_integration, simple_room_map)
     )
 
     context = GameContext(game_state=game_state)
-    turn_processor = TurnProcessor(context)
+    turn_processor = TurnProcessor(context, event_bus=single_player_bus(context.game_state))
 
     # Should not crash
-    turn_processor._check_game_over()
+    turn_processor.check_game_over()
 
     # No ore saved
     vault = temp_vault_for_integration
@@ -460,10 +461,10 @@ def test_vault_overflow_during_death(temp_vault_for_integration, simple_room_map
     )
 
     context = GameContext(game_state=game_state)
-    turn_processor = TurnProcessor(context)
+    turn_processor = TurnProcessor(context, event_bus=single_player_bus(context.game_state))
 
     # Death should handle overflow (FIFO)
-    turn_processor._check_game_over()
+    turn_processor.check_game_over()
 
     # Should have exactly 50 ores (MAX_VAULT_SIZE)
     vault = temp_vault_for_integration
@@ -507,7 +508,7 @@ def test_vault_persists_between_deaths(temp_vault_for_integration, simple_room_m
         current_floor=5
     )
     context1 = GameContext(game_state=game_state1)
-    TurnProcessor(context1)._check_game_over()
+    TurnProcessor(context1, event_bus=single_player_bus(context1.game_state)).check_game_over()
 
     assert vault.get_ore_count() == 2
 
@@ -530,7 +531,7 @@ def test_vault_persists_between_deaths(temp_vault_for_integration, simple_room_m
         current_floor=8
     )
     context2 = GameContext(game_state=game_state2)
-    TurnProcessor(context2)._check_game_over()
+    TurnProcessor(context2, event_bus=single_player_bus(context2.game_state)).check_game_over()
 
     # Should now have 5 total ores
     assert vault.get_ore_count() == 5

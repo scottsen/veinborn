@@ -122,7 +122,7 @@ def _descend(mp):
     from core.floor_manager import FloorManager
 
     FloorManager(
-        GameContext(mp.game_state), mp.spawner, on_run_end=lambda state, victory: None
+        GameContext(mp.game_state), mp.spawner
     ).descend_floor()
 
 

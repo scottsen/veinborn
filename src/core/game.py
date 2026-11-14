@@ -23,9 +23,10 @@ from .config import ConfigLoader
 from .spawning import EntitySpawner
 from .action_pipeline import process_action_outcome
 from .turn_processor import TurnProcessor
+from .run_end import SinglePlayerRunRecorder
 from .floor_manager import FloorManager
 from .save_load import SaveSystem, SaveLoadError
-from .events import EventBus, create_turn_ended_event, create_game_started_event, create_floor_changed_event
+from .events import EventBus, create_game_started_event, create_floor_changed_event
 from .extensions import install_event_handlers, uninstall_event_handlers
 from .telemetry import StatsTracker, GameTelemetry, PerformanceTelemetry
 from .game_bootstrap import GameBootstrapper
@@ -58,6 +59,7 @@ class Game:
         # Subsystems (created by GameBootstrapper after state is set up)
         self.spawner: Optional[EntitySpawner] = None
         self.turn_processor: Optional[TurnProcessor] = None
+        self.run_recorder: Optional[SinglePlayerRunRecorder] = None
         self.floor_manager: Optional[FloorManager] = None
         self.action_factory: Optional[ActionFactory] = None
 
@@ -240,9 +242,8 @@ class Game:
         return self.handle_player_action('drop', item_id=item.entity_id)
 
     def _process_turn(self) -> None:
-        """Process one game turn (delegated to TurnProcessor), then announce it."""
+        """Process one game turn (delegated to TurnProcessor, which announces it)."""
         self.turn_processor.process_turn()
-        self.event_bus.publish_dict(create_turn_ended_event(self.state.turn_count))
 
     def restart_game(self) -> None:
         """Restart the game."""
@@ -306,8 +307,13 @@ class Game:
 
         # Initialize core subsystems (spawner, turn processor, floor manager, action factory)
         self.spawner, self.turn_processor, self.floor_manager, self.action_factory = (
-            self.bootstrapper.initialize_subsystems(self.context)
+            self.bootstrapper.initialize_subsystems(self.context, self.event_bus)
         )
+
+        # Single-player keeps its own high score and Legacy Vault on run_ended
+        if self.run_recorder is not None:
+            self.run_recorder.uninstall(self.event_bus)
+        self.run_recorder = SinglePlayerRunRecorder(self.state).install(self.event_bus)
 
         # Subscribe telemetry to the event bus (EventBus de-duplicates re-subscription)
         self.stats_tracker.is_player = self._is_player_id
