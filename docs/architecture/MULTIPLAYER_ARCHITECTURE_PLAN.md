@@ -236,7 +236,7 @@ can rejoin the party.** No AI control of absent players.
 | **0. Unblock** | Fix the client event loop; add `RemoteDriver.submit` for the current `action` message; headless test. | VB-44 (partial) | S |
 | **1. Explicit actor** | `ActionFactory.create(intent, actor_id=None, **kw)`; server accepts `intent` messages and builds actions from the seat. Keep `action` working. | D3 | S-M |
 | **2. One engine** | (a) `player_ids` + N-player regen/game over in `TurnProcessor`; (b) `RoundScheduler` (one action per living seat; SP = one seat), server uses `TurnProcessor`; (c) N-player placement in `FloorManager`, delete MP `descend_floor`; (d) `player_died`/`run_ended` events, high score/vault/co-op scores as subscribers, content handlers in MP; (e) extract `Engine` from `Game`, `GameSession` uses it, delete `MultiplayerGameState` rules. | D1, D2, VB-55, VB-54 groundwork | L (5 slices) |
-| **3. Protocol** | `src/protocol/`, envelope with `v`/`seq`, server sends full per-viewer snapshots, client decodes `Snapshot.from_dict`; retire `get_state_dict` and the session baseline. | D4, D5, VB-26, VB-78 | M |
+| **3. Protocol** (broken down in 4b) | `src/protocol/`, envelope with `v`/`seq`, server sends full per-viewer snapshots, client decodes `Snapshot.from_dict`; retire `get_state_dict` and the session baseline. | D4, D5, VB-26, VB-78 | M |
 | **4. Client** | `GameDriver`; `VeinbornApp` on a driver; `LocalDriver` for SP; RemoteDriver renders server snapshots; two-client playtest. | D6, VB-44 | M |
 | **5. Later** | Drop/rejoin seat lifecycle (D7, closes VB-45), fog per viewer + dev reveal switch (D4), deltas if measured, MP persistence/leaderboard viewer (VB-35, VB-54). | D7 | as needed |
 
@@ -296,6 +296,54 @@ code that 2a-2d have already unified. Rough total: 2-3 working days.
   slower and more deliberate.
 - *Session lock:* the scheduler lives inside the existing `GameSession._lock` section, so no new
   concurrency rules.
+
+### 4b. Phase 3 breakdown (re-measured 2026-11-14, after Phase 2)
+
+**What the measurement found**
+- **Sizes today (4 players, floor 1):** `get_state_dict` 13.4 KB; a viewer's `Snapshot` 7.9 KB (map 2.0 KB,
+  24 entities 5.2 KB). Per action each recipient gets one message, so full snapshots cost ~8 KB x players per
+  action: still nothing at human action rates. Deltas are not needed to start.
+- **The wire format has almost no consumers.** Outside the server, only `MultiplayerClient` (decodes
+  `state`/`delta`, forwards to `on_state_update`, which nothing in `src` listens to) and the dev
+  `test_client.py` read it. Tests that touch it: `test_state_delta.py` (69 refs, deleted with the feature),
+  and ~40 refs across 7 other files. No widget reads it. So the format can change without a compatibility layer.
+- **The snapshot is already per viewer** (`build_snapshot(state, viewer)`, used for the sidebar numbers
+  today). Per-viewer sending is the missing piece; it is also the seam fog of war needs later.
+- **The client imports the server package** (`ui/multiplayer_client.py`: `server.messages`,
+  `server.state_delta`): 15 files import `server.messages` in total.
+- **What a snapshot lacks for a party client:** who is in the party (names, class, alive, connected),
+  and round info (`round_number`, `waiting_on`). Other players already appear as `EntityView`s, but
+  without names of seats. These two belong in the snapshot, not beside it.
+- **Dead viewers:** a dead guest's entity is purged from `state.entities` (VB-16) but the slot keeps the
+  object, so `build_snapshot(viewer=slot.player_entity)` still works for a spectator.
+
+**Slices (each lands green; MP only, so the SP bot A/B is not needed, except 3b which touches `core/snapshot.py`: TUI tests cover it)**
+
+| Slice | Change | Test gate | Size |
+|---|---|---|---|
+| **3a. Protocol package** | `src/protocol/` with `messages.py` moved from `server/` (`Message` gets `v` and optional `seq`; `PROTOCOL_VERSION = 1`); the auth message carries `v` and a mismatch is refused with a clear error; `server/messages.py` deleted, 15 importers updated; `ui/` imports nothing from `server`. | suite; import check: `reveal 'imports://src/ui'` shows no `server`; version-mismatch test | S |
+| **3b. Snapshot as a wire model** | `Snapshot.from_dict` (and the nested views); `PartyMemberView` (player_id, name, class, entity_id, alive, connected) and `RoundView` (number, waiting_on) added to `Snapshot` as optional fields (empty in single-player); `Engine.snapshot(viewer_id)`. | round-trip test: live state -> `to_dict` -> JSON -> `from_dict` equals the original, for SP and a 3-player party incl. a dead viewer; widget tests unchanged | S-M |
+| **3c. Per-viewer snapshots on the wire** | New messages `snapshot` (`seq` per game, one per recipient, built by `GameSession` with party + round filled) and `lobby` (before start); `broadcast_game_state` sends each session its own; reconnect sends only to that viewer; `get_snapshot` request for resync; `MultiplayerClient` decodes with `Snapshot.from_dict`, keeps the latest by `seq`, drops older ones; `test_client.py` prints a snapshot; the real-socket `_Client` mirror is rewritten. | real-socket tests: two clients each see their own inventory, the same monsters, `waiting_on`, reconnect gets only a snapshot to the returning viewer, an out-of-order `seq` is ignored | M-L |
+| **3d. Delete the delta path** | Remove `state_delta.py` and its tests, `MultiplayerGameState.get_state_dict/to_dict`, `GameSession.get_state_dict`, `last_state`, `use_delta_compression`, `reset_state_tracking`, and the `state`/`delta` message types. Closes VB-26 (replaced) and VB-78 (monsters/map now come from the snapshot). | suite; grep shows no references | S |
+
+**Order:** 3a -> 3b -> 3c -> 3d. 3a and 3b are independent and could run in either order; 3c needs both.
+Rough total: 1.5-2 working days.
+
+**Deliberately not in Phase 3**
+- *Fog of war.* `core/perception.FogOfWar` has no per-viewer explored memory yet, and `Tile.explored`
+  is per tile (shared). Fog needs one visibility record per viewer per floor, and it changes what players
+  see, so it ships alone (plan phase 5) behind `build_snapshot`, which 3c makes per-viewer. The dev
+  reveal switch lands with it.
+- *Deltas.* Only if a measurement shows a need, as snapshot diffs with `base_seq`.
+- *Spectator view for dead players* (follow a living ally): a viewer choice in `GameSession`, later.
+
+**Where it can go wrong**
+- *3c test churn:* the real-socket `_Client` mirrors the client's decoding; rewrite it to use the real
+  `MultiplayerClient` decoder (or share one decode function) so the test and the client cannot drift again.
+- *Message ordering:* snapshots are built after the action under the session lock, then sent per
+  recipient outside it; `seq` is taken inside the lock so a slow send can never reorder state.
+- *Hidden consumers:* external scripts using `test_client.py`'s output; none are tracked. Flag in the
+  3c commit message.
 
 ---
 
