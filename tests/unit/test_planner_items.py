@@ -41,7 +41,51 @@ def test_drinks_when_low():
     bottle = potion()
     player.add_to_inventory(bottle)
     player.hp = int(player.max_hp * planner_module.DRINK_BELOW)
+    monster_in_sight(game)               # with nothing in sight it would rest instead (VB-107)
     assert planner.get_smart_action(game) == ('use', {'item_id': bottle.entity_id})
+
+
+def monster_in_sight(game, min_dist=3, max_dist=5):
+    from core.fog import can_see
+    p = game.state.player
+    m = game.state.dungeon_map
+    for x in range(p.x - max_dist, p.x + max_dist + 1):
+        for y in range(p.y - max_dist, p.y + max_dist + 1):
+            d = max(abs(x - p.x), abs(y - p.y))
+            if min_dist <= d <= max_dist and m.in_bounds(x, y) and m.is_walkable(x, y) \
+                    and can_see(m, p.x, p.y, x, y):
+                mon = game.entity_loader.create_monster("goblin", x, y)
+                game.context.add_entity(mon)
+                return mon
+    pytest.skip("no tile in sight for a monster")
+
+
+def test_rests_when_hurt_with_nothing_in_sight_until_nearly_full():
+    game, planner = warrior()
+    player = game.state.player
+    player.hp = int(player.max_hp * 0.5)
+    assert planner.get_smart_action(game) == ('wait', {}) and planner.resting
+    player.hp = int(player.max_hp * 0.8)         # above REST_BELOW but already resting: keep going
+    assert planner.get_smart_action(game) == ('wait', {})
+    player.hp = int(player.max_hp * 0.95)
+    assert planner.get_smart_action(game) != ('wait', {}) and not planner.resting
+
+
+def test_does_not_start_resting_when_only_slightly_hurt():
+    game, planner = warrior()
+    player = game.state.player
+    player.hp = int(player.max_hp * 0.8)
+    assert planner.get_smart_action(game) != ('wait', {}) and not planner.resting
+
+
+def test_a_monster_in_sight_ends_the_rest():
+    game, planner = warrior()
+    player = game.state.player
+    player.hp = int(player.max_hp * 0.5)
+    assert planner.get_smart_action(game) == ('wait', {})
+    monster_in_sight(game)
+    planner.perception._cache.clear()          # the bot loop clears the perception cache every turn
+    assert planner.get_smart_action(game) != ('wait', {}) and not planner.resting
 
 
 def test_does_not_drink_above_the_threshold():

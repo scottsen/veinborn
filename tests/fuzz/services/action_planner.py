@@ -20,6 +20,8 @@ from .room_sweeper import RoomSweeper
 HEAL_BELOW = 0.6
 # Drink a potion / eat at or below this fraction (lower: the heal ability comes back, potions don't)
 DRINK_BELOW = 0.4
+REST_BELOW = 0.7          # start resting under this share of max HP (nothing in sight)
+REST_UNTIL = 0.9          # ... and stop at this one
 # Detour at most this far (Chebyshev) to collect a potion or food
 ITEM_REACH = 6
 # ...and only when no monster is this close to the bot or the item
@@ -59,6 +61,7 @@ class ActionPlanner:
         # Clear rooms, then go down; stops the bot from skipping rooms by stepping on the stairs
         self.sweeper = RoomSweeper(perception)
         self.decisions.descend_gate = self.sweeper.ready_to_leave
+        self.resting = False       # True while resting to heal (the bot's stuck check reads it)
         self._ore_seek = {}        # ore vein entity_id -> turns spent walking toward it
         self._ore_seek_map = None  # reset per floor
 
@@ -211,6 +214,12 @@ class ActionPlanner:
             self.log(f"🗑️  Dropping {junk.name} (pack full)")
             return ('drop', {'item_id': junk.entity_id})
 
+        # Priority 1c: Hurt with nothing in sight: rest. Natural regeneration triples while
+        # waiting (VB-107); wandering spawns are the risk, and any monster in view ends it.
+        rest = self.rest_action(game)
+        if rest:
+            return rest
+
         # Priority 2: Craft equipment if possible
         if self.decisions.should_craft(game):
             craftable = self.perception.has_craftable_ore(game)
@@ -359,6 +368,23 @@ class ActionPlanner:
         # Priority 11: Random exploration
         self.log("🗺️  Exploring randomly...")
         return self.get_random_action(game)
+
+    def rest_action(self, game) -> Optional[Tuple[str, dict]]:
+        """Wait while below REST_BELOW of max HP (until REST_UNTIL) and no living monster
+        can see us; None otherwise."""
+        from core.fog import can_see
+        player = game.state.player
+        share = player.hp / max(1, player.max_hp)
+        if share >= REST_UNTIL or (share >= REST_BELOW and not self.resting):
+            self.resting = False
+            return None
+        game_map = game.state.dungeon_map
+        if any(can_see(game_map, player.x, player.y, m.x, m.y) for m in self.perception.find_monsters(game)):
+            self.resting = False
+            return None
+        self.resting = True
+        self.log(f"😴 Resting ({player.hp}/{player.max_hp})")
+        return ('wait', {})
 
     def escape_action(self, game, monster) -> Optional[Tuple[str, dict]]:
         """Losing a melee: take the stairs if we are on them, or walk there when the hits

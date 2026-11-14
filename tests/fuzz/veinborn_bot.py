@@ -477,6 +477,7 @@ class VeinbornBot:
                 # or mining; counting those made a 1-HP bot 'unstick' with a random wait
                 # next to an orc instead of drinking (VB-68)
                 busy = (self.perception.is_adjacent_to_monster(game) is not None
+                        or self.planner.resting
                         or (game.state.player.get_stat('mining_action') or {}).get('turns_remaining', 0) > 0)
                 if current_position == last_position and not busy:
                     stuck_counter += 1
