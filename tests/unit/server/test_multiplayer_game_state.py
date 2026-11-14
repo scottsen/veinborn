@@ -1,29 +1,24 @@
-"""Tests for MultiplayerGameState floor entity spawning and floor descent (VB-4)."""
+"""Tests for MultiplayerGameState: the run built from the seats (VB-94), floor spawning (VB-4), descent."""
 
 import sys
 from pathlib import Path
 
+import pytest
+
 sys.path.insert(0, str(Path(__file__).parent.parent.parent.parent / "src"))
 
-from server.multiplayer_game_state import MultiplayerGameState
+from server.multiplayer_game_state import MultiplayerGameState, Seat, seat_entity_id
 
 
 def _make_two_player_game(seed=42):
-    mp = MultiplayerGameState(seed=seed, max_players=4)
-    mp.add_player("p1", "Alice", "warrior")
-    mp.add_player("p2", "Bob", "mage")
-    return mp
+    return MultiplayerGameState(
+        [Seat("p1", "Alice", "warrior"), Seat("p2", "Bob", "mage")], seed=seed, max_players=4
+    )
 
 
 def _non_player_entity_ids(mp):
-    """Dict keys in game_state.entities that aren't a player's entity.
-
-    Note: game_state.entities is keyed by the player-slot-assigned entity_id
-    string (e.g. "player_p2"), not by the Entity object's own .entity_id
-    dataclass field (a separate, unrelated random uuid) - the dict key is
-    what every other lookup in the codebase (GameContext.get_entity,
-    Action.actor_id, entity_to_player) actually uses as identity.
-    """
+    """Keys of game_state.entities that aren't a seat's entity (each seat's
+    entity_id is both its dict key and the entity's own .entity_id)."""
     player_entity_ids = set(mp.entity_to_player.keys())
     return {
         entity_id for entity_id in mp.game_state.entities
@@ -248,3 +243,75 @@ def test_equipment_change_shows_in_the_next_snapshot():
 
     after = build_snapshot(mp.game_state, viewer=entity).player
     assert after.weapon is None and after.armor is None
+
+
+# --- VB-94: the run is built once from the seated players ---------------------
+
+def test_every_seat_gets_the_same_id_scheme_and_no_fixed_player_id():
+    mp = MultiplayerGameState(
+        [Seat("aaaaaaaa-1", "Alice", "warrior"), Seat("bbbbbbbb-2", "Bob", "mage"), Seat("cccccccc-3", "Cy", "rogue")],
+        seed=7,
+    )
+    ids = [slot.entity_id for slot in mp.player_slots.values()]
+    assert ids == ["player_aaaaaaaa", "player_bbbbbbbb", "player_cccccccc"]
+    assert "player" not in mp.game_state.entities
+    for slot in mp.player_slots.values():
+        assert slot.player_entity.entity_id == slot.entity_id
+        assert mp.game_state.entities[slot.entity_id] is slot.player_entity
+        assert mp.entity_to_player[slot.entity_id] == slot.player_id
+
+
+def test_seats_keep_their_order_class_and_name():
+    mp = MultiplayerGameState([Seat("p1", "Alice", "warrior"), Seat("p2", "Bob", "mage")], seed=3)
+    assert list(mp.player_slots) == ["p1", "p2"]
+    alice, bob = (mp.player_slots[p].player_entity for p in ("p1", "p2"))
+    assert (alice.name, alice.stats.get("class_type")) == ("Alice", "warrior")
+    assert (bob.name, bob.stats.get("class_type")) == ("Bob", "mage")
+    # Compatibility only: the first seat is state.player
+    assert mp.game_state.player is alice
+
+
+def test_every_seat_starts_on_its_own_walkable_tile():
+    seats = [Seat(f"p{i}", f"P{i}") for i in range(4)]
+    mp = MultiplayerGameState(seats, seed=11)
+    positions = [(s.player_entity.x, s.player_entity.y) for s in mp.player_slots.values()]
+    assert len(set(positions)) == 4
+    assert all(mp.game_state.dungeon_map.is_walkable(x, y) for x, y in positions)
+
+
+def test_the_map_has_the_configured_size():
+    mp = _make_two_player_game()
+    dims = mp.config.game_constants["map"]
+    assert (mp.game_state.dungeon_map.width, mp.game_state.dungeon_map.height) == (
+        dims["default_width"], dims["default_height"])
+
+
+def test_same_seed_and_seats_build_the_same_run():
+    a, b = _make_two_player_game(seed=99), _make_two_player_game(seed=99)
+    pos = lambda mp: [(s.player_entity.x, s.player_entity.y) for s in mp.player_slots.values()]
+    assert pos(a) == pos(b)
+    kinds = lambda mp: sorted((e.content_id or "", e.x, e.y) for k, e in mp.game_state.entities.items()
+                              if k not in mp.entity_to_player)
+    assert kinds(a) == kinds(b)
+
+
+def test_unknown_class_falls_back_to_a_default_character():
+    mp = MultiplayerGameState([Seat("p1", "Alice", "bard")], seed=1)
+    alice = mp.player_slots["p1"].player_entity
+    assert alice.name == "Alice" and alice.is_alive
+
+
+@pytest.mark.parametrize("seats, max_players", [
+    ([], 4),
+    ([Seat(f"p{i}", f"P{i}") for i in range(3)], 2),
+    ([Seat("p1", "Alice"), Seat("p1", "Alice again")], 4),
+])
+def test_invalid_seatings_are_refused(seats, max_players):
+    with pytest.raises(ValueError):
+        MultiplayerGameState(seats, seed=1, max_players=max_players)
+
+
+def test_seat_entity_id_falls_back_to_the_full_id_on_a_prefix_collision():
+    first = seat_entity_id("12345678-aaaa")
+    assert first == "player_12345678"
+    assert seat_entity_id("12345678-bbbb", taken={first}) == "player_12345678-bbbb"

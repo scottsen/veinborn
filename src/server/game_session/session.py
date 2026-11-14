@@ -12,7 +12,7 @@ from core.snapshot import PartyMemberView, RoundView, Snapshot
 from protocol.messages import Message
 from core.engine import Engine
 from core.highscore import HighScoreEntry, HighScoreManager
-from server.multiplayer_game_state import MultiplayerGameState
+from server.multiplayer_game_state import MultiplayerGameState, Seat
 
 from .player_info import PlayerInfo
 
@@ -285,51 +285,36 @@ class GameSession:
             if len(self.players) == 0:
                 return False
 
-            # Create multiplayer game state
+            # One run for every seated player, built at once (plan D1)
             self.mp_game_state = MultiplayerGameState(
-                seed=seed, max_players=self.max_players
+                [Seat(pid, info.player_name, info.player_class) for pid, info in self.players.items()],
+                seed=seed,
+                max_players=self.max_players,
             )
-
-            # Add all players to the game
             for player_id, player_info in self.players.items():
-                success = self.mp_game_state.add_player(
-                    player_id, player_info.player_name, player_info.player_class
-                )
-                if success:
-                    # Store entity ID in player info
-                    entity_id = self.mp_game_state.get_player_entity_id(player_id)
-                    player_info.entity_id = entity_id
-                else:
-                    logger.error(f"Failed to add player {player_info.player_name}")
+                player_info.entity_id = self.mp_game_state.get_player_entity_id(player_id)
 
-            # Initialize game context and AI system
-            if self.mp_game_state.game_state:
-                self.game_context = GameContext(self.mp_game_state.game_state)
-                # The same engine single-player runs on: actions, world tick, floors, AI,
-                # content handlers (achievements, quests, kill streaks)
-                self.engine = Engine(
-                    self.game_context,
-                    self.mp_game_state.config,
-                    self.event_bus,
-                    spawner=self.mp_game_state.spawner,
-                    log_failures=False,  # a refused action is reported to its sender only
-                    defeat_message="All players have died. Game over!",
-                )
-                # Co-op scores are recorded per player as they die, survivors when the run ends
-                self.event_bus.subscribe(GameEventType.PLAYER_DIED, self._on_player_died)
-                self.event_bus.subscribe(GameEventType.RUN_ENDED, self._on_run_ended)
-                self.mp_game_state.scheduler.start(self.mp_game_state.living_entity_ids())
-                logger.info("Initialized the engine for multiplayer game")
-            else:
-                logger.error("Failed to initialize game state for multiplayer game")
+            self.game_context = GameContext(self.mp_game_state.game_state)
+            # The same engine single-player runs on: actions, world tick, floors, AI,
+            # content handlers (achievements, quests, kill streaks)
+            self.engine = Engine(
+                self.game_context,
+                self.mp_game_state.config,
+                self.event_bus,
+                spawner=self.mp_game_state.spawner,
+                log_failures=False,  # a refused action is reported to its sender only
+                defeat_message="All players have died. Game over!",
+            )
+            # Co-op scores are recorded per player as they die, survivors when the run ends
+            self.event_bus.subscribe(GameEventType.PLAYER_DIED, self._on_player_died)
+            self.event_bus.subscribe(GameEventType.RUN_ENDED, self._on_run_ended)
+            living = self.mp_game_state.living_entity_ids()
+            self.mp_game_state.scheduler.start(living)
 
             self.is_started = True
-            if self.game_context:
-                first = self.mp_game_state.living_entity_ids()
-                self.event_bus.publish_dict(create_game_started_event(
-                    first[0] if first else "player",
-                    self.mp_game_state.game_state.current_floor,
-                ))
+            self.event_bus.publish_dict(create_game_started_event(
+                living[0], self.mp_game_state.game_state.current_floor,
+            ))
             logger.info(f"Game {self.game_id} started with {len(self.players)} players")
 
             return True

@@ -33,12 +33,17 @@ async def _started_session():
     return game
 
 
+def _seat(game):
+    """Alice's entity id (assigned by the seat, never a fixed 'player')."""
+    return game.mp_game_state.get_player_entity_id("player1")
+
+
 @pytest.mark.asyncio
 async def test_successful_action_message_reaches_shared_log():
     game = await _started_session()
     before = game.mp_game_state.game_state.message_count
 
-    success, error = await game.process_action("player1", WaitAction(actor_id="player"))
+    success, error = await game.process_action("player1", WaitAction(actor_id=_seat(game)))
 
     assert success, error
     state = game.mp_game_state.game_state
@@ -52,7 +57,7 @@ async def test_action_events_are_published_to_session_event_bus():
     published = []
     game.event_bus.publish_all = published.extend
 
-    await game.process_action("player1", WaitAction(actor_id="player"))
+    await game.process_action("player1", WaitAction(actor_id=_seat(game)))
 
     assert [e["type"] for e in published] == ["actor_waited"]
 
@@ -61,7 +66,7 @@ async def test_action_events_are_published_to_session_event_bus():
 async def test_turn_taking_action_completes_the_round_for_a_party_of_one():
     game = await _started_session()
 
-    await game.process_action("player1", WaitAction(actor_id="player"))
+    await game.process_action("player1", WaitAction(actor_id=_seat(game)))
 
     assert game.mp_game_state.round_number == 1
     assert game.mp_game_state.actions_this_round == 0
@@ -72,7 +77,7 @@ async def test_turn_taking_action_completes_the_round_for_a_party_of_one():
 async def test_free_action_does_not_use_up_the_players_action():
     game = await _started_session()
 
-    success, error = await game.process_action("player1", _FreeAction(actor_id="player"))
+    success, error = await game.process_action("player1", _FreeAction(actor_id=_seat(game)))
 
     assert success, error
     assert game.mp_game_state.actions_this_round == 0

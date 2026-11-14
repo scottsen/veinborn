@@ -80,8 +80,7 @@ class GameState:
         # Action._get_actor() needed a special-case fallback (VB-16) just
         # to resolve actor_id == the player's own id. __setattr__ below
         # keeps this in sync for every later reassignment of .player too
-        # (e.g. multiplayer_game_state.add_player() replacing the initial
-        # placeholder player with the real one).
+        # (e.g. save/load or a test swapping in a different player).
         if self.player is not None:
             self.entities[self.player.entity_id] = self.player
 

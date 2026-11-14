@@ -46,7 +46,7 @@ VB-55, VB-54, VB-35 (`tt show <id>`).
 
 | Concern | Single-player | Multiplayer | Consequence |
 |---|---|---|---|
-| Who the players are | `GameState.player` (privileged) | first player *is* `state.player` (id `"player"`), the rest are only in `entities` (`MultiplayerGameState.add_player`) | 41 `state.player`/`get_player()` sites in core assume one player |
+| Who the players are | `GameState.player` (privileged) | first player *is* `state.player` (id `"player"`), the rest are only in `entities` (`MultiplayerGameState.add_player`) | 41 `state.player`/`get_player()` sites in core assume one player. **Fixed (VB-89, VB-94):** party rules read `get_all_players()`; MP builds the run once from the seats, every seat id is `player_<id>`, `state.player` = first seat for compatibility only |
 | Turn tick | `TurnProcessor.process_turn`: regen, **wanderer spawns**, AI, cleanup, game over, `turn_ended` event | `GameSession._process_monster_turn`: AI, turn++, regen, cleanup | MP has no wanderers (VB-52), no `turn_ended` |
 | Floor change | `FloorManager.descend_floor` + `floor_changed` event | `MultiplayerGameState.descend_floor` | MP has no `floor_changed`; two victory checks |
 | Game start | `Game.start_new_game` + `game_started`, content handlers installed | `GameSession.start_game` | achievements/quests SP-only (VB-55) |

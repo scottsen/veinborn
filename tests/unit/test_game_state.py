@@ -26,8 +26,8 @@ def test_construction_puts_player_in_entities():
 
 
 def test_reassigning_player_syncs_entities():
-    """Mirrors multiplayer_game_state.add_player(): construct with a
-    placeholder player, then replace it with the real one at spawn."""
+    """Construct with a placeholder player, then replace it with the real one:
+    the entities store must follow .player."""
     placeholder = Player(name="placeholder", x=0, y=0)
     state = GameState(player=placeholder)
 

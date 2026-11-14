@@ -1,23 +1,42 @@
-"""Multiplayer-aware GameState wrapper.
+"""Seat bookkeeping for a multiplayer run.
 
-Extends the single-player GameState to support multiple players
-while maintaining compatibility with existing single-player code.
+The run's GameState is built once, from every seated player, when the game
+starts (plan D1). The rules live in core.engine.Engine; this class only maps
+seats (player_id) to their entities and holds the round scheduler.
 """
 
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Sequence
 from dataclasses import dataclass
 import logging
 
 from core.game_state import GameState
 from core.entities import Player
 from core.rng import GameRNG
-from core.world import Map
 from core.config import ConfigLoader
 from core.entity_loader import EntityLoader
+from core.floor_manager import generate_floor_map
 from core.spawning import EntitySpawner
 from core.turn_scheduler import RoundScheduler
 
 logger = logging.getLogger(__name__)
+
+
+@dataclass(frozen=True)
+class Seat:
+    """A player seated in the lobby, as the run is started with it."""
+
+    player_id: str
+    player_name: str
+    player_class: str = "warrior"
+
+
+def seat_entity_id(player_id: str, taken=()) -> str:
+    """The entity id for a seat: the same scheme for every seat, no host special case.
+
+    Short for logs; falls back to the full player_id on a prefix collision.
+    """
+    short = f"player_{player_id[:8]}"
+    return short if short not in taken else f"player_{player_id}"
 
 
 @dataclass
@@ -33,150 +52,80 @@ class PlayerSlot:
 
 
 class MultiplayerGameState:
-    """Wrapper around GameState for multiplayer support.
+    """The run's GameState plus seat bookkeeping (player_id <-> entity, round scheduler).
 
-    This class:
-    - Manages multiple players in a single game
-    - Routes actions to the correct player entities
-    - Maintains compatibility with single-player GameState
-    - Handles player-specific views and state
+    Built once from every seated player (plan D1): one map, every player on
+    their own spawn position, the floor populated. `game_state.player` is the
+    first seat only for the single-player compatibility reads that remain
+    (log lines, `build_snapshot`'s default viewer); multiplayer always names
+    the viewer or actor explicitly.
     """
 
-    def __init__(self, seed: Optional[int] = None, max_players: int = 4):
-        """Initialize multiplayer game state.
+    def __init__(self, seats: Sequence[Seat], seed: Optional[int] = None, max_players: int = 4):
+        """Build the run for these seats.
 
         Args:
+            seats: The seated players, in seat order (at least one)
             seed: Random seed for dungeon generation
-            max_players: Maximum number of players
+            max_players: Seat limit of the game
+
+        Raises:
+            ValueError: no seats, more seats than max_players, or a player seated twice
         """
+        if not seats:
+            raise ValueError("a multiplayer run needs at least one seat")
+        if len(seats) > max_players:
+            raise ValueError(f"{len(seats)} seats for a game of {max_players}")
+        if len({s.player_id for s in seats}) != len(seats):
+            raise ValueError("a player is seated twice")
+
         self.max_players = max_players
-
-        # Player management
-        self.player_slots: Dict[str, PlayerSlot] = {}
-        self.entity_to_player: Dict[str, str] = {}  # entity_id -> player_id
-
-        # Core game state (initially single-player)
-        # We'll initialize this when first player joins
-        self.game_state: Optional[GameState] = None
         self.seed = seed
-
-        # Entity spawning (monsters/ore veins/forges) - shared config/loader,
-        # cheap to construct, so build it eagerly rather than lazily
-        self.config = ConfigLoader.load()
-        self.spawner = EntitySpawner(self.config, EntityLoader())
-
-        # Multiplayer state
         self.is_multiplayer = True
         self.scheduler = RoundScheduler()
 
-        # Spawn positions (calculated after dungeon generation)
-        self.spawn_positions: List[tuple] = []
+        # Spawning (monsters/ore veins/forges): shared config/loader
+        self.config = ConfigLoader.load()
+        self.spawner = EntitySpawner(self.config, EntityLoader())
 
-    def add_player(
-        self, player_id: str, player_name: str, player_class: str = "warrior"
-    ) -> bool:
-        """Add a player to the game.
+        # VB-18: a dedicated GameRNG for THIS game, never the process-global
+        # singleton, so concurrent games on one server cannot reseed each other.
+        # It is threaded through dungeon_map.rng / state.rng.
+        rng = GameRNG(seed)
+        dungeon_map = generate_floor_map(self.config, rng)
+        positions = dungeon_map.find_player_spawn_positions(len(seats))
 
-        Args:
-            player_id: Unique player ID
-            player_name: Display name
-            player_class: Player class (warrior, mage, rogue, healer)
-
-        Returns:
-            True if player was added successfully
-        """
-        from core.character_class import CharacterClass, create_player_from_class
-        if len(self.player_slots) >= self.max_players:
-            logger.warning(f"Cannot add player {player_name}: game is full")
-            return False
-
-        if player_id in self.player_slots:
-            logger.warning(f"Player {player_id} already in game")
-            return False
-
-        # If this is the first player, initialize GameState with dungeon generation
-        if self.game_state is None:
-            # VB-18: construct a dedicated GameRNG instance for THIS game
-            # rather than calling GameRNG.initialize(), which reassigns the
-            # process-global singleton. Two multiplayer games starting
-            # concurrently on the same server used to share (and each
-            # re-seed) that one singleton, corrupting each other's
-            # in-flight combat/loot/dungeon-gen randomness. This instance
-            # is threaded explicitly through dungeon_map.rng/state.rng
-            # instead, so it's never affected by another game's setup.
-            game_rng = GameRNG(self.seed)
-            logger.info(f"Initialized dedicated RNG with seed: {self.seed}")
-
-            # Create temporary player entity at (0, 0) to initialize GameState
-            temp_player = Player(name=player_name, x=0, y=0)
-            self.game_state = GameState(
-                player=temp_player,
-                dungeon_map=Map(rng=game_rng),
-                seed=self.seed,
-                player_name=player_name,
-                rng=game_rng,
+        self.player_slots: Dict[str, PlayerSlot] = {}
+        self.entity_to_player: Dict[str, str] = {}  # entity_id -> player_id
+        players: List[Player] = []
+        for index, seat in enumerate(seats):
+            x, y = positions[index] if index < len(positions) else dungeon_map.find_starting_position()
+            entity = _create_player(seat, x, y)
+            entity.entity_id = seat_entity_id(seat.player_id, taken=self.entity_to_player)
+            players.append(entity)
+            self.player_slots[seat.player_id] = PlayerSlot(
+                player_id=seat.player_id,
+                player_name=seat.player_name,
+                player_entity=entity,
+                entity_id=entity.entity_id,
+            )
+            self.entity_to_player[entity.entity_id] = seat.player_id
+            logger.info(
+                f"Seated {seat.player_name} (ID: {seat.player_id}, entity: {entity.entity_id}) at ({x}, {y})"
             )
 
-            # Generate spawn positions for all potential players
-            self.spawn_positions = self.game_state.dungeon_map.find_player_spawn_positions(
-                self.max_players
-            )
-            logger.info(f"Generated {len(self.spawn_positions)} spawn positions for multiplayer game")
-
-            # Populate floor 1 with monsters/ore veins/forges (VB-4: MP previously
-            # never spawned any entities at all - AISystem ran every round over an
-            # empty entities dict)
-            self._spawn_floor_entities(self.game_state.current_floor)
-
-        # Get spawn position for this player
-        player_index = len(self.player_slots)
-        if player_index < len(self.spawn_positions):
-            spawn_x, spawn_y = self.spawn_positions[player_index]
-        else:
-            # Fallback to first room center if we run out of spawn positions
-            spawn_x, spawn_y = self.game_state.dungeon_map.find_starting_position()
-            logger.warning(f"No spawn position available for player {player_index}, using fallback")
-
-        # Create player entity at spawn position with class
-        try:
-            class_type = CharacterClass.from_string(player_class)
-            player_entity = create_player_from_class(
-                class_type=class_type,
-                x=spawn_x,
-                y=spawn_y,
-                name=player_name
-            )
-            logger.info(f"Created {player_class} player entity for {player_name}")
-        except Exception as e:
-            logger.error(f"Failed to create player with class {player_class}: {e}, using default")
-            player_entity = Player(name=player_name, x=spawn_x, y=spawn_y)
-
-        # Assign entity ID and add to game state
-        if player_index == 0:
-            # First player uses "player" as ID and replaces the temp player
-            entity_id = "player"
-            player_entity.entity_id = entity_id
-            self.game_state.player = player_entity
-        else:
-            # Additional players get unique IDs
-            entity_id = f"player_{player_id[:8]}"
-            player_entity.entity_id = entity_id
-            # Add to entities dict
-            self.game_state.entities[entity_id] = player_entity
-
-        # Create player slot
-        slot = PlayerSlot(
-            player_id=player_id,
-            player_name=player_name,
-            player_entity=player_entity,
-            entity_id=entity_id,
+        self.game_state = GameState(
+            player=players[0],
+            dungeon_map=dungeon_map,
+            seed=seed,
+            player_name=players[0].name,
+            rng=rng,
         )
+        for entity in players[1:]:
+            self.game_state.entities[entity.entity_id] = entity
 
-        self.player_slots[player_id] = slot
-        self.entity_to_player[entity_id] = player_id
-
-        logger.info(f"Added player {player_name} (ID: {player_id}, entity: {entity_id}) at position ({spawn_x}, {spawn_y})")
-        return True
+        # Populate floor 1 (VB-4: MP once spawned nothing, so AI ran over an empty floor)
+        self._spawn_floor_entities(self.game_state.current_floor)
 
     def remove_player(self, player_id: str) -> bool:
         """Remove a player from the game.
@@ -310,3 +259,15 @@ class MultiplayerGameState:
             f"Spawned floor {floor} entities: {len(monsters)} monsters, "
             f"{len(ore_veins)} ore veins, {len(forges)} forges"
         )
+
+
+def _create_player(seat: Seat, x: int, y: int) -> Player:
+    """The seat's character at (x, y); an unknown class falls back to a classless Player."""
+    from core.character_class import CharacterClass, create_player_from_class
+    try:
+        return create_player_from_class(
+            class_type=CharacterClass.from_string(seat.player_class), x=x, y=y, name=seat.player_name
+        )
+    except Exception as e:
+        logger.error(f"Unknown class {seat.player_class!r} for {seat.player_name}: {e}; using the default")
+        return Player(name=seat.player_name, x=x, y=y)

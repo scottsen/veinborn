@@ -438,9 +438,10 @@ async def test_process_action_descend_floor_advances_floor():
     mp_state = game.mp_game_state
     stairs_down = mp_state.game_state.dungeon_map.find_stairs_down()
     assert stairs_down is not None
-    mp_state.game_state.player.move_to(*stairs_down)
+    alice = mp_state.get_player_entity("player1")
+    alice.move_to(*stairs_down)
 
-    action = DescendAction(actor_id="player")
+    action = DescendAction(actor_id=alice.entity_id)
     success, error = await game.process_action("player1", action)
 
     assert success, error
@@ -464,7 +465,7 @@ async def test_process_action_dead_guest_does_not_redirect_to_host():
     await game.start_game(seed=42)
 
     mp_state = game.mp_game_state
-    host = mp_state.game_state.player
+    host = mp_state.get_player_entity("player1")
     host_pos = (host.x, host.y)
 
     guest_entity_id = mp_state.get_player_entity_id("player2")
