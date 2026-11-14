@@ -2765,16 +2765,17 @@ priority: medium
 effort: 2d
 tags: [crafting, crafting-v2]
 created: '2026-11-14T18:33:26Z'
-updated: '2026-11-14T21:32:06Z'
+updated: '2026-11-14T21:39:41Z'
 session: peaceful-shower-1114
 depends_on: [VB-114]
-notes_next: 3
+notes_next: 4
 ```
 
 <!-- notes: append-only log; each has a stable #id (see CLI §5) -->
 ### Notes
 - [#1 2026-11-14T18:33:42Z session:peaceful-shower-1114] Waits on VB-113 decisions (D1-D5 in docs/design/CRAFTING_PARTS_DESIGN.md).
 - [#2 2026-11-14T21:32:06Z session:xuhuve-1114] 2026-11-14 step 1 done f99011f (not pushed): engine for parts + assemblies, ADDITIVE. CraftingRecipe.kind item|part|assembly; parts: 'accepts: metal', stats from averaged ore props; assemblies: one carried part per required slot + optional gem + optional material bonus, named from head ore ('Mithril-Iron Sword'); CraftAction.part_ids (assembly parts; None = best per slot, never a gem); suggest_recipe only returns kind=item so bots are unchanged; yaml sections parts:/assemblies: added beside the per-tier recipes. 17 tests in tests/unit/test_crafting_parts.py (any-metal tier, consume, preview==result, wrong picks rejected, gem, wear, save round-trip); full suite 1666 passed. Found: formulas are squared in hardness (hardness*hardness/330) because today's tier curve is super-linear (copper sword ~4, adamantite ~30) - linear coefficients from the design doc cannot reproduce it; placeholders only, VB-117 tunes. REMAINING for VB-115: (a) migrate legendaries to assemblies with a material (flaming_sword, arcane_staff, dragon_bow, phoenix plate, shadow cloak, titan hammer) incl. phoenix armor 6-adamantite fix; (b) delete the per-tier recipes + the 7 dead stats and forge_requirements can_craft lists, which breaks bot crafting and the f-screen until VB-116/VB-117 (so nothing pushes until then); (c) snapshot RecipeView/craft screen need parts awareness (VB-116).
+- [#3 2026-11-14T21:39:41Z session:xuhuve-1114] 2026-11-14 step 2 done: legendaries are assemblies (ore: restricts parts to one ore, material consumed, bonus fixed); phoenix plate = plates(3)+lining(1) adamantite, was 6 at once. Placeholders: arcane_staff has no bonus (gem gives spell power), shadow_cloak/phoenix bonus max_hp 6/10, dragon_bow is a heavy hitter (range was never a mechanic). Suite 1668 passed. Bots cannot craft legendaries now (VB-117). STILL OPEN: delete per-tier weapons/armor recipes + forge_requirements, DEFERRED to land with VB-116/VB-117 so bots and the f-screen are not left unable to craft; snapshot RecipeView/craft screen parts awareness is VB-116.
 
 
 ## TASK-VB-116 · Crafting v2 phase 3: forge UI for parts (craft a part, assemble from carried parts with a picker), snapshot views, protocol bump - see docs/design/CRAFTING_PARTS_DESIGN.md
