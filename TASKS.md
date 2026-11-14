@@ -2,7 +2,7 @@
 project: veinborn
 schema_version: '1.0'
 id_prefix: VB
-next_id: 126
+next_id: 129
 archival: inline
 areas: {}
 ---
@@ -2592,9 +2592,9 @@ priority: medium
 effort: 3d
 tags: [balance, loot, content]
 created: '2026-11-14T06:09:09Z'
-updated: '2026-11-14T17:51:52Z'
+updated: '2026-11-14T22:01:01Z'
 session: acidic-lens-1113
-notes_next: 6
+notes_next: 7
 ```
 
 <!-- notes: append-only log; each has a stable #id (see CLI §5) -->
@@ -2604,6 +2604,7 @@ notes_next: 6
 - [#3 2026-11-14T06:50:11Z session:acidic-lens-1113] Step 2 done (status-effect primitive): core/status_effects.py + @status_effect + content/status/regeneration.py + TurnProcessor._tick_status_effects + PlayerView.effects (protocol 5) + sidebar line. Food now heals over time (ration 1x10, bread 1x6, meat 2x6), new potion_regeneration (3x10, effect 'regenerate'; not in any drop table yet). best_healing_item: instant healers first, over-time only as fallback (instant_only flag). 1574 tests; 48 bot games 0 errors. Remaining: step 3 drop tables by monster family + depth scaling, floor supply, step 4 scrolls (mapping, teleport first).
 - [#4 2026-11-14T07:17:43Z session:acidic-lens-1113] Step 3 done (51ab8ef + 811cbfb): shared loot tables beast/undead/brute/arcane (consumables only, no gold), min_floor depth gating in LootGenerator (healing 1 / regeneration 5 / extra 10 / full 30), regeneration potions on orc/troll, potions or meat on wyvern/wraith/lich/phoenix; all 19 monsters now resolve to a table (VB-70 'no loot table' warnings gone). Measured vs regen run (same seeds 3000+, 96 pairs, 20000 turns): NO significant change: deaths 0.36 -> 0.38, potions used 2.70 -> 2.66, floor 61.7 -> 63.6 (n.s.), 0/96 identical (drops shift every seeded game). Bots rest first and only drink at <=40% HP with a monster in sight, so extra supply is barely consumed; burst/phoenix/demon deaths are not answered by potions at that threshold. Not measured: potions picked up or left on the floor. Next: log pickups per game to see supply vs use; earlier emergency drinking when a pack approaches; floor supply (kill-independent) and scrolls (mapping, teleport) are still open.
 - [#5 2026-11-14T17:51:52Z session:peaceful-shower-1114] Pack-aware drinking (DRINK_BELOW_PACK 0.6 at 3+ monsters within 8): paired 96-pair run, potions used 2.66 -> 4.11*, carried at end 4.14 -> 3.51*, deaths 0.38 -> 0.41 n.s. Supply is not the limit: bots pick up ~11.6 usable items, use ~2.7, drop ~4.8 (pack pressure), carry ~4.1; 25 of 36 baseline deaths still held an item. Next lever is VB-108 (disengage/escape), not more supply or scrolls. Results: /home/scottsen/src/tia/sessions/peaceful-shower-1114/pack_ab/.
+- [#6 2026-11-14T22:01:01Z session:xuhuve-1114] 2026-11-14 human-usability review (xuhuve-1114), runtime-checked over every items.yaml item: loot tables DROP 8 items a human can neither use nor wear: potion_strength (no buff_attack effect), scroll_enchant_weapon, scroll_enchant_armor, scroll_identify, scroll_teleport (no effects), ring_protection, ring_regeneration, ring_strength (gear_slot None: no ring slot). Only heal/heal_full/eat/regenerate are implemented (content/items/healing.py). They fill pack slots as dead weight (quick-drop treats them NO_USE). Defined but not dropped and also unimplemented: potion_speed, potion_invisibility, scroll_lightning, scroll_mapping, ring_stealth, torch/rope/lockpick. Either implement or remove from loot_tables.yaml; scrolls and the VB-82 identification design depend on this.
 
 
 ## TASK-VB-108 · Bots: pack-aware threat (sum fight odds over monsters in ~8 tiles), disengage before adjacency, geared deep-start scenario (advance_to gives no gear), rest/escape follow-ups; evidence in VB-68 note #8
@@ -2980,3 +2981,54 @@ notes_next: 2
 <!-- notes: append-only log; each has a stable #id (see CLI §5) -->
 ### Notes
 - [#1 2026-11-14T21:01:22Z session:peaceful-shower-1114] 480-floor sweep (seeds 1000-1039 x floors 1-12) old vs new: cut floors 1 -> 0, stairs cut 0 -> 0, forge on stairs 0 -> 0; exactly 1 forge moved ((5,8) -> (5,9) on seed 1006 floor 2), the other 479 floors identical. Positive control: one blocked path tile cuts the stairs on 10/10 floors. 5 tests incl. a corridor map where the old rule plugs the corridor.
+
+
+## TASK-VB-126 · Human cannot see crafted gear's accuracy, max HP and spell power: ItemView.bonus is one int (attack or defense), so the equipment screen, pack rows and 'better/worse vs worn' compare, and the sidebar (Attack/Defense only) hide the three stats crafting v2 now produces
+
+```yaml
+status: backlog
+priority: high
+effort: 3h
+tags: [ui, crafting-v2, keyboard]
+created: '2026-11-14T22:00:58Z'
+updated: '2026-11-14T22:00:58Z'
+session: xuhuve-1114
+```
+
+<!-- notes: append-only log; each has a stable #id (see CLI §5) -->
+### Notes
+_(no notes yet)_
+
+
+## TASK-VB-127 · Forge screen shows raw material ids ('+ phoenix_essence', 'Requires lich_phylactery') instead of item names, and does not say whether the player carries it; forges.yaml forge_types/recipes and recipes.yaml forge_requirements are read by no code (forge tier never limits recipes): enforce or delete
+
+```yaml
+status: backlog
+priority: medium
+effort: 2h
+tags: [ui, crafting-v2, keyboard]
+created: '2026-11-14T22:00:59Z'
+updated: '2026-11-14T22:00:59Z'
+session: xuhuve-1114
+```
+
+<!-- notes: append-only log; each has a stable #id (see CLI §5) -->
+### Notes
+_(no notes yet)_
+
+
+## TASK-VB-128 · Human input gaps: 'g' takes every item on the tile or nothing (no choice of which when the pack is nearly full); 'z' always aims at the nearest hostile in sight (no target pick); survey picks the vein for you; warrior has no 'z' ability and rogue backstab is passive but 'z' just says so; no examine cursor for monsters (VB-110)
+
+```yaml
+status: backlog
+priority: low
+effort: 4h
+tags: [ui, keyboard]
+created: '2026-11-14T22:01:01Z'
+updated: '2026-11-14T22:01:01Z'
+session: xuhuve-1114
+```
+
+<!-- notes: append-only log; each has a stable #id (see CLI §5) -->
+### Notes
+_(no notes yet)_
