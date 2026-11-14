@@ -2,7 +2,7 @@
 project: veinborn
 schema_version: '1.0'
 id_prefix: VB
-next_id: 107
+next_id: 108
 archival: inline
 areas: {}
 ---
@@ -1531,7 +1531,7 @@ priority: medium
 effort: 1d
 tags: [architecture, abilities, content]
 created: '2026-11-12T17:40:22Z'
-updated: '2026-11-13T01:57:45Z'
+updated: '2026-11-14T06:09:14Z'
 session: vevine-1112
 parent: VB-47
 links:
@@ -1540,7 +1540,7 @@ links:
   relates_to:
   - VB-64
   - VB-53
-notes_next: 3
+notes_next: 4
 ```
 
 About 6 declared monster abilities need timed effects on the target: spider poison, wyvern poison_sting, basilisk petrifying_gaze + poison_bite, mimic adhesive. No status-effect primitive exists. Shape: per-entity effects list (name, turns_left, magnitude) ticked by the turn loop in single-player and multiplayer, an @status_effect registry, effects that gate actions (stun/root) checked in the action pipeline, persisted in saves via entity stats. See AI_ARCHITECTURE.md 'Later: status effects'.
@@ -1549,6 +1549,7 @@ About 6 declared monster abilities need timed effects on the target: spider pois
 ### Notes
 - [#1 2026-11-12T20:47:40Z session:warming-squall-1112] Consumables (52eb525): potion_strength (buff_attack), potion_speed (buff_speed), potion_invisibility have no @item_effect yet; they wait on this system. Add them in src/core/content/items/ (see docs/EXTENDING.md 'Add an item effect'); UseItemAction keeps an item whose effect is unregistered.
 - [#2 2026-11-13T01:57:45Z session:mustard-sunset-1112] Priority raised low->medium 2026-11-12 (mustard-sunset-1112): the NetHack-depth review (umbrella VB-81) found status effects are the foundation for identification (VB-82: potion effects), shrines (VB-84) and counterplay monsters. Still no urgency to start before VB-82's scroll effects.
+- [#3 2026-11-14T06:09:14Z session:acidic-lens-1113] VB-107 will build the timed-effect primitive first with regeneration (food over time, regen potion); poison/stun follow on the same registry.
 
 
 ## TASK-VB-66 · AISystem.attack drops the monster attack's outcome.events: monster attacks never reach the event bus
@@ -2575,3 +2576,21 @@ session: acidic-lens-1113
 <!-- notes: append-only log; each has a stable #id (see CLI §5) -->
 ### Notes
 _(no notes yet)_
+
+
+## TASK-VB-107 · Healing and items: scaled regen + rest bonus (built), status-effect primitive with regeneration (potion, food over time), drop tables by monster family with depth scaling, floor supply, usable scrolls (mapping, teleport first)
+
+```yaml
+status: backlog
+priority: medium
+effort: 3d
+tags: [balance, loot, content]
+created: '2026-11-14T06:09:09Z'
+updated: '2026-11-14T06:09:14Z'
+session: acidic-lens-1113
+notes_next: 2
+```
+
+<!-- notes: append-only log; each has a stable #id (see CLI §5) -->
+### Notes
+- [#1 2026-11-14T06:09:14Z session:acidic-lens-1113] Decisions (Scott, 2026-11-13): (1) natural regen = max(1, int(5% of max HP)) per 10 turns, x3 when the player waited last turn with no living monster in sight (rested_turn stat set by WaitAction; TurnProcessor._is_resting) - DONE c6b4ae2, config: game_constants health_regeneration percent_of_max / rest_multiplier; under 40 max HP behaviour is unchanged. (2) food heals over time via a status-effect primitive (VB-65) with regeneration as its first effect; potions stay instant. (3) drops: shared tables by monster family (beast/humanoid/undead/demon+boss), potion quality scales with floor, every monster gets a table. (4) order: regen -> status-effect primitive -> drop tables -> floor supply -> scrolls (mapping, teleport first; mapping matters now that fog exists). Open: bots rest to heal (planner), measure potions used/deaths on 20000-turn paired runs.
