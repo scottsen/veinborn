@@ -34,6 +34,7 @@ class CraftAction(Action):
     forge_id: str
     recipe_id: str  # Which recipe to craft
     ore_ids: Optional[List[str]] = None   # the ore to spend (VB-112); None: the best for the recipe
+    part_ids: Optional[List[str]] = None  # an assembly's parts (VB-115); None: the best per slot
 
     # Class-level recipe manager (loaded once, shared by all actions)
     _recipe_manager: Optional[RecipeManager] = None
@@ -72,7 +73,10 @@ class CraftAction(Action):
         can_craft, reason = recipe_manager.can_craft(
             self.recipe_id, actor.inventory, current_floor
         )
-        if can_craft and self.ore_ids is not None and not recipe_manager.ore_for(
+        if can_craft and recipe.kind == 'assembly':
+            if not recipe_manager.parts_for(recipe, actor.inventory, self.part_ids):
+                can_craft, reason = False, "the chosen parts do not fit this recipe"
+        elif can_craft and self.ore_ids is not None and not recipe_manager.ore_for(
                 recipe, actor.inventory, self.ore_ids):
             can_craft, reason = False, "the chosen ore is not right for this recipe"
         if not can_craft:
@@ -122,6 +126,16 @@ class CraftAction(Action):
         if recipe.get_special_requirement() and special is None:
             logger.error(f"Missing {recipe.get_special_requirement()} for {self.recipe_id}")
             return None
+        if recipe.kind == 'assembly':
+            parts = recipe_manager.parts_for(recipe, actor.inventory, self.part_ids)
+            if not parts:
+                logger.error("Failed to find required parts in inventory")
+                return None
+            for part in parts:
+                actor.remove_from_inventory(part)
+            if special is not None:
+                actor.remove_from_inventory(special)
+            return recipe_manager.create_assembly(self.recipe_id, parts)
         ore_items = self._find_and_remove_ore(actor, recipe)
         if not ore_items:
             logger.error("Failed to find required ore in inventory")
@@ -163,8 +177,9 @@ class CraftAction(Action):
         outcome.messages.append(success_msg)
 
         # Add equipment stats message
-        attack_bonus = equipment.get_stat('attack_bonus', 0)
-        defense_bonus = equipment.get_stat('defense_bonus', 0)
+        stats = equipment.get_stat('part_stats') or {}
+        attack_bonus = stats.get('attack_bonus', equipment.get_stat('attack_bonus', 0))
+        defense_bonus = stats.get('defense_bonus', equipment.get_stat('defense_bonus', 0))
         outcome.messages.append(f"  Attack: +{attack_bonus}, Defense: +{defense_bonus}")
 
         # Publish crafting event
@@ -181,6 +196,7 @@ class CraftAction(Action):
             'stats': core_stats(equipment),
             'ore': equipment.get_stat('crafted_from_ore', {}),
             'ore_ids': list(self.ore_ids) if self.ore_ids else None,
+            'part_ids': list(self.part_ids) if self.part_ids else None,
         })
 
         return outcome
@@ -222,6 +238,7 @@ class CraftAction(Action):
             'forge_id': self.forge_id,
             'recipe_id': self.recipe_id,
             'ore_ids': self.ore_ids,
+            'part_ids': self.part_ids,
         }
 
     @classmethod
@@ -231,4 +248,5 @@ class CraftAction(Action):
             forge_id=data['forge_id'],
             recipe_id=data['recipe_id'],
             ore_ids=data.get('ore_ids'),
+            part_ids=data.get('part_ids'),
         )

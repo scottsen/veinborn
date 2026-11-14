@@ -203,10 +203,10 @@ Order: 0 -> 1 -> 2 -> 3 -> 4, then 5/6/7 in any order. Phases 1-4 are the core; 
   evasion, stun_chance, piercing, fire_resistance.
 - **D2 Accuracy: DECIDED with D1.** Accuracy is one of the six: weapons get a to-hit term
   separate from damage.
-- **D3 Parts per item:** two parts plus an optional gem? *Recommended: yes* (SWG used five;
+- **D3 Parts per item: DECIDED (Scott, 2026-11-14).** Two parts plus an optional gem (SWG used five;
   too many for quick runs).
-- **D4 Tier from properties:** parts accept any metal, tier comes from the ore's ranges,
-  replacing the per-tier recipes? *Recommended: yes.*
+- **D4 Tier from properties: DECIDED (Scott, 2026-11-14).** Parts accept any metal, tier comes from
+  the ore's ranges, replacing the per-tier recipes.
 - **D5 Named spawns:** per run, seeded, one or two per ore type? *Recommended: yes, after the
   core (phase 5).*
 

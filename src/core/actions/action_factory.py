@@ -444,7 +444,9 @@ class ActionFactory:
             return None
 
         ore_ids = kwargs.get('ore_ids')          # VB-112: a hand-picked set, else the best ore
-        return CraftAction(actor_id, forge_id, recipe_id, list(ore_ids) if ore_ids else None)
+        part_ids = kwargs.get('part_ids')        # VB-115: an assembly's parts, else the best per slot
+        return CraftAction(actor_id, forge_id, recipe_id, list(ore_ids) if ore_ids else None,
+                           list(part_ids) if part_ids else None)
 
     def _create_equip_action(
         self,

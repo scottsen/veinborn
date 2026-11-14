@@ -391,6 +391,70 @@ legendary:
 # =============================================================================
 # CRAFTING MECHANICS
 # =============================================================================
+# =============================================================================
+# CRAFTING V2: PARTS AND ASSEMBLIES (VB-115, docs/design/CRAFTING_PARTS_DESIGN.md)
+# =============================================================================
+# A part turns `ore_count` ore (any `accepts` ore; `metal` = copper/iron/mithril/adamantite)
+# into a part item. Its stats come from the ore's properties, so the tier is the ore's, not
+# the recipe's: the formulas are squared in hardness because today's per-tier recipes rise
+# faster than linearly (copper 4 -> adamantite 30 attack). An assembly sums one carried part
+# per required slot (and an optional gem) into wearable equipment.
+# Coefficients are phase-2 placeholders; VB-117 tunes them against bot runs.
+parts:
+  blade:
+    part: head
+    ore_count: 2
+    accepts: metal
+    stats:
+      attack_bonus: "hardness * hardness / 330 + purity * 0.03"
+      accuracy: "- density * 0.01"
+  axe_head:
+    part: head
+    ore_count: 3
+    accepts: metal
+    stats:
+      attack_bonus: "hardness * hardness / 280 + purity * 0.03 + density * 0.02"
+      accuracy: "- density * 0.03"
+  hilt:
+    part: grip
+    ore_count: 1
+    accepts: metal
+    stats:
+      accuracy: "malleability * 0.04 + purity * 0.02"
+  plates:
+    part: shell
+    ore_count: 3
+    accepts: metal
+    stats:
+      defense_bonus: "hardness * hardness / 350 + purity * 0.02"
+  lining:
+    part: lining
+    ore_count: 1
+    accepts: metal
+    stats:
+      max_hp_bonus: "malleability * 0.10 + density * 0.05"
+  focus_gem:
+    part: gem
+    ore_count: 1
+    accepts: [mithril, adamantite]
+    stats:
+      spell_power: "conductivity * 0.05 + purity * 0.02"
+
+assemblies:
+  sword:
+    display_name: "Sword"
+    slot: weapon
+    parts: {head: blade, grip: hilt}
+    optional: [gem]
+  battle_axe:
+    display_name: "Battle Axe"
+    slot: weapon
+    parts: {head: axe_head, grip: hilt}
+  chestplate:
+    display_name: "Chestplate"
+    slot: armor
+    parts: {shell: plates, lining: lining}
+
 crafting_rules:
   # Ore selection rules
   ore_selection:

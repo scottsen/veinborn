@@ -53,6 +53,14 @@ class CraftingRecipe:
     symbol: str
     color: str
     tags: List[str]
+    # Crafting v2 (VB-115). kind 'item' is a one-step ore -> equipment recipe (the old shape);
+    # 'part' turns ore into a part item; 'assembly' turns carried parts into equipment.
+    kind: str = 'item'
+    part_slot: Optional[str] = None                  # part: which slot it fills (head, grip, ...)
+    accepts: Optional[List[str]] = None              # part: ore types it takes (None: ore_type)
+    assembly_parts: Optional[Dict[str, str]] = None  # assembly: required slot -> part recipe id
+    optional_slots: Optional[List[str]] = None       # assembly: slots that may be left empty
+    fixed_stats: Optional[Dict[str, int]] = None     # assembly: added once (a material's bonus)
 
     def calculate_stats(self, ore_properties: Dict[str, int]) -> Dict[str, int]:
         """
@@ -98,6 +106,10 @@ class CraftingRecipe:
     def get_required_ore_type(self) -> str:
         """Get the ore type required by this recipe."""
         return self.requirements.get('ore_type', 'copper')
+
+    def accepted_ore_types(self) -> List[str]:
+        """Every ore type this recipe can spend (a part may take any metal)."""
+        return list(self.accepts) if self.accepts else [self.get_required_ore_type()]
 
     def get_required_ore_count(self) -> int:
         """Get the ore count required by this recipe."""
@@ -250,6 +262,7 @@ class RecipeManager:
         )
 
     RECIPE_SECTIONS = ('weapons', 'armor', 'legendary')
+    METALS = ('copper', 'iron', 'mithril', 'adamantite')   # what `accepts: metal` expands to
 
     def _load_recipes(self):
         """Load all recipes from YAML file."""
@@ -261,6 +274,11 @@ class RecipeManager:
             for section in self.RECIPE_SECTIONS:
                 for recipe_id, recipe_data in (data.get(section) or {}).items():
                     self.recipes[recipe_id] = self._create_recipe(recipe_id, recipe_data)
+            for part_id, part_data in (data.get('parts') or {}).items():
+                self.recipes[part_id] = self._create_part(part_id, part_data)
+            for asm_id, asm_data in (data.get('assemblies') or {}).items():
+                self.recipes[asm_id] = self._create_assembly(asm_id, asm_data)
+            self._validate_assemblies()
 
             logger.info(
                 f"Loaded {len(self.recipes)} recipes from {self.recipes_path}",
@@ -289,6 +307,57 @@ class RecipeManager:
             tags=recipe_data.get('tags', []),
         )
 
+    def _create_part(self, part_id: str, data: Dict[str, Any]) -> CraftingRecipe:
+        """A part recipe: `ore_count` of any `accepts` ore -> one part item for `part` slot."""
+        accepts = data.get('accepts', 'metal')
+        accepts = list(self.METALS) if accepts == 'metal' else list(accepts)
+        return CraftingRecipe(
+            recipe_id=part_id,
+            display_name=data.get('display_name', part_id.replace('_', ' ').title()),
+            description=data.get('description', ''),
+            requirements={'ore_type': accepts[0], 'ore_count': data.get('ore_count', 1),
+                          'min_floor': data.get('min_floor', 1)},
+            stat_formulas=data.get('stats', {}),
+            item_type='part', equipment_slot='none',
+            symbol=data.get('symbol', '%'), color=data.get('color', 'white'),
+            tags=['part', data['part']],
+            kind='part', part_slot=data['part'], accepts=accepts,
+        )
+
+    def _create_assembly(self, asm_id: str, data: Dict[str, Any]) -> CraftingRecipe:
+        """An assembly recipe: one carried part per required slot (+ optional gem) -> equipment."""
+        slot = data['slot']
+        requirements = {'min_floor': data.get('min_floor', 1)}
+        if data.get('material'):
+            requirements['special_requirement'] = data['material']   # consumed, like a boss drop
+        return CraftingRecipe(
+            recipe_id=asm_id,
+            display_name=data.get('display_name', asm_id.replace('_', ' ').title()),
+            description=data.get('description', ''),
+            requirements=requirements, stat_formulas={},
+            item_type='weapon' if slot == 'weapon' else 'armor', equipment_slot=slot,
+            symbol=data.get('symbol', ')' if slot == 'weapon' else '['),
+            color=data.get('color', 'white'),
+            tags=[slot, 'assembly'] + list(data.get('tags', [])),
+            kind='assembly', assembly_parts=dict(data['parts']),
+            optional_slots=list(data.get('optional', [])),
+            fixed_stats=dict(data.get('bonus', {})),
+        )
+
+    def _validate_assemblies(self):
+        """Every assembly slot names a real part recipe made for that slot (fail at load)."""
+        for recipe in self.recipes.values():
+            if recipe.kind != 'assembly':
+                continue
+            slots = dict(recipe.assembly_parts)
+            for slot in recipe.optional_slots:
+                slots.setdefault(slot, None)
+            for slot, part_id in recipe.assembly_parts.items():
+                part = self.recipes.get(part_id)
+                if part is None or part.kind != 'part' or part.part_slot != slot:
+                    raise ValueError(f"assembly {recipe.recipe_id}: slot '{slot}' needs a part "
+                                     f"recipe for that slot, got '{part_id}'")
+
     def get_recipe(self, recipe_id: str) -> Optional[CraftingRecipe]:
         """Get a recipe by ID."""
         return self.recipes.get(recipe_id)
@@ -309,7 +378,7 @@ class RecipeManager:
         """
         return [
             recipe for recipe in self.recipes.values()
-            if recipe.get_required_ore_type() == ore_type
+            if recipe.kind != 'assembly' and ore_type in recipe.accepted_ore_types()
         ]
 
     def get_craftable_recipes(
@@ -347,7 +416,10 @@ class RecipeManager:
         Returns:
             recipe_id of best recipe, or None if nothing craftable
         """
-        craftable = self.get_craftable_recipes(player_inventory, current_floor)
+        # Only one-step recipes: parts and assemblies are chosen by hand (or by a bot that
+        # knows them), never auto-suggested
+        craftable = [r for r in self.get_craftable_recipes(player_inventory, current_floor)
+                     if r.kind == 'item']
         if not craftable:
             return None
 
@@ -420,20 +492,16 @@ class RecipeManager:
         if current_floor < recipe.get_min_floor():
             return False, f"Requires floor {recipe.get_min_floor()}+ (currently on floor {current_floor})"
 
-        # Count ore in inventory
-        ore_counts = {}
-        for item in player_inventory:
-            if is_ore_item(item):
-                ore_type = item.get_stat('ore_type')
-                ore_counts[ore_type] = ore_counts.get(ore_type, 0) + 1
-
-        # Check ore requirement
-        required_type = recipe.get_required_ore_type()
-        required_count = recipe.get_required_ore_count()
-        available = ore_counts.get(required_type, 0)
-
-        if available < required_count:
-            return False, f"Requires {required_count}x {required_type} ore (have {available})"
+        if recipe.kind == 'assembly':
+            missing = self.missing_slots(recipe, player_inventory)
+            if missing:
+                return False, "Requires parts: " + ", ".join(missing)
+        else:
+            required_count = recipe.get_required_ore_count()
+            available = len(self.ore_choices(recipe, player_inventory))
+            if available < required_count:
+                kinds = "/".join(recipe.accepted_ore_types()) if recipe.accepts else recipe.get_required_ore_type()
+                return False, f"Requires {required_count}x {kinds} ore (have {available})"
 
         special = recipe.get_special_requirement()
         if special and self.special_item_for(recipe, player_inventory) is None:
@@ -451,13 +519,16 @@ class RecipeManager:
 
     def ore_choices(self, recipe: 'CraftingRecipe', player_inventory: List[Any]) -> List[Any]:
         """Every carried ore a craft of `recipe` could use (right type), in pack order."""
-        required_type = recipe.get_required_ore_type()
+        accepted = recipe.accepted_ore_types()
         return [i for i in player_inventory
-                if is_ore_item(i) and i.get_stat('ore_type') == required_type]
+                if is_ore_item(i) and i.get_stat('ore_type') in accepted]
 
     @staticmethod
     def main_stat(recipe: 'CraftingRecipe') -> str:
-        """The stat a recipe is for: attack for weapons, defense for the rest."""
+        """The stat a recipe is for: attack for weapons, defense for the rest; a part's own
+        first formula (a blade's attack, a hilt's accuracy)."""
+        if recipe.kind == 'part' and recipe.stat_formulas:
+            return next(iter(recipe.stat_formulas))
         return 'attack_bonus' if recipe.equipment_slot == 'weapon' else 'defense_bonus'
 
     def ore_for(self, recipe: 'CraftingRecipe', player_inventory: List[Any],
@@ -486,6 +557,103 @@ class RecipeManager:
         ranked = sorted(choices, key=score, reverse=True)   # stable: ties keep pack order
         return ranked[:count]
 
+    # -- assemblies (VB-115) ------------------------------------------------------------
+
+    @staticmethod
+    def parts_in(player_inventory: List[Any], part_id: str) -> List[Any]:
+        """Carried part items made by part recipe `part_id`, in pack order."""
+        return [i for i in player_inventory if i.get_stat('part_id') == part_id]
+
+    def missing_slots(self, recipe: 'CraftingRecipe', player_inventory: List[Any]) -> List[str]:
+        """Required slots of an assembly with no carried part for them (empty: can assemble)."""
+        return [slot for slot, part_id in recipe.assembly_parts.items()
+                if not self.parts_in(player_inventory, part_id)]
+
+    def parts_for(self, recipe: 'CraftingRecipe', player_inventory: List[Any],
+                  part_ids: Optional[List[Any]] = None) -> List[Any]:
+        """The parts an assembly consumes: one per required slot, plus any optional-slot part
+        named in `part_ids`. With `part_ids`, exactly those (each must be carried, fit a slot
+        of this assembly, and no slot twice; every required slot filled) or [] when wrong.
+        Without, the best carried part per required slot (by its main stat), never a gem."""
+        slot_of = {pid: slot for slot, pid in recipe.assembly_parts.items()}
+        for slot in recipe.optional_slots:
+            for r in self.recipes.values():
+                if r.kind == 'part' and r.part_slot == slot:
+                    slot_of[r.recipe_id] = slot
+        if part_ids is not None:
+            by_id = {i.entity_id: i for i in player_inventory if i.get_stat('part_id') in slot_of}
+            if len(set(part_ids)) != len(part_ids) or any(p not in by_id for p in part_ids):
+                return []
+            chosen = [by_id[p] for p in part_ids]
+            slots = [slot_of[i.get_stat('part_id')] for i in chosen]
+            if len(set(slots)) != len(slots) or not set(recipe.assembly_parts) <= set(slots):
+                return []
+            return chosen
+        chosen = []
+        for slot, part_id in recipe.assembly_parts.items():
+            part_recipe = self.recipes[part_id]
+            stat = self.main_stat(part_recipe)
+            carried = self.parts_in(player_inventory, part_id)
+            chosen.append(max(carried, key=lambda i: (i.get_stat('part_stats') or {}).get(stat, 0))
+                          if carried else None)
+        return [] if None in chosen else chosen
+
+    def assembly_stats(self, recipe: 'CraftingRecipe', parts: List[Any]) -> Dict[str, int]:
+        """Sum of the parts' stats plus the assembly's fixed bonus (a material's)."""
+        totals: Dict[str, int] = {}
+        for part in parts:
+            for stat, value in (part.get_stat('part_stats') or {}).items():
+                totals[stat] = totals.get(stat, 0) + int(value)
+        for stat, value in (recipe.fixed_stats or {}).items():
+            totals[stat] = totals.get(stat, 0) + int(value)
+        return totals
+
+    def create_part(self, recipe_id: str, ore_items: List[Any]) -> Optional[Any]:
+        """A part item from ore: stats from the averaged ore, remembers its ore for naming."""
+        recipe = self.get_recipe(recipe_id)
+        if not recipe or recipe.kind != 'part':
+            logger.error(f"Part recipe not found: {recipe_id}")
+            return None
+        from .base.entity import Entity, EntityType
+        props = self._average_ore_properties(ore_items)
+        stats = recipe.calculate_stats(props)
+        ore_type = ore_items[0].get_stat('ore_type') if ore_items else recipe.accepted_ore_types()[0]
+        part = Entity(name=f"{ore_type.title()} {recipe.display_name}",
+                      entity_type=EntityType.ITEM, x=None, y=None)
+        part.set_stat('item_type', 'part')
+        part.set_stat('part_slot', recipe.part_slot)
+        part.set_stat('part_id', recipe_id)
+        part.set_stat('recipe_id', recipe_id)       # like any crafted item: the recipe that made it
+        part.set_stat('part_ore_type', ore_type)
+        part.set_stat('part_stats', stats)
+        part.set_stat('crafted_from_ore', props)
+        return part
+
+    def create_assembly(self, recipe_id: str, parts: List[Any]) -> Optional[Any]:
+        """Wearable equipment from parts: stats are the parts' sum, named from the head's ore
+        ('Mithril Sword'; 'Adamantite-Iron Sword' when the other parts' ore differs)."""
+        recipe = self.get_recipe(recipe_id)
+        if not recipe or recipe.kind != 'assembly' or not parts:
+            logger.error(f"Assembly recipe not found or no parts: {recipe_id}")
+            return None
+        from .base.entity import Entity, EntityType
+        stats = self.assembly_stats(recipe, parts)
+        head_ore = parts[0].get_stat('part_ore_type')
+        others = {p.get_stat('part_ore_type') for p in parts[1:]} - {head_ore}
+        prefix = "-".join([head_ore.title()] + sorted(o.title() for o in others))
+        equipment = Entity(name=f"{prefix} {recipe.display_name}",
+                           entity_type=EntityType.ITEM, x=None, y=None)
+        equipment.set_stat('item_type', recipe.item_type)
+        equipment.set_stat('equipment_slot', recipe.equipment_slot)
+        equipment.set_stat('recipe_id', recipe_id)
+        for stat_name, value in stats.items():
+            equipment.set_stat(stat_name, value)
+        equipment.set_stat('crafted_from_ore', average_properties(
+            [p.get_stat('crafted_from_ore') or {} for p in parts]))
+        equipment.set_stat('crafted_ore_type', head_ore)
+        equipment.set_stat('assembled_from', [p.get_stat('part_id') for p in parts])
+        return equipment
+
     def preview_stats(self, recipe_id: str, player_inventory: List[Any],
                       ore_ids: Optional[List[Any]] = None) -> Optional[Dict[str, int]]:
         """Stats crafting `recipe_id` now would give (with `ore_ids`, from that ore), or None
@@ -493,6 +661,9 @@ class RecipeManager:
         recipe = self.get_recipe(recipe_id)
         if not recipe:
             return None
+        if recipe.kind == 'assembly':
+            parts = self.parts_for(recipe, player_inventory, ore_ids)   # ore_ids: the part ids
+            return self.assembly_stats(recipe, parts) if parts else None
         ore = self.ore_for(recipe, player_inventory, ore_ids)
         if len(ore) < recipe.get_required_ore_count():
             return None
@@ -526,6 +697,8 @@ class RecipeManager:
         if not recipe:
             logger.error(f"Recipe not found: {recipe_id}")
             return None
+        if recipe.kind == 'part':
+            return self.create_part(recipe_id, ore_items)
 
         # Calculate average ore properties
         ore_properties = self._average_ore_properties(ore_items)
