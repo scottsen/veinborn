@@ -94,3 +94,27 @@ def test_identify_with_nothing_to_learn_is_not_used_up(game):
         v.set_stat('surveyed', True)
     s = scroll(game, 'scroll_identify')
     assert not read(game, s).is_success and s in p.inventory
+
+
+def test_strength_potion_adds_attack_for_its_duration(game):
+    from core.snapshot import build_snapshot
+    from core.status_effects import tick_effects
+    p = game.state.player
+    base = p.get_total_attack()
+    out = read(game, scroll(game, 'potion_strength'))
+    assert out.is_success and p.get_total_attack() == base + 2
+    view = build_snapshot(game.state).player
+    assert view.attack == base + 2
+    effect = next(e for e in view.effects if e.name == 'strength')
+    assert effect.label == 'Strength' and not effect.per_turn and effect.turns_left == 100
+    for _ in range(100):
+        tick_effects(game.context, p)
+    assert p.get_total_attack() == base                               # it wore off
+
+
+def test_regeneration_is_still_per_turn(game):
+    from core.snapshot import build_snapshot
+    p = game.state.player
+    p.hp = 1
+    read(game, scroll(game, 'potion_regeneration'))
+    assert next(e for e in build_snapshot(game.state).player.effects if e.name == 'regeneration').per_turn

@@ -72,7 +72,7 @@ def test_autopickup_leaves_your_own_drop_but_pickup_takes_it(game):
 def test_usefulness_tiers(game):
     p = game.state.player
     assert usefulness(p, give(game, 'shield')) == OTHER           # nothing in the off-hand: worth wearing
-    assert usefulness(p, give(game, 'potion_strength')) == NO_USE  # effect not built
+    assert usefulness(p, give(game, 'ring_strength')) == NO_USE  # no ring slot: not built
     assert usefulness(p, give(game, 'scroll_identify')) == OTHER   # a built scroll is worth carrying
     assert usefulness(p, give(game, 'gold_pile_small')) == NO_USE
     assert usefulness(p, give(game, 'potion_healing')) == HEALING

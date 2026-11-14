@@ -54,3 +54,17 @@ def _regenerate(actor, item, verb):
 @item_effect("regenerate")
 def regenerate(context, actor, item) -> ActionOutcome:
     return _regenerate(actor, item, "drinks")
+
+
+@item_effect("buff_attack")
+def buff_attack(context, actor, item) -> ActionOutcome:
+    """Strength potion: `attack_increase` attack for `duration` turns (does not stack: a second
+    potion renews the duration at the better of the two bonuses)."""
+    bonus = int(item.get_stat('attack_increase', 0))
+    turns = int(item.get_stat('duration', 0))
+    if bonus <= 0 or turns <= 0:
+        return ActionOutcome.failure(f"The {item.name} does nothing.")
+    add_effect(actor, 'strength', turns, bonus)
+    outcome = ActionOutcome.success(took_turn=True)
+    outcome.messages.append(f"{actor.name} drinks the {item.name} and feels stronger (+{bonus} attack for {turns} turns).")
+    return outcome

@@ -69,6 +69,7 @@ class EffectView:
     label: str
     turns_left: int
     magnitude: int
+    per_turn: bool = False      # the magnitude applies every turn (regeneration), not for the whole duration
 
 
 @dataclass
@@ -295,7 +296,8 @@ def _effects(player) -> List[EffectView]:
     from .extensions import status_effects
     return [
         EffectView(e['name'], getattr(status_effects.get(e['name']), 'label', e['name']),
-                   e['turns_left'], e['magnitude'])
+                   e['turns_left'], e['magnitude'],
+                   getattr(status_effects.get(e['name']), 'per_turn', False))
         for e in (player.stats.get('effects') or [])
     ]
 

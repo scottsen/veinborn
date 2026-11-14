@@ -168,17 +168,20 @@ def item_effect(name: str, *, replace: bool = False) -> Callable:
     return decorator
 
 
-def status_effect(name: str, *, label: str = "", replace: bool = False) -> Callable:
+def status_effect(name: str, *, label: str = "", per_turn: bool = False,
+                  replace: bool = False) -> Callable:
     """Register ``fn(context, actor, effect) -> Optional[str]`` as timed status effect ``name``.
 
     An effect is a dict ``{'name', 'turns_left', 'magnitude'}`` in the actor's
     ``stats['effects']`` (so saves carry it); see ``core.status_effects``. The turn loop
     calls ``fn`` once per turn for every actor that has the effect, then counts it down;
     the string it returns (if any) goes to the message log when the actor is a player.
-    ``label`` is the display name ("Regenerating").
+    ``label`` is the display name ("Regenerating"); ``per_turn`` says the magnitude applies each
+    turn (regeneration) rather than for the whole duration (a strength buff).
     """
     def decorator(fn: Callable) -> Callable:
         fn.label = label or name.replace('_', ' ').capitalize()
+        fn.per_turn = per_turn
         status_effects.register(name, fn, replace=replace)
         return fn
     return decorator

@@ -154,6 +154,8 @@ class Player(Entity):
         if self.equipped_weapon:
             weapon_bonus = self.equipped_weapon.get_stat('attack_bonus', 0)
             total += weapon_bonus
+        from .status_effects import effects_of
+        total += sum(e['magnitude'] for e in effects_of(self) if e['name'] == 'strength')
         return total
 
     def get_total_accuracy(self) -> int:
