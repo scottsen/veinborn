@@ -63,6 +63,18 @@ tiles (`collect_action`; autopickup skips potions). Whether a fight is winnable
 
 All four class bots run this shared planner and differ only in their `CombatConfig`
 (the old per-class decision trees were never called and were removed, VB-57).
+`safety_margin` means "kill it this many times faster than it kills me", so a bigger value is
+more cautious (it used to multiply the other side and did the opposite).
+
+Two rules keep a bot alive in a fight it is losing or about to start: it **rests** (waits) when
+below 70% HP with no monster in sight, until 90% (natural regeneration triples while resting,
+VB-107; `ActionPlanner.rest_action`), and a melee it is losing **escapes to the stairs** when the
+hits taken on the way leave it alive (`escape_action`). Measured on 20000-turn paired runs
+(seeds 3000+, 24 games x 4 classes): resting plus scaled regeneration cut deaths 53% -> 36%; the
+escape rule never fired (the stairs are usually too far); instant potions are used before
+over-time food. Run results: `~/src/tia/sessions/acidic-lens-1113/bot_runs/`. Bots do not read
+snapshots, so fog of war does not change them. `--start-floor` runs give no gear: every bot dies
+in about 40 turns at floor 50, so they test arrival, not the late game.
 
 The bot sees every monster on the floor, as a human does: the TUI draws the whole floor
 and players have no fog of war.
