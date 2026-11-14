@@ -2,7 +2,7 @@
 project: veinborn
 schema_version: '1.0'
 id_prefix: VB
-next_id: 108
+next_id: 109
 archival: inline
 areas: {}
 ---
@@ -1621,7 +1621,7 @@ priority: medium
 effort: 8-12h total (steps 1+2 ~half day)
 tags: [fuzz, bots, balance, ai, tests]
 created: '2026-11-12T19:21:49Z'
-updated: '2026-11-14T05:57:20Z'
+updated: '2026-11-14T13:49:00Z'
 session: warming-squall-1112
 parent: VB-47
 links:
@@ -1636,7 +1636,7 @@ links:
   - VB-64
   - VB-57
   - VB-32
-notes_next: 9
+notes_next: 10
 ```
 
 Goal: turn most of 'play-test' into measurement so VB-64 (and later VB-65/67) become data decisions, and Scott's play-test shrinks to feel questions (fun, fairness feel, message readability, boss feel) on monsters the numbers already call balanced.
@@ -1669,6 +1669,7 @@ Steps 1+2 are the high-value half: do them before asking Scott for VB-64 numbers
 - [#6 2026-11-12T21:41:41Z session:serene-cyclone-1112] Floor-stall fix 69c59c0, paired A/B (seeds 1000-1031, 3000 turns, 128 pairs, before 07667a7): floor 9.12 -> 11.70 (+2.59 [+2.16, +3.01]*), level 6.66 -> 7.41*, every class significant (mage +2.12, rogue +3.00, warrior +2.53, healer +2.69); deaths 6 -> 9 of 128 (+0.02 [-0.03, +0.06], mage 6 -> 9 of 32 as it reaches deeper floors), 0 crashes, 0 errors. All earlier floor numbers (incl. 'bots reach ~floor 10') were stall-limited. Results /var/tmp/vb68_stall_{before_07667a7,after_69c59c0}/logs/, compare.json in the after dir. New baseline for future A/Bs: the after_* files.
 - [#7 2026-11-13T03:05:56Z session:quantum-energy-1112] a18c7ab: bots fetch boss materials (planner step 4b, MATERIAL_REACH 12, makes room by dropping the lowest-value item up to ore, never a material). Before it, an instrumented 3% run saw 995 material drops but 10 pickups and 2 legendary crafts in 12 warrior games, so the legendary path was unmeasured. Instrumented runner (logs drops, pickups, crafts): /var/tmp/vb75_long_r*_a18c7ab/instrumented.py.
 - [#8 2026-11-14T05:57:20Z session:acidic-lens-1113] 2026-11-13 (acidic-lens-1113) bot update. (1) safety_margin multiplied the wrong side (bigger margin = more fights); fixed e1e926d, A/B 3000 turns: 122/128 identical, damage taken -1.04*, deaths 0.01 both: not the lever. (2) --start-floor 50 --start-level 11 runs are not a late-game benchmark: advance_to gives no gear, every bot dies in ~40 turns (86/96 identical across the margin change). (3) Escape-to-stairs when losing a melee (dabc9a1, escape_action/can_afford_escape): 20000-turn paired run seeds 3000+, 96 pairs, 96/96 identical: it never fired. Replaying mage seed 3000 (floor 54, killed by phoenix): stairs were 41 tiles away at 20 HP, so unaffordable, correctly declined. (4) Real pattern in that death trace: mage max HP 48 on floor 54 (monsters 72-98 HP, phoenix ~4.2/turn expected), bot walks toward a lich at 26/48 HP (is_low_health threshold 0.5 says not low), 5-7 monsters converge (lich x3, demon, phoenix x2, basilisk), the 1v1 fight model never sees the pack, no resting to heal. Gear at arrival is flat floor 20->60 (def ~33) and identical for dead and surviving bots. Next levers in order: pack-aware threat sum over monsters within ~8, rest (wait) to ~80% HP when nothing is in range before sweeping on, disengage earlier than adjacency, geared deep-start scenario. Probe scripts must import fuzz.services.* (the bot's module path), not services.*.
+- [#9 2026-11-14T13:49:00Z session:acidic-lens-1113] Update 2026-11-14: scaled regen + bot resting cut deaths 0.53 -> 0.36 on the 20000-turn A/B (see VB-107 note #2); remaining bot lever list lives in the follow-up task filed with this save.
 
 
 ## TASK-VB-69 · Spawn tables: 10 of 19 monsters never spawn (wyvern, vampire, lich, demon, phoenix, ancient_horror, wraith, mimic, golem, basilisk)
@@ -2587,7 +2588,7 @@ priority: medium
 effort: 3d
 tags: [balance, loot, content]
 created: '2026-11-14T06:09:09Z'
-updated: '2026-11-14T07:17:43Z'
+updated: '2026-11-14T13:48:50Z'
 session: acidic-lens-1113
 notes_next: 5
 ```
@@ -2595,6 +2596,23 @@ notes_next: 5
 <!-- notes: append-only log; each has a stable #id (see CLI §5) -->
 ### Notes
 - [#1 2026-11-14T06:09:14Z session:acidic-lens-1113] Decisions (Scott, 2026-11-13): (1) natural regen = max(1, int(5% of max HP)) per 10 turns, x3 when the player waited last turn with no living monster in sight (rested_turn stat set by WaitAction; TurnProcessor._is_resting) - DONE c6b4ae2, config: game_constants health_regeneration percent_of_max / rest_multiplier; under 40 max HP behaviour is unchanged. (2) food heals over time via a status-effect primitive (VB-65) with regeneration as its first effect; potions stay instant. (3) drops: shared tables by monster family (beast/humanoid/undead/demon+boss), potion quality scales with floor, every monster gets a table. (4) order: regen -> status-effect primitive -> drop tables -> floor supply -> scrolls (mapping, teleport first; mapping matters now that fog exists). Open: bots rest to heal (planner), measure potions used/deaths on 20000-turn paired runs.
-- [#2 2026-11-14T06:41:15Z session:acidic-lens-1113] Measured (regen c6b4ae2 + bot rest d35e47d together vs dabc9a1; seeds 3000+, 24 games x 4 classes x 20000 turns, 96 pairs, scripts/compare_bot_runs.py): deaths 0.53 -> 0.36 (-0.17 [-0.28,-0.06]*), warrior 0.58 -> 0.25*, rogue 0.46 -> 0.25, mage 0.92 -> 0.75 (CIs include 0), phoenix kills 31 -> 20, potions used 4.1 -> 2.7*, damage taken +75* (they survive more fights), floor 61.4 -> 61.7 (n.s.; 20000-turn cap binds). Regen and rest not separated. Results: scratchpad of acidic-lens-1113 (regen_after/, esc_long_after/ baseline); rerun: tests/fuzz/<class>_bot.py --games 24 --max-turns 20000 --seed-base 3000.
+- [#2 2026-11-14T06:41:15Z session:acidic-lens-1113] Measured (regen c6b4ae2 + bot rest d35e47d together vs dabc9a1; seeds 3000+, 24 games x 4 classes x 20000 turns, 96 pairs, scripts/compare_bot_runs.py): deaths 0.53 -> 0.36 (-0.17 [-0.28,-0.06]*), warrior 0.58 -> 0.25*, rogue 0.46 -> 0.25, mage 0.92 -> 0.75 (CIs include 0), phoenix kills 31 -> 20, potions used 4.1 -> 2.7*, damage taken +75* (they survive more fights), floor 61.4 -> 61.7 (n.s.; 20000-turn cap binds). Regen and rest not separated. Results: /home/scottsen/src/tia/sessions/acidic-lens-1113/bot_runs/ (esc_long_after = baseline, regen_after); rerun: tests/fuzz/<class>_bot.py --games 24 --max-turns 20000 --seed-base 3000.
 - [#3 2026-11-14T06:50:11Z session:acidic-lens-1113] Step 2 done (status-effect primitive): core/status_effects.py + @status_effect + content/status/regeneration.py + TurnProcessor._tick_status_effects + PlayerView.effects (protocol 5) + sidebar line. Food now heals over time (ration 1x10, bread 1x6, meat 2x6), new potion_regeneration (3x10, effect 'regenerate'; not in any drop table yet). best_healing_item: instant healers first, over-time only as fallback (instant_only flag). 1574 tests; 48 bot games 0 errors. Remaining: step 3 drop tables by monster family + depth scaling, floor supply, step 4 scrolls (mapping, teleport first).
 - [#4 2026-11-14T07:17:43Z session:acidic-lens-1113] Step 3 done (51ab8ef + 811cbfb): shared loot tables beast/undead/brute/arcane (consumables only, no gold), min_floor depth gating in LootGenerator (healing 1 / regeneration 5 / extra 10 / full 30), regeneration potions on orc/troll, potions or meat on wyvern/wraith/lich/phoenix; all 19 monsters now resolve to a table (VB-70 'no loot table' warnings gone). Measured vs regen run (same seeds 3000+, 96 pairs, 20000 turns): NO significant change: deaths 0.36 -> 0.38, potions used 2.70 -> 2.66, floor 61.7 -> 63.6 (n.s.), 0/96 identical (drops shift every seeded game). Bots rest first and only drink at <=40% HP with a monster in sight, so extra supply is barely consumed; burst/phoenix/demon deaths are not answered by potions at that threshold. Not measured: potions picked up or left on the floor. Next: log pickups per game to see supply vs use; earlier emergency drinking when a pack approaches; floor supply (kill-independent) and scrolls (mapping, teleport) are still open.
+
+
+## TASK-VB-108 · Bots: pack-aware threat (sum fight odds over monsters in ~8 tiles), disengage before adjacency, geared deep-start scenario (advance_to gives no gear), rest/escape follow-ups; evidence in VB-68 note #8
+
+```yaml
+status: backlog
+priority: medium
+effort: 4h
+tags: [bots, balance, fuzz]
+created: '2026-11-14T13:49:00Z'
+updated: '2026-11-14T13:49:00Z'
+session: acidic-lens-1113
+```
+
+<!-- notes: append-only log; each has a stable #id (see CLI §5) -->
+### Notes
+_(no notes yet)_
