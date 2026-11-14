@@ -117,6 +117,11 @@ class GameResult:
     start_level: int = 1
     # floor -> [turn, level, attack, defense] when the bot first stood on it (JSON keys are strings)
     floor_arrivals: Dict[int, List[int]] = None
+    # Crafting (VB-121): every craft {recipe, floor, turn, stats}, and what was worn at the end
+    crafts: List[Dict] = None
+    final_gear: Dict[str, Optional[Dict]] = None     # slot -> {name, stats} or None
+    final_attack: int = 0
+    final_defense: int = 0
 
 
 BURST_TURNS = 2
@@ -133,6 +138,8 @@ class CombatRecorder:
         self.items_used = 0
         self.items_picked_up = 0
         self.items_dropped = 0
+        self.crafts = []
+        game.event_bus.subscribe(GameEventType.EQUIPMENT_CRAFTED, self._on_craft, 'bot.recorder.crafts')
         game.event_bus.subscribe(GameEventType.ITEM_DROPPED, self._on_drop, 'bot.recorder.drops')
         game.event_bus.subscribe(GameEventType.ITEM_PICKED_UP, self._on_pickup, 'bot.recorder.pickups')
         game.event_bus.subscribe(GameEventType.ATTACK_RESOLVED, self._on_attack, 'bot.recorder')
@@ -156,6 +163,26 @@ class CombatRecorder:
         item = self.game.context.get_entity(event.data.get('item_id'))
         if item is not None and item.get_stat('effect'):
             self.items_picked_up += 1
+
+    def _on_craft(self, event):
+        if event.data.get('actor_id') != self.game.state.player.entity_id:
+            return
+        self.crafts.append({
+            'recipe': event.data.get('recipe_id'),
+            'floor': self.game.state.current_floor,
+            'turn': self.game.state.turn_count,
+            'stats': dict(event.data.get('stats') or {}),
+        })
+
+    def final_gear(self):
+        """slot -> {name, stats} for what the player wears now, None for an empty slot."""
+        from core.equipment import GEAR_SLOTS, core_stats, worn_item
+        player = self.game.state.player
+        gear = {}
+        for slot in GEAR_SLOTS:
+            item = worn_item(player, slot)
+            gear[slot] = {'name': item.name, 'stats': core_stats(item)} if item is not None else None
+        return gear
 
     def _on_drop(self, event):
         if event.data.get('actor_id') != self.game.state.player.entity_id:
@@ -743,6 +770,10 @@ class VeinbornBot:
             game_stats['items_picked_up'] = recorder.items_picked_up
             game_stats['items_carried_at_end'] = recorder.carried_usable()
             game_stats['items_dropped'] = recorder.items_dropped
+            game_stats['crafts'] = list(recorder.crafts)
+            game_stats['final_gear'] = recorder.final_gear()
+            game_stats['final_attack'] = game.state.player.get_total_attack()
+            game_stats['final_defense'] = game.state.player.get_total_defense()
             if game.state.game_over:
                 game_stats['killed_by_type'] = recorder.last_attacker
                 earlier = hp_history[-(BURST_TURNS + 1)] if len(hp_history) > BURST_TURNS else hp_history[0]
@@ -855,6 +886,10 @@ class VeinbornBot:
                 items_picked_up=game_stats.get('items_picked_up', 0),
                 items_carried_at_end=game_stats.get('items_carried_at_end', 0),
                 items_dropped=game_stats.get('items_dropped', 0),
+                crafts=game_stats.get('crafts') or [],
+                final_gear=game_stats.get('final_gear') or {},
+                final_attack=game_stats.get('final_attack', 0),
+                final_defense=game_stats.get('final_defense', 0),
                 start_floor=self.start_floor,
                 start_level=self.start_level,
                 floor_arrivals=game_stats.get('floor_arrivals') or {},

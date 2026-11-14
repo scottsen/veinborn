@@ -81,9 +81,11 @@ class CraftingRecipe:
                 )
                 stats[stat_name] = 0
 
-        # Ensure minimum stat value of 1 (even terrible ore makes usable gear)
+        # Ensure minimum stat value of 1 (even terrible ore makes usable gear), for stats the
+        # recipe computes from ore; a fixed value (a weapon's 'defense_bonus: 0') stays as written
         for stat_name in ['attack_bonus', 'defense_bonus', 'durability']:
-            if stat_name in stats and stats[stat_name] < 1 and stat_name in self.stat_formulas:
+            if (stat_name in stats and stats[stat_name] < 1
+                    and isinstance(self.stat_formulas.get(stat_name), str)):
                 stats[stat_name] = 1
 
         logger.debug(

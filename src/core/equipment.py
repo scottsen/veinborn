@@ -13,6 +13,14 @@ from dataclasses import dataclass
 from typing import List, Optional, Tuple
 
 GEAR_SLOTS = ('weapon', 'armor', 'shield')
+# The stats worn gear can carry that the game reads (crafting v2 D1, VB-113/VB-114)
+CORE_GEAR_STATS = ('attack_bonus', 'defense_bonus', 'accuracy', 'max_hp_bonus', 'spell_power',
+                   'fire_damage')
+
+
+def core_stats(item) -> dict:
+    """The item's nonzero core gear stats, e.g. {'attack_bonus': 6, 'accuracy': 2}."""
+    return {k: item.get_stat(k, 0) for k in CORE_GEAR_STATS if item.get_stat(k, 0)}
 
 
 def gear_slot(item) -> Optional[str]:

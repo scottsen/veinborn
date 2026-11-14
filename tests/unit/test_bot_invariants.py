@@ -101,3 +101,25 @@ def test_recorder_counts_dropped_usable_items(game):
     game.event_bus.publish_dict({'type': 'item_dropped', 'actor_id': player.entity_id,
                                  'item_id': potion.entity_id, 'item_name': potion.name})
     assert recorder.items_dropped == 1
+
+
+def test_recorder_lists_crafts_and_the_gear_worn_at_the_end(game):
+    from core.base.entity import EntityType
+    from core.entity_loader import EntityLoader
+    recorder = CombatRecorder(game)
+    player = game.state.player
+    forge = game.context.get_entities_by_type(EntityType.FORGE)[0]
+    player.x, player.y = forge.x + 1, forge.y
+    player.inventory.clear()
+    vein = EntityLoader().create_ore_vein('copper', 0, 0, floor=1)
+    for _ in range(2):
+        player.add_to_inventory(vein.get_ore_item())
+    game.handle_player_action('craft', forge_id=forge.entity_id, recipe_id='copper_sword')
+    assert [c['recipe'] for c in recorder.crafts] == ['copper_sword']
+    craft = recorder.crafts[0]
+    assert craft['floor'] == game.state.current_floor and craft['stats']['attack_bonus'] >= 1
+    sword = next(i for i in player.inventory if i.get_stat('recipe_id') == 'copper_sword')
+    game.handle_player_action('equip', item_id=sword.entity_id)
+    gear = recorder.final_gear()
+    assert gear['weapon']['name'] == 'Copper Sword' and gear['weapon']['stats'] == craft['stats']
+    assert set(gear) == {'weapon', 'armor', 'shield'}

@@ -243,3 +243,17 @@ def test_preview_from_properties_matches_preview_stats(game):
     ids = [o.entity_id for o in ores]
     assert manager.preview_from_properties('copper_sword', [ore_properties(o) for o in ores]) == \
         manager.preview_stats('copper_sword', player.inventory, ids)
+
+
+def test_craft_event_carries_stats_and_ore_quality(game):
+    from core.events import GameEventType
+    player, forge = _at_forge(game)
+    for o in _copper(3):
+        player.add_to_inventory(o)
+    seen = []
+    game.event_bus.subscribe(GameEventType.EQUIPMENT_CRAFTED, seen.append, 'test')
+    game.handle_player_action('craft', forge_id=forge.entity_id, recipe_id='copper_sword')
+    data = seen[0].data
+    assert data['recipe_id'] == 'copper_sword' and data['item_name'] == 'Copper Sword'
+    assert data['stats'].get('attack_bonus', 0) >= 1
+    assert set(data['ore']) >= {'purity', 'hardness'}

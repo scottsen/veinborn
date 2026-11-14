@@ -22,7 +22,8 @@ def game(seed, floor, cls="mage", died=False, crash=False):
             'completed': not (died or crash),
             'death_cause': 'crash' if crash else ('Killed by Orc' if died else None), 'errors': 0,
             'burst_death': False, 'potions_used': 0, 'items_picked_up': 0,
-            'items_carried_at_end': 0, 'items_dropped': 0, 'killed_by_type': 'orc' if died else None}
+            'items_carried_at_end': 0, 'items_dropped': 0, 'crafts': [],
+            'final_attack': 0, 'final_defense': 0, 'killed_by_type': 'orc' if died else None}
 
 
 def write(tmp_path, name, games):
@@ -84,3 +85,16 @@ def test_damage_by_monster_isolates_the_monster_that_changed(cmp, tmp_path):
 def test_damage_by_monster_skips_runs_without_it(cmp, tmp_path):
     before, _ = cmp.load([write(tmp_path, "b.json", [game(s, 3) for s in range(4)])])
     assert cmp.damage_by_monster(before, before, sorted(before)) == {}
+
+
+def test_crafts_by_recipe_are_reported(cmp, tmp_path, capsys):
+    before_games = [dict(game(s, 3), crafts=[{'recipe': 'copper_sword'}]) for s in range(4)]
+    after_games = [dict(game(s, 3), crafts=[{'recipe': 'iron_sword'}, {'recipe': 'copper_sword'}])
+                   for s in range(4)]
+    before, _ = cmp.load([write(tmp_path, "b.json", before_games)])
+    after, _ = cmp.load([write(tmp_path, "a.json", after_games)])
+    cmp.print_crafts(before, after, sorted(before))
+    out = capsys.readouterr().out
+    assert "copper_sword 4->4" in out and "iron_sword 0->4" in out
+    r = cmp.paired(before, after, sorted(before), lambda g: len(g['crafts']))
+    assert r['diff'] == 1.0

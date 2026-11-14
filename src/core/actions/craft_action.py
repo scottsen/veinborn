@@ -168,12 +168,19 @@ class CraftAction(Action):
         outcome.messages.append(f"  Attack: +{attack_bonus}, Defense: +{defense_bonus}")
 
         # Publish crafting event
+        # Stats and ore quality ride on the event so any listener (bot records, telemetry, a
+        # playtest log) knows what was made without looking the item up (VB-121)
+        from ..equipment import core_stats
         outcome.events.append({
             'type': 'equipment_crafted',
             'actor_id': self.actor_id,
             'forge_id': self.forge_id,
             'recipe_id': self.recipe_id,
             'equipment_id': equipment.entity_id,
+            'item_name': equipment.name,
+            'stats': core_stats(equipment),
+            'ore': equipment.get_stat('crafted_from_ore', {}),
+            'ore_ids': list(self.ore_ids) if self.ore_ids else None,
         })
 
         return outcome

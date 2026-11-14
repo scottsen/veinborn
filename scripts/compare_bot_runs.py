@@ -39,10 +39,14 @@ METRICS = [
     ('picked', 'usable items picked up', lambda g: g['items_picked_up']),
     ('carried', 'usable items carried at end', lambda g: g['items_carried_at_end']),
     ('dropped', 'usable items dropped', lambda g: g['items_dropped']),
+    ('crafts', 'items crafted', lambda g: len(g['crafts'])),
+    ('final_atk', 'attack at end', lambda g: g['final_attack']),
+    ('final_def', 'defense at end', lambda g: g['final_defense']),
 ]
 # Fields added after the first results files: a metric is skipped unless every game has it
 _NEEDS = {'burst': 'burst_death', 'potions': 'potions_used',
-          'picked': 'items_picked_up', 'carried': 'items_carried_at_end', 'dropped': 'items_dropped'}
+          'picked': 'items_picked_up', 'carried': 'items_carried_at_end', 'dropped': 'items_dropped',
+          'crafts': 'crafts', 'final_atk': 'final_attack', 'final_def': 'final_defense'}
 
 # Two-sided 95% t critical values by degrees of freedom (normal beyond 30)
 _T95 = {1: 12.71, 2: 4.30, 3: 3.18, 4: 2.78, 5: 2.57, 6: 2.45, 7: 2.36, 8: 2.31, 9: 2.26,
@@ -95,6 +99,20 @@ def print_killers(before, after, keys):
     if counts:
         print("  killed by: " + ", ".join(
             f"{m} {b}->{a}" for m, (b, a) in sorted(counts.items(), key=lambda kv: -sum(kv[1]))))
+
+
+def print_crafts(before, after, keys):
+    """What the bot crafted, by recipe, before vs after (when recorded, VB-121)."""
+    if not all('crafts' in before[k] and 'crafts' in after[k] for k in keys):
+        return
+    counts = defaultdict(lambda: [0, 0])
+    for k in keys:
+        for side, g in ((0, before[k]), (1, after[k])):
+            for craft in g['crafts']:
+                counts[craft['recipe']][side] += 1
+    if counts:
+        print("  crafted: " + ", ".join(
+            f"{r} {b}->{a}" for r, (b, a) in sorted(counts.items(), key=lambda kv: -sum(kv[1]))))
 
 
 def damage_by_monster(before, after, keys):
@@ -179,6 +197,7 @@ def main():
         shared = [read for name, _, read in METRICS if name in report[cls]]
         identical = sum(all(read(before[k]) == read(after[k]) for read in shared) for k in keys)
         print_killers(before, after, keys)
+        print_crafts(before, after, keys)
         by_monster = damage_by_monster(before, after, keys)
         print_damage_by(by_monster)
         if by_monster:

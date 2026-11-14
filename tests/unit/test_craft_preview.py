@@ -64,3 +64,12 @@ def test_bot_picks_only_an_upgrade(forge_game):
         item.set_stat('attack_bonus' if slot == 'equipped_weapon' else 'defense_bonus', gain + 50)
         setattr(player, slot, item)
     assert perception.has_craftable_ore(game) is None
+
+
+def test_a_fixed_zero_stat_stays_zero():
+    manager = CraftAction.get_recipe_manager()
+    plate = manager.get_recipe('copper_chestplate')
+    assert plate.stat_formulas['attack_bonus'] == 0                  # fixed in recipes.yaml
+    poor = dict(hardness=1, conductivity=1, malleability=1, purity=1, density=1)
+    stats = plate.calculate_stats(poor)
+    assert stats['attack_bonus'] == 0 and stats['defense_bonus'] >= 1   # computed ones keep the floor
