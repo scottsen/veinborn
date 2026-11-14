@@ -15,7 +15,7 @@ from core.item_listing import ground_messages, items_here
 from textual.screen import ModalScreen
 from ui.textual.equipment_screen import EquipmentScreen
 from ui.textual.craft_screen import CraftScreen
-from ui.textual.pack_screen import PackScreen
+from ui.textual.pack_screen import PackScreen, GroundScreen
 from ui.textual.help_screen import HelpScreen
 from ui.textual.confirm_screen import ConfirmScreen
 from ui.driver import LocalDriver, RemoteDriver
@@ -153,7 +153,7 @@ class VeinbornApp(App):
         Binding("f", "craft", "Craft at a forge (stand next to it)", show=True),
         Binding("question_mark", "help", "Keys help (?)", show=True),
         Binding("w", "equip_item", "Equipment (wield/wear/remove)", show=True),
-        Binding("g", "pickup", "Pick up Items", show=True),
+        Binding("g", "pickup", "Pick up (a list to choose from when several)", show=True),
         Binding("e", "use_item", "Quick eat/drink (best heal)", show=True),
         Binding("d", "drop_item", "Quick drop (least useful)", show=True),
         Binding(":", "look_at_ground", "Look at Ground", show=True),
@@ -392,8 +392,13 @@ class VeinbornApp(App):
         await self._act('drop')
 
     async def action_pickup(self) -> None:
-        """Pick up items from the ground."""
-        await self._act('pickup')
+        """Pick up items from the ground: one item at once, a choice list when there are several."""
+        if not self._playing():
+            return
+        if len(items_here(self.driver.snapshot())) > 1:
+            self.push_screen(GroundScreen(self.driver, on_change=self.refresh_ui))
+        else:
+            await self._act('pickup')
 
     def check_action(self, action: str, parameters) -> bool | None:
         """While a screen (equipment, pack, forge, keys, a prompt) is open the map keys must not

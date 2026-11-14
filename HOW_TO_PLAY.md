@@ -41,7 +41,7 @@ b   n
 - **Walk into an ore vein** = Mine it (bump-to-mine; takes 3-5 turns, you're vulnerable!)
 - **s** = Survey nearby ore (see its properties)
 - **z** = Use your class ability (mage force bolt, healer heal)
-- **g** = Pick up items on your tile (potions and scrolls are not picked up automatically)
+- **g** = Pick up items on your tile: one item is taken at once; with several you get a list (Enter takes the selected one, **a** takes all). Potions and scrolls are not picked up automatically
 - **e** = Eat or drink: uses the cheapest potion or food that covers your missing HP
 - **d** = Drop the item least worth carrying: things with no use yet (gold, shields, scrolls,
   rings), then weapons/armor worse than what you wear, then the lowest-purity ore. Press again

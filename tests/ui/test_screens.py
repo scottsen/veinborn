@@ -320,3 +320,57 @@ def test_enter_on_an_assembly_crafts_the_best_parts():
         await pilot.pause()
         assert any(i.get_stat('recipe_id') == 'chestplate' for i in player.inventory)
     run(scenario)
+
+
+def _drop_items_here(game, item_ids):
+    """Put these items on the player's tile (pack emptied); returns them."""
+    player = game.state.player
+    player.inventory.clear()
+    items = []
+    for item_id in item_ids:
+        item = LootGenerator.get_instance().create_item(item_id)
+        item.x, item.y = player.x, player.y
+        game.context.add_entity(item)
+        items.append(item)
+    return items
+
+
+def test_g_with_several_items_lets_you_choose_one():
+    from ui.textual.pack_screen import GroundScreen
+
+    async def scenario(app, pilot, game):
+        gold, potion, ration = _drop_items_here(game, ['gold_pile_small', 'potion_healing', 'ration'])
+        await pilot.press("g")
+        await pilot.pause()
+        assert isinstance(app.screen, GroundScreen)
+        screen = app.screen
+        names = [r.name for r in screen.rows()]
+        screen.cursor = next(n for n, r in enumerate(screen.rows()) if r.entity_id == potion.entity_id)
+        await pilot.press("enter")
+        await pilot.pause()
+        player = game.state.player
+        assert potion in player.inventory and gold not in player.inventory and ration not in player.inventory
+        assert len(screen.rows()) == len(names) - 1                  # the rest still lie here
+        await pilot.press("a")
+        await pilot.pause()
+        assert gold in player.inventory and ration in player.inventory
+        assert not isinstance(app.screen, GroundScreen)
+    run(scenario)
+
+
+def test_g_with_one_item_takes_it_at_once():
+    from ui.textual.pack_screen import GroundScreen
+
+    async def scenario(app, pilot, game):
+        (potion,) = _drop_items_here(game, ['potion_healing'])
+        await pilot.press("g")
+        await pilot.pause()
+        assert not isinstance(app.screen, GroundScreen)
+        assert potion in game.state.player.inventory
+    run(scenario)
+
+
+def test_pickup_intent_can_name_the_item():
+    from core.actions.pickup_action import PickupAction
+    assert PickupAction.from_dict(PickupAction('a', 'x').to_dict()) == PickupAction('a', 'x')
+    assert PickupAction.from_dict({'actor_id': 'a'}) == PickupAction('a')       # old saved intents

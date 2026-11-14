@@ -533,7 +533,7 @@ class ActionFactory:
             PickupAction
         """
         actor_id = self._actor(context, kwargs).entity_id
-        return PickupAction(actor_id)
+        return PickupAction(actor_id, kwargs.get('item_id'))
 
     # ============================================================================
     # Helper Methods

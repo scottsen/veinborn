@@ -60,3 +60,38 @@ class PackScreen(ListScreen):
         rows = self.rows()
         if rows:
             await self.run('drop', item_id=rows[min(self.cursor, len(rows) - 1)].entity_id)
+
+
+class GroundScreen(ListScreen):
+    """The items on your tile (VB-128): Enter takes the selected one, `a` takes them all.
+
+    `g` opens it only when more than one item lies here; one item is still taken at once.
+    Rows are the snapshot's items on the viewer's tile, so a remote client lists the same.
+    """
+
+    BINDINGS = ListScreen.BINDINGS + [
+        Binding("a", "take_all", "Take all", show=False),
+        Binding("g", "close", "Close", show=False),
+    ]
+    heading = "ON THE GROUND"
+    footer = "↑/↓ select   Enter take   a take all   Esc close"
+    empty = "(nothing left here)"
+
+    def rows(self):
+        from core.item_listing import items_here
+        return items_here(self.driver.snapshot())
+
+    def header(self) -> str:
+        p = self.driver.snapshot().player
+        return f"Pack {len(p.inventory)}/{p.inventory_capacity}"
+
+    def row_text(self, line) -> str:
+        return line.text
+
+    async def activate(self, line) -> None:
+        await self.run('pickup', item_id=line.entity_id)
+        self.cursor = 0
+
+    async def action_take_all(self) -> None:
+        await self.run('pickup')
+        self.dismiss()

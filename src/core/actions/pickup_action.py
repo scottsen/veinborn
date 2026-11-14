@@ -54,9 +54,10 @@ def _pickup_messages(picked_up: list, failed: list) -> list:
 
 @dataclass
 class PickupAction(Action):
-    """Pick up all items at actor's position."""
+    """Pick up the items at actor's position: all of them, or just `item_id` (VB-128)."""
 
     actor_id: str
+    item_id: object = None      # one chosen item; None takes everything
 
     def validate(self, context: GameContext) -> bool:
         """Check if pickup is valid (player only)."""
@@ -89,6 +90,8 @@ class PickupAction(Action):
             return ActionOutcome.failure("Actor not found")
 
         items_here = items_at(context, actor.x, actor.y)
+        if self.item_id is not None:
+            items_here = [i for i in items_here if i.entity_id == self.item_id]
         if not items_here:
             outcome = ActionOutcome.success(took_turn=False)
             outcome.messages.append("There are no items here to pick up.")
@@ -126,10 +129,12 @@ class PickupAction(Action):
         return {
             'action_type': 'PickupAction',
             'actor_id': self.actor_id,
+            'item_id': self.item_id,
         }
 
     @classmethod
     def from_dict(cls, data: dict) -> 'PickupAction':
         return cls(
             actor_id=data['actor_id'],
+            item_id=data.get('item_id'),
         )
