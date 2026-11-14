@@ -3108,15 +3108,16 @@ status: done
 priority: medium
 tags: [items, inventory, bots]
 created: '2026-11-14T23:19:21Z'
-updated: '2026-11-14T23:19:25Z'
+updated: '2026-11-14T23:23:37Z'
 session: fuchsia-dye-1114
 links:
   commits:
   - 3dba990a5a472b25737c1cb29b5e76984c174219
-notes_next: 3
+notes_next: 4
 ```
 
 <!-- notes: append-only log; each has a stable #id (see CLI §5) -->
 ### Notes
 - [#1 2026-11-14T23:19:25Z session:fuchsia-dye-1114] Built 3dba990. One list (player.inventory), two capacities: Player.uses_ore_bag (raw ore + boss materials) counts against MAX_ORE_BAG=30, everything else against MAX_INVENTORY=20; so crafting, saves, forge and legacy vault are untouched. Gold = player.gold (saved, snapshot, protocol 13); old saves convert gold piles. Bot planner mines against the bag, drops a second boss-material copy only when the bag is full. 3000-turn bot check (warrior seeds 3000/3001): floor 11, 51-52 ore, 0 errors. NOT done: no paired A/B (bots now never block mining on a full pack; re-baseline with VB-117). Sizes are class constants: game_constants inventory.max_size is not read. Bag cap 30 is a guess; tune from playtest (VB-104).
 - [#2 2026-11-14T23:19:25Z session:fuchsia-dye-1114] ore bag + gold counter built and tested; suite 1744 passed
+- [#3 2026-11-14T23:23:37Z session:fuchsia-dye-1114] Follow-up: ore label leads with Q = plain average of the 5 properties (jackpot ore always highest; density is in it though its only effect is a <=1 accuracy penalty on blades); forge 'Uses:' line now names the ore. Not done: sort the ore bag by Q.
