@@ -2592,9 +2592,9 @@ priority: medium
 effort: 3d
 tags: [balance, loot, content]
 created: '2026-11-14T06:09:09Z'
-updated: '2026-11-14T22:20:03Z'
+updated: '2026-11-14T22:43:48Z'
 session: acidic-lens-1113
-notes_next: 9
+notes_next: 10
 ```
 
 <!-- notes: append-only log; each has a stable #id (see CLI §5) -->
@@ -2607,6 +2607,7 @@ notes_next: 9
 - [#6 2026-11-14T22:01:01Z session:xuhuve-1114] 2026-11-14 human-usability review (xuhuve-1114), runtime-checked over every items.yaml item: loot tables DROP 8 items a human can neither use nor wear: potion_strength (no buff_attack effect), scroll_enchant_weapon, scroll_enchant_armor, scroll_identify, scroll_teleport (no effects), ring_protection, ring_regeneration, ring_strength (gear_slot None: no ring slot). Only heal/heal_full/eat/regenerate are implemented (content/items/healing.py). They fill pack slots as dead weight (quick-drop treats them NO_USE). Defined but not dropped and also unimplemented: potion_speed, potion_invisibility, scroll_lightning, scroll_mapping, ring_stealth, torch/rope/lockpick. Either implement or remove from loot_tables.yaml; scrolls and the VB-82 identification design depend on this.
 - [#7 2026-11-14T22:17:23Z session:xuhuve-1114] 2026-11-14 follow-up (xuhuve-1114): scrolls enchant_weapon, enchant_armor, teleport, identify are now usable (content/items/scrolls.py, 10 tests; identify = survey every vein within 8). STILL dropped but unusable: potion_strength (needs a timed attack buff: a status effect that get_total_attack reads), ring_protection, ring_regeneration, ring_strength (no ring slot: equipment.GEAR_SLOTS, Player slot attr, save/load, equipment screen). Defined but not dropped and unimplemented: potion_speed, potion_invisibility, scroll_lightning, scroll_mapping, ring_stealth, tools. Bots do not read scrolls (no behaviour change).
 - [#8 2026-11-14T22:20:03Z session:xuhuve-1114] potion_strength now works (status effect 'strength', get_total_attack reads it, sidebar shows it, protocol 11, 2 tests). Still dropped but unusable: ring_protection, ring_regeneration, ring_strength (need a ring slot: GEAR_SLOTS, Player attr, save/load, equipment screen, a gear_slot rule).
+- [#9 2026-11-14T22:43:48Z session:fuchsia-dye-1114] Rings: ring_protection/strength/regeneration are now wearable (VB-130, 928ab38). Only ring_stealth is left of the rings.
 
 
 ## TASK-VB-108 · Bots: pack-aware threat (sum fight odds over monsters in ~8 tiles), disengage before adjacency, geared deep-start scenario (advance_to gives no gear), rest/escape follow-ups; evidence in VB-68 note #8
@@ -3080,15 +3081,20 @@ notes_next: 3
 ## TASK-VB-130 · Ring slot: ring_protection, ring_strength and ring_regeneration drop but cannot be worn (gear_slot None). Needs GEAR_SLOTS 'ring', Player.equipped_ring, totals (attack/defense), a reader for regen_rate, save/load, equipment screen, snapshot; bots' item logic wears any gear upgrade so rings shift bot baselines (re-baseline or gate)
 
 ```yaml
-status: backlog
+status: done
 priority: low
 effort: 2h
 tags: [items, equipment, keyboard]
 created: '2026-11-14T22:34:46Z'
-updated: '2026-11-14T22:34:46Z'
+updated: '2026-11-14T22:43:48Z'
 session: xuhuve-1114
+links:
+  commits:
+  - 928ab3817a37b13e832ecfc3a7cfa7533fcbbc76
+notes_next: 3
 ```
 
 <!-- notes: append-only log; each has a stable #id (see CLI §5) -->
 ### Notes
-_(no notes yet)_
+- [#1 2026-11-14T22:43:48Z session:fuchsia-dye-1114] Built 928ab38: one ring slot. strength +1 attack, protection +1 defense, regeneration regen_rate 2 = extra HP on every natural regen tick (was 'HP per turn' in the data, 1/turn would be 10x natural regen). Rings come from trolls only (10%), so bot baselines move little; bots wear a ring only if it beats the worn one (gear_bonus ring = attack+defense+regen_rate). No bot A/B was run: re-baseline with VB-117's A/B. ring_stealth stays unbuilt (VB-107, in no loot table).
+- [#2 2026-11-14T22:43:48Z session:fuchsia-dye-1114] Ring slot built and tested; full suite 1723 passed
