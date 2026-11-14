@@ -15,14 +15,9 @@ from server.config import config
 
 def setup_logging():
     """Configure logging for the server."""
-    logging.basicConfig(
-        level=getattr(logging, config.log_level.upper()),
-        format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
-        handlers=[
-            logging.StreamHandler(),
-            logging.FileHandler("veinborn_server.log"),
-        ],
-    )
+    from core.logging_setup import setup_logging as configure
+    configure(Path("veinborn_server.log"), getattr(logging, config.log_level.upper()),
+              console=True)
 
 
 async def async_main():

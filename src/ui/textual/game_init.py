@@ -16,16 +16,10 @@ def setup_logging(log_dir: Path = None):
     # Create logs directory if it doesn't exist
     log_dir.mkdir(exist_ok=True)
 
-    # Configure logging
-    logging.basicConfig(
-        level=logging.INFO,  # INFO for normal, DEBUG for development
-        format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-        handlers=[
-            logging.FileHandler(log_dir / 'veinborn.log'),
-            # StreamHandler removed - logs only go to file in normal mode
-            # (debug mode in scripts/run_debug.py still shows console output)
-        ]
-    )
+    # INFO to a size-bounded file with extra= fields (core.logging_setup); no console in
+    # normal mode (debug mode in scripts/run_debug.py still shows console output)
+    from core.logging_setup import setup_logging as configure
+    configure(log_dir / 'veinborn.log', logging.INFO)
 
     logger = logging.getLogger(__name__)
     logger.info("Veinborn logging initialized")

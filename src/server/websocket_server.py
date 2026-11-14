@@ -740,10 +740,8 @@ class VeinbornServer:
 
 async def main():
     """Main entry point for running the server."""
-    logging.basicConfig(
-        level=logging.INFO,
-        format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
-    )
+    from core.logging_setup import setup_logging
+    setup_logging(None, logging.INFO, console=True)
 
     server = VeinbornServer()
     await server.start()

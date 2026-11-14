@@ -1208,14 +1208,10 @@ Examples:
         log_level = logging.INFO
     else:
         log_level = logging.WARNING
-    logging.basicConfig(
-        level=log_level,
-        format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-        handlers=[
-            logging.FileHandler(log_dir / 'bot_tests.log'),
-            logging.StreamHandler()  # Also print to console
-        ]
-    )
+    # Size-bounded with extra= fields (core.logging_setup). Workers (--jobs) share the file, so
+    # it rolls over once here, before they start, not while they write (VB-123).
+    from core.logging_setup import setup_logging
+    setup_logging(log_dir / 'bot_tests.log', log_level, console=True, rotate_while_running=False)
 
     logger = logging.getLogger(__name__)
     logger.info(f"Bot test logging initialized - mode: {args.mode}, games: {args.games}")
