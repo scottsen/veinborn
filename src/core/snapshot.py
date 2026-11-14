@@ -55,6 +55,8 @@ class EntityView:
 class AbilityView:
     name: str
     cooldown_remaining: int     # turns until ready; 0 = ready
+    aimed: bool = False         # takes a target (a bolt); heal and the like do not
+    targets: List[object] = field(default_factory=list)   # aimed: every hostile it could hit now (range + sight)
 
     @property
     def ready(self) -> bool:
@@ -258,13 +260,35 @@ def _etype(entity) -> str:
     return t.value if hasattr(t, 'value') else str(t)
 
 
-def _abilities(player, turn: int) -> List[AbilityView]:
+def _abilities(player, turn: int, state=None) -> List[AbilityView]:
     from .extensions import abilities as registry
     cooldowns = player.get_stat('cooldowns', {})
-    return [
-        AbilityView(name, max(0, cooldowns.get(name, 0) - turn))
-        for name in player.get_stat('abilities', []) if name in registry
-    ]
+    views = []
+    for name in player.get_stat('abilities', []):
+        if name not in registry:
+            continue
+        view = AbilityView(name, max(0, cooldowns.get(name, 0) - turn))
+        reach = getattr(registry.get(name), 'aim_range', None)
+        if reach is not None and state is not None:
+            view.aimed = True
+            view.targets = _ability_targets(state, player, name, reach)
+        views.append(view)
+    return views
+
+
+def _ability_targets(state, player, name: str, default_range: int) -> List[object]:
+    """Ids of the hostiles `name` could hit now, nearest first: the same rule the cast uses."""
+    from .base.game_context import GameContext
+    from .config.config_loader import ConfigLoader
+    from .geometry import chebyshev
+    from .targeting import valid_target
+    try:
+        reach = ConfigLoader.get_config().get_ability_config(name).get('range', default_range)
+    except KeyError:
+        reach = default_range
+    context = GameContext(state)
+    hits = [e for e in context.hostiles_of(player) if valid_target(context, player, e, reach)]
+    return [e.entity_id for e in sorted(hits, key=lambda e: chebyshev(player.x, player.y, e.x, e.y))]
 
 
 def _effects(player) -> List[EffectView]:
@@ -333,7 +357,7 @@ def _recipes(player, floor: int) -> List[RecipeView]:
     return sorted(views, key=lambda r: (not r.craftable, r.name))
 
 
-def _player_view(player, turn: int) -> PlayerView:
+def _player_view(player, turn: int, state=None) -> PlayerView:
     next_xp = player.xp_for_next_level() if hasattr(player, 'xp_for_next_level') else None
     return PlayerView(
         entity_id=player.entity_id,
@@ -350,7 +374,7 @@ def _player_view(player, turn: int) -> PlayerView:
         shield=_item(getattr(player, 'equipped_shield', None)),
         inventory=[_item(i) for i in player.inventory],
         inventory_capacity=player.get_stat('inventory_capacity', 20),
-        abilities=_abilities(player, turn),
+        abilities=_abilities(player, turn, state),
         symbol=player.display_symbol,
         color=player.display_color,
         alive=player.is_alive,
@@ -393,7 +417,7 @@ def build_snapshot(state, viewer=None, message_count: int = 20) -> Snapshot:
         for e in state.entities.values()
         if e.entity_id != viewer.entity_id and shown(e)
     ]
-    player_view = _player_view(viewer, state.turn_count)
+    player_view = _player_view(viewer, state.turn_count, state)
     forge = _forge_in_reach(state, viewer)
     if forge is not None:
         player_view.forge_id = forge.entity_id

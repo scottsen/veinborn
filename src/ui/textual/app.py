@@ -17,7 +17,7 @@ from ui.textual.equipment_screen import EquipmentScreen
 from ui.textual.craft_screen import CraftScreen
 from ui.textual.pack_screen import PackScreen, GroundScreen
 from ui.textual.help_screen import HelpScreen
-from ui.textual.examine_screen import ExamineScreen
+from ui.textual.examine_screen import ExamineScreen, TargetScreen
 from ui.textual.confirm_screen import ConfirmScreen
 from ui.driver import LocalDriver, RemoteDriver
 
@@ -335,8 +335,16 @@ class VeinbornApp(App):
         await self._act('survey')
 
     async def action_ability(self) -> None:
-        """Use the class ability: mage force bolt, healer heal."""
-        await self._act('ability')
+        """Use the class ability: mage force bolt (a choice of targets when several are in
+        range), healer heal."""
+        if not self._playing():
+            return
+        snap = self.driver.snapshot()
+        aimed = next((a for a in snap.player.abilities if a.aimed and a.ready), None)
+        if aimed is not None and len(aimed.targets) > 1:
+            self.push_screen(TargetScreen(self.driver, aimed.name, on_change=self.refresh_ui))
+        else:
+            await self._act('ability')
 
     async def action_descend(self) -> None:
         """Descend the stairs to the next floor."""

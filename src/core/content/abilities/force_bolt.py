@@ -68,6 +68,7 @@ def _direct(name: str, default_range: int):
         return outcome
 
     effect.__name__ = name
+    effect.aim_range = default_range     # an aimed ability: a client may offer a choice of targets
     return effect
 
 

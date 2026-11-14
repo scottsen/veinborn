@@ -4,6 +4,7 @@ import asyncio
 import pytest
 
 from core.base.entity import EntityType
+from core.character_class import CharacterClass
 from core.entity_loader import EntityLoader
 from core.loot import LootGenerator
 from ui.textual.confirm_screen import ConfirmScreen
@@ -420,3 +421,61 @@ def test_examine_shows_a_monsters_attack_and_an_items_stats():
         monsters = [l for l in lines if l.kind == 'monster']
         assert monsters and all("attack" in l.detail and "XP" in l.detail for l in monsters)
     run(scenario)
+
+
+def _mage_with_monsters(game, kinds):
+    """Mage with monsters (one per name in `kinds`) on free floor tiles in sight, nearest first."""
+    from core.geometry import chebyshev
+    player = game.state.player
+    for m in game.context.get_entities_by_type(EntityType.MONSTER):     # a clean floor
+        del game.state.entities[m.entity_id]
+    spots = [(x, y) for x in range(player.x - 3, player.x + 4) for y in range(player.y - 3, player.y + 4)
+             if (x, y) != (player.x, player.y) and game.state.dungeon_map.is_transparent(x, y)
+             and game.state.dungeon_map.is_walkable(x, y) and game.context.get_entity_at(x, y) is None]
+    spots.sort(key=lambda p: chebyshev(player.x, player.y, *p))
+    made = []
+    for kind, (x, y) in zip(kinds, spots):
+        monster = EntityLoader().create_monster(kind, x, y)
+        game.context.add_entity(monster)
+        made.append(monster)
+    return made
+
+
+def test_z_with_two_targets_asks_which_to_bolt():
+    from ui.textual.examine_screen import TargetScreen
+
+    async def main():
+        app = VeinbornApp(seed=5, character_class=CharacterClass.MAGE)
+        async with app.run_test() as pilot:
+            game = app.driver.game
+            near, far = _mage_with_monsters(game, ['goblin', 'orc'])
+            game.state.reveal_map = True
+            app.refresh_ui()
+            await pilot.press("z")
+            await pilot.pause()
+            assert isinstance(app.screen, TargetScreen)
+            rows = app.screen.rows()
+            assert [r.entity_id for r in rows][:2] == [near.entity_id, far.entity_id]   # nearest first
+            hp = far.hp
+            app.screen.cursor = 1                                       # the farther one
+            await pilot.press("enter")
+            await pilot.pause()
+            assert not isinstance(app.screen, TargetScreen)
+            assert far.hp < hp or not far.is_alive                      # it took the bolt
+            assert near.hp == near.max_hp                               # the nearer one did not
+    asyncio.run(main())
+
+
+def test_z_with_one_target_casts_at_once():
+    from ui.textual.examine_screen import TargetScreen
+
+    async def main():
+        app = VeinbornApp(seed=5, character_class=CharacterClass.MAGE)
+        async with app.run_test() as pilot:
+            game = app.driver.game
+            (only,) = _mage_with_monsters(game, ['goblin'])
+            app.refresh_ui()
+            await pilot.press("z")
+            await pilot.pause()
+            assert not isinstance(app.screen, TargetScreen)
+    asyncio.run(main())

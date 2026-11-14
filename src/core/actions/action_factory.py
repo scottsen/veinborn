@@ -417,7 +417,7 @@ class ActionFactory:
                 context.game_state.add_message(f"{player.name} has no ability to use.")
                 return None
             ability = known[0]
-        return AbilityAction(player.entity_id, ability)
+        return AbilityAction(player.entity_id, ability, kwargs.get('target_id'))
 
     def _create_craft_action(
         self,

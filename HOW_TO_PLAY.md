@@ -194,7 +194,7 @@ sword and leather armor, the rogue wielding a dagger (their Attack/Defense
 include that gear). Three abilities work today; the rest described below
 (area spells, dodge, crits, regeneration) are planned.
 
-- **Mage:** press **z** to cast *force bolt* at the nearest monster in sight
+- **Mage:** press **z** to cast *force bolt*: with one monster in range and sight it fires at once; with two or more you get a list (nearest first) to choose the target
   (6 tiles). It never misses and ignores defense; ready again after 3 turns.
   Open with bolts as monsters approach, melee is weak.
 - **Healer:** press **z** to heal yourself (6 HP, +1 per level; ready again
