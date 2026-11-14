@@ -3031,20 +3031,25 @@ notes_next: 3
 ## TASK-VB-128 · Human input gaps: 'g' takes every item on the tile or nothing (no choice of which when the pack is nearly full); 'z' always aims at the nearest hostile in sight (no target pick); survey picks the vein for you; warrior has no 'z' ability and rogue backstab is passive but 'z' just says so; no examine cursor for monsters (VB-110)
 
 ```yaml
-status: backlog
+status: done
 priority: low
 effort: 4h
 tags: [ui, keyboard]
 created: '2026-11-14T22:01:01Z'
-updated: '2026-11-14T22:06:45Z'
+updated: '2026-11-14T22:14:08Z'
 session: xuhuve-1114
-notes_next: 3
+links:
+  commits:
+  - cbee8d7b7b2d9a719d42223a9941cd34c9d773e1
+notes_next: 5
 ```
 
 <!-- notes: append-only log; each has a stable #id (see CLI §5) -->
 ### Notes
 - [#1 2026-11-14T22:04:56Z session:xuhuve-1114] Done (this commit): 'g' with several items opens GroundScreen (Enter one, a all); PickupAction.item_id. STILL OPEN: z always targets the nearest hostile in sight (no pick); survey picks the vein; warrior has no z ability / rogue backstab passive; examine cursor = VB-110.
 - [#2 2026-11-14T22:06:45Z session:xuhuve-1114] Investigation 2026-11-14 (xuhuve-1114), code read + runtime checks. (1) 'z' target: AbilityAction takes target_id (ActionFactory ability kwarg 'ability' only; no target kwarg is forwarded) and core.targeting.aim falls back to nearest_hostile_in_sight by chebyshev, first in hostiles_of order on ties, within range 6 and line of sight. Only the mage (force_bolt) is affected; heal is self-only (so a co-op healer cannot heal an ally: design call), rogue backstab is a passive damage_modifier (not in the ability registry, so z says 'has no ability'), warrior has none (VB-53). Cheapest fix: a target prompt for z only when 2+ valid targets (reuse ListScreen; core already accepts target_id, so it is the intent kwarg + a screen + a validity check, ~2h). (2) Survey: SurveyAction costs a turn and picks the first UNSURVEYED adjacent vein; with all surveyed it re-surveys the first (a wasted turn, and the only way to re-read numbers). Every adjacent vein does get surveyed by pressing s repeatedly, so choice is not the problem: MEMORY is, split out as the survey-memory task. (3) Examine (VB-110, ~3h): the sidebar MONSTERS block lists only name and hp for the first 5 monsters (no attack/defense/abilities, not sorted by distance); nothing else can be inspected. Recommended order: survey memory first (it is the core ore hook), then z target prompt, then VB-110. Not changed: warrior ability (VB-53 design).
+- [#3 2026-11-14T22:14:08Z session:xuhuve-1114] Done: mage z target prompt (this commit) when 2+ targets in range+sight; AbilityView.aimed/targets, protocol 10; pilot-tested incl. the far target taking the bolt and the near one untouched. Survey -> VB-129 (examine, done); examine -> VB-110 list form (x). REMAINING = design calls only: warrior has no ability (VB-53), healer heal is self-only so co-op allies cannot be healed, rogue backstab is passive (z says no ability).
+- [#4 2026-11-14T22:14:08Z session:xuhuve-1114] g list, z target prompt; remaining items are design calls (VB-53)
 
 
 ## TASK-VB-129 · Survey results are a one-off message: a surveyed vein looks identical on the map (EntityView has no surveyed flag or properties; runtime-checked), so a human who surveys several veins must remember each one's P/H/M/C/D and mining time to choose which to mine; the sidebar CONTROLS block is a hand-written list that drifts from the real keys (no f, e, d, ?, i differs)
