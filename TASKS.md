@@ -2986,35 +2986,45 @@ notes_next: 2
 ## TASK-VB-126 · Human cannot see crafted gear's accuracy, max HP and spell power: ItemView.bonus is one int (attack or defense), so the equipment screen, pack rows and 'better/worse vs worn' compare, and the sidebar (Attack/Defense only) hide the three stats crafting v2 now produces
 
 ```yaml
-status: backlog
+status: done
 priority: high
 effort: 3h
 tags: [ui, crafting-v2, keyboard]
 created: '2026-11-14T22:00:58Z'
-updated: '2026-11-14T22:00:58Z'
+updated: '2026-11-14T22:04:55Z'
 session: xuhuve-1114
+links:
+  commits:
+  - 1a3b34cdbd6a7745f7ad4db34b0dc7c0f2202b2d
+notes_next: 3
 ```
 
 <!-- notes: append-only log; each has a stable #id (see CLI §5) -->
 ### Notes
-_(no notes yet)_
+- [#1 2026-11-14T22:04:55Z session:xuhuve-1114] Done 1a3b34c: ItemView.stats + PlayerView.accuracy/spell_power (protocol 8); GearLine shows every stat and a per-stat 'vs worn' diff; pack rows, equipment header and sidebar show accuracy/spell power once gear gives them. Test: test_a_human_sees_every_stat_of_crafted_gear. Not done: max HP bonus is only visible on the gear line (HP total already includes it).
+- [#2 2026-11-14T22:04:55Z session:xuhuve-1114] all gear stats visible
 
 
 ## TASK-VB-127 · Forge screen shows raw material ids ('+ phoenix_essence', 'Requires lich_phylactery') instead of item names, and does not say whether the player carries it; forges.yaml forge_types/recipes and recipes.yaml forge_requirements are read by no code (forge tier never limits recipes): enforce or delete
 
 ```yaml
-status: backlog
+status: done
 priority: medium
 effort: 2h
 tags: [ui, crafting-v2, keyboard]
 created: '2026-11-14T22:00:59Z'
-updated: '2026-11-14T22:00:59Z'
+updated: '2026-11-14T22:04:56Z'
 session: xuhuve-1114
+links:
+  commits:
+  - 1a3b34cdbd6a7745f7ad4db34b0dc7c0f2202b2d
+notes_next: 3
 ```
 
 <!-- notes: append-only log; each has a stable #id (see CLI §5) -->
 ### Notes
-_(no notes yet)_
+- [#1 2026-11-14T22:04:56Z session:xuhuve-1114] Done 1a3b34c: forge shows 'Phoenix Essence (carried|missing)', can_craft reason uses the display name; forge_types recipe lists + recipes.yaml forge_requirements deleted (read by no code; the forge type is cosmetic, Forge docstring updated).
+- [#2 2026-11-14T22:04:56Z session:xuhuve-1114] names + dead forge-tier data removed
 
 
 ## TASK-VB-128 · Human input gaps: 'g' takes every item on the tile or nothing (no choice of which when the pack is nearly full); 'z' always aims at the nearest hostile in sight (no target pick); survey picks the vein for you; warrior has no 'z' ability and rogue backstab is passive but 'z' just says so; no examine cursor for monsters (VB-110)
@@ -3025,10 +3035,11 @@ priority: low
 effort: 4h
 tags: [ui, keyboard]
 created: '2026-11-14T22:01:01Z'
-updated: '2026-11-14T22:01:01Z'
+updated: '2026-11-14T22:04:56Z'
 session: xuhuve-1114
+notes_next: 2
 ```
 
 <!-- notes: append-only log; each has a stable #id (see CLI §5) -->
 ### Notes
-_(no notes yet)_
+- [#1 2026-11-14T22:04:56Z session:xuhuve-1114] Done (this commit): 'g' with several items opens GroundScreen (Enter one, a all); PickupAction.item_id. STILL OPEN: z always targets the nearest hostile in sight (no pick); survey picks the vein; warrior has no z ability / rogue backstab passive; examine cursor = VB-110.
