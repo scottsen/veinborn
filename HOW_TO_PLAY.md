@@ -58,7 +58,8 @@ b   n
 ### Pro Tips
 - **Mining happens automatically** when you bump an ore vein — no key needed
 - **Crafting** happens contextually at forges (walk onto a forge tile)
-- **Wait (.)** = Skip your turn (let monsters come to you)
+- **Wait (.)** = Skip your turn (let monsters come to you). It is also how you **rest**: you heal
+  3x faster after a wait when no monster can see you (see *Healing* in docs/MECHANICS_REFERENCE.md)
 - **Monsters see, they don't sense:** each notices you only within its own sight range and
   with no wall in the way; once it has seen you it keeps hunting for a while after you break
   line of sight. Some are far-sighted (wraith), some near-sighted (troll, mimic)

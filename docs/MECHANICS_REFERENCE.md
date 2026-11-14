@@ -123,6 +123,13 @@ healer start with nothing.
 
 Unbuilt: fireball, teleport, dodge, protect, regeneration, power strike (VB-53).
 
+**Healing.** Natural regeneration (`game_constants.yaml` `player.health_regeneration`) heals every
+10 turns by the larger of 1 HP and 5% of max HP, rounded down: 1 HP up to 39 max HP, 2 at 48, 5 at
+100. After a **wait** with no living monster in sight (line of sight, 9 tiles) the tick is tripled, so
+resting is how you recover between fights; a wait with a monster watching is a stand-off and does not
+count. Potions and food heal at once (`e`); heal-over-time food and regeneration potions are planned
+(VB-107).
+
 **Monsters use abilities too** (VB-63): a monster's abilities come from its behaviour (the
 sniper's `ranged_attack`: a normal attack from 4-6 tiles; the summoner's `summon`: a goblin
 every 10 turns, at most 3 alive) and from `enabled: true` entries in its `abilities:` block in
