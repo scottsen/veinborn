@@ -1,6 +1,6 @@
 # Veinborn Status Dashboard 🎯
 
-**Last Updated:** 2026-11-13 (multiplayer architecture plan + VB-44 findings; render snapshot VB-78; earlier 2026-11-11: mob AI styles + fuzz-bot bug pass; earlier: 2026-09-22 full code review + urgent-fix pass, then 4 of 5 high-priority MP-architecture findings closed same day; see `TASKS.md` `VB-16`–`VB-32`)
+**Last Updated:** 2026-11-13 late (multiplayer client done: plan phases 3-4 and the drop half of D7, VB-94..VB-102; two humans can play in the TUI). Earlier history: `CHANGELOG.md`, `TASKS.md`.
 **Quick View:** One-page status overview
 
 ---
@@ -10,10 +10,10 @@
 | Category | Status | Details |
 |----------|--------|---------|
 | **Single-Player core** | 🟢 Healthy | All tests pass |
-| **Multiplayer** | 🟡 8 critical/urgent/high bugs fixed 2026-09-22, playtest still pending | `VB-16`–`VB-23` all fixed and test-covered this session (dead-actor redirect, Lua sandbox RCE, process-global RNG cross-contamination, save/load data loss, chat delta desync after 20 messages, Pickup/Wait actions unusable in MP, reconnect race, 3-way player storage). A scripted headless two-client playtest over real websockets (2026-09-23) then found and fixed 5 more bugs that mock-based tests could not see — the server rejected every real connection on websockets ≥ 13, clients never learned their entity id or that the game started, monster-turn messages never reached deltas, and every client drop raised (`VB-39`–`VB-43`); it now runs join → play → death → drop/reconnect → victory cleanly (`tests/integration/test_multiplayer_real_sockets.py`). Still no *human* playtest: nothing but the dev `test_client.py` can send actions (`VB-44`). Found 2026-11-13: `run_multiplayer.py`'s TUI cannot play at all, it starts a private local `Game` and its websocket listener is cancelled when the first `asyncio.run` ends (VB-44 note #2). The fix is planned structurally in [architecture/MULTIPLAYER_ARCHITECTURE_PLAN.md](architecture/MULTIPLAYER_ARCHITECTURE_PLAN.md): one engine for SP and MP, intents in, per-viewer snapshots out, one action per living player per round, grace/drop/rejoin seats. As of 2026-11-14 phases 0-2 are done (VB-88..VB-93): `core/engine.py` is the one rules loop (`Game` and `GameSession` are hosts), the server takes `intent` messages, rounds use `RoundScheduler`, floors and world ticks are shared, and both sides publish the same events. Still open: protocol/snapshots on the wire (phase 3), the gameplay client (phase 4, VB-44), seats with drop/rejoin (phase 5). `VB-24` (SP/MP separate post-action pipelines) is done as of 2026-09-23: MP shares the outcome pipeline (messages, events, took_turn) and HP regen, the party plays on while any player is alive, and co-op runs are scored per player on their own leaderboard (`data/highscores_multiplayer.json`, view with `veinborn-scores --coop`; no in-game screen yet — see `tt list --project veinborn`). |
-| **Test Health** | ✅ Green | 1320 collected: 1320 passing / 0 failing / 0 skipped (verified 2026-11-12). The count dropped from 1302 when the Lua layer and its ~250 tests were removed, then grew with the content, sidebar, sweep and survey tests and the AI architecture work (VB-58..VB-66: perception contract, morale, speed, abilities), then consumables, seeded replay and the bot/sim tooling (VB-68); the flaky planner tests are seeded (`VB-34`) / given a walkable arena |
-| **Current Phase** | 🎮 MP hardening + playtest | No open high-priority findings; the next milestone is the first real two-client playtest |
-| **Playability** | ✅ SP playable / 🟡 MP no longer has known exploitable bugs, still unplaytested | |
+| **Multiplayer** | 🟡 Playable in the TUI, awaiting the first human playtest | One engine for single-player and multiplayer (`core/engine.py`); intents in, per-viewer snapshots out (protocol v2, `src/protocol/`); one action per living player per round. The TUI plays a local run or a server seat through a `GameDriver` (`ui/driver.py`): lobby, `R` to ready, round status, allies on the map. A seat that leaves or outlives its 2-minute reconnect grace is dropped, so the round never stalls. Headless two-client test: `tests/ui/test_two_clients.py`. Not yet (plan phase 5): rejoining a dropped seat, fog of war. How to run a playtest: [MULTIPLAYER_PLAYTEST.md](MULTIPLAYER_PLAYTEST.md); design and history: [architecture/MULTIPLAYER_ARCHITECTURE_PLAN.md](architecture/MULTIPLAYER_ARCHITECTURE_PLAN.md). |
+| **Test Health** | ✅ Green | 1516 passing / 0 failing (verified 2026-11-13); run with `/usr/bin/python3 -m pytest -q -n 4` (the `python3` wrapper lacks `pytest_asyncio`). Single-player changes are gated by the seeded bot A/B (`tests/fuzz/README.md`) |
+| **Current Phase** | 🎮 First human multiplayer playtest | then balance (`VB-87`) and the pacing design call (`VB-83`); `tt list --actionable` is the queue |
+| **Playability** | ✅ SP playable / 🟡 MP playable, not yet played by humans | |
 
 See `docs/PROJECT_REVIEW_2026-04-17.md` for the last full architecture audit, and `TASKS.md` for the 2026-09-22 review's findings (`VB-16` onward).
 
@@ -26,23 +26,18 @@ See `docs/PROJECT_REVIEW_2026-04-17.md` for the last full architecture audit, an
 
 ## 🎯 Top 3 Priorities (What to Work On NOW)
 
-### 1️⃣ **Extended Multiplayer Testing** 🔴 CRITICAL
-- Test 30+ minutes of 2-player co-op
-- Validate combat balance with multiple players
-- Document edge cases and bugs
-- **Why:** Phase 2 just completed, needs validation
+The live queue is `tt list --actionable`; this is the short version.
 
-### 2️⃣ **Single-Player Balance Tuning** 🟡 HIGH
-- Playtest extensively (30-60 min sessions)
-- Tune monster difficulty progression
-- Balance ore spawn rates and crafting formulas
-- **Why:** Core gameplay needs refinement
+### 1️⃣ **First human multiplayer playtest** 🔴
+- Two players, one server, the TUI: [MULTIPLAYER_PLAYTEST.md](MULTIPLAYER_PLAYTEST.md)
+- **Why:** everything up to the two-client pilot test is automated; feel (strict rounds, shared log, "anyone descends") is not
 
-### 3️⃣ **Tutorial System** 🟢 MEDIUM
-- First-run tutorial for new players
-- Help screen (H key)
-- Keybind reference
-- **Why:** Usability and onboarding
+### 2️⃣ **Balance** 🟡 (`VB-87`)
+- Bots never craft Phoenix Armor; the floor-99 boss is a pushover for a geared player
+- **Why:** measured with seeded bot runs; see the task notes
+
+### 3️⃣ **Pacing design call** 🟢 (`VB-83`, Scott)
+- No pressure on floors 4-40: hunger clock, softer spawn clock, or neither
 
 ---
 
@@ -60,32 +55,27 @@ See `docs/PROJECT_REVIEW_2026-04-17.md` for the last full architecture audit, an
 - ✅ Monster AI (pathfinding, aggression)
 - ✅ Python content system: registered AI behaviours, abilities and event handlers (`docs/EXTENDING.md`); achievements, quests and kill streaks run from it
 
-### Multiplayer (Phase 2 Complete - 2025-11-14)
-- ✅ WebSocket server infrastructure
-- ✅ 2+ player co-op working
-- ✅ Shared dungeon generation
-- ✅ Distributed player spawning
+### Multiplayer (plan phases 0-4 done, 2026-11-13)
+- ✅ WebSocket server, lobby, ready/start, chat
+- ✅ One engine for both modes; shared dungeon, spawning, floors, monster AI
+- ✅ Intents on the wire (the server picks the actor), per-viewer snapshots, protocol version check
 - ✅ Turn system: one action per living player per round (`RoundScheduler`, VB-90; replaces ADR-016's "4 actions, anyone")
-- ✅ Monster AI integration
-- ✅ Nearest-player targeting
+- ✅ TUI client: the same game screen on a `RemoteDriver` (VB-99..VB-102)
+- ✅ Disconnect grace, then the seat is dropped (rejoin: phase 5)
 
 ---
 
 ## 🚧 What's In Progress
 
-### Track A: Single-Player Polish
-- [ ] Balance tuning
-- [ ] Tutorial system
-- [ ] Special room types (treasure, shrine, trap)
-- [ ] Polish & UX improvements
+### Track A: Single-Player
+- [ ] Balance (`VB-87`), automated play-testing (`VB-68`)
+- [ ] Design calls for Scott: pacing (`VB-83`), loot tables (`VB-70`), gold (`VB-74`)
 
-### Track B: Multiplayer Phase 3
-- [ ] Extended co-op testing (30+ min)
-- [ ] Combat balance for multiplayer
-- [ ] Delta compression (performance)
-- [ ] Reconnection handling
-- [ ] Class selection on join
-- [ ] Personal loot system
+### Track B: Multiplayer (plan phase 5)
+- [ ] Human playtest, then fix what it finds
+- [ ] Rejoin a dropped seat, incl. the client keeping its auth token across a restart (D7)
+- [ ] Fog of war per viewer with a dev reveal switch (D4)
+- [ ] Co-op leaderboard viewer, MP persistence (`VB-35`, `VB-54`)
 
 ---
 
@@ -108,8 +98,8 @@ See `docs/PROJECT_REVIEW_2026-04-17.md` for the last full architecture audit, an
 |-------|--------|-------------|
 | **Phase 0** | ✅ Complete | Foundation (movement, combat, map gen) |
 | **Phase 1** | ✅ Complete | MVP Core (mining, crafting, classes) |
-| **Phase 2** | ✅ Complete | Multiplayer infrastructure (co-op working!) |
-| **Phase 3** | 🔨 Current | Testing + Polish (both tracks) |
+| **Phase 2** | ✅ Complete | Multiplayer: one engine, intents, snapshots, TUI client ([plan](architecture/MULTIPLAYER_ARCHITECTURE_PLAN.md) phases 0-4) |
+| **Phase 3** | 🔨 Current | Human playtests, balance, polish (both tracks); MP plan phase 5 (rejoin, fog) |
 | **Phase 4** | 📅 Future | Advanced features (persistence, bosses) |
 
 ---
@@ -123,19 +113,14 @@ See `docs/PROJECT_REVIEW_2026-04-17.md` for the last full architecture audit, an
 ./veinborn --safe       # Terminal reset on crash
 ```
 
-### Multiplayer (NEW!)
+### Multiplayer
 ```bash
-# Terminal 1: Start server
-python3 src/server/run_server.py
-
-# Terminal 2: Connect player 1
-python3 src/server/test_client.py
-
-# Terminal 3: Connect player 2
-python3 src/server/test_client.py
+python3 src/server/run_server.py                                   # Terminal 1: server
+python3 run_multiplayer.py --name Alice --create-game              # Terminal 2: shows the game id
+python3 run_multiplayer.py --name Bob --class mage --game-id <id>  # Terminal 3
 ```
 
-**Then:** Create game → Join → Ready → Start → Play together!
+**Then:** each presses `R` when ready. Rules and what to look for: [MULTIPLAYER_PLAYTEST.md](MULTIPLAYER_PLAYTEST.md).
 
 ---
 

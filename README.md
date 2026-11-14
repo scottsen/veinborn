@@ -474,11 +474,10 @@ Coming soon:
 
 ### Q: Is multiplayer working?
 
-**A:** Not yet! Multiplayer is Phase 2 (after MVP).
-
-**Current:** Single-player roguelike
-**Next:** Mining/crafting systems (Phase 1)
-**Later:** 4-player co-op (Phase 2)
+**A:** Yes, for a playtest: up to 4 players co-op in the terminal UI, one server
+(`src/server/run_server.py`) and one `run_multiplayer.py` per player. One action per
+living player per round. How to run it and what is not there yet (fog of war, rejoining
+a dropped seat): [docs/MULTIPLAYER_PLAYTEST.md](docs/MULTIPLAYER_PLAYTEST.md).
 
 ### Q: How can I help?
 

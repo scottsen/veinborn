@@ -53,9 +53,12 @@ Use the `run_multiplayer.py` script to connect:
 # Player 1 creates a game
 python run_multiplayer.py --name Alice --create-game --game-name "Epic Adventure"
 
-# Player 2 joins the game (use the game ID shown when created)
+# Player 2 joins the game (the game ID is in player 1's status bar)
 python run_multiplayer.py --name Bob --game-id <game-id>
 ```
+
+Everyone presses `R` when ready; the game starts when every seat is. Rules and what to
+look for in a playtest: [MULTIPLAYER_PLAYTEST.md](MULTIPLAYER_PLAYTEST.md).
 
 #### Character Classes
 

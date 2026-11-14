@@ -127,26 +127,20 @@ class MultiplayerGameState:
         # Populate floor 1 (VB-4: MP once spawned nothing, so AI ran over an empty floor)
         self._spawn_floor_entities(self.game_state.current_floor)
 
-    def remove_player(self, player_id: str) -> bool:
-        """Remove a player from the game.
+    def drop_seat(self, player_id: str) -> bool:
+        """The seat leaves the run (plan D7 "dropped"): left, or its reconnect grace expired.
 
-        Args:
-            player_id: Player to remove
-
-        Returns:
-            True if player was removed
+        Its character leaves the floor (the entity object, with hp, level, inventory
+        and gear, stays on the slot for a later rejoin) and the round stops owing it
+        an action. Returns True if that completes the current round.
         """
-        if player_id not in self.player_slots:
+        slot = self.player_slots.get(player_id)
+        if slot is None or not slot.is_active:
             return False
-
-        slot = self.player_slots[player_id]
         slot.is_active = False
-
-        # Mark entity as inactive (don't remove for game integrity)
-        # In future, this could trigger player death or spectator mode
-
-        logger.info(f"Removed player {slot.player_name} (ID: {player_id})")
-        return True
+        self.game_state.entities.pop(slot.entity_id, None)
+        logger.info(f"Dropped seat {slot.player_name} (ID: {player_id}, entity: {slot.entity_id})")
+        return self.scheduler.drop(slot.entity_id)
 
     def get_player_entity(self, player_id: str) -> Optional[Player]:
         """Get the entity for a specific player.
@@ -217,9 +211,10 @@ class MultiplayerGameState:
         ]
 
     def living_entity_ids(self) -> List[str]:
+        """Seats the round owes an action: alive and not dropped."""
         return [
             slot.entity_id for slot in self.player_slots.values()
-            if slot.player_entity and slot.player_entity.is_alive
+            if slot.is_active and slot.player_entity and slot.player_entity.is_alive
         ]
 
     def update_player_alive_status(self) -> List[PlayerSlot]:

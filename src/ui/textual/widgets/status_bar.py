@@ -44,8 +44,9 @@ class StatusBar(Widget):
         ]
 
         if snap.round is not None and snap.party:
-            names = {m.entity_id: m.name for m in snap.party}
-            waiting = [names.get(e, str(e)) for e in snap.round.waiting_on]
+            owed = set(snap.round.waiting_on)
+            waiting = [m.name + ("" if m.connected else " (disconnected)")
+                       for m in snap.party if m.entity_id in owed]   # in seat order
             parts.append(f"Round {snap.round.number}" + (f": waiting on {', '.join(waiting)}" if waiting else ""))
         if not player.alive:
             parts.append("DEAD (spectating)")

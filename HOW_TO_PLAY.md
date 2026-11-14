@@ -471,8 +471,7 @@ Legacy Vault lets you save great ore, but only 1 piece per run. You still earn v
 - Not yet, but coming soon!
 
 **"Is multiplayer available?"**
-- Not yet! Single-player MVP first
-- Co-op planned for future (4-player!)
+- Yes, co-op for up to 4 players in the terminal: see [docs/MULTIPLAYER_PLAYTEST.md](docs/MULTIPLAYER_PLAYTEST.md)
 
 **"Where's the story?"**
 - Minimal! You're rescuing your bro from the dungeon

@@ -218,6 +218,12 @@ can rejoin the party.** No AI control of absent players.
   "won't do, replaced by the drop/rejoin lifecycle").
 - **Ruled (Scott, 2026-11-13):** rejoin is for the same identity: the auth token resumes the seat; with no
   token, a name match is allowed only while exactly one dropped seat has that name.
+- **Done (2026-11-13, with VB-102): the drop half.** Leaving (`leave_player`) or an expired grace
+  (`cleanup_expired_disconnections`) calls `MultiplayerGameState.drop_seat`: the character leaves the
+  floor, its entity stays on the slot, the scheduler stops owing it, and if it was the last seat owed
+  the world ticks. The party view marks it not connected. Still open (phase 5): rejoin, the
+  "waiting for <name> (disconnected, 1:45)" countdown, `can_join` for started games, deleting
+  `PlayerInfo` on removal.
 
 ### D8. Determinism and tests at each boundary
 - Engine: synchronous, seeded, no I/O. N-player tests run without a network.
@@ -374,7 +380,7 @@ Rough total: 1.5-2 working days.
 | **4a. Rules and item detail** (VB-99) | Factory: `use`/`drop` without `item_id` pick the item (messages as today); `Game.quick_use/quick_drop` call them. `ItemView` gains `slot`/`bonus`, `EntityView` gains `item_type`; `equipment_listing`, `inventory_messages`, `ground_messages` also accept views. `PROTOCOL_VERSION = 2`. | suite; SP bot A/B identical (factory change); round-trip test covers the new fields | S-M |
 | **4b. Driver, local** (VB-100) | `ui/driver.py`: `GameDriver` (D6) and `LocalDriver(Game)`. Widgets take a snapshot getter; `EquipmentScreen` takes the driver; `VeinbornApp` builds a `LocalDriver` and key bindings call `driver.submit(intent, ...)`. | `tests/ui/test_game_screen.py` + `test_equipment_screen.py` green before and after | M |
 | **4c. Driver, remote** (VB-101, done) | `RemoteDriver(MultiplayerClient)`: snapshot = latest received, its log = the server's new lines (told apart by `Snapshot.message_count`) merged with local notes; `submit` = `client.act`, which sends the intent with a `rid` and waits for its `intent_result` (refused + reason, or accepted after the snapshot). App MP mode: no local `Game`; the status bar shows the lobby (game id, seats) and `R` readies up, then the round (`waiting on ...`) and a spectating notice; allies are drawn on the map (they were missing); save/load/restart refused. `test_client.py` sends intents. *Moved to phase 5:* persisting the auth token across a client restart needs the D7 rejoin lifecycle (today a fresh process resumes its auth session but has no way back into its game). | `tests/ui/test_remote_app.py` (real server: lobby, ready, move, refusal, notes, save refused); `act` real-socket test | M |
-| **4d. Two clients** (VB-102) | Headless pilot with two apps on one server: each moves, the round waits on the other, each sees the other's `@`. Short playtest how-to for Scott. | the pilot test; then a human playtest | S |
+| **4d. Two clients** (VB-102, done) | `tests/ui/test_two_clients.py`: two apps on one server; Bob joins with the id from Alice's lobby line, both ready, each sees the other's `@`, the round waits on the partner, a second action is refused with the reason in the log. Found on the way: `RoundView.waiting_on` was id-ordered (seat ids are random), now seat order; a seat that left or timed out still held up the round forever (`RoundScheduler.drop` had no caller), so the drop half of D7 landed here (see D7). Playtest guide: `docs/MULTIPLAYER_PLAYTEST.md`. | the pilot test (stable over 15 repeats); then a human playtest | S |
 
 **Order:** 4a -> 4b -> 4c -> 4d. 4a first so 4b's widgets and screens are written against views only.
 

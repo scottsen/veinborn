@@ -7,6 +7,8 @@
 
 ---
 
+> Multiplayer playtests have their own short guide: [../MULTIPLAYER_PLAYTEST.md](../MULTIPLAYER_PLAYTEST.md).
+
 ## Why This Matters
 
 **From GAPS_AND_NEXT_STEPS.md:**

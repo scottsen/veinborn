@@ -801,3 +801,71 @@ async def test_descend_moves_the_whole_party_and_publishes_floor_changed():
     assert alice.entity_id in mp.game_state.entities and bob.entity_id in mp.game_state.entities
     assert (alice.x, alice.y) != (bob.x, bob.y)
     assert [(d['from_floor'], d['to_floor']) for d in seen] == [(1, 2)]
+
+
+@pytest.mark.asyncio
+async def test_round_view_lists_seats_in_seat_order_not_id_order():
+    """VB-102: the round is read by players ('waiting on Alice, Bob'), so it follows the seats.
+    Ids are chosen so that sorting them would put Bob first."""
+    game = GameSession("game1", "Test Game", max_players=4)
+    await game.add_player("zzzzzzzz-alice", "Alice", "warrior")
+    await game.add_player("aaaaaaaa-bob", "Bob", "mage")
+    await game.start_game(seed=42)
+    mp = game.mp_game_state
+    alice, bob = mp.get_player_entity_id("zzzzzzzz-alice"), mp.get_player_entity_id("aaaaaaaa-bob")
+    assert sorted([alice, bob]) == [bob, alice]
+
+    assert game.snapshot_for("aaaaaaaa-bob").round.waiting_on == [alice, bob]
+    await game.process_intent("aaaaaaaa-bob", "wait")
+    await game.process_intent("zzzzzzzz-alice", "survey")   # refused or free: Alice still owes
+    snap = game.snapshot_for("zzzzzzzz-alice")
+    assert snap.round.acted == [bob] and snap.round.waiting_on == [alice]
+
+
+# --- plan D7, drop half: a seat that leaves or times out no longer stalls the round ---
+
+async def _duo():
+    game = GameSession("game1", "Test Game", max_players=4)
+    await game.add_player("p-alice", "Alice", "warrior")
+    await game.add_player("p-bob", "Bob", "mage")
+    await game.start_game(seed=42)
+    return game
+
+
+@pytest.mark.asyncio
+async def test_a_seat_that_leaves_completes_the_round_it_was_holding_up():
+    game = await _duo()
+    mp = game.mp_game_state
+    bob_eid = mp.get_player_entity_id("p-bob")
+    ok, err = await game.process_intent("p-alice", "wait")
+    assert ok, err
+    assert mp.round_number == 0 and mp.scheduler.waiting_on() == [bob_eid]
+
+    await game.leave_player("p-bob")
+
+    assert mp.round_number == 1                         # the world ticked, a new round began
+    assert mp.living_entity_ids() == [mp.get_player_entity_id("p-alice")]
+    assert bob_eid not in mp.game_state.entities        # his character left the floor
+    assert mp.player_slots["p-bob"].player_entity.hp > 0   # its state is kept for a rejoin
+    ok, err = await game.process_intent("p-alice", "wait")  # Alice is not stuck
+    assert ok, err
+    assert mp.round_number == 2
+
+
+@pytest.mark.asyncio
+async def test_an_expired_reconnect_grace_drops_the_seat():
+    game = await _duo()
+    mp = game.mp_game_state
+    await game.disconnect_player("p-bob")
+    assert not game.snapshot_for("p-alice").party[1].connected
+    assert mp.get_player_entity_id("p-bob") in mp.living_entity_ids()   # grace: the round waits
+
+    game.players["p-bob"].reconnect_timeout_seconds = -1
+    assert await game.cleanup_expired_disconnections() == ["p-bob"]
+
+    assert mp.living_entity_ids() == [mp.get_player_entity_id("p-alice")]
+    assert mp.round_number == 0                         # nobody had acted: no tick
+    ok, err = await game.process_intent("p-alice", "wait")
+    assert ok, err
+    assert mp.round_number == 1                         # Alice alone completes the round
+    assert [m.connected for m in game.snapshot_for("p-alice").party] == [True, False]

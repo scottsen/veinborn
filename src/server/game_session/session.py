@@ -126,6 +126,7 @@ class GameSession:
         del self.players[player_id]
         if player_id in self.player_order:
             self.player_order.remove(player_id)
+        self._drop_seat_locked(player_id)
 
         # If game is running and no connected/disconnected players left, mark as finished
         connected_count = sum(
@@ -209,6 +210,7 @@ class GameSession:
 
             player_info = self.players[player_id]
             player_info.mark_left()
+            self._drop_seat_locked(player_id)
 
             logger.info(
                 f"Player {player_info.player_name} left game {self.game_id}"
@@ -339,6 +341,23 @@ class GameSession:
 
         if mp.game_state.game_over:
             self.is_finished = True
+
+    def _drop_seat_locked(self, player_id: str) -> None:
+        """A running game stops waiting for a seat that left or timed out (plan D7, drop half).
+
+        If that seat was the last one the round owed, the world ticks now, as it would
+        have after their action. Rejoining a dropped seat is plan phase 5.
+        """
+        mp = self.mp_game_state
+        if not self.is_started or mp is None or self.engine is None:
+            return
+        if mp.drop_seat(player_id):
+            self._world_tick()
+            mp.scheduler.next_round(mp.living_entity_ids())
+            mp.update_player_alive_status()
+            self.engine.after_action()
+            if mp.game_state.game_over:
+                self.is_finished = True
 
     def _slot_for_entity(self, entity_id):
         player_id = self.mp_game_state.entity_to_player.get(entity_id)
@@ -530,14 +549,17 @@ class GameSession:
                 player_class=s.player_entity.stats.get('class_type', 'warrior'),
                 entity_id=s.entity_id,
                 alive=s.is_alive,
-                connected=not (s.player_id in self.players and self.players[s.player_id].is_disconnected()),
+                # Dropped (left, timed out) or in its reconnect grace: not connected
+                connected=s.is_active and s.player_id in self.players
+                and not self.players[s.player_id].is_disconnected(),
             )
             for s in mp.player_slots.values()
         ]
+        seats = [s.entity_id for s in mp.player_slots.values()]   # seat order: what players read
         snap.round = RoundView(
             number=mp.round_number,
-            waiting_on=mp.scheduler.waiting_on(),
-            acted=sorted(mp.scheduler.acted),
+            waiting_on=[e for e in seats if e in mp.scheduler.owed],
+            acted=[e for e in seats if e in mp.scheduler.acted],
         )
         return snap
 
