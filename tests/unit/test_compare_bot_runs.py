@@ -23,7 +23,8 @@ def game(seed, floor, cls="mage", died=False, crash=False):
             'death_cause': 'crash' if crash else ('Killed by Orc' if died else None), 'errors': 0,
             'burst_death': False, 'potions_used': 0, 'items_picked_up': 0,
             'items_carried_at_end': 0, 'items_dropped': 0, 'crafts': [],
-            'final_attack': 0, 'final_defense': 0, 'killed_by_type': 'orc' if died else None}
+            'final_attack': 0, 'final_defense': 0, 'refused_moves': 0,
+            'killed_by_type': 'orc' if died else None}
 
 
 def write(tmp_path, name, games):
@@ -98,3 +99,19 @@ def test_crafts_by_recipe_are_reported(cmp, tmp_path, capsys):
     assert "copper_sword 4->4" in out and "iron_sword 0->4" in out
     r = cmp.paired(before, after, sorted(before), lambda g: len(g['crafts']))
     assert r['diff'] == 1.0
+
+
+def test_an_unfinished_run_is_flagged(cmp, tmp_path, capsys, monkeypatch):
+    games = [game(s, 3) for s in range(3)]
+    done = tmp_path / "done.json"
+    done.write_text(json.dumps({'metadata': {'character_class': 'mage', 'complete': True},
+                                'games': games}))
+    partial = tmp_path / "partial.json"
+    partial.write_text(json.dumps({'metadata': {'character_class': 'mage', 'complete': False,
+                                                'games_played': 1, 'games_planned': 24},
+                                   'games': games[:1]}))
+    monkeypatch.setattr('sys.argv', ['x', '--before', str(done), '--after', str(partial)])
+    cmp.main()
+    out = capsys.readouterr().out
+    assert "partial.json is a run still in progress or stopped (1/24 games)" in out
+    assert "done.json is a run" not in out

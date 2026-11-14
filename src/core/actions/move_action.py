@@ -166,7 +166,8 @@ class MoveAction(Action):
 
         # Blocking entity - cannot pass
         if target.blocks_movement:
-            logger.warning("MoveAction blocked by immovable entity",
+            # Routine (a bump into a forge); debug, not warning (VB-123: 77% of bot log volume)
+            logger.debug("MoveAction blocked by immovable entity",
                           extra={'actor_id': self.actor_id, 'actor_name': actor.name,
                                  'blocker_id': target.entity_id, 'blocker_name': target.name,
                                  'blocker_type': target.entity_type.value,

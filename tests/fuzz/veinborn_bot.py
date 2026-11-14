@@ -122,6 +122,8 @@ class GameResult:
     final_gear: Dict[str, Optional[Dict]] = None     # slot -> {name, stats} or None
     final_attack: int = 0
     final_defense: int = 0
+    # Moves the game refused (walked into a forge, wall, ...): wasted planning, no game time (VB-123)
+    refused_moves: int = 0
 
 
 BURST_TURNS = 2
@@ -510,6 +512,7 @@ class VeinbornBot:
                 # floor -> [turn, level, attack, defense] on arrival (gear included):
                 # the real progression curve that sims should test at (VB-69)
                 'floor_arrivals': {game.state.current_floor: _arrival(0, game.state.player)},
+                'refused_moves': 0,
             }
 
             # Stuck detection
@@ -682,6 +685,8 @@ class VeinbornBot:
                     # Execute first action
                     action_took_turn = game.handle_player_action(action_type, **kwargs)
                     track_action_stats(action_type, kwargs)
+                    if action_type == 'move' and not action_took_turn:
+                        game_stats['refused_moves'] += 1     # a move only fails to take a turn when refused
 
                     if not action_took_turn:
                         self.log(f"   ⚡ Instant action: {action_type} (no turn consumed)")
@@ -700,6 +705,8 @@ class VeinbornBot:
                         # Execute it
                         action_took_turn = game.handle_player_action(action_type, **kwargs)
                         track_action_stats(action_type, kwargs)
+                        if action_type == 'move' and not action_took_turn:
+                            game_stats['refused_moves'] += 1
 
                         if not action_took_turn:
                             self.log(f"   ⚡ Instant action #{instant_actions_count}: {action_type}")
@@ -831,6 +838,7 @@ class VeinbornBot:
         start_time = time.time()
         seeds = [None if seed_base is None else seed_base + i for i in range(num_games)]
 
+        self.games_planned = num_games
         for i, (seed, game_stats) in enumerate(self._play_games(seeds, max_turns_per_game, jobs)):
             print(f"\n[Game {i+1}/{num_games}] seed={seed} floor={game_stats.get('floor', 1)} "
                   f"turns={game_stats['turns']} {game_stats.get('death_reason') or 'survived'}",
@@ -890,6 +898,7 @@ class VeinbornBot:
                 final_gear=game_stats.get('final_gear') or {},
                 final_attack=game_stats.get('final_attack', 0),
                 final_defense=game_stats.get('final_defense', 0),
+                refused_moves=game_stats.get('refused_moves', 0),
                 start_floor=self.start_floor,
                 start_level=self.start_level,
                 floor_arrivals=game_stats.get('floor_arrivals') or {},
@@ -910,8 +919,8 @@ class VeinbornBot:
         print(f"{'='*60}")
         self.print_final_report(elapsed)
 
-        # Save per-game results to JSON for histogram analysis
-        self.save_game_results(output)
+        # Save per-game results to JSON for histogram analysis; this save marks the run complete
+        self.save_game_results(output, complete=True)
 
     def _play_games(self, seeds, max_turns, jobs):
         """Yield (seed, game_stats) in seed order, sequentially or across worker processes.
@@ -998,8 +1007,15 @@ class VeinbornBot:
         else:
             print(f"\n🐛 BUGS FOUND - See errors above")
 
-    def save_game_results(self, output: Optional[str] = None, quiet: bool = False) -> None:
-        """Save per-game results to JSON for histogram analysis."""
+    def save_game_results(self, output: Optional[str] = None, quiet: bool = False,
+                          complete: bool = False) -> None:
+        """Save per-game results to JSON for histogram analysis.
+
+        Rewritten after every game so a stopped run keeps its games; `metadata.complete` is
+        true only on the final save, with `games_planned` beside `games_played`, and the file
+        is replaced atomically, so a reader never sees half a file or mistakes a run in
+        progress for a finished one (VB-124).
+        """
         if not self.stats.game_results:
             return
 
@@ -1021,6 +1037,8 @@ class VeinbornBot:
                 'player_name': self.player_name,
                 'mode': self.mode,
                 'games_played': self.stats.games_played,
+                'games_planned': getattr(self, 'games_planned', None),
+                'complete': complete,
                 'timestamp': timestamp,
                 'seed_base': getattr(self, 'seed_base', None),
                 'max_turns': getattr(self, 'max_turns_per_game', None),
@@ -1031,9 +1049,11 @@ class VeinbornBot:
             'games': [asdict(result) for result in self.stats.game_results]
         }
 
-        # Save to JSON
-        with open(filepath, 'w') as f:
+        # Save to JSON: write beside it, then rename over it (atomic on one filesystem)
+        tmp = filepath.with_name(filepath.name + '.tmp')
+        with open(tmp, 'w') as f:
             json.dump(results_data, f, indent=2)
+        tmp.replace(filepath)
 
         if quiet:
             return

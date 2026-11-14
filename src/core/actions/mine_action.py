@@ -196,7 +196,7 @@ class MineAction(Action):
 
     def _drop_ore_on_ground(self, context: GameContext, actor, ore_item, outcome: ActionOutcome):
         """Drop ore on ground when inventory is full."""
-        logger.warning(
+        logger.info(        # a game event the player is told about, not a fault (VB-123)
             f"Inventory full - ore dropped on ground",
             extra={
                 'actor_id': self.actor_id,

@@ -559,10 +559,12 @@ class ActionPlanner:
                 adjacent_ore = entity
                 break
 
-        # If adjacent to ore, allow survey/mine actions
+        # If adjacent to ore, allow survey/mine actions (mining only with room: a full pack
+        # drops the ore on the floor, VB-123)
         if adjacent_ore:
             action_weights['survey'] = 10
-            action_weights['mine'] = 10
+            if len(getattr(player, 'inventory', [])) < INVENTORY_MAX:
+                action_weights['mine'] = 10
 
         action = random.choices(
             list(action_weights.keys()),
@@ -570,11 +572,13 @@ class ActionPlanner:
         )[0]
 
         if action == 'move':
-            # Random 8-directional movement
-            dx = random.choice([-1, 0, 1])
-            dy = random.choice([-1, 0, 1])
-            if dx == 0 and dy == 0:  # Don't stand still
-                dx = 1
+            # Random 8-directional step onto open floor (not into a wall, vein or forge)
+            blockers = self.static_blockers(game)
+            game_map = game.state.dungeon_map
+            steps = [(dx, dy) for dx in (-1, 0, 1) for dy in (-1, 0, 1)
+                     if (dx or dy) and game_map.is_walkable(player.x + dx, player.y + dy)
+                     and (player.x + dx, player.y + dy) not in blockers]
+            dx, dy = random.choice(steps) if steps else (1, 0)
             return ('move', {'dx': dx, 'dy': dy})
         elif action == 'survey':
             return ('survey', {})
@@ -606,8 +610,13 @@ class ActionPlanner:
         start = (player.x, player.y)
         goal = (target.x, target.y)
 
-        # Use A* to find optimal path
-        direction = get_direction(game.state.dungeon_map, start, goal)
+        # A* around forges always (a bump into one is refused: VB-123 measured ~290 refused
+        # moves per game) and around ore veins when possible; through a vein (a bump mines it
+        # away) only when nothing else reaches the goal, as in a one-tile corridor
+        game_map = game.state.dungeon_map
+        forges = self.static_blockers(game, veins=False)
+        direction = (get_direction(game_map, start, goal, blocked=self.static_blockers(game))
+                     or get_direction(game_map, start, goal, blocked=forges))
 
         if direction:
             dx, dy = direction
@@ -639,17 +648,31 @@ class ActionPlanner:
         elif target.x < player.x and target.y < player.y:
             moves_to_try.insert(0, (-1, -1))
 
-        # Try each move in priority order
+        # Try each move in priority order: never into a forge (refused); a vein is allowed, as
+        # on the A* fallback above (a bump mines it), and so is the target itself
+        blockers = self.static_blockers(game, veins=False)
         for dx, dy in moves_to_try:
             new_x = player.x + dx
             new_y = player.y + dy
-            if game.state.dungeon_map.is_walkable(new_x, new_y):
+            if game.state.dungeon_map.is_walkable(new_x, new_y) and (
+                    (new_x, new_y) == goal or (new_x, new_y) not in blockers):
                 self.log(f"   Fallback: moving ({dx:+d}, {dy:+d})")
                 return ('move', {'dx': dx, 'dy': dy})
 
         # If we can't move towards target, try random exploration
         self.log("   Fallback failed - target unreachable, exploring randomly")
         return self.get_random_action(game)
+
+    @staticmethod
+    def static_blockers(game, veins: bool = True) -> set:
+        """Tiles held by forges (and ore veins): walkable terrain a step does not enter (a bump
+        into a forge is refused, into a vein mines it). The monster AI routes around both
+        (AISystem._obstacle_tiles); veins=False gives the forges alone."""
+        from core.base.entity import EntityType
+        kinds = (EntityType.ORE_VEIN, EntityType.FORGE) if veins else (EntityType.FORGE,)
+        return {(e.x, e.y)
+                for entity_type in kinds
+                for e in game.context.get_entities_by_type(entity_type)}
 
     def move_towards_adjacent(self, game, target) -> Tuple[str, dict]:
         """
@@ -674,10 +697,11 @@ class ActionPlanner:
             (target.x - 1, target.y + 1), (target.x, target.y + 1), (target.x + 1, target.y + 1),
         ]
 
-        # Filter for walkable positions
+        # Filter for walkable positions not held by another ore vein or forge
+        blockers = self.static_blockers(game)
         walkable_adjacent = [
             pos for pos in adjacent_positions
-            if game.state.dungeon_map.is_walkable(pos[0], pos[1])
+            if game.state.dungeon_map.is_walkable(pos[0], pos[1]) and pos not in blockers
         ]
 
         if not walkable_adjacent:

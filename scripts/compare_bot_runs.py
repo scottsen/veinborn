@@ -42,11 +42,13 @@ METRICS = [
     ('crafts', 'items crafted', lambda g: len(g['crafts'])),
     ('final_atk', 'attack at end', lambda g: g['final_attack']),
     ('final_def', 'defense at end', lambda g: g['final_defense']),
+    ('refused', 'refused moves', lambda g: g['refused_moves']),
 ]
 # Fields added after the first results files: a metric is skipped unless every game has it
 _NEEDS = {'burst': 'burst_death', 'potions': 'potions_used',
           'picked': 'items_picked_up', 'carried': 'items_carried_at_end', 'dropped': 'items_dropped',
-          'crafts': 'crafts', 'final_atk': 'final_attack', 'final_def': 'final_defense'}
+          'crafts': 'crafts', 'final_atk': 'final_attack', 'final_def': 'final_defense',
+          'refused': 'refused_moves'}
 
 # Two-sided 95% t critical values by degrees of freedom (normal beyond 30)
 _T95 = {1: 12.71, 2: 4.30, 3: 3.18, 4: 2.78, 5: 2.57, 6: 2.45, 7: 2.36, 8: 2.31, 9: 2.26,
@@ -155,6 +157,10 @@ def main():
             print(f"{side:6} {m.get('character_class', '?'):8} commit {code.get('commit')}"
                   f"{' (dirty)' if code.get('dirty') else ''}  seeds from {m.get('seed_base')}"
                   f"  max_turns {m.get('max_turns')}  {m['file']}")
+    for m in meta_b + meta_a:
+        if m.get('complete') is False:      # older files have no flag: say nothing
+            print(f"WARNING: {m['file']} is a run still in progress or stopped "
+                  f"({m.get('games_played')}/{m.get('games_planned')} games)")
     turns = {m.get('max_turns') for m in meta_b + meta_a}
     if len(turns) > 1:
         print(f"WARNING: runs used different --max-turns {sorted(turns, key=str)}; turns/floor are not comparable")
