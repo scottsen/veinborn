@@ -1715,7 +1715,7 @@ priority: medium
 owner: scott
 tags: [balance, content, loot]
 created: '2026-11-12T20:14:28Z'
-updated: '2026-11-13T03:05:56Z'
+updated: '2026-11-14T21:08:42Z'
 session: warming-squall-1112
 links:
   references:
@@ -1724,7 +1724,7 @@ links:
   relates_to:
   - VB-69
   - VB-68
-notes_next: 3
+notes_next: 4
 ```
 
 Found 2026-11-12 (VB-68) in bot logs: every kill of a monster without a table logs WARNING 'No loot table found for monster type: X' (core/loot.py generate_loot). data/balance/loot_tables.yaml has goblin, orc, troll only. Consequence now that potions and food are usable (52eb525): potion supply comes only from goblins/orcs/trolls, which thin out from floor 3 (skeleton/wolf/spider/ogre take over). Design call for Scott: which monsters drop what (animals: meat? undead: nothing?). Once decided, a monster that intentionally drops nothing should have an empty table or a flag so the WARNING means a real gap. Measure with seeded bot runs (scripts/compare_bot_runs.py: potions used, deaths).
@@ -1733,6 +1733,7 @@ Found 2026-11-12 (VB-68) in bot logs: every kill of a monster without a table lo
 ### Notes
 - [#1 2026-11-12T21:21:41Z session:serene-cyclone-1112] Prep done (9f225e7): monsters.yaml loot_table names a shared table (null = own id), checked at load with every table item id; a description-only table drops nothing without the warning. So 'beasts drop meat' is one table plus loot_table: beast on bat/wolf/spider. Usable drops today: healing potions and food only; potion_strength and every scroll have no @item_effect (UseItemAction refuses them), so putting them in new tables adds dead weight until VB-65 / scroll effects exist.
 - [#2 2026-11-13T03:05:56Z session:quantum-energy-1112] Boss materials done (8b5cb77, VB-75): lich, phoenix (essence + feather), ancient_horror always drop theirs; wraith and wyvern 50% (dragon_bone from the wyvern: no dragon exists; Scott may prefer another source). Those tables hold only the material. Still open here: drops for the other 11 monsters, and anything else the bosses drop.
+- [#3 2026-11-14T21:08:42Z session:peaceful-shower-1114] Likely resolved by VB-107 step 3 (51ab8ef, acidic-lens-1113): all 19 monsters resolve to a loot table; the 'No loot table found' warning last appeared in logs/bot_tests.log at 2026-11-13 22:49 (139k lines before that, none since). Left open as Scott's call on whether the family tables are what he wants.
 
 
 ## TASK-VB-71 · Balance knobs nobody reads: spawning.yaml monster_density (global + tier multipliers), ore_veins.yaml ore_types, ores.yaml floor_range; ore vein count grows without bound (8 + floor - 1 = 107 on floor 100)
