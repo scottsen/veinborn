@@ -12,7 +12,7 @@ except ImportError:
 
 from protocol import PROTOCOL_VERSION
 from protocol.messages import Message
-from server.state_delta import StateDelta
+from core.snapshot import Snapshot
 
 logger = logging.getLogger('veinborn.multiplayer_client')
 
@@ -34,6 +34,7 @@ class MultiplayerState:
     player_name: Optional[str] = None
     game_id: Optional[str] = None
     auth_token: Optional[str] = None
+    errors: list = field(default_factory=list)        # error texts the server sent, newest last
     chat_messages: list = field(default_factory=list)  # List of ChatMessage objects
 
 
@@ -55,15 +56,18 @@ class MultiplayerClient:
         self.ws = None
         self.state = MultiplayerState()
 
-        # Cached full game state, kept current by merging delta messages in
-        # (VB-4: previously raw delta dicts were forwarded straight to the
-        # callback with no merge step, so deltas could never be applied)
-        self._game_state: Dict = {}
+        # What the server last told us. A snapshot is this player's whole view, so there
+        # is nothing to merge: keep the newest (highest seq), drop anything older.
+        self.snapshot: Optional[Snapshot] = None
+        self.game_info: Dict = {}      # game id/name/started/finished beside the snapshot
+        self.lobby: Dict = {}          # the game before it starts
+        self.last_seq = 0
 
         # Callbacks
         self.on_chat_message: Optional[Callable[[ChatMessage], None]] = None
         self.on_system_message: Optional[Callable[[str], None]] = None
-        self.on_state_update: Optional[Callable[[Dict], None]] = None
+        self.on_snapshot: Optional[Callable[[Snapshot], None]] = None
+        self.on_lobby: Optional[Callable[[Dict], None]] = None
 
         # Background tasks
         self._listen_task: Optional[asyncio.Task] = None
@@ -229,6 +233,13 @@ class MultiplayerClient:
         await self.ws.send(Message.intent(intent, **args).to_json())
         return True
 
+    async def request_snapshot(self) -> bool:
+        """Ask the server for the current state (after a gap, or on joining late)."""
+        if not self.ws or not self.state.is_connected:
+            return False
+        await self.ws.send(Message.get_snapshot().to_json())
+        return True
+
     async def send_ready(self):
         """Send ready status to start the game."""
         if not self.ws or not self.state.is_connected:
@@ -308,39 +319,34 @@ class MultiplayerClient:
         elif msg_type == "error":
             # Handle error message
             text = message.data.get("message", "")
-            logger.error(f"Server error: {text}")
+            logger.warning(f"Server refused: {text}")
+            self.state.errors.append(text)
 
             if self.on_system_message:
                 self.on_system_message(f"Error: {text}")
 
-        elif msg_type == "state":
-            # Handle full state update
-            state = message.data.get("state", {})
-            self._game_state = state
+        elif msg_type == "snapshot":
+            if message.seq is not None and message.seq <= self.last_seq:
+                logger.debug(f"Ignoring stale snapshot (seq {message.seq} <= {self.last_seq})")
+                return
+            self.last_seq = message.seq or self.last_seq
+            self.snapshot = Snapshot.from_dict(message.data["snapshot"])
+            self.game_info = message.data.get("game", {})
+            self.lobby = {}
+            if self.game_info.get("game_id"):
+                self.state.game_id = self.game_info["game_id"]
 
-            # Update game_id if we joined a game
-            game_id = state.get("game_id")
-            if game_id:
-                self.state.game_id = game_id
+            if self.on_snapshot:
+                self.on_snapshot(self.snapshot)
 
-            if self.on_state_update:
-                self.on_state_update(self._game_state)
+        elif msg_type == "lobby":
+            self.lobby = message.data
+            self.game_info = {k: v for k, v in message.data.items() if k != "players"}
+            if self.lobby.get("game_id"):
+                self.state.game_id = self.lobby["game_id"]
 
-            logger.debug("Received full state update")
-
-        elif msg_type == "delta":
-            # Handle delta state update - merge onto the cached full state
-            # rather than forwarding the raw delta (see Message.delta: the
-            # payload here is StateDelta.compute_delta()'s own
-            # {"type": "delta", "changes": {...}, ...} dict, nested one level
-            # under "changes" by the message wrapper)
-            delta_payload = message.data.get("changes", {})
-            self._game_state = StateDelta.apply_delta(self._game_state, delta_payload)
-
-            if self.on_state_update:
-                self.on_state_update(self._game_state)
-
-            logger.debug("Received delta state update")
+            if self.on_lobby:
+                self.on_lobby(self.lobby)
 
         elif msg_type == "player_joined":
             name = message.data.get("player_name", "Unknown")

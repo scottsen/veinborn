@@ -19,7 +19,7 @@ except ImportError:
     sys.exit(1)
 
 from protocol.messages import Message
-from server.state_delta import StateDelta
+from core.snapshot import Snapshot
 
 
 class TestClient:
@@ -36,6 +36,7 @@ class TestClient:
 
         # State tracking for delta compression
         self.current_state = None
+        self.last_seq = 0
 
     async def connect(self, player_name: str):
         """Connect to the server and authenticate.
@@ -193,68 +194,29 @@ class TestClient:
             text = message.data.get("message", "")
             print(f"\n💬 {player_name}: {text}")
 
-        elif msg_type == "state":
-            state = message.data.get("state", {})
-            # Store current state for delta handling
-            self.current_state = state
-            print(f"\n📊 Game State Update (Full):")
-            print(f"   Game: {state.get('game_name', 'Unknown')}")
-            print(f"   Players: {state.get('player_count', 0)}/{state.get('max_players', 0)}")
-            if state.get("is_started"):
-                print(f"   Turn: {state.get('turn_count', 0)}")
-                print(f"   Round: {state.get('round_number', 0)}")
-                print(f"   Actions: {state.get('actions_this_round', 0)}/{state.get('actions_per_round', 4)}")
+        elif msg_type == "lobby":
+            lobby = message.data
+            print(f"\n📊 Lobby: {lobby.get('game_name', 'Unknown')}")
+            for p in lobby.get("players", []):
+                print(f"   {p.get('player_name')} ({p.get('player_class')}) "
+                      f"{'ready' if p.get('is_ready') else 'not ready'}")
 
-                # Extract player entity ID for movement
-                players = state.get("players", [])
-                for player in players:
-                    if player.get("player_id") == self.player_id:
-                        old_entity_id = self.player_entity_id
-                        self.player_entity_id = player.get("entity_id")
-                        if not old_entity_id and self.player_entity_id:
-                            print(f"   Your entity: {self.player_entity_id}")
-                            print(f"   Use /move <dir> to move (n,s,e,w,ne,nw,se,sw)")
-
-                        # Show position
-                        pos = player.get("position", {})
-                        print(f"   Your position: ({pos.get('x', 0)}, {pos.get('y', 0)})")
-
-        elif msg_type == "delta":
-            # Apply delta to current state
-            if self.current_state is None:
-                print(f"\n⚠ Received delta without current state, ignoring")
-            else:
-                # Message.delta nests compute_delta()'s dict one level under "changes"
-                delta_data = message.data.get("changes", {})
-                self.current_state = StateDelta.apply_delta(self.current_state, delta_data)
-                print(f"\n📊 Game State Update (Delta):")
-
-                # Show what changed
-                changes = delta_data.get("changes", {})
-                if changes.get("players"):
-                    print(f"   Player changes: {len(changes['players'])} updates")
-                if changes.get("new_messages"):
-                    print(f"   New messages: {len(changes['new_messages'])}")
-                if delta_data.get("no_changes"):
-                    print(f"   No changes")
-
-                # Show current state
-                if self.current_state.get("is_started"):
-                    print(f"   Turn: {delta_data.get('turn_count', 0)}")
-                    print(f"   Round: {delta_data.get('round_number', 0)}")
-                    print(f"   Actions: {delta_data.get('actions_this_round', 0)}")
-
-                # Update entity ID if needed
-                players = self.current_state.get("players", [])
-                for player in players:
-                    if player.get("player_id") == self.player_id:
-                        old_entity_id = self.player_entity_id
-                        self.player_entity_id = player.get("entity_id")
-
-                        # Show position if it changed
-                        if "players" in changes:
-                            pos = player.get("position", {})
-                            print(f"   Your position: ({pos.get('x', 0)}, {pos.get('y', 0)})")
+        elif msg_type == "snapshot":
+            if message.seq is not None and message.seq <= self.last_seq:
+                return  # an older view than the one we hold
+            self.last_seq = message.seq or self.last_seq
+            snap = Snapshot.from_dict(message.data["snapshot"])
+            self.current_state = snap
+            old_entity_id = self.player_entity_id
+            self.player_entity_id = snap.player.entity_id
+            print(f"\n📊 Snapshot #{self.last_seq}: floor {snap.floor}, turn {snap.turn}")
+            if snap.round:
+                print(f"   Round {snap.round.number}: waiting on {len(snap.round.waiting_on)}")
+            print(f"   Your position: ({snap.player.x}, {snap.player.y})  "
+                  f"HP {snap.player.hp}/{snap.player.max_hp}")
+            if not old_entity_id:
+                print(f"   Your entity: {self.player_entity_id}")
+                print(f"   Use /move <dir> to move (n,s,e,w,ne,nw,se,sw)")
 
         elif msg_type == "player_joined":
             name = message.data.get("player_name", "Unknown")

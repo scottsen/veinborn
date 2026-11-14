@@ -22,6 +22,7 @@ class MessageType(Enum):
     CREATE_GAME = "create_game"
     LEAVE_GAME = "leave_game"
     READY = "ready"
+    GET_SNAPSHOT = "get_snapshot"
     PAUSE = "pause"
 
     # Server -> Client
@@ -29,6 +30,8 @@ class MessageType(Enum):
     AUTH_FAILURE = "auth_failure"
     STATE = "state"
     DELTA = "delta"
+    SNAPSHOT = "snapshot"
+    LOBBY = "lobby"
     CHAT_MESSAGE = "chat_message"
     SYSTEM = "system"
     ERROR = "error"
@@ -121,6 +124,29 @@ class Message:
             type=MessageType.INTENT.value,
             data={"intent": intent, "args": args},
         )
+
+    @classmethod
+    def snapshot(cls, seq: int, game: Dict[str, Any], snapshot: Dict[str, Any]) -> "Message":
+        """One viewer's whole view of a running game (`core.snapshot.Snapshot.to_dict()`).
+
+        `seq` grows with every state message of a game; a client keeps the highest
+        one it has seen and ignores anything older.
+        """
+        return cls(
+            type=MessageType.SNAPSHOT.value,
+            data={"game": game, "snapshot": snapshot},
+            seq=seq,
+        )
+
+    @classmethod
+    def lobby(cls, lobby: Dict[str, Any]) -> "Message":
+        """The game before it starts: who is seated and who is ready."""
+        return cls(type=MessageType.LOBBY.value, data=lobby)
+
+    @classmethod
+    def get_snapshot(cls) -> "Message":
+        """Ask for the current state (join late, or resync)."""
+        return cls(type=MessageType.GET_SNAPSHOT.value, data={})
 
     @classmethod
     def state(cls, game_state: Dict[str, Any]) -> "Message":

@@ -1,7 +1,7 @@
-"""Tests for MultiplayerClient state merging (VB-4).
+"""MultiplayerClient: decoding what the server sends (VB-97).
 
 Exercises _handle_message directly rather than opening a real websocket
-connection - unit-level coverage for the delta-merge fix.
+connection; the real-socket tests cover the whole path.
 """
 
 import sys
@@ -11,61 +11,78 @@ sys.path.insert(0, str(Path(__file__).parent.parent.parent.parent / "src"))
 
 import pytest
 
-from ui.multiplayer_client import MultiplayerClient
+from core.game import Game
+from core.snapshot import Snapshot
 from protocol.messages import Message
-from server.state_delta import StateDelta
+from ui.multiplayer_client import MultiplayerClient
 
 
 def _client():
     return MultiplayerClient(host="localhost", port=8765)
 
 
-@pytest.mark.asyncio
-async def test_full_state_message_replaces_cached_state():
-    client = _client()
-    state = {"current_floor": 1, "monsters": [], "players": []}
-
-    await client._handle_message(Message.state(state))
-
-    assert client._game_state == state
+def _snapshot_message(seq, game_id="g1"):
+    game = Game()
+    game.start_new_game(seed=1, player_name="Solo")
+    snap = game.engine.snapshot()
+    return Message.snapshot(seq, {"game_id": game_id, "is_started": True}, snap.to_dict()), snap
 
 
 @pytest.mark.asyncio
-async def test_delta_message_merges_onto_cached_state():
+async def test_snapshot_message_is_decoded_and_stored():
     client = _client()
-    old_state = {
-        "current_floor": 1,
-        "players": [],
-        "monsters": [{"entity_id": "m1", "x": 0, "y": 0, "hp": 10}],
-    }
-    new_state = {
-        "current_floor": 2,
-        "players": [],
-        "monsters": [{"entity_id": "m2", "x": 1, "y": 1, "hp": 8}],
-    }
-    await client._handle_message(Message.state(old_state))
+    message, snap = _snapshot_message(3)
+    seen = []
+    client.on_snapshot = seen.append
 
-    delta = StateDelta.compute_delta(old_state, new_state)
-    await client._handle_message(Message.delta(delta))
+    await client._handle_message(message)
 
-    assert client._game_state["current_floor"] == 2
-    assert [m["entity_id"] for m in client._game_state["monsters"]] == ["m2"]
+    assert isinstance(client.snapshot, Snapshot) and client.snapshot == snap
+    assert client.last_seq == 3 and seen == [snap]
+    assert client.state.game_id == "g1" and client.game_info["is_started"]
 
 
 @pytest.mark.asyncio
-async def test_delta_message_reaches_state_update_callback():
+async def test_a_snapshot_with_an_older_or_equal_seq_is_ignored():
     client = _client()
-    received = []
-    client.on_state_update = lambda state: received.append(state)
+    newer, _ = _snapshot_message(5)
+    await client._handle_message(newer)
+    held = client.snapshot
+    seen = []
+    client.on_snapshot = seen.append
 
-    old_state = {"current_floor": 1, "players": [], "monsters": []}
-    await client._handle_message(Message.state(old_state))
+    for seq in (5, 4):
+        older, _ = _snapshot_message(seq, game_id="other")
+        await client._handle_message(older)
 
-    new_state = {"current_floor": 2, "players": [], "monsters": []}
-    delta = StateDelta.compute_delta(old_state, new_state)
-    await client._handle_message(Message.delta(delta))
+    assert client.snapshot is held and client.last_seq == 5 and seen == []
+    assert client.state.game_id == "g1"
 
-    assert received[-1]["current_floor"] == 2
+
+@pytest.mark.asyncio
+async def test_lobby_message_is_stored_and_sets_the_game_id():
+    client = _client()
+    seen = []
+    client.on_lobby = seen.append
+    lobby = {"game_id": "g9", "game_name": "N", "is_started": False,
+             "players": [{"player_id": "p", "player_name": "A", "player_class": "warrior", "is_ready": False}]}
+
+    await client._handle_message(Message.lobby(lobby))
+
+    assert client.lobby == lobby and seen == [lobby]
+    assert client.state.game_id == "g9" and client.snapshot is None
+
+
+@pytest.mark.asyncio
+async def test_error_message_is_recorded():
+    client = _client()
+    await client._handle_message(Message.error("Waiting for the party: Bob"))
+    assert client.state.errors == ["Waiting for the party: Bob"]
+
+
+@pytest.mark.asyncio
+async def test_request_snapshot_when_disconnected_returns_false():
+    assert await _client().request_snapshot() is False
 
 
 @pytest.mark.asyncio

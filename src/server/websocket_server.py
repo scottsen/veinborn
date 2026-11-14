@@ -263,6 +263,8 @@ class VeinbornServer:
             await self.handle_ready(session_id, session, message)
         elif msg_type == MessageType.ACTION.value:
             await self.handle_action(session_id, session, message)
+        elif msg_type == MessageType.GET_SNAPSHOT.value:
+            await self.send_game_state_to(session_id, session)
         elif msg_type == MessageType.INTENT.value:
             await self.handle_intent(session_id, session, message)
         elif msg_type == MessageType.CHAT.value:
@@ -399,8 +401,8 @@ class VeinbornServer:
             Message.player_reconnected(session.player_id, session.player_name),
         )
 
-        # Send full game state to reconnecting player
-        await self.broadcast_game_state(session.game_id, force_full_state=True)
+        # Only the returning player needs catching up
+        await self.send_game_state_to(session_id, session)
 
     async def handle_ready(self, session_id: str, session: Session, message: Message):
         """Handle player ready status."""
@@ -661,26 +663,33 @@ class VeinbornServer:
             if session:
                 await self.send_message_to_session(session.session_id, message)
 
-    async def broadcast_game_state(self, game_id: str, force_full_state: bool = False):
-        """Broadcast current game state to all players.
+    async def broadcast_game_state(self, game_id: str):
+        """Send every seated player their own view of the game.
 
-        Args:
-            game_id: Game ID
-            force_full_state: If True, send full state instead of delta
+        Before the game starts that is the lobby; once it runs, each player gets
+        their own snapshot (a view per viewer, so what one player may see is the
+        server's decision, not the client's).
         """
         game = await self.game_manager.get_game(game_id)
         if not game:
             return
 
-        state_dict = game.get_state_dict(use_delta=not force_full_state)
+        # Built together, synchronously (one seq, no game change between recipients)
+        outgoing = game.state_messages()
+        for player_id, message in outgoing.items():
+            session = self.auth_manager.get_session_by_player(player_id)
+            if session:
+                await self.send_message_to_session(session.session_id, message)
 
-        # Send appropriate message type based on whether it's a delta or full state
-        if state_dict.get("type") == "delta":
-            # Send delta message
-            await self.broadcast_to_game(game_id, Message.delta(state_dict))
-        else:
-            # Send full state message
-            await self.broadcast_to_game(game_id, Message.state(state_dict))
+    async def send_game_state_to(self, session_id: str, session: Session):
+        """Send one player the current state (a returning or late client)."""
+        game = await self.game_manager.get_game(session.game_id) if session.game_id else None
+        if not game:
+            await self.send_error(session_id, "Not in a game")
+            return
+        message = game.state_messages().get(session.player_id)
+        if message:
+            await self.send_message_to_session(session_id, message)
 
     CLEANUP_INTERVAL_SECONDS = 10  # Fast enough for reconnection timeouts
     CLEANUP_MAX_BACKOFF_SECONDS = 300

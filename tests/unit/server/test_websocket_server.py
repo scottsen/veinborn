@@ -417,52 +417,76 @@ async def test_broadcast_to_nonexistent_game():
 
 
 @pytest.mark.asyncio
-async def test_broadcast_game_state_full():
-    """Test broadcasting full game state."""
+async def test_broadcast_game_state_sends_the_lobby_before_the_game_starts():
     server = VeinbornServer()
-
-    # Create game and session
     token, session = server.auth_manager.create_session("Player1")
     game = GameSession("game1", "Test Game")
     await game.add_player(session.player_id, "Player1")
     server.game_manager._games["game1"] = game
-
     ws = AsyncMock()
     server.connections[session.session_id] = ws
 
-    # Broadcast full state
-    await server.broadcast_game_state("game1", force_full_state=True)
+    await server.broadcast_game_state("game1")
 
-    # Verify state message was sent
     ws.send.assert_called_once()
-    sent_data = ws.send.call_args[0][0]
-    parsed = json.loads(sent_data)
-
-    assert parsed["type"] in [MessageType.STATE.value, MessageType.DELTA.value]
+    parsed = json.loads(ws.send.call_args[0][0])
+    assert parsed["type"] == MessageType.LOBBY.value
+    assert parsed["data"]["game_id"] == "game1"
+    assert [p["player_name"] for p in parsed["data"]["players"]] == ["Player1"]
 
 
 @pytest.mark.asyncio
-async def test_broadcast_game_state_delta():
-    """Test broadcasting delta game state."""
+async def test_broadcast_game_state_sends_each_player_their_own_snapshot_with_one_seq():
     server = VeinbornServer()
-
-    # Create game
-    token, session = server.auth_manager.create_session("Player1")
+    sessions, sockets = {}, {}
     game = GameSession("game1", "Test Game")
-    await game.add_player(session.player_id, "Player1")
+    for name in ("Alice", "Bob"):
+        token, session = server.auth_manager.create_session(name)
+        await game.add_player(session.player_id, name, "warrior")
+        sessions[name] = session
+        sockets[name] = AsyncMock()
+        server.connections[session.session_id] = sockets[name]
+    await game.start_game(seed=7)
     server.game_manager._games["game1"] = game
 
-    # Enable delta compression
-    game.use_delta_compression = True
-    game.last_state = {"test": "data"}
+    await server.broadcast_game_state("game1")
+    await server.broadcast_game_state("game1")
 
-    ws = AsyncMock()
-    server.connections[session.session_id] = ws
+    sent = {}
+    for name, ws in sockets.items():
+        msgs = [json.loads(c[0][0]) for c in ws.send.call_args_list]
+        assert [m["type"] for m in msgs] == ["snapshot", "snapshot"]
+        sent[name] = msgs
+    # one seq per broadcast, the same for everyone, increasing
+    assert [m["seq"] for m in sent["Alice"]] == [m["seq"] for m in sent["Bob"]]
+    assert sent["Alice"][1]["seq"] > sent["Alice"][0]["seq"]
+    # each player's own view: their entity is the snapshot's player
+    alice_entity = game.players[sessions["Alice"].player_id].entity_id
+    bob_entity = game.players[sessions["Bob"].player_id].entity_id
+    assert sent["Alice"][0]["data"]["snapshot"]["player"]["entity_id"] == alice_entity
+    assert sent["Bob"][0]["data"]["snapshot"]["player"]["entity_id"] == bob_entity
 
-    # Broadcast delta
-    await server.broadcast_game_state("game1", force_full_state=False)
 
-    ws.send.assert_called_once()
+@pytest.mark.asyncio
+async def test_get_snapshot_answers_only_the_asker():
+    server = VeinbornServer()
+    token, session = server.auth_manager.create_session("Alice")
+    token2, other = server.auth_manager.create_session("Bob")
+    game = GameSession("game1", "Test Game")
+    await game.add_player(session.player_id, "Alice", "warrior")
+    await game.add_player(other.player_id, "Bob", "warrior")
+    await game.start_game(seed=7)
+    session.game_id = other.game_id = "game1"
+    server.game_manager._games["game1"] = game
+    ws_a, ws_b = AsyncMock(), AsyncMock()
+    server.connections[session.session_id] = ws_a
+    server.connections[other.session_id] = ws_b
+
+    await server.handle_message(session.session_id, Message.get_snapshot())
+
+    ws_a.send.assert_called_once()
+    ws_b.send.assert_not_called()
+    assert json.loads(ws_a.send.call_args[0][0])["type"] == "snapshot"
 
 
 # ============================================================================

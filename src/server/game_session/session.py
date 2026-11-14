@@ -8,6 +8,8 @@ from typing import Dict, List, Optional
 from core.base.action import Action
 from core.base.game_context import GameContext
 from core.events import EventBus, GameEventType, create_game_started_event
+from core.snapshot import PartyMemberView, RoundView, Snapshot
+from protocol.messages import Message
 from core.engine import Engine
 from core.highscore import HighScoreEntry, HighScoreManager
 from server.multiplayer_game_state import MultiplayerGameState
@@ -49,6 +51,9 @@ class GameSession:
 
         # Turn management (rounds live in mp_game_state.scheduler)
         self.pending_actions: asyncio.Queue = asyncio.Queue()
+
+        # Sequence number of state messages sent for this game
+        self._seq = 0
 
         # State tracking for delta compression
         self.last_state: Optional[Dict] = None
@@ -503,6 +508,75 @@ class GameSession:
             for player_id, player_info in self.players.items()
             if player_info.is_disconnected() and player_info.is_alive
         ]
+
+    def game_info(self) -> Dict:
+        """The game-level facts that sit beside a snapshot on the wire."""
+        return {
+            "game_id": self.game_id,
+            "game_name": self.game_name,
+            "is_started": self.is_started,
+            "is_finished": self.is_finished,
+            "max_players": self.max_players,
+        }
+
+    def lobby_dict(self) -> Dict:
+        """The game before it starts."""
+        return {
+            **self.game_info(),
+            "players": [
+                {
+                    "player_id": p.player_id,
+                    "player_name": p.player_name,
+                    "player_class": p.player_class,
+                    "is_ready": p.is_ready,
+                }
+                for p in self.players.values()
+            ],
+        }
+
+    def snapshot_for(self, player_id: str) -> Snapshot:
+        """What this player's seat sees, with the party and the round filled in.
+
+        A dead player gets the view from their own (possibly purged) character, so
+        they can spectate until the run ends.
+        """
+        mp = self.mp_game_state
+        slot = mp.player_slots[player_id]
+        snap = self.engine.snapshot(slot.player_entity)
+        snap.party = [
+            PartyMemberView(
+                player_id=s.player_id,
+                name=s.player_name,
+                player_class=s.player_entity.stats.get('class_type', 'warrior'),
+                entity_id=s.entity_id,
+                alive=s.is_alive,
+                connected=not (s.player_id in self.players and self.players[s.player_id].is_disconnected()),
+            )
+            for s in mp.player_slots.values()
+        ]
+        snap.round = RoundView(
+            number=mp.round_number,
+            waiting_on=mp.scheduler.waiting_on(),
+            acted=sorted(mp.scheduler.acted),
+        )
+        return snap
+
+    def state_messages(self) -> Dict[str, Message]:
+        """One state message per seated player, built together so they share a `seq`.
+
+        Before the game starts that is the lobby (the same for everyone); after, each
+        player's own snapshot. Built synchronously: nothing can change the game between
+        two recipients' views, and a slow send can never reorder them.
+        """
+        if not self.is_started or not self.engine:
+            lobby = Message.lobby(self.lobby_dict())
+            return {pid: lobby for pid in self.players}
+        self._seq += 1
+        info = self.game_info()
+        return {
+            pid: Message.snapshot(self._seq, info, self.snapshot_for(pid).to_dict())
+            for pid in self.players if pid in self.mp_game_state.player_slots
+        }
 
     def get_state_dict(self, use_delta: Optional[bool] = None) -> Dict:
         """Get the current game state as a dictionary.

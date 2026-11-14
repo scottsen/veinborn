@@ -588,8 +588,8 @@ async def test_server_cleanup_task_removes_expired_players():
 # ============================================================================
 
 @pytest.mark.asyncio
-async def test_reconnect_sends_full_state():
-    """Test reconnection triggers full state synchronization."""
+async def test_reconnect_sends_state_to_the_returning_player_only():
+    """Reconnection catches up the returning player; nobody else gets a state message."""
     server = VeinbornServer()
     auth_manager = AuthManager()
     server.auth_manager = auth_manager
@@ -597,7 +597,6 @@ async def test_reconnect_sends_full_state():
     token, session = auth_manager.create_session("Alice")
     session.game_id = "game1"
 
-    # Create and start game
     game = GameSession("game1", "Test Game")
     await game.add_player(session.player_id, "Alice", "warrior")
     await game.disconnect_player(session.player_id)
@@ -606,11 +605,13 @@ async def test_reconnect_sends_full_state():
     ws = AsyncMock()
     server.connections[session.session_id] = ws
 
-    # Track broadcast_game_state calls
-    broadcast_calls = []
+    broadcasts, unicasts = [], []
 
-    async def mock_broadcast_state(game_id, force_full_state=False):
-        broadcast_calls.append({"game_id": game_id, "force_full_state": force_full_state})
+    async def mock_broadcast_state(game_id):
+        broadcasts.append(game_id)
+
+    async def mock_send_state_to(session_id, sess):
+        unicasts.append(session_id)
 
     async def mock_send_to_session(session_id, message):
         pass
@@ -619,16 +620,15 @@ async def test_reconnect_sends_full_state():
         pass
 
     server.broadcast_game_state = mock_broadcast_state
+    server.send_game_state_to = mock_send_state_to
     server.send_message_to_session = mock_send_to_session
     server.broadcast_to_game = mock_broadcast_to_game
 
-    # Handle reconnection
     reconnect_msg = Message(type=MessageType.RECONNECT.value, data={})
     await server.handle_reconnect(session.session_id, session, reconnect_msg)
 
-    # Verify full state was requested
-    assert len(broadcast_calls) == 1
-    assert broadcast_calls[0]["force_full_state"] is True
+    assert broadcasts == []
+    assert unicasts == [session.session_id]
 
 
 # ============================================================================

@@ -23,9 +23,7 @@ async def _start_two(server, port):
 
 
 def _pos(client, entity_id):
-    for p in client.state["players"]:
-        if p["entity_id"] == entity_id:
-            return p["position"]["x"], p["position"]["y"]
+    return client.position_of(entity_id)
 
 
 @pytest.mark.asyncio
@@ -51,8 +49,8 @@ async def test_intent_moves_the_senders_own_character_and_ignores_a_spoofed_acto
         assert _pos(alice, bob.entity_id) == before_bob  # Bob never moved
     finally:
         for c in (alice, bob):
-            if c and getattr(c, "ws", None):
-                await c.ws.close()
+            if c:
+                await c.close()
         await server.stop()
 
 
@@ -70,8 +68,8 @@ async def test_unknown_or_malformed_intent_gets_an_error_not_a_crash():
         assert any("Invalid intent" in e for e in alice.errors)
     finally:
         for c in (alice, bob):
-            if c and getattr(c, "ws", None):
-                await c.ws.close()
+            if c:
+                await c.close()
         await server.stop()
 
 
@@ -106,10 +104,10 @@ async def test_round_waits_for_the_whole_party_and_refuses_a_second_action():
         assert sorted(mp.waiting_on()) == sorted([alice.player_id, bob.player_id])
 
         # The clients see who the round is waiting on
-        await _until(lambda: alice.state and alice.state.get("round_number") == 1)
-        assert sorted(alice.state["waiting_on"]) == sorted([alice.player_id, bob.player_id])
+        await _until(lambda: alice.snapshot.round.number == 1)
+        assert sorted(alice.snapshot.round.waiting_on) == sorted([alice.entity_id, bob.entity_id])
     finally:
         for c in (alice, bob):
-            if c and getattr(c, "ws", None):
-                await c.ws.close()
+            if c:
+                await c.close()
         await server.stop()

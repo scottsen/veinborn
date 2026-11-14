@@ -4,70 +4,85 @@ The other multiplayer integration tests drive VeinbornServer with mock websocket
 how a handshake that failed on every real connection (websockets >= 13 no longer passes
 `path`), a lobby->started transition that never reached clients as a full state, and
 monster-turn messages that never reached deltas all went unnoticed.
+
+The clients here ARE `ui.multiplayer_client.MultiplayerClient`: the test decodes server
+messages with the code a player runs, so the two cannot drift apart.
 """
 
 import asyncio
-import re
 
 import pytest
-import websockets
 
 from protocol.messages import Message
-from server.state_delta import StateDelta
+from ui.multiplayer_client import MultiplayerClient
 from server.websocket_server import VeinbornServer
 
 
 class _Client:
+    """A real MultiplayerClient plus the few conveniences the tests read."""
+
     def __init__(self, name):
         self.name = name
-        self.state = None
-        self.game_id = None
-        self.player_id = None
-        self.errors = []
-        self.game_started = False
+        self.client = MultiplayerClient(host="127.0.0.1")
 
     async def connect(self, port, token=None):
-        self.ws = await websockets.connect(f"ws://127.0.0.1:{port}")
-        await self.ws.send(Message.auth(self.name, token).to_json())
-        reply = Message.from_json(await self.ws.recv())
-        assert reply.type == "auth_success", reply.data
-        self.player_id = reply.data["player_id"]
-        self.session_id = reply.data["session_id"]
-        self.token = reply.data["auth_token"]
-        self._reader = asyncio.create_task(self._read())
+        self.client.port = port
+        assert await self.client.connect(self.name, auth_token=token)
 
-    async def _read(self):
-        # Mirrors ui/multiplayer_client.MultiplayerClient._handle_message
-        try:
-            async for raw in self.ws:
-                msg = Message.from_json(raw)
-                if msg.type == "system":
-                    found = re.search(r"ID: (\S+)\)", msg.data.get("message", ""))
-                    self.game_id = found.group(1) if found else self.game_id
-                elif msg.type == "error":
-                    self.errors.append(msg.data.get("message"))
-                elif msg.type == "game_start":
-                    self.game_started = True
-                elif msg.type == "state":
-                    self.state = msg.data["state"]
-                elif msg.type == "delta" and self.state is not None:
-                    self.state = StateDelta.apply_delta(self.state, msg.data["changes"])
-        except websockets.ConnectionClosed:
-            pass
+    @property
+    def ws(self):
+        return self.client.ws
+
+    @property
+    def player_id(self):
+        return self.client.state.player_id
+
+    @property
+    def session_id(self):
+        return self.client.state.session_id
+
+    @property
+    def token(self):
+        return self.client.state.auth_token
+
+    @property
+    def game_id(self):
+        return self.client.state.game_id
+
+    @property
+    def errors(self):
+        return self.client.state.errors
+
+    @property
+    def snapshot(self):
+        return self.client.snapshot
+
+    @property
+    def game_started(self):
+        return self.client.snapshot is not None
 
     @property
     def entity_id(self):
-        for player in (self.state or {}).get("players", []):
-            if player.get("player_id") == self.player_id:
-                return player.get("entity_id")
-        return None
+        return self.snapshot.player.entity_id if self.snapshot else None
+
+    def position_of(self, entity_id):
+        """Where this client sees an entity (itself, or something in its world)."""
+        snap = self.snapshot
+        if snap.player.entity_id == entity_id:
+            return snap.player.x, snap.player.y
+        for e in snap.entities:
+            if e.entity_id == entity_id:
+                return e.x, e.y
 
     async def send(self, msg):
         await self.ws.send(msg.to_json())
 
     async def move(self, dx, dy):
-        await self.send(Message(type="action", data={"action_data": {
-            "action_type": "MoveAction", "actor_id": self.entity_id, "dx": dx, "dy": dy}}))
+        await self.client.submit("move", dx=dx, dy=dy)
+
+    async def close(self):
+        if self.client.ws is not None:
+            await self.client.disconnect()
 
 
 async def _until(predicate, timeout=3.0):
@@ -94,38 +109,38 @@ async def test_two_real_clients_can_start_and_play_a_coop_session():
         await alice.send(Message(type="ready", data={"ready": True}))
         await bob.send(Message(type="ready", data={"ready": True}))
 
-        # Clients learn the game started AND their own entity id from the state they receive
-        await _until(lambda: alice.entity_id and bob.entity_id and alice.game_started)
+        # Each client learns the game started, and who it is, from its own snapshot
+        await _until(lambda: alice.game_started and bob.game_started)
         assert alice.entity_id != bob.entity_id
-        assert alice.state["is_started"] and bob.state["is_started"]
+        assert alice.client.game_info["is_started"] and bob.client.game_info["is_started"]
+        assert [m.name for m in alice.snapshot.party] == ["Alice", "Bob"]
 
-        # Drive some actions from both clients; every move must be accepted or cleanly refused
+        # Drive actions from both clients; each is accepted or cleanly refused
         game = await server.game_manager.get_game(alice.game_id)
         for i in range(40):
             await (alice if i % 2 == 0 else bob).move(*[(1, 0), (0, 1), (-1, 0), (0, -1)][i % 4])
             await asyncio.sleep(0.01)
-        await asyncio.sleep(0.2)
+        await asyncio.sleep(0.3)
 
         assert game.mp_game_state.round_number > 0
         assert not [e for e in alice.errors + bob.errors if "not match" in e or "not found" in e]
 
-        # What the clients rebuilt from deltas is what the server holds
-        truth = game.get_state_dict(use_delta=False)
+        # What each client holds is exactly what the server would show that player now
         for client in (alice, bob):
-            assert client.state == truth, client.name
+            assert client.snapshot == game.snapshot_for(client.player_id), client.name
     finally:
         for client in (alice, bob):
-            if getattr(client, "ws", None):
-                await client.ws.close()
+            await client.close()
         await server.stop()
 
 
 @pytest.mark.asyncio
-async def test_dropped_client_reconnects_with_a_full_state_and_no_server_errors(caplog):
+async def test_dropped_client_reconnects_with_a_snapshot_sent_to_it_alone(caplog):
     server = VeinbornServer("127.0.0.1", 0)
     await server.start()
     port = server.server.sockets[0].getsockname()[1]
     alice, bob = _Client("Alice"), _Client("Bob")
+    bob2 = None
     try:
         await alice.connect(port)
         await bob.connect(port)
@@ -136,27 +151,69 @@ async def test_dropped_client_reconnects_with_a_full_state_and_no_server_errors(
         await bob.send(Message(type="ready", data={"ready": True}))
         await _until(lambda: alice.entity_id and bob.entity_id)
         game = await server.game_manager.get_game(alice.game_id)
-        bob_entity, bob_token = bob.entity_id, bob.token
+        bob_entity, bob_token, bob_player = bob.entity_id, bob.token, bob.player_id
 
         with caplog.at_level("ERROR"):
             await bob.ws.close()  # abrupt drop, no leave_game
-            await _until(lambda: game.players[bob.player_id].is_disconnected())
+            await _until(lambda: game.players[bob_player].is_disconnected())
             for i in range(8):
                 await alice.move(*[(1, 0), (0, 1), (-1, 0), (0, -1)][i % 4])
                 await asyncio.sleep(0.01)
+            await asyncio.sleep(0.2)
+            alice_seq = alice.client.last_seq
 
             bob2 = _Client("Bob")
             await bob2.connect(port, token=bob_token)
             await bob2.send(Message.reconnect(bob2.session_id))
-            await _until(lambda: bob2.state is not None and bob2.entity_id)
+            await _until(lambda: bob2.snapshot is not None)
+            await asyncio.sleep(0.2)
 
-        assert bob2.player_id == bob.player_id
+        assert bob2.player_id == bob_player
         assert bob2.entity_id == bob_entity
-        assert bob2.state["is_started"]
-        assert not game.players[bob.player_id].is_disconnected()
+        assert bob2.client.game_info["is_started"]
+        assert bob2.snapshot == game.snapshot_for(bob_player)
+        assert not game.players[bob_player].is_disconnected()
+        assert alice.client.last_seq == alice_seq  # the catch-up went to Bob alone
         assert caplog.text == ""  # no server-side tracebacks for a normal disconnect
     finally:
-        for client in (alice, bob, locals().get("bob2")):
-            if client is not None and getattr(client, "ws", None):
-                await client.ws.close()
+        for client in (alice, bob, bob2):
+            if client is not None:
+                await client.close()
+        await server.stop()
+
+
+@pytest.mark.asyncio
+async def test_each_client_sees_its_own_inventory_and_a_stale_snapshot_is_ignored():
+    server = VeinbornServer("127.0.0.1", 0)
+    await server.start()
+    port = server.server.sockets[0].getsockname()[1]
+    alice, bob = _Client("Alice"), _Client("Bob")
+    try:
+        await alice.connect(port)
+        await bob.connect(port)
+        await alice.send(Message.create_game("Views", max_players=4))
+        await _until(lambda: alice.game_id)
+        await bob.send(Message.join_game(alice.game_id, player_class="mage"))
+        await alice.send(Message(type="ready", data={"ready": True}))
+        await bob.send(Message(type="ready", data={"ready": True}))
+        await _until(lambda: alice.game_started and bob.game_started)
+
+        # Same world, different viewers: the viewer is never listed among the entities
+        assert alice.snapshot.player.entity_id not in {e.entity_id for e in alice.snapshot.entities}
+        assert bob.entity_id in {e.entity_id for e in alice.snapshot.entities}
+        assert {e.entity_id for e in alice.snapshot.entities if e.entity_type == "monster"} == \
+               {e.entity_id for e in bob.snapshot.entities if e.entity_type == "monster"}
+
+        # A snapshot older than what the client holds is dropped
+        newest, seq = alice.snapshot, alice.client.last_seq
+        stale = Message.snapshot(seq - 1, {"game_id": "x"}, bob.snapshot.to_dict())
+        await alice.client._handle_message(stale)
+        assert alice.snapshot is newest and alice.client.last_seq == seq
+
+        # ...and the client can ask for a fresh one
+        assert await alice.client.request_snapshot()
+        await _until(lambda: alice.client.last_seq > seq)
+    finally:
+        for client in (alice, bob):
+            await client.close()
         await server.stop()
