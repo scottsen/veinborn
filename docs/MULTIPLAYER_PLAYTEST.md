@@ -56,8 +56,8 @@ ready. Another machine connects with `--host <server-ip>`.
   action from the next round. Without the saved token a name match works only while exactly one
   dropped seat has that name. A character that died comes back as a spectator.
 - **Not in multiplayer:** save, load and restart (they say so).
-- Keys are the single-player ones (`i`, `:`, `e`, `d`, `g`, `w`, `s`, `z`, `.`, `>`), plus
-  `c`/Enter for chat.
+- Keys are the single-player ones (`i` pack, `f` craft, `:`, `e`, `d`, `g`, `w`, `s`, `z`, `.`,
+  `>`, `?` for the list), plus `c`/Enter for chat.
 
 ## What to look for
 
@@ -68,6 +68,10 @@ they cannot:
 - Does "anyone descends, everyone descends" cause trouble in practice?
 - Refusals and errors: does every refused key say why?
 - Anything that looks out of sync between the two screens.
+- Crafting by keyboard (new 2026-11-14): `f` next to a forge, Enter crafts from the best ore,
+  `o` picks ore by hand; is the recipe list readable, does the ore quality label (`P85 H70 ...`
+  in `i`) make you care which ore you spend? `?` lists every key.
 
 Write findings as `tt add` tasks in this repo (`tt grep` first) with the seed, the two
-classes and what each screen showed. Logs: `logs/` (client) and the server terminal.
+classes and what each screen showed. Logs: `logs/veinborn.log` (client; `extra=` context is on each line as `key=value`) and the
+server terminal.

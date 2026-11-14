@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added — Crafting from the keyboard; ore quality you can see and choose (VB-109, VB-111, VB-112, 2026-11-14)
+- Humans could not craft at all: the TUI had no craft key or forge menu (the docs' "walk onto a forge" was never built). Now `f` next to a forge lists recipes with what they need and a stats preview; Enter crafts from the best ore for the recipe, `o` picks the ore by hand. `i` is a pack screen (use or drop a chosen item), `?` lists every key, `q`/`r` confirm. Ore shows its quality (`P85 H70 M55 C40 D50`, ★ jackpot). Protocol v6. Next: crafting v2, `docs/design/CRAFTING_PARTS_DESIGN.md`.
+
 ### Added — Two people can play co-op in the TUI (MP plan phase 4, VB-94..VB-102, 2026-11-13)
 - The game screen plays a `GameDriver` (`ui/driver.py`): a local run, or a seat in a server's game over `run_multiplayer.py` (lobby with the game id, `R` to ready, round status, allies on the map). Protocol v2 adds a per-intent `intent_result`; the legacy client-built `action` message is gone. A seat that leaves or times out is dropped so the round never stalls (rejoin: `VB-103`). How to playtest: `docs/MULTIPLAYER_PLAYTEST.md`.
 

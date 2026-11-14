@@ -1,6 +1,6 @@
 # Veinborn Status Dashboard 🎯
 
-**Last Updated:** 2026-11-13 late (multiplayer client done: plan phases 3-4 and the drop half of D7, VB-94..VB-102; two humans can play in the TUI). Earlier history: `CHANGELOG.md`, `TASKS.md`.
+**Last Updated:** 2026-11-14 (keyboard play complete: craft at a forge `f`, pack screen `i`, keys `?`, ore quality and ore choice, VB-109/111/112; crafting v2 planned, phase 1 built; bot observability and routing fixes, VB-121..VB-125). Earlier history: `CHANGELOG.md`, `TASKS.md`.
 **Quick View:** One-page status overview
 
 ---
@@ -10,9 +10,9 @@
 | Category | Status | Details |
 |----------|--------|---------|
 | **Single-Player core** | 🟢 Healthy | All tests pass |
-| **Multiplayer** | 🟡 Playable in the TUI, awaiting the first human playtest | One engine for single-player and multiplayer (`core/engine.py`); intents in, per-viewer snapshots out (protocol v3, `src/protocol/`); one action per living player per round. The TUI plays a local run or a server seat through a `GameDriver` (`ui/driver.py`): lobby, `R` to ready, round status, allies on the map. A seat that leaves or outlives its 2-minute reconnect grace is dropped, so the round never stalls, and can rejoin with its saved token. Headless two-client test: `tests/ui/test_two_clients.py`. Fog of war per viewer (radius 9; `--reveal-map` for dev games). Natural regeneration scales with max HP and triples while resting (`.` with nothing in sight); timed status effects (`core/status_effects.py`) back heal-over-time food and the regeneration potion (protocol v5). How to run a playtest: [MULTIPLAYER_PLAYTEST.md](MULTIPLAYER_PLAYTEST.md); design and history: [architecture/MULTIPLAYER_ARCHITECTURE_PLAN.md](architecture/MULTIPLAYER_ARCHITECTURE_PLAN.md). |
-| **Test Health** | ✅ Green | 1587 passing / 0 failing (verified 2026-11-14); run with `/usr/bin/python3 -m pytest -q -n 4` (the `python3` wrapper lacks `pytest_asyncio`). Single-player changes are gated by the seeded bot A/B (`tests/fuzz/README.md`) |
-| **Current Phase** | 🎮 First human multiplayer playtest | then balance (`VB-87`) and the pacing design call (`VB-83`); `tt list --actionable` is the queue |
+| **Multiplayer** | 🟡 Playable in the TUI, awaiting the first human playtest | One engine for single-player and multiplayer (`core/engine.py`); intents in, per-viewer snapshots out (protocol v3, `src/protocol/`); one action per living player per round. The TUI plays a local run or a server seat through a `GameDriver` (`ui/driver.py`): lobby, `R` to ready, round status, allies on the map. A seat that leaves or outlives its 2-minute reconnect grace is dropped, so the round never stalls, and can rejoin with its saved token. Headless two-client test: `tests/ui/test_two_clients.py`. Fog of war per viewer (radius 9; `--reveal-map` for dev games). Natural regeneration scales with max HP and triples while resting (`.` with nothing in sight); timed status effects (`core/status_effects.py`) back heal-over-time food and the regeneration potion (protocol v5); recipes, ore quality and usable flags in the snapshot (protocol v6). How to run a playtest: [MULTIPLAYER_PLAYTEST.md](MULTIPLAYER_PLAYTEST.md); design and history: [architecture/MULTIPLAYER_ARCHITECTURE_PLAN.md](architecture/MULTIPLAYER_ARCHITECTURE_PLAN.md). |
+| **Test Health** | ✅ Green | 1649 passing / 0 failing (verified 2026-11-14; `test_large_map_performance` is timing-flaky under CPU load); run with `/usr/bin/python3 -m pytest -q -n 4` (the `python3` wrapper lacks `pytest_asyncio`). Single-player changes are gated by the seeded bot A/B (`tests/fuzz/README.md`) |
+| **Current Phase** | 🎮 First human playtest (`VB-104`) | then crafting v2 (`VB-113` decisions D3/D4, then `VB-115`..`VB-117`, which absorbs `VB-87` balance) and the pacing call (`VB-83`); `tt list --actionable` is the queue |
 | **Playability** | ✅ SP playable / 🟡 MP playable, not yet played by humans | |
 
 See `docs/PROJECT_REVIEW_2026-04-17.md` for the last full architecture audit, and `TASKS.md` for the 2026-09-22 review's findings (`VB-16` onward).
@@ -28,13 +28,13 @@ See `docs/PROJECT_REVIEW_2026-04-17.md` for the last full architecture audit, an
 
 The live queue is `tt list --actionable`; this is the short version.
 
-### 1️⃣ **First human multiplayer playtest** 🔴
-- Two players, one server, the TUI: [MULTIPLAYER_PLAYTEST.md](MULTIPLAYER_PLAYTEST.md)
-- **Why:** everything up to the two-client pilot test is automated; feel (strict rounds, shared log, "anyone descends") is not
+### 1️⃣ **First human playtest** 🔴 (`VB-104`)
+- Two players, one server, the TUI: [MULTIPLAYER_PLAYTEST.md](MULTIPLAYER_PLAYTEST.md); include crafting (`f` next to a forge, `o` to choose ore), the pack screen (`i`) and `?`
+- **Why:** everything up to the two-client pilot test is automated; feel (strict rounds, shared log, "anyone descends") is not. Crafting was unreachable from the keyboard until 2026-11-14
 
-### 2️⃣ **Balance** 🟡 (`VB-87`)
-- Bots never craft Phoenix Armor; the floor-99 boss is a pushover for a geared player
-- **Why:** measured with seeded bot runs; see the task notes
+### 2️⃣ **Crafting v2** 🟡 (`VB-113`..`VB-120`, [design/CRAFTING_PARTS_DESIGN.md](design/CRAFTING_PARTS_DESIGN.md))
+- SWG-style parts (head/grip, plates/lining, optional gem), each ore attribute with a job; six core stats decided (D1/D2), phase 1 (combat reads accuracy, max HP bonus, spell power) built and A/B-neutral
+- **Next:** Scott decides D3 (two parts + gem) and D4 (tier from ore properties), then phases 2-4 as one block; balance (`VB-87`: Phoenix Armor never crafted, weak floor-99 boss) is redone in `VB-117`
 
 ### 3️⃣ **Pacing design call** 🟢 (`VB-83`, Scott)
 - No pressure on floors 4-40: hunger clock, softer spawn clock, or neither
@@ -68,7 +68,7 @@ The live queue is `tt list --actionable`; this is the short version.
 ## 🚧 What's In Progress
 
 ### Track A: Single-Player
-- [ ] Balance (`VB-87`), automated play-testing (`VB-68`)
+- [ ] Crafting v2 (`VB-113` gate, `VB-115`..`VB-120`); balance (`VB-87`, folded into `VB-117`), automated play-testing (`VB-68`), bot pack-awareness (`VB-108`)
 - [ ] Design calls for Scott: pacing (`VB-83`), loot tables (`VB-70`), gold (`VB-74`)
 
 ### Track B: Multiplayer (plan phase 5)
