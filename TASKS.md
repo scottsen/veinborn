@@ -2,7 +2,7 @@
 project: veinborn
 schema_version: '1.0'
 id_prefix: VB
-next_id: 132
+next_id: 133
 archival: inline
 areas: {}
 ---
@@ -2531,17 +2531,18 @@ priority: high
 owner: scott
 tags: [multiplayer, playtest]
 created: '2026-11-14T02:32:40Z'
-updated: '2026-11-14T17:51:52Z'
+updated: '2026-11-14T23:33:19Z'
 session: warming-sunshine-1113
 links:
   relates_to:
   - VB-102
-notes_next: 2
+notes_next: 3
 ```
 
 <!-- notes: append-only log; each has a stable #id (see CLI §5) -->
 ### Notes
 - [#1 2026-11-14T17:51:52Z session:peaceful-shower-1114] Crafting is now reachable from the keyboard (f next to a forge, VB-109); include crafting, the pack screen (i) and ? help in the playtest.
+- [#2 2026-11-14T23:33:19Z session:fuchsia-dye-1114] Add to the playtest checklist (built 2026-11-14 fuchsia-dye-1114, never played by a human): wear/remove a ring (w; trolls drop them, 10%); ore bag vs pack counts and Gold in the i screen/sidebar; walk over gold (counter, no slot); ore label Q rating; forge Uses: line names the ore, o picker lists best Q first; equipment diff reads 'vs worn: -6 attack'.
 
 
 ## TASK-VB-105 · MP plan phase 5 / D4: fog of war per viewer (explored memory per viewer per floor, filtered in build_snapshot), on by default with a dev reveal switch
@@ -3122,3 +3123,19 @@ notes_next: 5
 - [#2 2026-11-14T23:19:25Z session:fuchsia-dye-1114] ore bag + gold counter built and tested; suite 1744 passed
 - [#3 2026-11-14T23:23:37Z session:fuchsia-dye-1114] Follow-up: ore label leads with Q = plain average of the 5 properties (jackpot ore always highest; density is in it though its only effect is a <=1 accuracy penalty on blades); forge 'Uses:' line now names the ore. Not done: sort the ore bag by Q.
 - [#4 2026-11-14T23:32:24Z session:fuchsia-dye-1114] Forge follow-up: OrePickScreen sorts by Q best-first; Uses line always hints o. Still open: bots never hand-pick (VB-117); part picker not sorted; pack/bag list not sorted by Q.
+
+
+## TASK-VB-132 · Flaky: tests/integration/test_multiplayer_intents.py::test_intent_moves_the_senders_own_character_and_ignores_a_spoofed_actor fails ~1 in 3 full -n 4 runs ('Waiting for the party: Bob'); passes alone 3/3
+
+```yaml
+status: backlog
+priority: low
+tags: [tests, multiplayer, flaky]
+created: '2026-11-14T23:33:19Z'
+updated: '2026-11-14T23:33:19Z'
+session: fuchsia-dye-1114
+```
+
+<!-- notes: append-only log; each has a stable #id (see CLI §5) -->
+### Notes
+_(no notes yet)_
