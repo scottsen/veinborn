@@ -1,7 +1,7 @@
 ---
 title: "Crafting v2: weapon and armor parts, ore attributes with jobs, named ore spawns"
 type: architecture
-status: proposed (decisions D1-D5 open for Scott)
+status: proposed (D1, D2 decided 2026-11-14; D3-D5 open)
 date: 2026-11-14
 beth_topics:
   - veinborn
@@ -14,8 +14,8 @@ beth_topics:
 
 # Crafting v2: parts, attributes with jobs, named ore
 
-**Status:** proposed. Phase 0 is Scott's decisions (D1-D5 below); nothing in phases 1-7 is
-built yet. Tasks: VB-113 (phase 0, decision gate), VB-114..VB-120 (phases 1-7, tag
+**Status:** proposed. Phase 0 is Scott's decisions (D1-D5 below): D1 and D2 decided
+2026-11-14 (keep the six core stats, accuracy included), D3-D5 open. Phase 1 needs only D1/D2. Tasks: VB-113 (phase 0, decision gate), VB-114..VB-120 (phases 1-7, tag
 `crafting-v2`; `tt list --tag crafting-v2`).
 
 ## Why
@@ -73,7 +73,7 @@ consistent.
 5. **Measured, not guessed.** Every combat-facing phase ends with a paired bot A/B
    (`scripts/compare_bot_runs.py`, seeds 3000+, 4 classes x 24 games x 20000 turns).
 
-## The stat set (proposal, D1/D2)
+## The stat set (decided: D1, D2)
 
 Only stats combat can read, each with an obvious source:
 
@@ -198,10 +198,11 @@ Order: 0 -> 1 -> 2 -> 3 -> 4, then 5/6/7 in any order. Phases 1-4 are the core; 
 
 ## Decisions for Scott (phase 0)
 
-- **D1 Stat set:** keep only the six in the table (attack, accuracy, defense, max HP, spell
-  power, fire later) and cut the other seven? *Recommended: yes.*
-- **D2 Accuracy:** split weapon accuracy (to-hit) from damage? It is the main reason grips
-  matter. *Recommended: yes.*
+- **D1 Stat set: DECIDED (Scott, 2026-11-14).** Keep the six core stats (attack, accuracy,
+  defense, max HP, spell power, fire damage in phase 6); cut durability, weight, stealth,
+  evasion, stun_chance, piercing, fire_resistance.
+- **D2 Accuracy: DECIDED with D1.** Accuracy is one of the six: weapons get a to-hit term
+  separate from damage.
 - **D3 Parts per item:** two parts plus an optional gem? *Recommended: yes* (SWG used five;
   too many for quick runs).
 - **D4 Tier from properties:** parts accept any metal, tier comes from the ore's ranges,
