@@ -2919,27 +2919,32 @@ priority: medium
 effort: 1h
 tags: [observability, logging, bots]
 created: '2026-11-14T20:30:40Z'
-updated: '2026-11-14T20:35:53Z'
+updated: '2026-11-14T20:49:03Z'
 session: peaceful-shower-1114
+notes_next: 2
 ```
 
 <!-- notes: append-only log; each has a stable #id (see CLI §5) -->
 ### Notes
-_(no notes yet)_
+- [#1 2026-11-14T20:49:03Z session:peaceful-shower-1114] fdb9335: routing avoids forges always, veins unless the only way (veins-impassable cut floors 72/72/68 -> 49/34/38 on 3 games; with vein fallback 69/74/65); refused_moves per game (0 on 3 games vs 878 blocked bumps before); random fallback never bumps a forge or mines full; blocked-move -> DEBUG, full-pack ore drop -> INFO; bot log rolls over at startup (116 MB moved to bot_tests.log.1). Pending: full A/B vs prev2_baseline in tmux vb-routing.
 
 
 ## TASK-VB-124 · Observability: bot results JSON is rewritten after every game with no completion marker; add complete + games_planned to metadata
 
 ```yaml
-status: backlog
+status: done
 priority: low
 effort: 15m
 tags: [observability, bots]
 created: '2026-11-14T20:30:42Z'
-updated: '2026-11-14T20:30:42Z'
+updated: '2026-11-14T20:49:03Z'
 session: peaceful-shower-1114
+links:
+  commits:
+  - fdb9335f73f181f5248cd18a749129ad79c8c2c5
+notes_next: 2
 ```
 
 <!-- notes: append-only log; each has a stable #id (see CLI §5) -->
 ### Notes
-_(no notes yet)_
+- [#1 2026-11-14T20:49:03Z session:peaceful-shower-1114] metadata.complete + games_planned, atomic replace (.tmp then rename), compare_bot_runs warns on unfinished runs; verified on a 3-game run (complete True 3/3, no .tmp left).
