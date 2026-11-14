@@ -2586,11 +2586,12 @@ priority: medium
 effort: 3d
 tags: [balance, loot, content]
 created: '2026-11-14T06:09:09Z'
-updated: '2026-11-14T06:09:14Z'
+updated: '2026-11-14T06:41:15Z'
 session: acidic-lens-1113
-notes_next: 2
+notes_next: 3
 ```
 
 <!-- notes: append-only log; each has a stable #id (see CLI §5) -->
 ### Notes
 - [#1 2026-11-14T06:09:14Z session:acidic-lens-1113] Decisions (Scott, 2026-11-13): (1) natural regen = max(1, int(5% of max HP)) per 10 turns, x3 when the player waited last turn with no living monster in sight (rested_turn stat set by WaitAction; TurnProcessor._is_resting) - DONE c6b4ae2, config: game_constants health_regeneration percent_of_max / rest_multiplier; under 40 max HP behaviour is unchanged. (2) food heals over time via a status-effect primitive (VB-65) with regeneration as its first effect; potions stay instant. (3) drops: shared tables by monster family (beast/humanoid/undead/demon+boss), potion quality scales with floor, every monster gets a table. (4) order: regen -> status-effect primitive -> drop tables -> floor supply -> scrolls (mapping, teleport first; mapping matters now that fog exists). Open: bots rest to heal (planner), measure potions used/deaths on 20000-turn paired runs.
+- [#2 2026-11-14T06:41:15Z session:acidic-lens-1113] Measured (regen c6b4ae2 + bot rest d35e47d together vs dabc9a1; seeds 3000+, 24 games x 4 classes x 20000 turns, 96 pairs, scripts/compare_bot_runs.py): deaths 0.53 -> 0.36 (-0.17 [-0.28,-0.06]*), warrior 0.58 -> 0.25*, rogue 0.46 -> 0.25, mage 0.92 -> 0.75 (CIs include 0), phoenix kills 31 -> 20, potions used 4.1 -> 2.7*, damage taken +75* (they survive more fights), floor 61.4 -> 61.7 (n.s.; 20000-turn cap binds). Regen and rest not separated. Results: scratchpad of acidic-lens-1113 (regen_after/, esc_long_after/ baseline); rerun: tests/fuzz/<class>_bot.py --games 24 --max-turns 20000 --seed-base 3000.
