@@ -72,6 +72,26 @@ class PlayerView:
     abilities: List[AbilityView]
     symbol: str
     color: str
+    alive: bool = True          # False for a dead viewer who is spectating
+
+
+@dataclass
+class PartyMemberView:
+    """One seat in a multiplayer party (empty party in single-player)."""
+    player_id: str
+    name: str
+    player_class: str
+    entity_id: object
+    alive: bool = True
+    connected: bool = True
+
+
+@dataclass
+class RoundView:
+    """Where the current round stands (multiplayer): who has acted, who is still owed."""
+    number: int
+    waiting_on: List[str] = field(default_factory=list)   # entity ids still owed an action
+    acted: List[str] = field(default_factory=list)        # entity ids that have acted
 
 
 @dataclass
@@ -91,15 +111,46 @@ class Snapshot:
     entities: List[EntityView]
     map: MapView
     messages: List[str] = field(default_factory=list)
+    party: List[PartyMemberView] = field(default_factory=list)
+    round: Optional[RoundView] = None
 
     def to_dict(self) -> Dict:
         return asdict(self)
+
+    @classmethod
+    def from_dict(cls, data: Dict) -> 'Snapshot':
+        """Rebuild a snapshot from `to_dict()` output (after a JSON round trip)."""
+        return cls(
+            turn=data['turn'],
+            floor=data['floor'],
+            game_over=data['game_over'],
+            victory=data['victory'],
+            player=_player_from_dict(data['player']),
+            entities=[EntityView(**e) for e in data['entities']],
+            map=MapView(**data['map']),
+            messages=list(data.get('messages', [])),
+            party=[PartyMemberView(**m) for m in data.get('party', [])],
+            round=RoundView(**data['round']) if data.get('round') else None,
+        )
 
     def entity_at(self, x: int, y: int, entity_type: str) -> Optional[EntityView]:
         for e in self.entities:
             if e.entity_type == entity_type and e.x == x and e.y == y:
                 return e
         return None
+
+
+def _item_from_dict(data) -> Optional[ItemView]:
+    return ItemView(**data) if data else None
+
+
+def _player_from_dict(data: Dict) -> PlayerView:
+    fields = dict(data)
+    for slot in ('weapon', 'armor', 'shield'):
+        fields[slot] = _item_from_dict(fields.get(slot))
+    fields['inventory'] = [_item_from_dict(i) for i in fields.get('inventory', [])]
+    fields['abilities'] = [AbilityView(**a) for a in fields.get('abilities', [])]
+    return PlayerView(**fields)
 
 
 def _item(item) -> Optional[ItemView]:
@@ -142,6 +193,7 @@ def _player_view(player, turn: int) -> PlayerView:
         abilities=_abilities(player, turn),
         symbol=player.display_symbol,
         color=player.display_color,
+        alive=player.is_alive,
     )
 
 

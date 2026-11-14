@@ -20,6 +20,7 @@ from .base.game_context import GameContext
 from .events import EventBus, create_floor_changed_event
 from .extensions import install_event_handlers, uninstall_event_handlers
 from .floor_manager import FloorManager
+from .snapshot import Snapshot, build_snapshot
 from .spawning import EntitySpawner
 from .systems.ai_system import AISystem
 from .turn_processor import TurnProcessor
@@ -108,6 +109,18 @@ class Engine:
             event_bus=self.event_bus,
         )
         return ActResult(outcome, took_turn)
+
+    # ---- reading the world -----------------------------------------------------------
+
+    def snapshot(self, viewer=None) -> Snapshot:
+        """What `viewer` (an entity, or an entity id) can see. Default: the player.
+
+        A host passes the entity object for a dead player whose entity has been
+        purged from the state, so a spectator still gets a view.
+        """
+        if isinstance(viewer, str):
+            viewer = self.context.get_entity(viewer)
+        return build_snapshot(self.state, viewer)
 
     # ---- the world -----------------------------------------------------------------
 
