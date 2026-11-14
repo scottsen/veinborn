@@ -107,6 +107,10 @@ class GameResult:
     # Died within BURST_TURNS turns of being above half HP: the "that felt cheap" proxy
     burst_death: bool = False
     potions_used: int = 0
+    # Supply side of VB-107: usable items (potion/food/scroll: anything with an effect) picked up,
+    # and still carried when the game ended; picked - used - carried = lost or dropped
+    items_picked_up: int = 0
+    items_carried_at_end: int = 0
     # Deep start (--start-floor/--start-level, fuzz/scenario.py); floor_reached counts from here
     start_floor: int = 1
     start_level: int = 1
@@ -126,6 +130,8 @@ class CombatRecorder:
         self.damage_by = {}
         self.last_attacker = None
         self.items_used = 0
+        self.items_picked_up = 0
+        game.event_bus.subscribe(GameEventType.ITEM_PICKED_UP, self._on_pickup, 'bot.recorder.pickups')
         game.event_bus.subscribe(GameEventType.ATTACK_RESOLVED, self._on_attack, 'bot.recorder')
         game.event_bus.subscribe(GameEventType.ITEM_USED, self._on_item, 'bot.recorder.items')
 
@@ -140,6 +146,16 @@ class CombatRecorder:
         self.damage_by[kind] = self.damage_by.get(kind, 0) + data.get('damage', 0)
         if data.get('damage', 0) > 0:
             self.last_attacker = kind
+
+    def _on_pickup(self, event):
+        if event.data.get('actor_id') != self.game.state.player.entity_id:
+            return
+        item = self.game.context.get_entity(event.data.get('item_id'))
+        if item is not None and item.get_stat('effect'):
+            self.items_picked_up += 1
+
+    def carried_usable(self):
+        return sum(1 for i in self.game.state.player.inventory if i.get_stat('effect'))
 
     def _on_item(self, event):
         if event.data.get('actor_id') == self.game.state.player.entity_id:
@@ -714,6 +730,8 @@ class VeinbornBot:
             game_stats['errors'] = self.stats.errors - errors_before
             game_stats['damage_taken_by'] = dict(sorted(recorder.damage_by.items()))
             game_stats['potions_used'] = recorder.items_used
+            game_stats['items_picked_up'] = recorder.items_picked_up
+            game_stats['items_carried_at_end'] = recorder.carried_usable()
             if game.state.game_over:
                 game_stats['killed_by_type'] = recorder.last_attacker
                 earlier = hp_history[-(BURST_TURNS + 1)] if len(hp_history) > BURST_TURNS else hp_history[0]
@@ -823,6 +841,8 @@ class VeinbornBot:
                 killed_by_type=game_stats.get('killed_by_type'),
                 burst_death=game_stats.get('burst_death', False),
                 potions_used=game_stats.get('potions_used', 0),
+                items_picked_up=game_stats.get('items_picked_up', 0),
+                items_carried_at_end=game_stats.get('items_carried_at_end', 0),
                 start_floor=self.start_floor,
                 start_level=self.start_level,
                 floor_arrivals=game_stats.get('floor_arrivals') or {},

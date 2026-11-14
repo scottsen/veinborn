@@ -73,3 +73,20 @@ def test_recorder_attributes_damage_to_the_monster_type(game):
     ])
     assert recorder.damage_by == {'orc': 4}
     assert recorder.last_attacker == 'orc'
+
+
+def test_recorder_counts_usable_pickups_and_carried_items(game):
+    from core.loot import LootGenerator
+    recorder = CombatRecorder(game)
+    player = game.state.player
+    loot = LootGenerator.get_instance()
+    potion, sword = loot.create_item('potion_healing'), loot.create_item('long_sword')
+    for item in (potion, sword):
+        game.context.add_entity(item)
+        player.add_to_inventory(item)
+        game.event_bus.publish_dict({'type': 'item_picked_up', 'actor_id': player.entity_id,
+                                     'item_id': item.entity_id, 'item_name': item.name})
+    game.event_bus.publish_dict({'type': 'item_picked_up', 'actor_id': 'someone_else',
+                                 'item_id': potion.entity_id, 'item_name': potion.name})
+    assert recorder.items_picked_up == 1      # the sword has no effect; the other actor is ignored
+    assert recorder.carried_usable() == 1
