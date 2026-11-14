@@ -106,9 +106,13 @@ Higher numbers = better! Purity amplifies everything.
 ### Step 4: Craft Your First Weapon (1 minute)
 1. Find a **forge** (yellow █ tile)
 2. Stand next to the forge and press **f** to open the crafting menu
-3. Select a recipe (try "Copper Sword")
-4. If you have the right ore, craft it!
+3. Select a recipe (try "Copper Sword"); the menu shows what it needs and the stats you'd get
+4. **Enter** crafts it from your best ore of that type; press **o** to pick the ore yourself
+   (Space picks a piece, Enter crafts) when you want to save your best ore for later
 5. Press **w** to wield your new weapon
+
+Ore in your pack (**i**) shows its quality: `P85 H70 M55 C40 D50` is purity, hardness,
+malleability, conductivity, density; ★ marks a jackpot piece (every property 80+).
 
 ### Step 5: Go Deeper
 1. Find the **stairs down (>)**
@@ -258,13 +262,10 @@ include that gear). Three abilities work today; the rest described below
 3. **Accessories** - Special bonuses
 
 ### Stat Formulas (For Nerds)
-```
-Weapon Damage = Base + (Hardness × Purity)
-Armor Defense = Base + (Hardness × Purity)
-Magic Power = Base + (Conductivity × Purity)
-```
-
-Higher purity = MUCH better equipment!
+Each recipe in `data/balance/recipes.yaml` has its own formulas over the *average* of the
+ore you spend, e.g. Copper Sword attack = `hardness × 0.08 + purity × 0.03`. Hardness and
+purity drive weapon attack and armor defense. Quality beats tier: a Copper Sword from ~95 ore
+gives +10 attack, an Iron Sword from ~20 ore +3. Only attack and defense affect play today.
 
 ---
 

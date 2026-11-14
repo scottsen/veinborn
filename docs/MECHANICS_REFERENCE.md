@@ -283,6 +283,15 @@ if player.take_damage(amount):
 
 ## 🔨 Crafting Mechanics
 
+### Which ore a craft spends
+
+The ore's properties are averaged, then each recipe formula runs on the average. By default
+a craft spends the best ore of the recipe's type for its main stat (attack for weapons,
+defense otherwise), ranked piece by piece, then by purity (`RecipeManager.ore_for`). The
+`craft` intent may name the pieces (`ore_ids`); the forge screen's ore picker (`o`) does.
+Only `attack_bonus` and `defense_bonus` are read by the game; the other computed stats
+(durability, weight, fire_damage, ...) are stored but unused (VB-113).
+
 ### Stat Calculation
 
 **Formula:**
