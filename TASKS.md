@@ -584,14 +584,17 @@ multiplayer_game_state.py:377-469 (descend_floor, _spawn_floor_entities, _get_vi
 ## TASK-VB-26 · state_delta.apply_delta: highest-complexity function in repo, no sequencing, mutates shared dict state
 
 ```yaml
-status: backlog
+status: done
 priority: medium
 effort: medium
 tags: [multiplayer, architecture, quality]
 created: '2026-09-23T05:26:36Z'
-updated: '2026-11-14T01:09:40Z'
+updated: '2026-11-14T01:24:05Z'
 session: earthly-god-0922
-notes_next: 4
+links:
+  commits:
+  - 69b1a580c4fad0056b3e61259c4bfe7486136140
+notes_next: 5
 ```
 
 state_delta.py:225 apply_delta has complexity 27 / nesting depth 6, the single worst production function in the codebase; compute_delta (16) is complexity 17. session.py:509-513 keeps one last_state per session shared by every client, and there's no sequence number or base-version in the delta protocol -- one dropped WS message leaves a client desynced until the next full-state broadcast. reset_state_tracking (session.py:533) is never called; reconnect instead broadcasts full state to everyone (websocket_server.py:383). Also apply_delta shallow-copies current_state (245) then mutates nested dicts in place (272-274, 304-306) -- a latent aliasing hazard for any future caller that retains a reference to a prior snapshot (replay/debug tooling). The client also depends directly on the server package for the protocol (ui/multiplayer_client.py:13-14), leaking a protocol dependency into the UI layer. Fix: move messages.py/state_delta.py into a shared protocol/ package; add seq/base_seq to deltas with a per-client baseline; have the client request a resync on a detected gap.
@@ -601,6 +604,7 @@ state_delta.py:225 apply_delta has complexity 27 / nesting depth 6, the single w
 - [#1 2026-09-23T16:48:43Z session:sultry-drizzle-0923] Done (commit 7e871d2): apply_delta complexity 27->10, no longer mutates its input (aliasing hazard), 9 characterization tests. STILL OPEN from this ticket: seq/base_seq + per-client baseline, client resync on gap, moving messages.py/state_delta.py into a shared protocol/ package. Those are protocol-design changes; do them together.
 - [#2 2026-11-13T21:10:10Z session:chartreuse-filter-1113] Plan: docs/architecture/MULTIPLAYER_ARCHITECTURE_PLAN.md places this task in a phase (see section 4); read it before starting.
 - [#3 2026-11-14T01:09:40Z session:letorera-1113] Plan section 4b: closed by VB-98 (the delta path is deleted in favour of per-viewer full snapshots with seq), not fixed in place.
+- [#4 2026-11-14T01:24:05Z session:letorera-1113] Closed by replacement (VB-95..VB-98): no deltas, per-viewer full snapshots with seq, client resync via get_snapshot, shared src/protocol package.
 
 
 ## TASK-VB-27 · cleanup_task busy-loops with no backoff if cleanup raises every iteration
@@ -1895,12 +1899,12 @@ Proposed: intent-level core calls (e.g. Game.equippable_items(), Game.cycle_equi
 ## TASK-VB-78 · Introduce a render snapshot (view model) shared by the TUI widgets and the server state
 
 ```yaml
-status: in_progress
+status: done
 priority: medium
 effort: 1-2d
 tags: [architecture, refactor, ui, multiplayer]
 created: '2026-11-13T01:46:32Z'
-updated: '2026-11-14T01:09:40Z'
+updated: '2026-11-14T01:24:05Z'
 session: mustard-sunset-1112
 depends_on: [VB-77]
 links:
@@ -1913,7 +1917,9 @@ links:
   - VB-44
   - VB-26
   - VB-24
-notes_next: 6
+  commits:
+  - 69b1a580c4fad0056b3e61259c4bfe7486136140
+notes_next: 7
 ```
 
 Found 2026-11-12 (session mustard-sunset-1112). Every Textual widget reads live domain objects (map_widget._get_entity_at walks game_state.entities; _render_cell reads game_map.tiles and imports TileType/EntityType; sidebar calls player.get_total_attack(), xp_for_next_level(), equipped_weapon, cooldowns). There is no render contract between core and UI. Separately, src/server/multiplayer_game_state.get_state_dict is a hand-rolled 85-line serializer that is a second, different description of the same state: it sends base attack/defense only (not totals including gear), no equipped weapon/armor, no XP/level/cooldowns, so a multiplayer client rendering it could not show what the single-player sidebar shows. Two state models also exist (core GameState vs MultiplayerGameState; see VB-24, VB-25 for earlier pipeline/floor duplication).
@@ -1926,6 +1932,7 @@ Proposed: a core function (e.g. Game.snapshot() / a Snapshot dataclass with to_d
 - [#3 2026-11-13T21:10:10Z session:chartreuse-filter-1113] Plan: docs/architecture/MULTIPLAYER_ARCHITECTURE_PLAN.md places this task in a phase (see section 4); read it before starting.
 - [#4 2026-11-13T21:19:28Z session:chartreuse-filter-1113] Stages 1-2 done this session (snapshot + widgets; server player numbers). Remainder folds into plan Phase 3 (snapshots on the wire).
 - [#5 2026-11-14T01:09:40Z session:letorera-1113] Plan section 4b: the remaining stage (monsters/map from the snapshot on the wire) is VB-96/VB-97; close with VB-98.
+- [#6 2026-11-14T01:24:05Z session:letorera-1113] Closed: widgets render from the snapshot (stage 1), and the server now sends the snapshot itself (VB-96/97), monsters and map included; get_state_dict is gone (VB-98).
 
 
 ## TASK-VB-79 · Emit semantic render IDs in the snapshot; make glyph/colour a per-frontend data mapping
@@ -2362,16 +2369,20 @@ notes_next: 2
 ## TASK-VB-98 · MP plan 3d: delete the delta path (state_delta.py + tests, get_state_dict, last_state, state/delta messages); closes VB-26 and VB-78
 
 ```yaml
-status: backlog
+status: done
 priority: medium
 effort: 3h
 tags: [multiplayer, architecture, protocol]
 created: '2026-11-14T01:09:36Z'
-updated: '2026-11-14T01:09:39Z'
+updated: '2026-11-14T01:24:05Z'
 session: letorera-1113
 depends_on: [VB-97]
+links:
+  commits:
+  - 69b1a580c4fad0056b3e61259c4bfe7486136140
+notes_next: 2
 ```
 
 <!-- notes: append-only log; each has a stable #id (see CLI §5) -->
 ### Notes
-_(no notes yet)_
+- [#1 2026-11-14T01:24:05Z session:letorera-1113] Removed server/state_delta.py + test_state_delta.py (69 refs), MultiplayerGameState.get_state_dict/to_dict, GameSession.get_state_dict/last_state/use_delta_compression/reset_state_tracking, MessageType.STATE/DELTA and Message.state/delta. Tests that covered real behaviour were converted to snapshot/lobby/state_messages (monsters+map+other players in a viewer's snapshot, sidebar numbers, equipment change, context messages reach the snapshot, lobby->snapshot transition). Gate: suite 1481 passed (was 1503: deleted delta tests).
