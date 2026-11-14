@@ -562,6 +562,15 @@ class GameSession:
                 logger.error(f"Action execution error: {e}", exc_info=True)
                 return False, f"Action execution failed: {str(e)}"
 
+    def rejoinable_names(self) -> List[str]:
+        """Names of the dropped seats of a running game (what a lobby list offers to rejoin)."""
+        if not self.is_started or self.is_finished or self.mp_game_state is None:
+            return []
+        return [
+            slot.player_name for slot in self.mp_game_state.dropped_seats()
+            if slot.player_id in self.players
+        ]
+
     def get_disconnected_players(self) -> List[str]:
         """Get list of disconnected player IDs.
 

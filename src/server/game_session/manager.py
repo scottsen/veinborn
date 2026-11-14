@@ -65,6 +65,9 @@ class GameSessionManager:
             if not game:
                 return False, "Game not found"
 
+            if game.is_started and not game.is_finished:
+                return await self._rejoin_locked(game, player_id, player_name)
+
             if not game.can_join():
                 return False, "Game is full or already started"
 
@@ -78,6 +81,22 @@ class GameSessionManager:
                 return True, None
             else:
                 return False, "Failed to join game"
+
+    async def _rejoin_locked(
+        self, game: GameSession, player_id: str, player_name: str
+    ) -> tuple[bool, Optional[str]]:
+        """Take back a dropped seat of a running game (plan D7); caller holds the lock."""
+        if self._player_to_game.get(player_id, game.game_id) != game.game_id:
+            return False, "Player is already in another game"
+        success, error = await game.rejoin_player(player_id, player_name)
+        if not success:
+            return False, error
+        self._player_to_game[player_id] = game.game_id
+        # A name match re-keys the seat: its old player id no longer belongs to this game
+        for stale in [p for p, g in self._player_to_game.items()
+                      if g == game.game_id and p not in game.players]:
+            del self._player_to_game[stale]
+        return True, None
 
     async def leave_game(self, player_id: str) -> tuple[bool, Optional[str]]:
         """Remove a player from their current game.
@@ -168,9 +187,10 @@ class GameSessionManager:
                 "player_count": game.get_player_count(),
                 "max_players": game.max_players,
                 "is_started": game.is_started,
+                "rejoinable": game.rejoinable_names(),
             }
             for game in self._games.values()
-            if game.can_join()
+            if game.can_join() or game.rejoinable_names()
         ]
 
     def get_active_game_count(self) -> int:

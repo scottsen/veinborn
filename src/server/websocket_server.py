@@ -316,9 +316,16 @@ class VeinbornServer:
 
         if success:
             session.game_id = game_id
+            session.mark_active()
+            game = await self.game_manager.get_game(game_id)
+            rejoined = game is not None and game.is_started
             await self.send_message_to_session(
                 session_id,
-                Message.system(f"Joined game {game_id} as {player_class}", "success"),
+                Message.system(
+                    f"Rejoined game {game_id}" if rejoined
+                    else f"Joined game {game_id} as {player_class}",
+                    "success",
+                ),
             )
             # Notify all players in game
             await self.broadcast_to_game(

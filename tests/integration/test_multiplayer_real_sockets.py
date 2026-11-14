@@ -217,3 +217,81 @@ async def test_each_client_sees_its_own_inventory_and_a_stale_snapshot_is_ignore
         for client in (alice, bob):
             await client.close()
         await server.stop()
+
+
+async def _start_duo(server, port, alice, bob, name):
+    await alice.connect(port)
+    await bob.connect(port)
+    await alice.send(Message.create_game(name, max_players=4))
+    await _until(lambda: alice.game_id)
+    await bob.send(Message.join_game(alice.game_id, player_class="mage"))
+    await alice.send(Message(type="ready", data={"ready": True}))
+    await bob.send(Message(type="ready", data={"ready": True}))
+    await _until(lambda: alice.entity_id and bob.entity_id)
+    return await server.game_manager.get_game(alice.game_id)
+
+
+@pytest.mark.asyncio
+async def test_expired_seat_rejoins_the_running_game_with_its_token():
+    """VB-103: the grace ran out (seat dropped); the same session joins the running game again."""
+    server = VeinbornServer("127.0.0.1", 0)
+    await server.start()
+    port = server.server.sockets[0].getsockname()[1]
+    alice, bob = _Client("Alice"), _Client("Bob")
+    bob2 = None
+    try:
+        game = await _start_duo(server, port, alice, bob, "Rejoin")
+        bob_entity, bob_token, bob_player = bob.entity_id, bob.token, bob.player_id
+        await bob.ws.close()
+        await _until(lambda: game.players[bob_player].is_disconnected())
+        game.players[bob_player].reconnect_timeout_seconds = -1
+        await server._cleanup_once()
+        assert game.rejoinable_names() == ["Bob"]
+        assert [g["rejoinable"] for g in server.game_manager.get_available_games()] == [["Bob"]]
+
+        bob2 = _Client("Bob")
+        await bob2.connect(port, token=bob_token)
+        await bob2.send(Message.join_game(game.game_id))
+        await _until(lambda: bob2.snapshot is not None)
+        await _until(lambda: [m.connected for m in alice.snapshot.party] == [True, True])
+
+        assert bob2.player_id == bob_player and bob2.entity_id == bob_entity
+        assert not bob2.errors and game.rejoinable_names() == []
+        assert bob2.snapshot == game.snapshot_for(bob_player)
+    finally:
+        for client in (alice, bob, bob2):
+            if client is not None:
+                await client.close()
+        await server.stop()
+
+
+@pytest.mark.asyncio
+async def test_a_seat_that_left_rejoins_by_name_from_a_fresh_session():
+    """VB-103: Bob chose to leave and later came back in a new process (no token)."""
+    server = VeinbornServer("127.0.0.1", 0)
+    await server.start()
+    port = server.server.sockets[0].getsockname()[1]
+    alice, bob = _Client("Alice"), _Client("Bob")
+    bob2 = None
+    try:
+        game = await _start_duo(server, port, alice, bob, "Name")
+        bob_entity = bob.entity_id
+        await bob.send(Message(type="leave_game", data={}))
+        await _until(lambda: game.rejoinable_names() == ["Bob"])
+
+        bob2 = _Client("Bob")
+        await bob2.connect(port)                           # no token: a new player id
+        assert bob2.player_id != bob.player_id
+        await bob2.send(Message.join_game(game.game_id))
+        await _until(lambda: bob2.snapshot is not None)
+
+        assert bob2.entity_id == bob_entity                # the same character
+        assert not bob2.errors
+        assert [p.player_id for p in game.mp_game_state.get_all_players()] == [alice.player_id, bob2.player_id]
+        assert await server.game_manager.get_player_game(bob2.player_id) is game
+        assert await server.game_manager.get_player_game(bob.player_id) is None
+    finally:
+        for client in (alice, bob, bob2):
+            if client is not None:
+                await client.close()
+        await server.stop()
