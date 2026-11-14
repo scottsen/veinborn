@@ -179,11 +179,8 @@ class Game:
         if self.state.game_over:
             return False
 
-        # Special case: wait action (consumes turn but no action object)
         if action_type == 'wait':
-            logger.debug("Player waiting (rest to heal)")
-            self._process_turn()
-            return True
+            kwargs.setdefault('quiet', True)    # resting is not worth a log line each turn
 
         # Build the action (the factory resolves targets and logs why it cannot)
         action = self.engine.make_action(action_type, **kwargs)

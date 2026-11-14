@@ -167,7 +167,8 @@ class ActionFactory:
 
         self._handlers['wait'] = ActionHandler(
             name='wait',
-            create_fn=lambda context, kwargs: WaitAction(self._actor(context, kwargs).entity_id),
+            create_fn=lambda context, kwargs: WaitAction(
+                self._actor(context, kwargs).entity_id, quiet=bool(kwargs.get('quiet'))),
             description='Do nothing this turn (rest)'
         )
 

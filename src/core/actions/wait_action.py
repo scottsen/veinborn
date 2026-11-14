@@ -19,6 +19,7 @@ class WaitAction(Action):
     """Consume a turn without acting."""
 
     actor_id: str
+    quiet: bool = False     # no "X waits." log line (a local host resting would flood the log)
 
     def validate(self, context: GameContext) -> bool:
         actor = self._get_and_validate_actor(context)
@@ -30,7 +31,8 @@ class WaitAction(Action):
             return ActionOutcome.failure("Actor not found")
 
         outcome = ActionOutcome.success(took_turn=True)
-        outcome.messages.append(f"{actor.name} waits.")
+        if not self.quiet:
+            outcome.messages.append(f"{actor.name} waits.")
         outcome.events.append({
             'type': 'actor_waited',
             'actor_id': self.actor_id,

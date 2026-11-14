@@ -35,3 +35,10 @@ def test_wait_round_trip_serialization():
     assert d == {'action_type': 'WaitAction', 'actor_id': 'p1'}
     restored = WaitAction.from_dict(d)
     assert restored.actor_id == 'p1'
+
+
+def test_quiet_wait_adds_no_message_but_still_publishes(game_context):
+    player = game_context.get_all_players()[0]
+    outcome = WaitAction(player.entity_id, quiet=True).execute(game_context)
+    assert outcome.took_turn and outcome.messages == []
+    assert [e['type'] for e in outcome.events] == ['actor_waited']

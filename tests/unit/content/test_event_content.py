@@ -207,3 +207,15 @@ def test_player_death_is_recorded_by_real_entity_id(game):
     p = game.state.player
     game.event_bus.publish_dict(create_entity_died_event(p.entity_id, p.name, killer_id="x"))
     assert len(game.stats_tracker.deaths) == 1
+
+
+def test_single_player_wait_runs_the_action_pipeline_quietly(game):
+    """VB-36: SP wait is a WaitAction like MP's (event published) but adds no log line."""
+    from core.events import GameEventType
+    seen = []
+    game.event_bus.subscribe(GameEventType.ACTOR_WAITED, seen.append)
+    count = game.state.message_count
+    assert game.handle_player_action('wait') is True
+    assert [e.data['actor_id'] for e in seen] == [game.state.player.entity_id]
+    assert game.state.message_count == count
+    assert game.state.turn_count == 1
