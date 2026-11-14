@@ -11,7 +11,7 @@ Rows are the snapshot's inventory, so it works the same on a remote run.
 
 from textual.binding import Binding
 
-from core.crafting import ORE_LEGEND, ore_label
+from core.crafting import ORE_LEGEND, ore_label, stats_label
 
 from .list_screen import ListScreen
 
@@ -44,6 +44,8 @@ class PackScreen(ListScreen):
         if item.slot:
             kind = f"{item.slot}, +{item.bonus} {'attack' if item.slot == 'weapon' else 'defense'}"
         quality = f" {ore_label(item.ore)}" if item.ore else ""
+        if item.part:
+            quality = f" {stats_label(item.part['stats'])}"
         return f"{item.name} ({kind}){quality}{'   usable' if item.usable else ''}"
 
     async def activate(self, item) -> None:

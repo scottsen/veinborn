@@ -208,3 +208,17 @@ def test_picked_parts_are_named_from_the_head_whatever_the_pick_order(forge_game
     give(player, [blade, hilt])
     craft(game, player, forge, 'sword', part_ids=[hilt.entity_id, blade.entity_id])   # grip first
     assert next(i for i in player.inventory if i.get_stat('recipe_id') == 'sword').name == 'Copper-Iron Sword'
+
+
+def test_quick_drop_never_drops_a_crafted_part_before_ore_or_junk(forge_game):
+    """Parts had no usefulness tier, so they ranked as NO_USE and `d` dropped them first."""
+    from core.actions.drop_action import least_useful_item
+    from core.loot import LootGenerator
+    game, player, forge = forge_game
+    manager = CraftAction.get_recipe_manager()
+    part = manager.create_part('blade', ore('iron', 2))
+    gold = LootGenerator.get_instance().create_item('gold_pile_small')
+    give(player, [part] + ore('iron', 1) + [gold])
+    assert least_useful_item(player) is gold                 # junk first
+    player.remove_from_inventory(gold)
+    assert least_useful_item(player).get_stat('ore_type')    # then raw ore, still before a part
