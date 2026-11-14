@@ -2781,20 +2781,25 @@ notes_next: 4
 ## TASK-VB-116 · Crafting v2 phase 3: forge UI for parts (craft a part, assemble from carried parts with a picker), snapshot views, protocol bump - see docs/design/CRAFTING_PARTS_DESIGN.md
 
 ```yaml
-status: future
+status: done
 priority: medium
 effort: 1d
 tags: [crafting, ui, keyboard, crafting-v2]
 created: '2026-11-14T18:33:28Z'
-updated: '2026-11-14T18:33:42Z'
+updated: '2026-11-14T21:54:39Z'
 session: peaceful-shower-1114
 depends_on: [VB-115]
-notes_next: 2
+links:
+  commits:
+  - 91d036d5569977d2eeac0e3d4f93014041fcd4e4
+notes_next: 4
 ```
 
 <!-- notes: append-only log; each has a stable #id (see CLI §5) -->
 ### Notes
 - [#1 2026-11-14T18:33:42Z session:peaceful-shower-1114] Waits on VB-113 decisions (D1-D5 in docs/design/CRAFTING_PARTS_DESIGN.md).
+- [#2 2026-11-14T21:54:39Z session:xuhuve-1114] 2026-11-14 done 91d036d (not pushed): snapshot RecipeView.kind/required_slots/optional_slots/part_ids/part_choices + ItemView.part, protocol 7; RecipeManager.part_choices/preview_from_parts (client previews a hand-picked assembly == server craft, tested); CraftScreen lists parts and assemblies, Enter crafts best, o opens OrePickScreen (ore recipes/parts) or new PartPickScreen (one part per slot, Space swaps within a slot, Enter assembles, refuses an unfilled slot); packs/ground list parts with stats; HOW_TO_PLAY has a parts section. Bug found by the UI test: picked parts named from pick order, now ordered by slot. Suite 1674 passed. Verified by Textual pilot tests, not by a human. NOT done: MP remote client has the same screens through the snapshot but no two-client part craft test; per-tier recipes still listed beside parts until the deletion with VB-117.
+- [#3 2026-11-14T21:54:39Z session:xuhuve-1114] UI + snapshot + protocol 7; pilot-tested
 
 
 ## TASK-VB-117 · Crafting v2 phase 4: bots craft parts and assemble; tune part coefficients against VB-75/VB-87 curves with paired A/B vs pre-v2 baseline - see docs/design/CRAFTING_PARTS_DESIGN.md
