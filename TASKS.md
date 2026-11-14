@@ -2319,18 +2319,22 @@ notes_next: 2
 ## TASK-VB-96 · MP plan 3b: Snapshot.from_dict + PartyMemberView/RoundView in Snapshot; Engine.snapshot(viewer_id); JSON round-trip tests incl. dead viewer
 
 ```yaml
-status: backlog
+status: done
 priority: high
 effort: 4h
 tags: [multiplayer, architecture, protocol]
 created: '2026-11-14T01:09:33Z'
-updated: '2026-11-14T01:09:33Z'
+updated: '2026-11-14T01:16:39Z'
 session: letorera-1113
+links:
+  commits:
+  - 1c3563dd93d7f7a4505408ca5afaf9ac3420b9a8
+notes_next: 2
 ```
 
 <!-- notes: append-only log; each has a stable #id (see CLI §5) -->
 ### Notes
-_(no notes yet)_
+- [#1 2026-11-14T01:16:39Z session:letorera-1113] core/snapshot.py: from_dict for every view, PartyMemberView, RoundView, PlayerView.alive; Engine.snapshot(entity or id). Filling party/round is VB-97. Gate: suite 1499 passed; JSON round-trip tests for SP, gear/inventory, 3-player party, dead purged viewer.
 
 
 ## TASK-VB-97 · MP plan 3c: per-viewer snapshot + lobby messages with seq; per-recipient broadcast; reconnect to that viewer only; get_snapshot resync; MultiplayerClient decodes Snapshot; test_client and real-socket _Client use the real decoder
