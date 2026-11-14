@@ -243,9 +243,14 @@ class ActionPlanner:
         if ability:
             return ability
 
-        # Priority 4: Forced combat (monster adjacent)
+        # Priority 4: Forced combat (monster adjacent), unless it is a fight we are losing
+        # and the stairs are close enough to survive the walk (VB-68: 34 of 52 deep deaths
+        # were phoenix fights the bot stayed in to the end)
         adjacent = self.perception.is_adjacent_to_monster(game)
         if adjacent:
+            escape = self.escape_action(game, adjacent)
+            if escape:
+                return escape
             threat = self.perception.assess_threat(adjacent, {})
             player = game.state.player
             self.log(f"⚔️  Fighting {adjacent.name} ({threat}) at ({adjacent.x},{adjacent.y})")
@@ -354,6 +359,31 @@ class ActionPlanner:
         # Priority 11: Random exploration
         self.log("🗺️  Exploring randomly...")
         return self.get_random_action(game)
+
+    def escape_action(self, game, monster) -> Optional[Tuple[str, dict]]:
+        """Losing a melee: take the stairs if we are on them, or walk there when the hits
+        on the way leave us alive. None to keep fighting."""
+        if self.decisions.can_win_fight(game, monster):
+            return None
+        if self.perception.on_stairs(game):
+            self.log(f"🚨 Losing to {monster.name}: descending to escape")
+            return ('descend', {})
+        stairs = self.perception.find_level_exit(game)
+        if not stairs:
+            return None
+        from core.pathfinding import find_path
+        player = game.state.player
+        blocked = {(m.x, m.y) for m in self.perception.find_monsters(game)}
+        blocked.discard(tuple(stairs))
+        path = find_path(game.state.dungeon_map, (player.x, player.y), tuple(stairs), blocked=blocked)
+        if not path or len(path) < 2:
+            return None
+        steps = len(path) - 1
+        if not self.decisions.can_afford_escape(game, monster, steps):
+            return None
+        nx, ny = path[1]
+        self.log(f"🚨 Losing to {monster.name}: escaping to stairs ({steps} steps)")
+        return ('move', {'dx': nx - player.x, 'dy': ny - player.y})
 
     def ability_ready(self, game, name: str) -> bool:
         """True if the player knows the ability and it is off cooldown."""

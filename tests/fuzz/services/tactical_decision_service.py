@@ -18,6 +18,10 @@ from dataclasses import dataclass
 logger = logging.getLogger(__name__)
 
 
+#: Share of current HP that must remain after the hits taken on the way to the stairs
+ESCAPE_HP_RESERVE = 0.25
+
+
 @dataclass
 class CombatConfig:
     """Configuration for combat decisions."""
@@ -87,34 +91,29 @@ class TacticalDecisionService:
     # Combat Decisions
     # ========================================================================
 
-    def can_win_fight(self, game, monster) -> bool:
-        """
-        Estimate if player can win fight against monster.
+    def fight_odds(self, game, monster):
+        """(turns for us to kill it, turns for it to kill us, its damage per player turn).
 
-        Uses safety margin from config for risk assessment.
-
-        Args:
-            game: Game instance
-            monster: Monster entity
-
-        Returns:
-            True if estimated to win fight
+        Average damage per swing comes from the game's own dice (to-hit x rolled damage,
+        equipment included); the monster's swings per player turn follow its speed.
         """
         from core.actions.attack_action import AttackAction
 
         player = game.state.player
-
-        # Average damage per swing from the game's own dice (to-hit x rolled damage,
-        # equipment included); the monster's swings per player turn follow its speed.
         player_power = max(0.01, AttackAction.expected_damage(player, monster))
         monster_power = AttackAction.expected_damage(monster, player) * self._speed_of(game, monster)
-
-        # Estimate turns to kill each other
         turns_to_kill_monster = max(1, monster.hp / player_power)
         turns_to_die = max(1, player.hp / max(0.01, monster_power))
+        return turns_to_kill_monster, turns_to_die, monster_power
 
-        # Can win if we kill them `safety_margin` times faster than they kill us
-        # (it once multiplied the other side, so a bigger margin made bots fight MORE)
+    def can_win_fight(self, game, monster) -> bool:
+        """
+        Estimate if player can win fight against monster.
+
+        We must kill it `safety_margin` times faster than it kills us (>1 cautious).
+        """
+        turns_to_kill_monster, turns_to_die, _ = self.fight_odds(game, monster)
+        # (the margin once multiplied the other side, so a bigger margin made bots fight MORE)
         can_win = turns_to_kill_monster * self.combat_config.safety_margin < turns_to_die
 
         if self.verbose:
@@ -122,6 +121,14 @@ class TacticalDecisionService:
                   f"(kill={turns_to_kill_monster:.1f}*{self.combat_config.safety_margin} vs die={turns_to_die:.1f})")
 
         return can_win
+
+    def can_afford_escape(self, game, monster, steps: int) -> bool:
+        """Would walking `steps` tiles with `monster` hitting every turn leave us alive
+        (with ESCAPE_HP_RESERVE of our HP to spare)? Stairs are an escape, not a retreat:
+        the monster does not follow."""
+        _, _, per_turn = self.fight_odds(game, monster)
+        player = game.state.player
+        return steps * per_turn < player.hp * (1 - ESCAPE_HP_RESERVE)
 
     @staticmethod
     def _speed_of(game, monster) -> float:
