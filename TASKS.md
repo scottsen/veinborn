@@ -2714,34 +2714,40 @@ owner: scott
 effort: '-'
 tags: [crafting, balance, design]
 created: '2026-11-14T17:55:07Z'
-updated: '2026-11-14T18:33:43Z'
+updated: '2026-11-14T18:40:06Z'
 session: peaceful-shower-1114
-notes_next: 3
+notes_next: 4
 ```
 
 <!-- notes: append-only log; each has a stable #id (see CLI §5) -->
 ### Notes
 - [#1 2026-11-14T17:55:12Z session:peaceful-shower-1114] Design call for Scott: cut the dead stats from recipes.yaml (honest, cheap) or make 2-3 matter (weight vs speed/dodge, durability + forge repair, fire_damage as a damage type). Evidence: grep of src outside crafting.py finds 0 readers for each; 'weight'/'range'/'regeneration' hits are unrelated (loot table weights, ability range, regen status effect). Related: VB-75 note #5 (impure ore lowers durability / curse), VB-87 balance.
 - [#2 2026-11-14T18:33:43Z session:peaceful-shower-1114] Plan written: docs/design/CRAFTING_PARTS_DESIGN.md (SWG-style parts: head/grip/shell/lining + optional gem, each ore attribute with a job, tier from ore properties, named ore per run, tempering). This task is now the phase-0 decision gate: Scott decides D1 stat set (cut 7), D2 accuracy split, D3 two parts + gem, D4 tier from properties, D5 named spawns. Phases: VB-114..VB-120.
+- [#3 2026-11-14T18:40:06Z session:peaceful-shower-1114] DECIDED 2026-11-14 (Scott): D1 keep the six core stats (attack, accuracy, defense, max HP, spell power, fire damage later), cut the other seven; D2 follows (accuracy is one of the six). Open: D3 parts per item, D4 tier from properties, D5 named spawns. Phase 1 (VB-114) needs only D1/D2: unblocked.
 
 
 ## TASK-VB-114 · Crafting v2 phase 1: combat reads accuracy (to-hit term), max_hp_bonus (while worn), spell_power (force bolt) - see docs/design/CRAFTING_PARTS_DESIGN.md
 
 ```yaml
-status: future
+status: backlog
 priority: medium
 effort: 1d
 tags: [crafting, combat, crafting-v2]
 created: '2026-11-14T18:33:25Z'
-updated: '2026-11-14T18:33:42Z'
+updated: '2026-11-14T18:40:15Z'
 session: peaceful-shower-1114
-depends_on: [VB-113]
-notes_next: 2
+links:
+  references:
+  - docs/design/CRAFTING_PARTS_DESIGN.md
+  relates_to:
+  - VB-113
+notes_next: 3
 ```
 
 <!-- notes: append-only log; each has a stable #id (see CLI §5) -->
 ### Notes
 - [#1 2026-11-14T18:33:42Z session:peaceful-shower-1114] Waits on VB-113 decisions (D1-D5 in docs/design/CRAFTING_PARTS_DESIGN.md).
+- [#2 2026-11-14T18:40:06Z session:peaceful-shower-1114] D1/D2 decided (VB-113): unblocked.
 
 
 ## TASK-VB-115 · Crafting v2 phase 2: parts + assemblies in RecipeManager, recipes.yaml v2 (parts take any metal, tier from ore properties), legendaries as assemblies with a material, cut dead stats - see docs/design/CRAFTING_PARTS_DESIGN.md
