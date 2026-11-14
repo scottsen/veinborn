@@ -478,20 +478,40 @@ class ActionFactory:
         return UnequipAction(self._actor(context, kwargs).entity_id, slot)
 
     def _create_use_action(self, context: GameContext, kwargs: dict) -> Optional[Action]:
-        """Create a use-item action. kwargs must contain 'item_id'."""
+        """Create a use-item action for kwargs['item_id'].
+
+        With no item_id, use the healing item that best covers the missing HP
+        (the quick-use key), so every frontend, local or remote, gets one rule.
+        """
+        from .use_item_action import best_healing_item
+        actor = self._actor(context, kwargs)
         item_id = kwargs.get('item_id')
         if not item_id:
-            context.game_state.add_message("Nothing to use")
-            return None
-        return UseItemAction(self._actor(context, kwargs).entity_id, item_id)
+            item = best_healing_item(actor)
+            if item is None:
+                context.game_state.add_message(
+                    "You are already at full health." if actor.hp >= actor.max_hp
+                    else "You have nothing to eat or drink."
+                )
+                return None
+            item_id = item.entity_id
+        return UseItemAction(actor.entity_id, item_id)
 
     def _create_drop_action(self, context: GameContext, kwargs: dict) -> Optional[Action]:
-        """Create a drop action. kwargs must contain 'item_id'."""
+        """Create a drop action for kwargs['item_id'].
+
+        With no item_id, drop the item least worth carrying (the quick-drop key).
+        """
+        from .drop_action import least_useful_item
+        actor = self._actor(context, kwargs)
         item_id = kwargs.get('item_id')
         if not item_id:
-            context.game_state.add_message("Nothing to drop")
-            return None
-        return DropAction(self._actor(context, kwargs).entity_id, item_id)
+            item = least_useful_item(actor)
+            if item is None:
+                context.game_state.add_message("You have nothing to drop.")
+                return None
+            item_id = item.entity_id
+        return DropAction(actor.entity_id, item_id)
 
     def _create_pickup_action(
         self,

@@ -45,6 +45,32 @@ def test_gear_and_inventory_survive_the_wire():
     assert [i.content_id for i in back.player.inventory] == [i.content_id for i in snap.player.inventory]
 
 
+
+def test_items_carry_slot_bonus_and_map_item_type_over_the_wire():
+    """Phase 4a: a remote equipment screen and ground listing need these (protocol v2)."""
+    from core.equipment import equipment_listing
+    from core.item_listing import items_here
+    game = _geared_game()
+    player = game.state.player
+    spare = LootGenerator.get_instance().create_item("dagger")
+    player.add_to_inventory(spare)
+    on_floor = LootGenerator.get_instance().create_item("chainmail")
+    on_floor.x, on_floor.y = player.x, player.y
+    game.state.entities[on_floor.entity_id] = on_floor
+
+    back = _over_the_wire(game.engine.snapshot())
+
+    assert (back.player.weapon.slot, back.player.weapon.bonus) == ("weapon", player.equipped_weapon.get_stat("attack_bonus"))
+    assert back.player.armor.slot == "armor" and back.player.armor.bonus > 0
+    by_id = {i.entity_id: i for i in back.player.inventory}
+    assert by_id[spare.entity_id].slot == "weapon"
+    assert all(i.slot is None for i in back.player.inventory if i.item_type == "consumable")
+    # The listings read the decoded snapshot exactly as they read a local one
+    _, carried = equipment_listing(back.player)
+    assert [l.item_id for l in carried] == [spare.entity_id]
+    assert [(l.entity_id, l.item_type) for l in items_here(back)] == [(on_floor.entity_id, "armor")]
+
+
 async def _party_session():
     game = GameSession("g", "t", max_players=4)
     for i, cls in enumerate(["warrior", "mage", "rogue"]):

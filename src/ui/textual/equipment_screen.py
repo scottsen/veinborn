@@ -17,6 +17,7 @@ from textual.screen import ModalScreen
 from textual.widgets import Static
 
 from core.equipment import equipment_listing
+from core.snapshot import build_snapshot
 
 
 class EquipmentScreen(ModalScreen):
@@ -49,21 +50,28 @@ class EquipmentScreen(ModalScreen):
         yield Static(self.render_panel(), id="equipment-panel")
 
     # -- rows ------------------------------------------------------------
-    def rows(self):
-        """Selectable rows: the worn slots (empty ones skipped), then the wearable pack items."""
-        worn, carried = equipment_listing(self.game.state.player)
+    def _player(self):
+        """The viewer's PlayerView (items carry their slot and bonus)."""
+        return build_snapshot(self.game.state).player
+
+    @staticmethod
+    def _selectable(worn, carried):
         return [line for line in worn if line.item is not None] + carried
 
+    def rows(self):
+        """Selectable rows: the worn slots (empty ones skipped), then the wearable pack items."""
+        return self._selectable(*equipment_listing(self._player()))
+
     def render_panel(self) -> Text:
-        player = self.game.state.player
+        player = self._player()
         worn, carried = equipment_listing(player)
-        rows = self.rows()
+        rows = self._selectable(worn, carried)
         self.cursor = max(0, min(self.cursor, len(rows) - 1))
         selected = rows[self.cursor] if rows else None
 
         text = Text()
         text.append("=== EQUIPMENT ===\n", style="bold bright_green")
-        text.append(f"Attack {player.get_total_attack()}   Defense {player.get_total_defense()}\n\n",
+        text.append(f"Attack {player.attack}   Defense {player.defense}\n\n",
                     style="bright_white")
 
         text.append("Worn\n", style="bold bright_yellow")
@@ -84,7 +92,7 @@ class EquipmentScreen(ModalScreen):
     @staticmethod
     def _append_line(text, line, selected):
         is_selected = (selected is not None and line.item is not None
-                       and line.worn == selected.worn and line.item is selected.item)
+                       and line.worn == selected.worn and line.item_id == selected.item_id)
         marker = "▶ " if is_selected else "  "
         style = "bold reverse" if is_selected else ("dim" if line.item is None else "bright_white")
         text.append(f"{marker}{line.text()}\n", style=style)
@@ -107,7 +115,7 @@ class EquipmentScreen(ModalScreen):
         if line.worn:
             self._run('unequip', slot=line.slot)
         else:
-            self._run('equip', item_id=line.item.entity_id)
+            self._run('equip', item_id=line.item_id)
 
     def action_remove_selected(self) -> None:
         """Remove the worn item: the selected one if it is worn, else the weapon, then the armor."""

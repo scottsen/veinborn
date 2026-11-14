@@ -15,6 +15,7 @@ from dataclasses import dataclass, field, asdict
 from typing import Dict, List, Optional
 
 from .base.entity import EntityType
+from .equipment import gear_bonus, gear_slot
 
 
 @dataclass
@@ -23,6 +24,8 @@ class ItemView:
     content_id: Optional[str]
     name: str
     item_type: str
+    slot: Optional[str] = None  # 'weapon' | 'armor' | 'shield' if it can be worn (core.equipment.gear_slot)
+    bonus: int = 0              # its bonus in that slot (attack for weapons, defense otherwise)
 
 
 @dataclass
@@ -39,6 +42,7 @@ class EntityView:
     symbol: str                 # terminal default; VB-79 maps entity_type + content_id instead
     color: str
     alive: bool = True
+    item_type: Optional[str] = None   # items on the map only
 
 
 @dataclass
@@ -156,7 +160,11 @@ def _player_from_dict(data: Dict) -> PlayerView:
 def _item(item) -> Optional[ItemView]:
     if item is None:
         return None
-    return ItemView(item.entity_id, item.content_id, item.name, item.get_stat('item_type', 'unknown'))
+    slot = gear_slot(item)
+    return ItemView(
+        item.entity_id, item.content_id, item.name, item.get_stat('item_type', 'unknown'),
+        slot=slot, bonus=gear_bonus(item, slot) if slot else 0,
+    )
 
 
 def _etype(entity) -> str:
@@ -205,6 +213,7 @@ def build_snapshot(state, viewer=None, message_count: int = 20) -> Snapshot:
             entity_id=e.entity_id, entity_type=_etype(e), content_id=e.content_id,
             name=e.name, x=e.x, y=e.y, hp=e.hp, max_hp=e.max_hp,
             symbol=e.display_symbol, color=e.display_color, alive=e.is_alive,
+            item_type=e.get_stat('item_type', 'unknown') if e.entity_type == EntityType.ITEM else None,
         )
         for e in state.entities.values()
         if e.entity_id != viewer.entity_id

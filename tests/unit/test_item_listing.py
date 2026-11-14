@@ -6,6 +6,7 @@ from core.item_listing import (
     ground_messages, inventory_listing, inventory_messages, items_here,
 )
 from core.loot import LootGenerator
+from core.snapshot import build_snapshot
 
 pytestmark = pytest.mark.unit
 
@@ -22,8 +23,12 @@ def make(item_id):
     return LootGenerator.get_instance().create_item(item_id)
 
 
+def me(game):
+    return build_snapshot(game.state).player
+
+
 def test_empty_pack_and_empty_ground(game):
-    p = game.state.player
+    p = me(game)
     assert inventory_listing(p) == []
     assert inventory_messages(p) == ["Your inventory is empty."]
     assert ground_messages([]) == ["There are no items on the ground here."]
@@ -33,10 +38,10 @@ def test_inventory_messages_are_numbered_in_pack_order(game):
     p = game.state.player
     p.add_to_inventory(make('dagger'))
     p.add_to_inventory(make('potion_healing'))
-    msgs = inventory_messages(p)
-    assert msgs[0].startswith("=== Full Inventory (2/")
+    msgs = inventory_messages(me(game))
+    assert msgs[0] == f"=== Full Inventory (2/{p.get_stat('inventory_capacity', 20)} items) ==="
     assert msgs[1].startswith("  1. ") and msgs[2].startswith("  2. ")
-    assert [l.name for l in inventory_listing(p)] == [m.split('. ', 1)[1].rsplit(' (', 1)[0] for m in msgs[1:3]]
+    assert [l.name for l in inventory_listing(me(game))] == [m.split('. ', 1)[1].rsplit(' (', 1)[0] for m in msgs[1:3]]
 
 
 def test_items_here_finds_only_living_items_on_the_players_tile(game):
@@ -46,8 +51,9 @@ def test_items_here_finds_only_living_items_on_the_players_tile(game):
     elsewhere.x, elsewhere.y = p.x + 1, p.y
     st.entities[here.entity_id] = here
     st.entities[elsewhere.entity_id] = elsewhere
-    found = items_here(st)
+    found = items_here(build_snapshot(st))
     assert [l.entity_id for l in found] == [here.entity_id]
+    assert found[0].item_type == here.get_stat('item_type') != 'unknown'
     msgs = ground_messages(found)
     assert msgs[0] == "=== Items on the ground (1) ===" and found[0].text in msgs[1]
 

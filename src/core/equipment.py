@@ -3,8 +3,10 @@ Equipment view: what the player wears and which carried gear could be worn.
 
 One answer for every frontend (the TUI equipment screen today, a graphical or
 multiplayer client later), so none of them re-derives "equippable" from the
-inventory. Pure data in, pure data out; the actions (`equip`, `unequip`) change
-state.
+inventory. `equipment_listing` reads a snapshot's `PlayerView` (whose items
+already carry their slot and bonus), so it works the same on a remote client.
+The actions (`equip`, `unequip`) change state; `gear_slot`/`gear_bonus` are the
+rules on live items that the snapshot and those actions share.
 """
 
 from dataclasses import dataclass
@@ -37,8 +39,8 @@ def worn_item(player, slot: str):
 @dataclass(frozen=True)
 class GearLine:
     """One row of the equipment list."""
-    slot: str                 # 'weapon' | 'armor'
-    item: Optional[object]    # None only for an empty worn slot
+    slot: str                 # 'weapon' | 'armor' | 'shield'
+    item: Optional[object]    # an ItemView; None only for an empty worn slot
     worn: bool                # True: worn now (remove it); False: carried (wear it)
     bonus: int                # the item's bonus in its slot's stat
     change: int               # carried gear: bonus minus what is worn in the slot; worn: 0
@@ -46,6 +48,10 @@ class GearLine:
     @property
     def stat(self) -> str:
         return SLOT_STAT[self.slot]
+
+    @property
+    def item_id(self):
+        return self.item.entity_id if self.item is not None else None
 
     def text(self) -> str:
         """e.g. 'Weapon: Iron Sword (+4 attack)' / '2. Mithril Sword (weapon, +7 attack, +3 better)'."""
@@ -57,21 +63,19 @@ class GearLine:
         return f"{self.item.name} ({self.slot}, +{self.bonus} {self.stat}, {verdict})"
 
 
-def equipment_listing(player) -> Tuple[List[GearLine], List[GearLine]]:
-    """(worn, carried): `worn` has one line per slot, empty slots included;
-    `carried` has every pack item that can be worn, in pack order."""
-    worn = []
-    for slot in GEAR_SLOTS:
-        item = worn_item(player, slot)
-        worn.append(GearLine(slot, item, True, gear_bonus(item, slot) if item else 0, 0))
-
+def equipment_listing(player_view) -> Tuple[List[GearLine], List[GearLine]]:
+    """(worn, carried) for a snapshot `PlayerView`: `worn` has one line per slot,
+    empty slots included; `carried` has every pack item that can be worn, in pack order."""
+    worn_items = {slot: getattr(player_view, slot) for slot in GEAR_SLOTS}
+    worn = [
+        GearLine(slot, item, True, item.bonus if item else 0, 0)
+        for slot, item in worn_items.items()
+    ]
     carried = []
-    for item in player.inventory:
-        slot = gear_slot(item)
-        if slot is None:
+    for item in player_view.inventory:
+        if item.slot not in GEAR_SLOTS:
             continue
-        current = worn_item(player, slot)
-        bonus = gear_bonus(item, slot)
-        carried.append(GearLine(slot, item, False, bonus,
-                                bonus - (gear_bonus(current, slot) if current else 0)))
+        current = worn_items[item.slot]
+        carried.append(GearLine(item.slot, item, False, item.bonus,
+                                item.bonus - (current.bonus if current else 0)))
     return worn, carried

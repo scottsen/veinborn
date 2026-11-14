@@ -12,6 +12,7 @@ from core.config.user_config import ConfigManager
 from ui.textual.widgets import MapWidget, StatusBar, Sidebar, InventoryWidget, ChatInput
 from ui.textual.widgets.message_log import MessageLog
 from core.item_listing import ground_messages, inventory_messages, items_here
+from core.snapshot import build_snapshot
 from ui.textual.equipment_screen import EquipmentScreen
 
 # Setup logging
@@ -355,7 +356,7 @@ class VeinbornApp(App):
         if self.game.state.game_over:
             return
 
-        for line in inventory_messages(self.game.state.player):
+        for line in inventory_messages(build_snapshot(self.game.state).player):
             self.game.state.add_message(line)
 
         self.refresh_ui()
@@ -402,7 +403,7 @@ class VeinbornApp(App):
         if self.game.state.game_over:
             return
 
-        for line in ground_messages(items_here(self.game.state)):
+        for line in ground_messages(items_here(build_snapshot(self.game.state))):
             self.game.state.add_message(line)
 
         self.refresh_ui()

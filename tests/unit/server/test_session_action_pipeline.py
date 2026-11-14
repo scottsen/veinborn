@@ -111,3 +111,22 @@ def test_context_messages_respect_the_message_cap(simple_game_state):
 
     assert len(state.messages) == 100
     assert state.message_count == 150
+
+
+@pytest.mark.asyncio
+async def test_use_and_drop_intents_without_an_item_pick_one_for_a_remote_client():
+    """Phase 4a: the quick-use / quick-drop keys are plain intents, so a remote client sends them as-is."""
+    from core.loot import LootGenerator
+    game = await _started_session()
+    alice = game.mp_game_state.get_player_entity("player1")
+    alice.inventory.clear()
+    potion = LootGenerator.get_instance().create_item("potion_healing")
+    alice.add_to_inventory(potion)
+    alice.hp = 1
+
+    success, error = await game.process_intent("player1", "use")
+    assert success, error
+    assert alice.hp > 1 and potion not in alice.inventory
+
+    success, error = await game.process_intent("player1", "drop")
+    assert not success and error == "You have nothing to drop."

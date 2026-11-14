@@ -237,7 +237,7 @@ can rejoin the party.** No AI control of absent players.
 | **1. Explicit actor** | `ActionFactory.create(intent, actor_id=None, **kw)`; server accepts `intent` messages and builds actions from the seat. Keep `action` working. | D3 | S-M |
 | **2. One engine** | (a) `player_ids` + N-player regen/game over in `TurnProcessor`; (b) `RoundScheduler` (one action per living seat; SP = one seat), server uses `TurnProcessor`; (c) N-player placement in `FloorManager`, delete MP `descend_floor`; (d) `player_died`/`run_ended` events, high score/vault/co-op scores as subscribers, content handlers in MP; (e) extract `Engine` from `Game`, `GameSession` uses it, delete `MultiplayerGameState` rules. | D1, D2, VB-55, VB-54 groundwork | L (5 slices) |
 | **3. Protocol** (done; broken down in 4b) | `src/protocol/`, envelope with `v`/`seq`, server sends full per-viewer snapshots, client decodes `Snapshot.from_dict`; retire `get_state_dict` and the session baseline. | D4, D5, VB-26, VB-78 | M |
-| **4. Client** | `GameDriver`; `VeinbornApp` on a driver; `LocalDriver` for SP; RemoteDriver renders server snapshots; two-client playtest. | D6, VB-44 | M |
+| **4. Client** (broken down in 4c) | `GameDriver`; `VeinbornApp` on a driver; `LocalDriver` for SP; RemoteDriver renders server snapshots; two-client playtest. | D6, VB-44 | M |
 | **5. Later** | Drop/rejoin seat lifecycle (D7, closes VB-45), fog per viewer + dev reveal switch (D4), deltas if measured, MP persistence/leaderboard viewer (VB-35, VB-54). | D7 | as needed |
 
 Phase 0 and 1 are independent of the rest and safe to do now. Phase 2 is the core of the
@@ -344,6 +344,39 @@ Rough total: 1.5-2 working days.
   recipient outside it; `seq` is taken inside the lock so a slow send can never reorder state.
 - *Hidden consumers:* external scripts using `test_client.py`'s output; none are tracked. Flag in the
   3c commit message.
+
+### 4c. Phase 4 breakdown (re-measured 2026-11-13, after Phase 3 and VB-94)
+
+**What the measurement found**
+- **The widgets are not snapshot-driven yet, only snapshot-shaped.** `MapWidget`, `Sidebar`, `StatusBar` and
+  `InventoryWidget` take `game_state=` and call `build_snapshot(self.game_state)` themselves; `MessageLog`
+  reads `game_state.messages`. A remote client has no `GameState`, so the widgets need a snapshot source.
+- **`VeinbornApp` holds a `Game`:** ~48 `self.game` references; `compose()` always `start_new_game()`s; key
+  handlers call `game.handle_player_action`, `quick_use`, `quick_drop`; `EquipmentScreen(self.game)`.
+- **Some "UI" is rules in `Game`:** `quick_use` (pick the best healing item) and `quick_drop` (least useful
+  item) choose server-side state, so a remote client cannot run them. They move into the factory: `use` /
+  `drop` with no `item_id` choose the item.
+- **Read-only screens need item detail the snapshot lacks:** the equipment screen needs each item's gear
+  slot and bonus (`core.equipment.equipment_listing` reads live `Player`s); the ground listing needs
+  `item_type` on map items. These go into `ItemView` / `EntityView`, which changes the wire, so
+  `PROTOCOL_VERSION` becomes 2.
+- **The client side is ready:** `MultiplayerClient.submit`/`request_snapshot`, latest snapshot by `seq`,
+  in-loop connect (VB-88, VB-97).
+- **No pilot test drove the single-player game screen** (only the equipment screen and the MP connect
+  test). 4a's listing change broke the inventory and look keys with the suite still green, so the
+  characterisation test (`tests/ui/test_game_screen.py`: move, wait, status, inventory, look, quick use/drop)
+  landed in 4a and is 4b's gate.
+
+**Slices**
+
+| Slice | Change | Test gate | Size |
+|---|---|---|---|
+| **4a. Rules and item detail** (VB-99) | Factory: `use`/`drop` without `item_id` pick the item (messages as today); `Game.quick_use/quick_drop` call them. `ItemView` gains `slot`/`bonus`, `EntityView` gains `item_type`; `equipment_listing`, `inventory_messages`, `ground_messages` also accept views. `PROTOCOL_VERSION = 2`. | suite; SP bot A/B identical (factory change); round-trip test covers the new fields | S-M |
+| **4b. Driver, local** (VB-100) | `ui/driver.py`: `GameDriver` (D6) and `LocalDriver(Game)`. Widgets take a snapshot getter; `EquipmentScreen` takes the driver; `VeinbornApp` builds a `LocalDriver` and key bindings call `driver.submit(intent, ...)`. | `tests/ui/test_game_screen.py` + `test_equipment_screen.py` green before and after | M |
+| **4c. Driver, remote** (VB-101) | `RemoteDriver(MultiplayerClient)`: snapshot = latest received, `submit` = intent, refused actions shown in the local log, update callback redraws. App MP mode starts no local `Game`; save/load/restart only where the driver supports them; the client keeps its auth token. `test_client.py` sends intents. | real-socket test: app on a `RemoteDriver` moves and redraws from the server's snapshot | M |
+| **4d. Two clients** (VB-102) | Headless pilot with two apps on one server: each moves, the round waits on the other, each sees the other's `@`. Short playtest how-to for Scott. | the pilot test; then a human playtest | S |
+
+**Order:** 4a -> 4b -> 4c -> 4d. 4a first so 4b's widgets and screens are written against views only.
 
 ---
 

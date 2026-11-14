@@ -3,7 +3,8 @@ import pytest
 
 from core.actions import ACTION_TYPES, UnequipAction
 from core.base.entity import EntityType
-from core.equipment import equipment_listing
+from core.equipment import equipment_listing, gear_bonus
+from core.snapshot import build_snapshot
 from core.game import Game
 from core.loot import LootGenerator
 
@@ -150,10 +151,11 @@ def test_listing_shows_worn_slots_and_only_wearable_pack_items(game):
     shield = give(game, 'shield')
     game.handle_player_action('equip', item_id=dagger.entity_id)
 
-    worn, carried = equipment_listing(p)
+    worn, carried = equipment_listing(build_snapshot(game.state).player)
 
-    assert [(l.slot, l.item) for l in worn] == [('weapon', dagger), ('armor', None), ('shield', None)]
-    assert [l.item for l in carried] == [sword, shield]         # the potion is not gear
+    assert [(l.slot, l.item_id) for l in worn] == [('weapon', dagger.entity_id), ('armor', None), ('shield', None)]
+    assert [l.item_id for l in carried] == [sword.entity_id, shield.entity_id]   # the potion is not gear
+    assert [l.bonus for l in carried] == [gear_bonus(sword, 'weapon'), gear_bonus(shield, 'shield')]
     assert carried[0].change == carried[0].bonus - worn[0].bonus > 0
     assert worn[1].text() == "Armor: (nothing)"
     assert "vs worn" in carried[0].text()
@@ -161,5 +163,5 @@ def test_listing_shows_worn_slots_and_only_wearable_pack_items(game):
 
 def test_listing_empty_slot_change_is_the_whole_bonus(game):
     mail = give(game, 'chainmail')
-    _, carried = equipment_listing(game.state.player)
-    assert carried[0].item is mail and carried[0].change == carried[0].bonus
+    _, carried = equipment_listing(build_snapshot(game.state).player)
+    assert carried[0].item_id == mail.entity_id and carried[0].change == carried[0].bonus > 0

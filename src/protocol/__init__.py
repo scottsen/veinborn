@@ -5,4 +5,4 @@ not import `server`.
 """
 
 #: Bumped whenever a message changes in a way an older peer cannot read.
-PROTOCOL_VERSION = 1
+PROTOCOL_VERSION = 2  # 2: ItemView slot/bonus, EntityView item_type
