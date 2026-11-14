@@ -61,6 +61,7 @@ class CraftingRecipe:
     assembly_parts: Optional[Dict[str, str]] = None  # assembly: required slot -> part recipe id
     optional_slots: Optional[List[str]] = None       # assembly: slots that may be left empty
     fixed_stats: Optional[Dict[str, int]] = None     # assembly: added once (a material's bonus)
+    assembly_ore: Optional[List[str]] = None         # assembly: every part must be made of these ores
 
     def calculate_stats(self, ore_properties: Dict[str, int]) -> Dict[str, int]:
         """
@@ -342,6 +343,7 @@ class RecipeManager:
             kind='assembly', assembly_parts=dict(data['parts']),
             optional_slots=list(data.get('optional', [])),
             fixed_stats=dict(data.get('bonus', {})),
+            assembly_ore=list(data['ore']) if data.get('ore') else None,
         )
 
     def _validate_assemblies(self):
@@ -560,14 +562,17 @@ class RecipeManager:
     # -- assemblies (VB-115) ------------------------------------------------------------
 
     @staticmethod
-    def parts_in(player_inventory: List[Any], part_id: str) -> List[Any]:
-        """Carried part items made by part recipe `part_id`, in pack order."""
-        return [i for i in player_inventory if i.get_stat('part_id') == part_id]
+    def parts_in(player_inventory: List[Any], part_id: str,
+                 ores: Optional[List[str]] = None) -> List[Any]:
+        """Carried part items made by part recipe `part_id`, in pack order; with `ores`, only
+        parts made of those ores (a legendary wants adamantite parts, not copper ones)."""
+        return [i for i in player_inventory if i.get_stat('part_id') == part_id
+                and (ores is None or i.get_stat('part_ore_type') in ores)]
 
     def missing_slots(self, recipe: 'CraftingRecipe', player_inventory: List[Any]) -> List[str]:
         """Required slots of an assembly with no carried part for them (empty: can assemble)."""
         return [slot for slot, part_id in recipe.assembly_parts.items()
-                if not self.parts_in(player_inventory, part_id)]
+                if not self.parts_in(player_inventory, part_id, recipe.assembly_ore)]
 
     def parts_for(self, recipe: 'CraftingRecipe', player_inventory: List[Any],
                   part_ids: Optional[List[Any]] = None) -> List[Any]:
@@ -581,7 +586,9 @@ class RecipeManager:
                 if r.kind == 'part' and r.part_slot == slot:
                     slot_of[r.recipe_id] = slot
         if part_ids is not None:
-            by_id = {i.entity_id: i for i in player_inventory if i.get_stat('part_id') in slot_of}
+            by_id = {i.entity_id: i for i in player_inventory if i.get_stat('part_id') in slot_of
+                     and (recipe.assembly_ore is None
+                          or i.get_stat('part_ore_type') in recipe.assembly_ore)}
             if len(set(part_ids)) != len(part_ids) or any(p not in by_id for p in part_ids):
                 return []
             chosen = [by_id[p] for p in part_ids]
@@ -593,7 +600,7 @@ class RecipeManager:
         for slot, part_id in recipe.assembly_parts.items():
             part_recipe = self.recipes[part_id]
             stat = self.main_stat(part_recipe)
-            carried = self.parts_in(player_inventory, part_id)
+            carried = self.parts_in(player_inventory, part_id, recipe.assembly_ore)
             chosen.append(max(carried, key=lambda i: (i.get_stat('part_stats') or {}).get(stat, 0))
                           if carried else None)
         return [] if None in chosen else chosen

@@ -21,9 +21,20 @@ pytestmark = pytest.mark.unit
 LEGENDARIES = {'flaming_sword', 'arcane_staff', 'dragon_bow', 'phoenix_armor', 'shadow_cloak', 'titans_hammer'}
 
 
-def mithril(n):
-    vein = EntityLoader().create_ore_vein('mithril', 0, 0, floor=8)
+def ore(ore_type, n, floor=8):
+    vein = EntityLoader().create_ore_vein(ore_type, 0, 0, floor=floor)
     return [vein.get_ore_item() for _ in range(n)]
+
+
+def parts_for(recipe_id, ore_type):
+    """One part per slot the assembly needs, made from `ore_type` (what a forge would make)."""
+    rm = RecipeManager()
+    recipe = rm.get_recipe(recipe_id)
+    out = []
+    for part_id in recipe.assembly_parts.values():
+        count = rm.get_recipe(part_id).get_required_ore_count()
+        out.append(rm.create_part(part_id, ore(ore_type, count)))
+    return out
 
 
 def material(item_id):
@@ -43,28 +54,37 @@ def forge_game():
 
 
 def test_all_legendary_recipes_load():
-    ids = {r.recipe_id for r in RecipeManager().get_all_recipes()}
-    assert LEGENDARIES <= ids
-
-
-def test_ore_alone_is_not_enough():
     rm = RecipeManager()
-    ok, reason = rm.can_craft('arcane_staff', mithril(4), 12)
+    assert LEGENDARIES <= {r.recipe_id for r in rm.get_all_recipes()}
+    assert all(rm.get_recipe(i).kind == 'assembly' for i in LEGENDARIES)
+
+
+def test_parts_alone_are_not_enough():
+    rm = RecipeManager()
+    inventory = parts_for('arcane_staff', 'mithril')
+    ok, reason = rm.can_craft('arcane_staff', inventory, 12)
     assert not ok and 'lich_phylactery' in reason
-    assert 'arcane_staff' not in {r.recipe_id for r in rm.get_craftable_recipes(mithril(4), 12)}
+    assert 'arcane_staff' not in {r.recipe_id for r in rm.get_craftable_recipes(inventory, 12)}
 
 
-def test_ore_and_boss_material_craft():
+def test_parts_and_boss_material_craft():
     rm = RecipeManager()
-    inventory = mithril(4) + [material('lich_phylactery')]
+    inventory = parts_for('arcane_staff', 'mithril') + [material('lich_phylactery')]
     assert rm.can_craft('arcane_staff', inventory, 12) == (True, None)
     assert 'arcane_staff' in {r.recipe_id for r in rm.get_craftable_recipes(inventory, 12)}
     assert rm.can_craft('arcane_staff', inventory, 11)[0] is False      # floor gate still holds
 
 
-def test_craft_consumes_the_material_and_the_ore(forge_game):
+def test_a_legendary_wants_parts_of_its_own_ore():
+    rm = RecipeManager()
+    inventory = parts_for('arcane_staff', 'copper') + [material('lich_phylactery')]
+    ok, reason = rm.can_craft('arcane_staff', inventory, 12)
+    assert not ok and 'parts' in reason                                 # copper parts do not count
+
+
+def test_craft_consumes_the_material_and_the_parts(forge_game):
     ctx, player, forge = forge_game
-    for item in mithril(4) + [material('lich_phylactery')]:
+    for item in parts_for('arcane_staff', 'mithril') + [material('lich_phylactery')]:
         assert player.add_to_inventory(item)
 
     outcome = CraftAction(player.entity_id, forge.entity_id, 'arcane_staff').execute(ctx)
@@ -73,15 +93,23 @@ def test_craft_consumes_the_material_and_the_ore(forge_game):
     assert [i.get_stat('recipe_id') for i in player.inventory] == ['arcane_staff']
     staff = player.inventory[0]
     assert staff.get_stat('equipment_slot') == 'weapon' and staff.get_stat('attack_bonus') > 10
+    assert staff.get_stat('spell_power') > 0                            # from its gem
 
 
 def test_craft_without_the_material_is_refused(forge_game):
     ctx, player, forge = forge_game
-    for item in mithril(4):
+    for item in parts_for('arcane_staff', 'mithril'):
         player.add_to_inventory(item)
     action = CraftAction(player.entity_id, forge.entity_id, 'arcane_staff')
     assert not action.validate(ctx)
-    assert len(player.inventory) == 4                                   # ore untouched
+    assert len(player.inventory) == 3                                   # parts untouched
+
+
+def test_phoenix_armor_no_longer_needs_six_ore_at_once():
+    rm = RecipeManager()
+    ore_count = sum(rm.get_recipe(p).get_required_ore_count()
+                    for p in rm.get_recipe('phoenix_armor').assembly_parts.values())
+    assert ore_count <= 4                                               # was 6 adamantite (VB-87)
 
 
 def test_every_special_requirement_is_an_item_some_monster_drops():
