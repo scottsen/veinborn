@@ -290,7 +290,9 @@ a craft spends the best ore of the recipe's type for its main stat (attack for w
 defense otherwise), ranked piece by piece, then by purity (`RecipeManager.ore_for`). The
 `craft` intent may name the pieces (`ore_ids`); the forge screen's ore picker (`o`) does.
 Only `attack_bonus` and `defense_bonus` are read by the game; the other computed stats
-(durability, weight, fire_damage, ...) are stored but unused (VB-113).
+(durability, weight, fire_damage, ...) are stored but unused (VB-113). The planned
+redesign (weapon/armor parts with an attribute job each, named ore per run) is in
+[CRAFTING_PARTS_DESIGN.md](design/CRAFTING_PARTS_DESIGN.md).
 
 ### Stat Calculation
 

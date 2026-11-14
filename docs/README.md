@@ -42,6 +42,10 @@
 
 ## 🌐 I Want Multiplayer Info
 
+**Crafting redesign (proposed):**
+
+→ **[design/CRAFTING_PARTS_DESIGN.md](design/CRAFTING_PARTS_DESIGN.md)** - SWG-style weapon/armor parts, ore attributes with jobs, named ore per run (VB-113..VB-120)
+
 **Learn about multiplayer features:**
 
 → **[MULTIPLAYER_CHAT.md](MULTIPLAYER_CHAT.md)** - Chat system
