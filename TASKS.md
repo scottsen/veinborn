@@ -2303,7 +2303,7 @@ priority: high
 effort: 3h
 tags: [multiplayer, architecture, protocol]
 created: '2026-11-14T01:09:31Z'
-updated: '2026-11-14T01:14:11Z'
+updated: '2026-11-14T01:14:48Z'
 session: letorera-1113
 links:
   commits:
@@ -2313,7 +2313,7 @@ notes_next: 2
 
 <!-- notes: append-only log; each has a stable #id (see CLI §5) -->
 ### Notes
-- [#1 2026-11-14T01:14:11Z session:letorera-1113] src/protocol/{__init__,messages}.py (PROTOCOL_VERSION=1); Message.v/seq; server and client refuse mismatch (no v = 0); 12 importers updated. ui still imports server.state_delta (gone in VB-97/98). Gate: suite 1495 passed.
+- [#1 2026-11-14T01:14:11Z session:letorera-1113] src/protocol/{__init__,messages}.py (PROTOCOL_VERSION=1); Message.v/seq; server and client refuse mismatch (no v = 0); 12 importers updated. ui still imports server.state_delta (gone in VB-97/98). Gate: suite 1494 passed.
 
 
 ## TASK-VB-96 · MP plan 3b: Snapshot.from_dict + PartyMemberView/RoundView in Snapshot; Engine.snapshot(viewer_id); JSON round-trip tests incl. dead viewer
