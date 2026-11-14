@@ -68,6 +68,9 @@ class GameState:
     # Player identity (Phase 5: for high scores)
     player_name: str = "Anonymous"
 
+    # VB-105 development switch: send every viewer the whole floor (read by build_snapshot only)
+    reveal_map: bool = False
+
     # Run type (Phase 6: for Legacy Vault tracking)
     run_type: str = "pure"  # "pure" or "legacy"
 

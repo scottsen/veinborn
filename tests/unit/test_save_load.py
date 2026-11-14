@@ -527,3 +527,11 @@ def test_equipped_shield_round_trips_and_old_saves_load_without_one(save_system,
 
     data.pop('equipped_shield')                      # a save from before VB-72
     assert save_system._deserialize_entity(data).equipped_shield is None
+
+
+def test_fog_memory_survives_save_and_load(save_system, sample_state):
+    """VB-105: what a viewer had seen of the floor is saved with the map."""
+    sample_state.dungeon_map.explored_by = {"viewer-1": {(1, 2), (3, 4)}}
+    save_system.save_game(sample_state, "fog_save")
+    loaded = save_system.load_game("fog_save")
+    assert loaded.dungeon_map.explored_by == {"viewer-1": {(1, 2), (3, 4)}}

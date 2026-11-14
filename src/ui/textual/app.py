@@ -171,7 +171,7 @@ class VeinbornApp(App):
 
     TITLE = "Veinborn: Walking in Big Brother's Footsteps"
 
-    def __init__(self, player_name=None, character_class=None, seed=None, withdrawn_ore=None, is_legacy_run=False, multiplayer_client=None, multiplayer_setup=None, driver=None):
+    def __init__(self, player_name=None, character_class=None, seed=None, withdrawn_ore=None, is_legacy_run=False, multiplayer_client=None, multiplayer_setup=None, driver=None, reveal_map=False):
         """
         Initialize Veinborn app.
 
@@ -216,6 +216,7 @@ class VeinbornApp(App):
         self.seed = seed
         self.withdrawn_ore = withdrawn_ore
         self.is_legacy_run = is_legacy_run
+        self.reveal_map = reveal_map
 
         # Multiplayer support
         self.multiplayer_client = multiplayer_client
@@ -243,6 +244,7 @@ class VeinbornApp(App):
                 character_class=self.character_class,
                 withdrawn_ore=self.withdrawn_ore,
                 is_legacy_run=self.is_legacy_run,
+                reveal_map=self.reveal_map,
             )
 
         snap = self.driver.snapshot()
@@ -516,7 +518,8 @@ class VeinbornApp(App):
                 widget.show(snap)
 
 
-def run_game(player_name=None, character_class=None, seed=None, withdrawn_ore=None, is_legacy_run=False):
+def run_game(player_name=None, character_class=None, seed=None, withdrawn_ore=None, is_legacy_run=False,
+             reveal_map=False):
     """
     Run the Veinborn game.
 
@@ -526,10 +529,11 @@ def run_game(player_name=None, character_class=None, seed=None, withdrawn_ore=No
         seed: Game seed (for reproducibility)
         withdrawn_ore: LegacyOre from vault (optional)
         is_legacy_run: Whether this is a legacy run (used vault ore)
+        reveal_map: Dev switch: no fog of war (VB-105)
     """
     logger.info(f"run_game() called (player={player_name}, class={character_class}, seed={seed}, legacy={is_legacy_run})")
     app = VeinbornApp(player_name=player_name, character_class=character_class, seed=seed,
-                    withdrawn_ore=withdrawn_ore, is_legacy_run=is_legacy_run)
+                    withdrawn_ore=withdrawn_ore, is_legacy_run=is_legacy_run, reveal_map=reveal_map)
     logger.info("Calling app.run()...")
 
     # CRITICAL: Explicitly disable mouse to prevent terminal escape sequences

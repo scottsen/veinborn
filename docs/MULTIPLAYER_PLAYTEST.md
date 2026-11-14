@@ -42,7 +42,10 @@ ready. Another machine connects with `--host <server-ip>`.
   Free actions (equip, unequip, listings) do not use your turn.
 - **Stairs:** any one player on the stairs pressing `>` takes the whole party down.
 - **Death:** a dead player spectates (`DEAD (spectating)`); the run ends when everyone is dead.
-- **Vision:** everyone sees the whole floor (no fog of war yet). Allies are the cyan `@`.
+- **Vision:** fog of war: you see what is in your line of sight (radius 9) and remember the
+  terrain you have seen (dimmed). Monsters and items show only while in sight; allies always show
+  (cyan `@`). For a dev game with no fog, start the creator with `--reveal-map` (sidebar:
+  `[MAP REVEALED: no fog]`).
 - **Leaving:** if a client quits or loses its connection, the round waits for that seat
   (status bar: `Bob (disconnected, 1:45)`, counting down) for 2 minutes, then drops it: the
   character leaves the floor and the party plays on.

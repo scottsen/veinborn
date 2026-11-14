@@ -15,6 +15,7 @@ from dataclasses import dataclass, field, asdict
 from typing import Dict, List, Optional
 
 from .base.entity import EntityType
+from . import fog
 from .equipment import gear_bonus, gear_slot
 
 
@@ -103,7 +104,10 @@ class RoundView:
 class MapView:
     width: int
     height: int
-    tiles: List[str]            # row-major, one TileType value char per tile (same as Map.to_dict)
+    tiles: List[str]            # row-major, one TileType value char per tile (same as Map.to_dict);
+                                # fog:UNSEEN (' ') where the viewer has never seen the tile
+    lit: List[str] = field(default_factory=list)   # fog: '1' where the tile is in sight now,
+                                                   # '0' remembered; empty when the map is revealed
 
 
 @dataclass
@@ -119,6 +123,7 @@ class Snapshot:
     message_count: int = 0      # lines ever logged (monotonic): a client tells new lines from repeats
     party: List[PartyMemberView] = field(default_factory=list)
     round: Optional[RoundView] = None
+    reveal_map: bool = False    # dev switch on: no fog, the sidebar says so
 
     def to_dict(self) -> Dict:
         return asdict(self)
@@ -138,6 +143,7 @@ class Snapshot:
             message_count=data.get('message_count', 0),
             party=[PartyMemberView(**m) for m in data.get('party', [])],
             round=RoundView(**data['round']) if data.get('round') else None,
+            reveal_map=data.get('reveal_map', False),
         )
 
     def entity_at(self, x: int, y: int, entity_type: str) -> Optional[EntityView]:
@@ -209,8 +215,27 @@ def _player_view(player, turn: int) -> PlayerView:
 
 
 def build_snapshot(state, viewer=None, message_count: int = 20) -> Snapshot:
-    """Snapshot of `state` as seen by `viewer` (default: state.player)."""
+    """Snapshot of `state` as seen by `viewer` (default: state.player).
+
+    Fog of war (VB-105): unless `state.reveal_map` is on, the viewer gets only the terrain
+    they have seen, monsters and items only while in sight, and ore veins and forges where
+    they remember the tile. Other players are always shown (the party).
+    """
     viewer = viewer or state.player
+    game_map = state.dungeon_map
+    reveal = state.reveal_map
+    explored = lit = None
+    if not reveal:
+        lit = fog.observe(game_map, viewer.entity_id, viewer.x, viewer.y)
+        explored = game_map.explored_by[viewer.entity_id]
+
+    def shown(e) -> bool:
+        if reveal or e.entity_type == EntityType.PLAYER:
+            return True
+        if e.entity_type in (EntityType.ORE_VEIN, EntityType.FORGE):
+            return (e.x, e.y) in explored
+        return (e.x, e.y) in lit
+
     entities = [
         EntityView(
             entity_id=e.entity_id, entity_type=_etype(e), content_id=e.content_id,
@@ -219,9 +244,19 @@ def build_snapshot(state, viewer=None, message_count: int = 20) -> Snapshot:
             item_type=e.get_stat('item_type', 'unknown') if e.entity_type == EntityType.ITEM else None,
         )
         for e in state.entities.values()
-        if e.entity_id != viewer.entity_id
+        if e.entity_id != viewer.entity_id and shown(e)
     ]
-    game_map = state.dungeon_map
+    tiles = game_map.to_dict()['tiles']
+    lit_rows = []
+    if not reveal:
+        tiles = [
+            ''.join(c if (x, y) in explored else fog.UNSEEN for x, c in enumerate(row))
+            for y, row in enumerate(tiles)
+        ]
+        lit_rows = [
+            ''.join('1' if (x, y) in lit else '0' for x in range(game_map.width))
+            for y in range(game_map.height)
+        ]
     return Snapshot(
         turn=state.turn_count,
         floor=state.current_floor,
@@ -229,7 +264,8 @@ def build_snapshot(state, viewer=None, message_count: int = 20) -> Snapshot:
         victory=state.victory,
         player=_player_view(viewer, state.turn_count),
         entities=entities,
-        map=MapView(game_map.width, game_map.height, game_map.to_dict()['tiles']),
+        map=MapView(game_map.width, game_map.height, tiles, lit_rows),
         messages=state.get_recent_messages(message_count),
         message_count=state.message_count,
+        reveal_map=reveal,
     )

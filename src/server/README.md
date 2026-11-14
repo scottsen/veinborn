@@ -106,7 +106,8 @@ Or edit `src/server/config.py` for defaults.
   "type": "create_game",
   "data": {
     "game_name": "My Game",
-    "max_players": 4
+    "max_players": 4,
+    "reveal_map": false
   }
 }
 ```
@@ -196,6 +197,12 @@ per living player per round.
 Each player gets their own view (`core.snapshot.Snapshot.to_dict()`: player, entities,
 map, messages, message_count, party, round), one `seq` per broadcast; a client keeps the
 newest `seq` and drops older ones.
+
+Fog of war (protocol v4, `core/fog.py`): a snapshot holds only what its viewer has seen.
+`map.tiles` has `' '` (`fog.UNSEEN`) for a never-seen tile, `map.lit` marks the tiles in
+sight now (`'1'`) against remembered ones (`'0'`), monsters and items appear only while in
+sight, ore veins and forges where the tile is remembered, and other players always.
+`reveal_map: true` on `create_game` makes a dev game with no fog (`Snapshot.reveal_map`).
 ```json
 {"type": "snapshot", "seq": 12, "data": {"game": {"game_id": "uuid", "is_started": true}, "snapshot": {...}}}
 ```

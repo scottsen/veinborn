@@ -2,7 +2,7 @@
 Map and world generation for Veinborn.
 """
 from dataclasses import dataclass
-from typing import List, Tuple, Optional
+from typing import Dict, List, Optional, Set, Tuple
 from enum import Enum
 
 from .rng import GameRNG
@@ -82,6 +82,8 @@ class Map:
         self.height = height
         self.tiles = [[Tile() for _ in range(height)] for _ in range(width)]
         self.rooms: List[Room] = []
+        # VB-105: what each viewer (entity id) has seen of this floor; see core/fog.py
+        self.explored_by: Dict[str, Set[Tuple[int, int]]] = {}
         self.config = config  # GameConfig for spawning rules
 
         # VB-18: each Map holds its own RNG instance rather than every

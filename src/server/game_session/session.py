@@ -28,8 +28,10 @@ class GameSession:
         game_name: str,
         max_players: int = 4,
         high_scores: Optional[HighScoreManager] = None,
+        reveal_map: bool = False,
     ):
         self.game_id = game_id
+        self.reveal_map = reveal_map      # dev game: no fog of war (VB-105)
         self.game_name = game_name
         self.max_players = max_players
 
@@ -355,6 +357,7 @@ class GameSession:
                 seed=seed,
                 max_players=self.max_players,
             )
+            self.mp_game_state.game_state.reveal_map = self.reveal_map
             for player_id, player_info in self.players.items():
                 player_info.entity_id = self.mp_game_state.get_player_entity_id(player_id)
 

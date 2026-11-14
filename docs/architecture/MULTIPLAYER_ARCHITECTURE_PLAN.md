@@ -16,7 +16,7 @@ beth_topics:
 # Multiplayer architecture plan
 
 **Status:** phases 0-4 built (2026-11-13: VB-88..VB-102; two people can play in the TUI) plus the
-drop half of D7; phase 5 open (rejoin `VB-103`, fog of war `VB-105`), first human playtest `VB-104`.
+drop half of D7; phase 5: rejoin `VB-103` and fog of war `VB-105` built, first human playtest `VB-104` open.
 Proposed 2026-11-13 (session chartreuse-filter-1113); rulings in section 6. Section 1 ("Today")
 and the "what the measurement found" lists are the record of the code *before* each phase.
 
@@ -152,6 +152,13 @@ class TurnScheduler(Protocol):
   viewer: the viewer's `PlayerView`, other players as entities, monsters, map, messages.
 - The server sends snapshots; the client decodes with `Snapshot.from_dict` and the same
   widgets render it. `get_state_dict` and the hand-built player/monster dicts retire.
+- **Built (VB-105, 2026-11-13):** `core/fog.py`; each viewer's explored memory lives on the `Map`
+  (`Map.explored_by`, so a new floor starts empty, saved with the map); `build_snapshot` hides unseen
+  tiles (`' '`), monsters/items out of sight (radius 9, line of sight), keeps ore veins/forges where the
+  tile is remembered and other players always; `MapView.lit` lets the widget dim remembered tiles;
+  `reveal_map` is `GameState.reveal_map` (`--reveal-map` in `run_textual.py` / `run_multiplayer.py`,
+  `create_game` option). Protocol 4. Bots do not use snapshots, so the bot A/B gate is untouched.
+  `perception.FogOfWar` stayed unused (its per-instance arrays do not fit per-viewer memory).
 - **Ruled (Scott, 2026-11-13): fog of war is on by default**, applied here per viewer
   (`core/perception.FogOfWar` exists and is unused today). A **development reveal switch**
   turns it off to see and test map features: a config/CLI flag (e.g. `--reveal-map`) for

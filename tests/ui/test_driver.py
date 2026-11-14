@@ -155,3 +155,11 @@ def test_restart_keeps_name_and_class_on_a_fresh_seed():
     assert game.state.player.stats["class_type"] == "mage"
     if first_seed is not None:
         assert game.state.seed != first_seed
+
+
+def test_reveal_map_is_kept_across_restart():
+    game = Game()
+    game.start_new_game(seed=1, reveal_map=True)
+    assert game.state.reveal_map
+    LocalDriver(game).restart()
+    assert game.state.reveal_map

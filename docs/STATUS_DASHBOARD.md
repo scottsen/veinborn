@@ -10,8 +10,8 @@
 | Category | Status | Details |
 |----------|--------|---------|
 | **Single-Player core** | 🟢 Healthy | All tests pass |
-| **Multiplayer** | 🟡 Playable in the TUI, awaiting the first human playtest | One engine for single-player and multiplayer (`core/engine.py`); intents in, per-viewer snapshots out (protocol v3, `src/protocol/`); one action per living player per round. The TUI plays a local run or a server seat through a `GameDriver` (`ui/driver.py`): lobby, `R` to ready, round status, allies on the map. A seat that leaves or outlives its 2-minute reconnect grace is dropped, so the round never stalls, and can rejoin with its saved token. Headless two-client test: `tests/ui/test_two_clients.py`. Not yet (plan phase 5): fog of war. How to run a playtest: [MULTIPLAYER_PLAYTEST.md](MULTIPLAYER_PLAYTEST.md); design and history: [architecture/MULTIPLAYER_ARCHITECTURE_PLAN.md](architecture/MULTIPLAYER_ARCHITECTURE_PLAN.md). |
-| **Test Health** | ✅ Green | 1516 passing / 0 failing (verified 2026-11-13); run with `/usr/bin/python3 -m pytest -q -n 4` (the `python3` wrapper lacks `pytest_asyncio`). Single-player changes are gated by the seeded bot A/B (`tests/fuzz/README.md`) |
+| **Multiplayer** | 🟡 Playable in the TUI, awaiting the first human playtest | One engine for single-player and multiplayer (`core/engine.py`); intents in, per-viewer snapshots out (protocol v3, `src/protocol/`); one action per living player per round. The TUI plays a local run or a server seat through a `GameDriver` (`ui/driver.py`): lobby, `R` to ready, round status, allies on the map. A seat that leaves or outlives its 2-minute reconnect grace is dropped, so the round never stalls, and can rejoin with its saved token. Headless two-client test: `tests/ui/test_two_clients.py`. Fog of war per viewer (radius 9; `--reveal-map` for dev games, protocol v4). How to run a playtest: [MULTIPLAYER_PLAYTEST.md](MULTIPLAYER_PLAYTEST.md); design and history: [architecture/MULTIPLAYER_ARCHITECTURE_PLAN.md](architecture/MULTIPLAYER_ARCHITECTURE_PLAN.md). |
+| **Test Health** | ✅ Green | 1547 passing / 0 failing (verified 2026-11-13); run with `/usr/bin/python3 -m pytest -q -n 4` (the `python3` wrapper lacks `pytest_asyncio`). Single-player changes are gated by the seeded bot A/B (`tests/fuzz/README.md`) |
 | **Current Phase** | 🎮 First human multiplayer playtest | then balance (`VB-87`) and the pacing design call (`VB-83`); `tt list --actionable` is the queue |
 | **Playability** | ✅ SP playable / 🟡 MP playable, not yet played by humans | |
 
@@ -74,7 +74,7 @@ The live queue is `tt list --actionable`; this is the short version.
 ### Track B: Multiplayer (plan phase 5)
 - [ ] Human playtest, then fix what it finds
 - [x] Rejoin a dropped seat, incl. the client keeping its auth token across a restart (D7, `VB-103`)
-- [ ] Fog of war per viewer with a dev reveal switch (D4)
+- [x] Fog of war per viewer with a dev reveal switch (D4, `VB-105`)
 - [ ] Co-op leaderboard viewer, MP persistence (`VB-35`, `VB-54`)
 
 ---
@@ -99,7 +99,7 @@ The live queue is `tt list --actionable`; this is the short version.
 | **Phase 0** | ✅ Complete | Foundation (movement, combat, map gen) |
 | **Phase 1** | ✅ Complete | MVP Core (mining, crafting, classes) |
 | **Phase 2** | ✅ Complete | Multiplayer: one engine, intents, snapshots, TUI client ([plan](architecture/MULTIPLAYER_ARCHITECTURE_PLAN.md) phases 0-4) |
-| **Phase 3** | 🔨 Current | Human playtests, balance, polish (both tracks); MP plan phase 5 (rejoin, fog) |
+| **Phase 3** | 🔨 Current | Human playtests, balance, polish (both tracks); MP plan phase 5 (rejoin, fog: built; playtest open) |
 | **Phase 4** | 📅 Future | Advanced features (persistence, bosses) |
 
 ---
@@ -211,7 +211,7 @@ python3 run_multiplayer.py --name Bob --class mage --game-id <id>  # Terminal 3
 | Shields drop but cannot be equipped; gold drops but has no use | 🟡 Medium | Open — `VB-72`, `VB-74` (both droppable with `d`) |
 | Monster abilities all disabled in `monsters.yaml` (the engine can use them now) | 🟢 Low | Engine done — `VB-47` umbrella; done: one range metric, per-monster params + validation, perception (sight/memory/provocation, `passive` -> `neutral`), engine morale, monster speed, abilities for any actor, wander no longer bump-attacks (`VB-58`..`VB-63`, `VB-66`); next `VB-64` (enable abilities: needs play-test), `VB-65` (status effects). [AI_ARCHITECTURE.md](architecture/AI_ARCHITECTURE.md), ADR-019 |
 | ~~No gameplay client: `MultiplayerClient` can't send actions, TUI only does chat/lobby~~ | ~~🟠 High~~ | ✅ Fixed 2026-11-13 — `VB-44` via `VB-99`..`VB-102`: the TUI plays a server seat (`run_multiplayer.py`); human playtest `VB-104` |
-| Dead-code candidates (`perception.py` module, `GameTelemetry.log_*`) | 🟢 Low | Held — `VB-32`: `perception.py` is the candidate for fog of war (`VB-105`, ruled on by default); telemetry still needs a decision |
+| Dead-code candidates (`perception.py` module, `GameTelemetry.log_*`) | 🟢 Low | Held — `VB-32`: fog of war (`VB-105`) was built in `core/fog.py` instead, so `perception.py`'s `FogOfWar` is dead code to delete or reuse; telemetry still needs a decision |
 | No tutorial for new players | 🟢 Low | Planned for Phase 3 |
 
 **Critical and urgent issues:** 0 open — `VB-1` through `VB-19` all fixed. High-priority open work: `VB-104` (first human multiplayer playtest, Scott); the live list is `tt list --project veinborn --actionable` / `TASKS.md`.

@@ -46,6 +46,7 @@ def test_inventory_and_capacity(game):
 
 
 def test_entities_exclude_the_viewer_and_match_state(game):
+    game.state.reveal_map = True      # fog has its own tests (test_fog.py)
     snap = build_snapshot(game.state)
     ids = {e.entity_id for e in snap.entities}
     assert game.state.player.entity_id not in ids
@@ -55,6 +56,7 @@ def test_entities_exclude_the_viewer_and_match_state(game):
 
 
 def test_map_and_turn_fields(game):
+    game.state.reveal_map = True
     snap = build_snapshot(game.state)
     m = game.state.dungeon_map
     assert (snap.map.width, snap.map.height) == (m.width, m.height)

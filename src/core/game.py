@@ -43,6 +43,8 @@ class Game:
         self.state: Optional[GameState] = None
         self.context: Optional[GameContext] = None
         self.running = False
+        # VB-105 dev switch (no fog of war); kept across restart and load
+        self.reveal_map = False
 
         # Load configuration
         self.config = ConfigLoader.load()
@@ -81,7 +83,8 @@ class Game:
         player_name: Optional[str] = None,
         character_class: Optional['CharacterClass'] = None,
         withdrawn_ore: Optional['LegacyOre'] = None,
-        is_legacy_run: bool = False
+        is_legacy_run: bool = False,
+        reveal_map: Optional[bool] = None,
     ) -> None:
         """
         Initialize a new game.
@@ -92,7 +95,10 @@ class Game:
             character_class: CharacterClass enum (determines starting stats)
             withdrawn_ore: LegacyOre from vault to start with (optional)
             is_legacy_run: Whether this is a legacy run (used vault ore)
+            reveal_map: Dev switch: show the whole floor (no fog); None keeps the last setting
         """
+        if reveal_map is not None:
+            self.reveal_map = reveal_map
         # Initialize RNG with seed
         rng = GameRNG.initialize(seed)
         logger.info(f"Starting new game with {rng.get_seed_display()}")
@@ -114,6 +120,7 @@ class Game:
         self.state, self.context = self.bootstrapper.initialize_game_state(
             player, dungeon_map, player_name, is_legacy_run, rng.original_seed
         )
+        self.state.reveal_map = self.reveal_map
 
         # Add player to game context (needed for monster AI to target player)
         self.context.add_entity(player)
@@ -313,6 +320,7 @@ class Game:
         try:
             # Load state
             self.state = self.save_system.load_game(slot_name)
+            self.state.reveal_map = self.reveal_map
 
             # Create game context for loaded state
             self.context = GameContext(self.state)

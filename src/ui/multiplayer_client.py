@@ -198,19 +198,22 @@ class MultiplayerClient:
         await self.ws.send(msg.to_json())
         logger.debug(f"Sent chat message: {message}")
 
-    async def create_game(self, game_name: str, player_class: str = "warrior", max_players: int = 4):
+    async def create_game(self, game_name: str, player_class: str = "warrior", max_players: int = 4,
+                          reveal_map: bool = False):
         """Create a new multiplayer game.
 
         Args:
             game_name: Name for the game
             player_class: Character class (warrior, mage, rogue, healer)
             max_players: Maximum number of players (default 4)
+            reveal_map: Dev game with no fog of war (VB-105)
         """
         if not self.ws or not self.state.is_connected:
             logger.warning("Cannot create game: not connected")
             return
 
-        msg = Message.create_game(game_name, max_players=max_players, player_class=player_class)
+        msg = Message.create_game(game_name, max_players=max_players, player_class=player_class,
+                                     reveal_map=reveal_map)
         await self.ws.send(msg.to_json())
         logger.info(f"Sent create game request: '{game_name}'")
 

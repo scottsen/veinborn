@@ -185,7 +185,8 @@ class Message:
         )
 
     @classmethod
-    def create_game(cls, game_name: str, max_players: int = 4, player_class: str = "warrior") -> "Message":
+    def create_game(cls, game_name: str, max_players: int = 4, player_class: str = "warrior",
+                    reveal_map: bool = False) -> "Message":
         """Create game creation request."""
         return cls(
             type=MessageType.CREATE_GAME.value,
@@ -193,6 +194,7 @@ class Message:
                 "game_name": game_name,
                 "max_players": max_players,
                 "player_class": player_class,
+                "reveal_map": reveal_map,
             },
         )
 

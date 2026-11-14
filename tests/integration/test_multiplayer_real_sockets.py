@@ -201,8 +201,12 @@ async def test_each_client_sees_its_own_inventory_and_a_stale_snapshot_is_ignore
         # Same world, different viewers: the viewer is never listed among the entities
         assert alice.snapshot.player.entity_id not in {e.entity_id for e in alice.snapshot.entities}
         assert bob.entity_id in {e.entity_id for e in alice.snapshot.entities}
-        assert {e.entity_id for e in alice.snapshot.entities if e.entity_type == "monster"} == \
-               {e.entity_id for e in bob.snapshot.entities if e.entity_type == "monster"}
+        # (fog, VB-105: each sees only what is in range of their own seat)
+        from core.fog import VISION_RADIUS
+        for c in (alice, bob):
+            me = c.snapshot.player
+            for m in (e for e in c.snapshot.entities if e.entity_type == "monster"):
+                assert (m.x - me.x) ** 2 + (m.y - me.y) ** 2 <= VISION_RADIUS ** 2
 
         # A snapshot older than what the client holds is dropped
         newest, seq = alice.snapshot, alice.client.last_seq
@@ -387,4 +391,28 @@ async def test_a_saved_game_that_is_gone_is_forgotten_but_the_token_is_kept(tmp_
     finally:
         if bob.ws is not None:
             await bob.disconnect()
+        await server.stop()
+
+
+@pytest.mark.asyncio
+async def test_a_dev_game_can_turn_fog_off_and_a_normal_one_has_it():
+    """VB-105: `reveal_map` on create_game sends the whole floor; the default game has fog."""
+    from core.fog import UNSEEN
+    server = VeinbornServer("127.0.0.1", 0)
+    await server.start()
+    port = server.server.sockets[0].getsockname()[1]
+    clients = {"fog": _Client("Fog"), "dev": _Client("Dev")}
+    try:
+        for key, c in clients.items():
+            await c.connect(port)
+            await c.send(Message.create_game(key, max_players=4, reveal_map=(key == "dev")))
+            await _until(lambda c=c: c.game_id)
+            await c.send(Message(type="ready", data={"ready": True}))
+            await _until(lambda c=c: c.game_started)
+        fogged, dev = clients["fog"].snapshot, clients["dev"].snapshot
+        assert UNSEEN in "".join(fogged.map.tiles) and not fogged.reveal_map
+        assert UNSEEN not in "".join(dev.map.tiles) and dev.reveal_map
+    finally:
+        for c in clients.values():
+            await c.close()
         await server.stop()

@@ -98,6 +98,7 @@ def test_get_all_players_includes_host_and_guest_without_duplication():
 def test_a_viewers_snapshot_includes_monsters_map_and_the_other_players():
     from core.snapshot import build_snapshot
     mp = _make_two_player_game()
+    mp.game_state.reveal_map = True      # fog has its own tests
     viewer = mp.player_slots["p1"].player_entity
     snap = build_snapshot(mp.game_state, viewer=viewer)
 

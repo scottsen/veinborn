@@ -276,10 +276,12 @@ class VeinbornServer:
         game_name = message.data.get("game_name", "Unnamed Game")
         max_players = message.data.get("max_players", 4)
         player_class = message.data.get("player_class", "warrior")
+        reveal_map = bool(message.data.get("reveal_map", False))      # dev game: no fog (VB-105)
 
         game = await self.game_manager.create_game(
             game_name=game_name,
             max_players=max_players,
+            reveal_map=reveal_map,
         )
 
         # Auto-join creator with their selected class

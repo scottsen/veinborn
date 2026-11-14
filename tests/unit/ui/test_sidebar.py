@@ -40,3 +40,11 @@ def test_ability_line_counts_down_the_cooldown():
     game.handle_player_action('ability')
     text = Sidebar(build_snapshot(game.state)).render_content().plain
     assert "Z: Heal (" in text and "(ready)" not in text
+
+
+def test_sidebar_marks_a_revealed_map_only():
+    """VB-105: the dev switch shows in the sidebar; normal play does not."""
+    game, plain = render(CharacterClass.WARRIOR)
+    assert "MAP REVEALED" not in plain
+    game.state.reveal_map = True
+    assert "MAP REVEALED" in Sidebar(build_snapshot(game.state)).render_content().plain

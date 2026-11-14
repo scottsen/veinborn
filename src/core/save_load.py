@@ -303,6 +303,11 @@ class SaveSystem:
                 }
                 for room in dungeon_map.rooms
             ],
+            # VB-105: what each viewer has seen of this floor (fog of war memory)
+            "explored_by": {
+                viewer: sorted([x, y] for x, y in cells)
+                for viewer, cells in dungeon_map.explored_by.items()
+            },
         }
 
     # Deserialization helpers
@@ -492,6 +497,11 @@ class SaveSystem:
             )
             for room_data in data["rooms"]
         ]
+
+        dungeon_map.explored_by = {
+            viewer: {(x, y) for x, y in cells}
+            for viewer, cells in data.get("explored_by", {}).items()
+        }
 
         # Clear stairs cache (will be rebuilt on access)
         dungeon_map._stairs_down_cache = None

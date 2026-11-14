@@ -59,6 +59,11 @@ Config File:
         help='Game seed (for reproducible gameplay)'
     )
     parser.add_argument(
+        '--reveal-map',
+        action='store_true',
+        help='Development: show the whole floor (turns fog of war off)'
+    )
+    parser.add_argument(
         '--create-config',
         action='store_true',
         help='Create default config file at ~/.veinbornrc and exit'
@@ -101,7 +106,8 @@ def main():
         character_class=character_class,
         seed=seed,
         withdrawn_ore=withdrawn_ore,
-        is_legacy_run=is_legacy_run
+        is_legacy_run=is_legacy_run,
+        reveal_map=args.reveal_map,
     )
 
 

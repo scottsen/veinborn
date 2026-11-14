@@ -5,6 +5,7 @@ from rich.segment import Segment
 from rich.style import Style
 
 from core.world import TileType
+from core.fog import UNSEEN
 
 
 # Terrain display styles
@@ -105,9 +106,15 @@ class MapWidget(Widget):
 
         # Render terrain
         if 0 <= world_x < snap.map.width and 0 <= world_y < snap.map.height:
-            tile_type = TileType(snap.map.tiles[world_y][world_x])
+            tile_char = snap.map.tiles[world_y][world_x]
+            if tile_char == UNSEEN:                    # fog: never seen
+                return Segment(" ")
+            tile_type = TileType(tile_char)
             char = self.MAP_CHARS.get(tile_type, '?')
-            return Segment(char, self._get_terrain_style(tile_type))
+            style = self._get_terrain_style(tile_type)
+            if snap.map.lit and snap.map.lit[world_y][world_x] == '0':
+                style = style + Style(dim=True)        # fog: remembered, not in sight
+            return Segment(char, style)
 
         return Segment(" ")
 

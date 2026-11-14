@@ -20,6 +20,7 @@ def cell(player, *entities, x=5, y=5):
     game = Game()
     game.start_new_game(seed=3)
     state = game.state
+    state.reveal_map = True          # these tests are about glyphs, not fog
     state.entities.clear()
     state.player = player
     state.entities[player.entity_id] = player
@@ -168,6 +169,7 @@ def test_bare_cells_render_the_terrain_from_the_snapshot():
     game = Game()
     game.start_new_game(seed=3)
     state = game.state
+    state.reveal_map = True
     state.entities.clear()
     state.entities[state.player.entity_id] = state.player
     m = state.dungeon_map
@@ -191,3 +193,23 @@ def test_another_party_member_is_drawn_in_the_ally_colour():
     assert str(cell(me, ally, goblin, x=6).style.color.name) == MapWidget.ALLY_COLOR
     me_cell = cell(me, ally, x=5)
     assert me_cell.text == me.display_symbol and str(me_cell.style.color.name) != MapWidget.ALLY_COLOR
+
+
+def test_fog_unseen_tiles_are_blank_and_remembered_tiles_are_dim():
+    """VB-105: a never-seen tile draws as nothing; a remembered one is dimmed."""
+    game = Game()
+    game.start_new_game(seed=3)
+    state = game.state
+    state.entities.clear()
+    state.entities[state.player.entity_id] = state.player
+    widget = MapWidget()
+    snap = build_snapshot(state)
+    m = snap.map
+    unseen = next((x, y) for y in range(m.height) for x in range(m.width) if m.tiles[y][x] == ' ')
+    assert widget._render_cell(*unseen, snap).text == ' '
+    px, py = state.player.x, state.player.y
+    far = next((x, y) for y in range(m.height) for x in range(m.width)
+               if m.tiles[y][x] != ' ' and (x, y) != (px, py))
+    assert not widget._render_cell(*far, snap).style.dim          # lit now
+    snap.map.lit[far[1]] = snap.map.lit[far[1]][:far[0]] + '0' + snap.map.lit[far[1]][far[0] + 1:]
+    assert widget._render_cell(*far, snap).style.dim              # remembered

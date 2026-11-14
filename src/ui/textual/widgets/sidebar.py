@@ -30,6 +30,8 @@ class Sidebar(Static):
 
         text = Text()
         player = snap.player
+        if snap.reveal_map:
+            text.append("[MAP REVEALED: no fog]\n", style="bold bright_magenta")
 
         # Player info
         text.append("=== PLAYER ===\n", style="bold bright_green")

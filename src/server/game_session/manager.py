@@ -22,6 +22,7 @@ class GameSessionManager:
         self,
         game_name: str,
         max_players: int = 4,
+        reveal_map: bool = False,
     ) -> GameSession:
         """Create a new game session.
 
@@ -38,6 +39,7 @@ class GameSessionManager:
                 game_id=game_id,
                 game_name=game_name,
                 max_players=max_players,
+                reveal_map=reveal_map,
             )
             self._games[game_id] = game
             return game

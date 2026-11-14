@@ -92,6 +92,12 @@ Chat:
     )
 
     parser.add_argument(
+        '--reveal-map',
+        action='store_true',
+        help='Development: with --create-game, make a game with no fog of war'
+    )
+
+    parser.add_argument(
         '--no-resume',
         action='store_true',
         help="Ignore the saved session: don't resume the last game or auth token"
@@ -132,7 +138,8 @@ def make_setup(args):
             await client.create_game(
                 game_name=args.game_name,
                 player_class=args.char_class,
-                max_players=4
+                max_players=4,
+                reveal_map=getattr(args, 'reveal_map', False),
             )
         elif args.game_id or saved.get("game_id"):
             await client.join_game(
