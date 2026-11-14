@@ -10,7 +10,7 @@
 | Category | Status | Details |
 |----------|--------|---------|
 | **Single-Player core** | 🟢 Healthy | All tests pass |
-| **Multiplayer** | 🟡 Playable in the TUI, awaiting the first human playtest | One engine for single-player and multiplayer (`core/engine.py`); intents in, per-viewer snapshots out (protocol v2, `src/protocol/`); one action per living player per round. The TUI plays a local run or a server seat through a `GameDriver` (`ui/driver.py`): lobby, `R` to ready, round status, allies on the map. A seat that leaves or outlives its 2-minute reconnect grace is dropped, so the round never stalls. Headless two-client test: `tests/ui/test_two_clients.py`. Not yet (plan phase 5): rejoining a dropped seat, fog of war. How to run a playtest: [MULTIPLAYER_PLAYTEST.md](MULTIPLAYER_PLAYTEST.md); design and history: [architecture/MULTIPLAYER_ARCHITECTURE_PLAN.md](architecture/MULTIPLAYER_ARCHITECTURE_PLAN.md). |
+| **Multiplayer** | 🟡 Playable in the TUI, awaiting the first human playtest | One engine for single-player and multiplayer (`core/engine.py`); intents in, per-viewer snapshots out (protocol v3, `src/protocol/`); one action per living player per round. The TUI plays a local run or a server seat through a `GameDriver` (`ui/driver.py`): lobby, `R` to ready, round status, allies on the map. A seat that leaves or outlives its 2-minute reconnect grace is dropped, so the round never stalls, and can rejoin with its saved token. Headless two-client test: `tests/ui/test_two_clients.py`. Not yet (plan phase 5): fog of war. How to run a playtest: [MULTIPLAYER_PLAYTEST.md](MULTIPLAYER_PLAYTEST.md); design and history: [architecture/MULTIPLAYER_ARCHITECTURE_PLAN.md](architecture/MULTIPLAYER_ARCHITECTURE_PLAN.md). |
 | **Test Health** | ✅ Green | 1516 passing / 0 failing (verified 2026-11-13); run with `/usr/bin/python3 -m pytest -q -n 4` (the `python3` wrapper lacks `pytest_asyncio`). Single-player changes are gated by the seeded bot A/B (`tests/fuzz/README.md`) |
 | **Current Phase** | 🎮 First human multiplayer playtest | then balance (`VB-87`) and the pacing design call (`VB-83`); `tt list --actionable` is the queue |
 | **Playability** | ✅ SP playable / 🟡 MP playable, not yet played by humans | |
@@ -61,7 +61,7 @@ The live queue is `tt list --actionable`; this is the short version.
 - ✅ Intents on the wire (the server picks the actor), per-viewer snapshots, protocol version check
 - ✅ Turn system: one action per living player per round (`RoundScheduler`, VB-90; replaces ADR-016's "4 actions, anyone")
 - ✅ TUI client: the same game screen on a `RemoteDriver` (VB-99..VB-102)
-- ✅ Disconnect grace, then the seat is dropped (rejoin: phase 5)
+- ✅ Disconnect grace (with a countdown), then the seat is dropped; a dropped seat rejoins by token or unique name
 
 ---
 
@@ -73,7 +73,7 @@ The live queue is `tt list --actionable`; this is the short version.
 
 ### Track B: Multiplayer (plan phase 5)
 - [ ] Human playtest, then fix what it finds
-- [ ] Rejoin a dropped seat, incl. the client keeping its auth token across a restart (D7)
+- [x] Rejoin a dropped seat, incl. the client keeping its auth token across a restart (D7, `VB-103`)
 - [ ] Fog of war per viewer with a dev reveal switch (D4)
 - [ ] Co-op leaderboard viewer, MP persistence (`VB-35`, `VB-54`)
 

@@ -5,4 +5,4 @@ not import `server`.
 """
 
 #: Bumped whenever a message changes in a way an older peer cannot read.
-PROTOCOL_VERSION = 2  # 2: ItemView slot/bonus, EntityView item_type, Snapshot.message_count, intent rid + intent_result
+PROTOCOL_VERSION = 3  # 3: PartyMemberView.grace_left; 2: ItemView slot/bonus, EntityView item_type, Snapshot.message_count, intent rid + intent_result

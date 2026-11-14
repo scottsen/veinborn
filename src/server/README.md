@@ -233,7 +233,13 @@ The answer to one intent, to its sender only: refused with the reason, or accept
 ## Current Status
 
 Every message carries the protocol version (`v`, `protocol.PROTOCOL_VERSION`); a peer on
-another version is refused at auth. The architecture, the decisions behind it (one engine,
+another version is refused at auth.
+
+**Seats and rejoin (plan D7):** `join_game` with the id of a *started* game takes back a
+dropped seat (left, or its reconnect grace ran out): the auth token's player id first, else a
+name match while exactly one dropped seat has that name. `join_game` for the game you are in
+while disconnected is a reconnect. `get_available_games` lists a started game with dropped
+seats (`rejoinable`: names). `PartyMemberView.grace_left` is the seconds a disconnected seat has left. The architecture, the decisions behind it (one engine,
 intents, per-viewer snapshots, round scheduling, seats) and what is left are in
 `docs/architecture/MULTIPLAYER_ARCHITECTURE_PLAN.md`; the human client is the TUI on a
 `RemoteDriver` (`run_multiplayer.py`), and `test_client.py` is a dev client.

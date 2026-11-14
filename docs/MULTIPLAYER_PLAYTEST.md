@@ -44,9 +44,14 @@ ready. Another machine connects with `--host <server-ip>`.
 - **Death:** a dead player spectates (`DEAD (spectating)`); the run ends when everyone is dead.
 - **Vision:** everyone sees the whole floor (no fog of war yet). Allies are the cyan `@`.
 - **Leaving:** if a client quits or loses its connection, the round waits for that seat
-  (status bar: `Bob (disconnected)`) for 2 minutes, then drops it: the character leaves the
-  floor and the party plays on. Rejoining a dropped seat is plan phase 5 (D7); for now a
-  dropped player starts a new game.
+  (status bar: `Bob (disconnected, 1:45)`, counting down) for 2 minutes, then drops it: the
+  character leaves the floor and the party plays on.
+- **Coming back:** run `python run_multiplayer.py --name Bob` again (no `--game-id`). The client
+  remembers its token and game id (`~/.local/state/veinborn/multiplayer_session.json`, `--no-resume`
+  ignores it), so a seat still in its grace is reconnected and a dropped one is taken back: the
+  character returns with its hp, level and gear next to a party member, and the round owes it an
+  action from the next round. Without the saved token a name match works only while exactly one
+  dropped seat has that name. A character that died comes back as a spectator.
 - **Not in multiplayer:** save, load and restart (they say so).
 - Keys are the single-player ones (`i`, `:`, `e`, `d`, `g`, `w`, `s`, `z`, `.`, `>`), plus
   `c`/Enter for chat.

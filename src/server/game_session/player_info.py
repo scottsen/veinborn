@@ -69,3 +69,9 @@ class PlayerInfo:
 
         elapsed = time.time() - self.disconnected_at
         return elapsed > self.reconnect_timeout_seconds
+
+    def grace_seconds_left(self) -> Optional[int]:
+        """Whole seconds before a disconnected player is dropped (None if not disconnected)."""
+        if not self.is_disconnected() or self.disconnected_at is None:
+            return None
+        return max(0, int(self.reconnect_timeout_seconds - (time.time() - self.disconnected_at) + 0.999))

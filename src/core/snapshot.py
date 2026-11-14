@@ -88,6 +88,7 @@ class PartyMemberView:
     entity_id: object
     alive: bool = True
     connected: bool = True
+    grace_left: Optional[int] = None   # seconds until a disconnected seat is dropped (None: not in grace)
 
 
 @dataclass

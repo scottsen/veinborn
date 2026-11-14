@@ -1002,3 +1002,17 @@ async def test_rejoin_is_refused_once_the_game_is_finished():
     ok, err = await game.rejoin_player("p-bob", "Bob")
 
     assert not ok
+
+
+@pytest.mark.asyncio
+async def test_the_party_view_carries_the_seconds_left_of_a_disconnected_seats_grace():
+    """VB-103: 'waiting on Bob (disconnected, 1:45)' needs the grace on the wire."""
+    game = await _duo()
+    assert [m.grace_left for m in game.snapshot_for("p-alice").party] == [None, None]
+    await game.disconnect_player("p-bob")
+
+    left = [m.grace_left for m in game.snapshot_for("p-alice").party]
+
+    assert left[0] is None and 118 <= left[1] <= 120
+    await game.reconnect_player("p-bob")
+    assert [m.grace_left for m in game.snapshot_for("p-alice").party] == [None, None]

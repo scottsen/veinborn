@@ -525,7 +525,7 @@ class GameSession:
             # Check if player is disconnected - reject action from disconnected players
             player_info = self.players[player_id]
             if player_info.is_disconnected():
-                return False, "Player is disconnected - AI is controlling this character"
+                return False, "You are disconnected - reconnect to act"
 
             if not self.mp_game_state or not self.mp_game_state.game_state:
                 return False, "Game state not initialized"
@@ -627,6 +627,8 @@ class GameSession:
                 # Dropped (left, timed out) or in its reconnect grace: not connected
                 connected=s.is_active and s.player_id in self.players
                 and not self.players[s.player_id].is_disconnected(),
+                grace_left=(self.players[s.player_id].grace_seconds_left()
+                            if s.player_id in self.players else None),
             )
             for s in mp.player_slots.values()
         ]

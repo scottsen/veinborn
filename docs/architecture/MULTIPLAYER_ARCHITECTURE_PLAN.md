@@ -56,7 +56,7 @@ VB-55, VB-54, VB-35 (`tt show <id>`).
 | State out | `Snapshot` | `get_state_dict`: hand-built dict + `Entity.to_dict()` + `Map.to_dict()` (per-player part now from the snapshot) | two descriptions of one state |
 | Sync | n/a | one `last_state` baseline **per session**, deltas without sequence numbers (VB-26) | a client that joins late or misses one delta is silently wrong forever |
 | Client | `VeinbornApp` owns a `Game` | `VeinbornApp` *still* starts a local `Game`; client listener dies with the first event loop (VB-44 note #2) | the multiplayer TUI cannot play |
-| Disconnected seat | n/a | after 120 s the seat is deleted, the character stays standing in the world, and `can_join` refuses started games; `process_disconnected_player_action` has no caller (VB-45) | a dropped player can never come back; dead code |
+| Disconnected seat | n/a | after 120 s the seat is deleted, the character stays standing in the world, and `can_join` refuses started games; `process_disconnected_player_action` has no caller (VB-45) | a dropped player can never come back (fixed by VB-103); dead code |
 
 Stale ADRs: ADR-011 (NATS), ADR-013 (PostgreSQL), ADR-014 (Pydantic) are "Designed" and
 nothing implements them; the server is one process with a hand-rolled `Message` dataclass.
@@ -222,9 +222,16 @@ can rejoin the party.** No AI control of absent players.
 - **Done (2026-11-13, with VB-102): the drop half.** Leaving (`leave_player`) or an expired grace
   (`cleanup_expired_disconnections`) calls `MultiplayerGameState.drop_seat`: the character leaves the
   floor, its entity stays on the slot, the scheduler stops owing it, and if it was the last seat owed
-  the world ticks. The party view marks it not connected. Still open (phase 5): rejoin, the
-  "waiting for <name> (disconnected, 1:45)" countdown, `can_join` for started games, deleting
-  `PlayerInfo` on removal.
+  the world ticks. The party view marks it not connected.
+- **Done (2026-11-14, VB-103): the rejoin half.** `join_game` for a started game calls
+  `GameSession.rejoin_player`: the seat of the caller's player id (the token resumes it), else a unique
+  name match (the seat is re-keyed, `MultiplayerGameState.rekey_seat`). `MultiplayerGameState.rejoin_seat`
+  puts the kept character on the nearest free tile to a living party member and leaves the scheduler alone,
+  so it is owed from the next round; a dead character returns as a spectator. An expired grace in a started
+  game keeps the `PlayerInfo` (`mark_left`) instead of deleting it; `can_join` still means "a new seat in a
+  lobby" and the lobby list shows `rejoinable` names. `PartyMemberView.grace_left` (protocol v3) drives
+  `Bob (disconnected, 1:45)` in the status bar. The client keeps `{auth_token, game_id}` per server and name
+  (`ui/session_store.py`) and `run_multiplayer.py --name X` resumes it (`--no-resume` ignores it).
 
 ### D8. Determinism and tests at each boundary
 - Engine: synchronous, seeded, no I/O. N-player tests run without a network.
