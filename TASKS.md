@@ -2,7 +2,7 @@
 project: veinborn
 schema_version: '1.0'
 id_prefix: VB
-next_id: 99
+next_id: 104
 archival: inline
 areas: {}
 ---
@@ -1002,19 +1002,21 @@ Found by the reconnect playtest. Every abrupt drop hit 'ServerConnection object 
 ## TASK-VB-44 · No gameplay client: MultiplayerClient can't send actions; the TUI only does chat/lobby
 
 ```yaml
-status: backlog
+status: done
 priority: high
 tags: [multiplayer, ui]
 created: '2026-09-23T17:41:24Z'
-updated: '2026-11-14T01:39:13Z'
+updated: '2026-11-14T02:26:38Z'
 session: crimson-jewel-0923
-depends_on: [VB-88, VB-97]
+depends_on: [VB-88, VB-97, VB-102]
 links:
   references:
   - src/ui/multiplayer_client.py
   - src/ui/textual/app.py
   - src/server/test_client.py
-notes_next: 6
+  commits:
+  - 3d7eff744e4c509e8ab2e570da8c1bb32fb2d015
+notes_next: 8
 ```
 
 The first real two-client playtest (scripted, headless) worked after VB-39..43, but the only thing that can send move/attack/mine over the wire is the dev tool src/server/test_client.py. ui/multiplayer_client.MultiplayerClient has connect/chat/create/join/ready and delta merging but no send_action; ui/textual/app.py only wires chat. A human two-client playtest needs a multiplayer game view in the TUI (render players/monsters/map from the merged state, send MoveAction/AttackAction/... with the entity_id from state). Design question: reuse the single-player map widget with a state adapter, or a new read-only renderer.
@@ -1026,21 +1028,23 @@ The first real two-client playtest (scripted, headless) worked after VB-39..43, 
 - [#3 2026-11-13T21:10:10Z session:chartreuse-filter-1113] Plan: docs/architecture/MULTIPLAYER_ARCHITECTURE_PLAN.md places this task in a phase (see section 4); read it before starting.
 - [#4 2026-11-13T21:56:19Z session:letorera-1113] Unblocked by VB-88 (4904b0c): MultiplayerClient.submit(intent, **args) and in-loop connect exist; TUI key bindings still drive a local Game. Remaining: GameDriver (plan D6), snapshot over the wire (Phase 3).
 - [#5 2026-11-14T01:39:13Z session:letorera-1113] State as of 2026-11-14: the description above is dated. MultiplayerClient.submit(intent) sends intents, delta merging is gone (per-viewer snapshots, MultiplayerClient.snapshot/last_seq/request_snapshot), the client connects inside Textual's loop. Remaining = plan phase 4: GameDriver (D6), VeinbornApp on a driver (LocalDriver for SP, RemoteDriver renders server snapshots), two-client playtest.
+- [#6 2026-11-14T01:56:30Z session:warming-sunshine-1113] Phase 4 broken down (warming-sunshine-1113): VB-99 (rules out of Game, item views) -> VB-100 (GameDriver/LocalDriver, widgets on a snapshot) -> VB-101 (RemoteDriver, MP app mode) -> VB-102 (two-client pilot + playtest). Plan section 4c. VB-94 done first (4b329a3).
+- [#7 2026-11-14T02:26:38Z session:warming-sunshine-1113] Phase 4 done: VB-99..VB-102. The TUI plays a server seat (run_multiplayer.py); human playtest per docs/MULTIPLAYER_PLAYTEST.md.
 
 
 ## TASK-VB-45 · Disconnected-player 'AI control' is never invoked (process_disconnected_player_action has no caller)
 
 ```yaml
-status: backlog
+status: rejected
 priority: low
 tags: [multiplayer]
 created: '2026-09-23T17:43:16Z'
-updated: '2026-11-13T22:32:06Z'
+updated: '2026-11-14T02:26:49Z'
 session: crimson-jewel-0923
 links:
   references:
   - src/server/game_session/session.py
-notes_next: 5
+notes_next: 6
 ```
 
 GameSession.process_disconnected_player_action (a defensive WaitAction) is called from nowhere in src, yet process_action tells rejected clients 'AI is controlling this character'. In a headless playtest a dropped player's character just stood still and died. Either wire it into a timer/round hook (what should the AI do beyond wait? retreat to stairs?) or delete it and fix the message. Product call.
@@ -1051,6 +1055,7 @@ GameSession.process_disconnected_player_action (a defensive WaitAction) is calle
 - [#2 2026-11-13T21:14:22Z session:chartreuse-filter-1113] Scott 2026-11-13: no AI control of absent players. Replaced by a grace -> dropped -> rejoin seat lifecycle (plan D7, docs/architecture/MULTIPLAYER_ARCHITECTURE_PLAN.md). Close as won't-do when that lands; delete process_disconnected_player_action then.
 - [#3 2026-11-13T21:28:09Z session:letorera-1113] Closed by decision: AI control rejected, replaced by drop/rejoin (plan D7, ADR-020).
 - [#4 2026-11-13T22:32:06Z session:letorera-1113] Dead path process_disconnected_player_action deleted in VB-90; remaining AI-control idea is rejected (plan D7).
+- [#5 2026-11-14T02:26:49Z session:warming-sunshine-1113] Scott ruled 2026-11-13: no AI control of absent players. The dead path was deleted in VB-90; dropped seats now release the round (3d7eff7, D7 drop half); rejoin is VB-103.
 
 
 ## TASK-VB-46 · Spawner stacks ore veins, forges and (rarely) monsters on one tile
@@ -2287,20 +2292,24 @@ notes_next: 3
 ## TASK-VB-94 · MP: build the GameState once at start_game from the seated players (drop add_player's temp-player + first-player-is-state.player hack and MultiplayerGameState's floor-1 spawn)
 
 ```yaml
-status: backlog
+status: done
 priority: medium
 effort: 3h
 tags: [multiplayer, architecture]
 created: '2026-11-14T00:57:45Z'
-updated: '2026-11-14T00:57:48Z'
+updated: '2026-11-14T01:55:31Z'
 session: letorera-1113
 depends_on: [VB-93]
-notes_next: 2
+links:
+  commits:
+  - 4b329a30ee9d08be80415dd9af85a50803b3ff05
+notes_next: 3
 ```
 
 <!-- notes: append-only log; each has a stable #id (see CLI §5) -->
 ### Notes
 - [#1 2026-11-14T00:57:48Z session:letorera-1113] Plan D1: GameState gets its players up front; state.player stays only as compatibility. Touches MultiplayerGameState.add_player (temp Player, first player takes id 'player', floor-1 spawn) and the 'player' id assumption in tests. Gate as the other slices: suite + SP A/B identical + real-socket tests.
+- [#2 2026-11-14T01:55:31Z session:warming-sunshine-1113] MultiplayerGameState(seats) builds the run at start_game: configured map size, distinct spawns, uniform seat ids player_<id[:8]> (collision-safe), no temp player / fixed 'player' id; state.player = first seat (compat). +10 tests; suite 1491.
 
 
 ## TASK-VB-95 · MP plan 3a: src/protocol/ package; messages.py moves from server/, Message gets v + optional seq; version check at auth; ui/ imports nothing from server
@@ -2387,3 +2396,107 @@ notes_next: 2
 <!-- notes: append-only log; each has a stable #id (see CLI §5) -->
 ### Notes
 - [#1 2026-11-14T01:24:05Z session:letorera-1113] Removed server/state_delta.py + test_state_delta.py (69 refs), MultiplayerGameState.get_state_dict/to_dict, GameSession.get_state_dict/last_state/use_delta_compression/reset_state_tracking, MessageType.STATE/DELTA and Message.state/delta. Tests that covered real behaviour were converted to snapshot/lobby/state_messages (monsters+map+other players in a viewer's snapshot, sidebar numbers, equipment change, context messages reach the snapshot, lobby->snapshot transition). Gate: suite 1481 passed (was 1503: deleted delta tests).
+
+
+## TASK-VB-99 · Phase 4a: client-side rules out of Game: use/drop with no item_id pick the item in ActionFactory (quick_use/quick_drop become intents); ItemView carries gear slot+bonus and EntityView item_type so equipment/inventory/ground listings render from a Snapshot; PROTOCOL_VERSION 2
+
+```yaml
+status: done
+priority: high
+effort: 3h
+tags: [multiplayer, ui, protocol]
+created: '2026-11-14T01:56:20Z'
+updated: '2026-11-14T02:07:14Z'
+session: warming-sunshine-1113
+links:
+  commits:
+  - d5b9cdd9b553e3dd3390cfe9ddb58fd888786f1e
+notes_next: 2
+```
+
+<!-- notes: append-only log; each has a stable #id (see CLI §5) -->
+### Notes
+- [#1 2026-11-14T02:07:14Z session:warming-sunshine-1113] Factory picks item for bare use/drop; ItemView slot/bonus, EntityView item_type, protocol v2; listings read snapshots; SP game-screen pilot test added. SP A/B identical 40/40 (A: seed 4000; B: 7000 floor 25 lvl 3).
+
+
+## TASK-VB-100 · Phase 4b: GameDriver (plan D6) + LocalDriver; widgets and EquipmentScreen read a snapshot source, VeinbornApp on a driver (key bindings submit intents); SP pilot characterisation test first
+
+```yaml
+status: done
+priority: high
+effort: 4h
+tags: [multiplayer, ui]
+created: '2026-11-14T01:56:22Z'
+updated: '2026-11-14T02:07:14Z'
+session: warming-sunshine-1113
+depends_on: [VB-99]
+links:
+  commits:
+  - 031a9b207ed0fde39b9e930fff6ea5f7c93e47a5
+notes_next: 2
+```
+
+<!-- notes: append-only log; each has a stable #id (see CLI §5) -->
+### Notes
+- [#1 2026-11-14T02:07:14Z session:warming-sunshine-1113] GameDriver + LocalDriver; app/widgets/equipment screen on the driver; fake-driver app tests prove the UI needs no Game.
+
+
+## TASK-VB-101 · Phase 4c: RemoteDriver over MultiplayerClient; app MP mode has no local Game, redraws on snapshot, shows refused-action errors, persists auth token; save/load/restart gated by driver; test_client.py sends intents
+
+```yaml
+status: done
+priority: high
+effort: 4h
+tags: [multiplayer, ui]
+created: '2026-11-14T01:56:24Z'
+updated: '2026-11-14T02:14:19Z'
+session: warming-sunshine-1113
+depends_on: [VB-100]
+links:
+  commits:
+  - c0c90b9d56c3dfecf6770c99f7160c532349dc9f
+notes_next: 2
+```
+
+<!-- notes: append-only log; each has a stable #id (see CLI §5) -->
+### Notes
+- [#1 2026-11-14T02:14:19Z session:warming-sunshine-1113] RemoteDriver + intent rid/intent_result + message_count (protocol v2); app MP mode: lobby/R ready/round status/spectating; allies now drawn on the map; test_client on intents. Token persistence moved to phase 5 (needs D7).
+
+
+## TASK-VB-102 · Phase 4d: headless two-client Textual pilot test (two apps, one server: both move, round waits, each sees the other) + playtest instructions for Scott
+
+```yaml
+status: done
+priority: high
+effort: 2h
+tags: [multiplayer, ui, tests]
+created: '2026-11-14T01:56:25Z'
+updated: '2026-11-14T02:26:38Z'
+session: warming-sunshine-1113
+depends_on: [VB-101]
+links:
+  commits:
+  - 3d7eff744e4c509e8ab2e570da8c1bb32fb2d015
+notes_next: 2
+```
+
+<!-- notes: append-only log; each has a stable #id (see CLI §5) -->
+### Notes
+- [#1 2026-11-14T02:26:38Z session:warming-sunshine-1113] Two-client pilot test (stable x15); waiting_on in seat order; D7 drop half (leave/timeout drop the seat, round no longer stalls); docs/MULTIPLAYER_PLAYTEST.md. Human playtest is Scott's next step.
+
+
+## TASK-VB-103 · MP plan phase 5 / D7 rejoin: a dropped seat rejoins the running game (auth token resumes it; name match if exactly one dropped seat has the name), character placed near the party on the current floor; client persists its token across restarts; grace countdown in 'waiting for <name> (disconnected, 1:45)'; can_join for started games
+
+```yaml
+status: backlog
+priority: medium
+effort: 4h
+tags: [multiplayer, architecture]
+created: '2026-11-14T02:26:40Z'
+updated: '2026-11-14T02:26:40Z'
+session: warming-sunshine-1113
+```
+
+<!-- notes: append-only log; each has a stable #id (see CLI §5) -->
+### Notes
+_(no notes yet)_
