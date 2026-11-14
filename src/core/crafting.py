@@ -181,6 +181,14 @@ ORE_LEGEND = "P purity  H hardness  M malleability  C conductivity  D density"
 JACKPOT_MIN = 80   # a jackpot vein rolls every property in 80-100 (ores.yaml ore_generation)
 
 
+def average_properties(properties: List[Dict[str, int]]) -> Dict[str, int]:
+    """Rounded average of each ore property; 50 each for no ore. Crafting stats come from this."""
+    if not properties:
+        return {name: 50 for name in ORE_PROPERTIES}
+    return {name: round(sum(p.get(name, 50) for p in properties) / len(properties))
+            for name in ORE_PROPERTIES}
+
+
 def ore_properties(item) -> Optional[Dict[str, int]]:
     """The recipe-relevant properties of a raw ore item, or None for anything else (VB-111)."""
     if not is_ore_item(item):
@@ -439,26 +447,63 @@ class RecipeManager:
             return None
         return next((i for i in player_inventory if getattr(i, 'content_id', None) == special), None)
 
-    def ore_for(self, recipe: 'CraftingRecipe', player_inventory: List[Any]) -> List[Any]:
-        """The ore a craft of `recipe` consumes: the first N ore of its type, in inventory order.
+    def ore_choices(self, recipe: 'CraftingRecipe', player_inventory: List[Any]) -> List[Any]:
+        """Every carried ore a craft of `recipe` could use (right type), in pack order."""
+        required_type = recipe.get_required_ore_type()
+        return [i for i in player_inventory
+                if is_ore_item(i) and i.get_stat('ore_type') == required_type]
 
+    @staticmethod
+    def main_stat(recipe: 'CraftingRecipe') -> str:
+        """The stat a recipe is for: attack for weapons, defense for the rest."""
+        return 'attack_bonus' if recipe.equipment_slot == 'weapon' else 'defense_bonus'
+
+    def ore_for(self, recipe: 'CraftingRecipe', player_inventory: List[Any],
+                ore_ids: Optional[List[Any]] = None) -> List[Any]:
+        """The ore a craft of `recipe` consumes (VB-112).
+
+        With `ore_ids`, exactly those items, or [] when the pick is wrong (an id not carried,
+        not this recipe's ore, a repeat, or the wrong count). Without, the best ore for the
+        recipe's main stat (each piece scored alone; the formulas are linear in the averaged
+        properties, so the top N scores give the best average), then by purity, then pack order.
         CraftAction and preview_stats both use this, so a preview is what the craft makes.
         """
-        required_type = recipe.get_required_ore_type()
-        required_count = recipe.get_required_ore_count()
-        ore = [i for i in player_inventory
-               if is_ore_item(i) and i.get_stat('ore_type') == required_type]
-        return ore[:required_count]
+        choices = self.ore_choices(recipe, player_inventory)
+        count = recipe.get_required_ore_count()
+        if ore_ids is not None:
+            by_id = {i.entity_id: i for i in choices}
+            if len(ore_ids) != count or len(set(ore_ids)) != count or any(o not in by_id for o in ore_ids):
+                return []
+            return [by_id[o] for o in ore_ids]
+        stat = self.main_stat(recipe)
 
-    def preview_stats(self, recipe_id: str, player_inventory: List[Any]) -> Optional[Dict[str, int]]:
-        """Stats crafting `recipe_id` now would give, or None without enough ore."""
+        def score(item):
+            alone = recipe.calculate_stats(self._average_ore_properties([item]))
+            return (alone.get(stat, 0), item.get_stat('purity', 0))
+
+        ranked = sorted(choices, key=score, reverse=True)   # stable: ties keep pack order
+        return ranked[:count]
+
+    def preview_stats(self, recipe_id: str, player_inventory: List[Any],
+                      ore_ids: Optional[List[Any]] = None) -> Optional[Dict[str, int]]:
+        """Stats crafting `recipe_id` now would give (with `ore_ids`, from that ore), or None
+        without enough (or a wrong pick of) ore."""
         recipe = self.get_recipe(recipe_id)
         if not recipe:
             return None
-        ore = self.ore_for(recipe, player_inventory)
+        ore = self.ore_for(recipe, player_inventory, ore_ids)
         if len(ore) < recipe.get_required_ore_count():
             return None
         return recipe.calculate_stats(self._average_ore_properties(ore))
+
+    def preview_from_properties(self, recipe_id: str,
+                                properties: List[Dict[str, int]]) -> Optional[Dict[str, int]]:
+        """Stats from ore described only by its properties (a client's ItemView.ore), so a
+        forge screen previews a hand-picked set without the items themselves."""
+        recipe = self.get_recipe(recipe_id)
+        if not recipe or len(properties) != recipe.get_required_ore_count():
+            return None
+        return recipe.calculate_stats(average_properties(properties))
 
     def create_equipment(
         self,
@@ -523,40 +568,6 @@ class RecipeManager:
         return equipment
 
     def _average_ore_properties(self, ore_items: List[Any]) -> Dict[str, int]:
-        """
-        Calculate average properties from multiple ore items.
-
-        Args:
-            ore_items: List of ore Entity objects
-
-        Returns:
-            Dict with average hardness, conductivity, malleability, purity, density
-        """
-        if not ore_items:
-            return {
-                'hardness': 50,
-                'conductivity': 50,
-                'malleability': 50,
-                'purity': 50,
-                'density': 50,
-            }
-
-        properties = {
-            'hardness': [],
-            'conductivity': [],
-            'malleability': [],
-            'purity': [],
-            'density': [],
-        }
-
-        for ore in ore_items:
-            for prop_name in properties.keys():
-                value = ore.get_stat(prop_name, 50)
-                properties[prop_name].append(value)
-
-        # Calculate averages
-        avg_properties = {}
-        for prop_name, values in properties.items():
-            avg_properties[prop_name] = round(sum(values) / len(values))
-
-        return avg_properties
+        """Average properties of ore items (each missing property counts as 50)."""
+        return average_properties(
+            [{name: ore.get_stat(name, 50) for name in ORE_PROPERTIES} for ore in ore_items])

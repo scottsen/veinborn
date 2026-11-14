@@ -77,6 +77,9 @@ class RecipeView:
     craftable: bool
     reason: Optional[str] = None            # why not, when not craftable
     stats: Dict[str, int] = field(default_factory=dict)   # preview, only when craftable
+    ore_count: int = 0                                  # how many ore a craft spends
+    ore_ids: List[object] = field(default_factory=list)      # the ore it spends by default (best)
+    ore_choices: List[object] = field(default_factory=list)  # every carried ore it could use
 
 
 @dataclass
@@ -256,9 +259,13 @@ def _recipes(player, floor: int) -> List[RecipeView]:
         requires = f"{recipe.get_required_ore_count()}x {recipe.get_required_ore_type()} ore"
         if special:
             requires += f" + {special}"
+        best = manager.ore_for(recipe, player.inventory) if ok else []
         views.append(RecipeView(
             recipe.recipe_id, recipe.display_name, recipe.equipment_slot, requires, ok, reason,
             manager.preview_stats(recipe.recipe_id, player.inventory) or {} if ok else {},
+            ore_count=recipe.get_required_ore_count(),
+            ore_ids=[i.entity_id for i in best],
+            ore_choices=[i.entity_id for i in manager.ore_choices(recipe, player.inventory)],
         ))
     return sorted(views, key=lambda r: (not r.craftable, r.name))
 

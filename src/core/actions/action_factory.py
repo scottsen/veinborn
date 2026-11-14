@@ -443,7 +443,8 @@ class ActionFactory:
             context.game_state.add_message("Cannot craft: missing forge or recipe")
             return None
 
-        return CraftAction(actor_id, forge_id, recipe_id)
+        ore_ids = kwargs.get('ore_ids')          # VB-112: a hand-picked set, else the best ore
+        return CraftAction(actor_id, forge_id, recipe_id, list(ore_ids) if ore_ids else None)
 
     def _create_equip_action(
         self,

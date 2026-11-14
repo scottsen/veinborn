@@ -185,3 +185,60 @@ def test_pack_screen_shows_ore_quality_and_the_legend():
         assert f"Copper Ore (ore) P{ore.get_stat('purity')} H{ore.get_stat('hardness')}" in panel
         assert "P purity" in panel
     run(scenario)
+
+
+def test_ore_picker_crafts_from_the_hand_picked_ore():
+    from ui.textual.craft_screen import OrePickScreen
+
+    async def scenario(app, pilot, game):
+        player, _ = stand_at_forge(game, ore=0)
+        vein = EntityLoader().create_ore_vein('copper', 0, 0, floor=1)
+        ores = []
+        for purity in (10, 50, 95):
+            o = vein.get_ore_item()
+            o.set_stat('purity', purity)
+            o.set_stat('hardness', purity)
+            player.add_to_inventory(o)
+            ores.append(o)
+        await pilot.press("f")
+        await pilot.pause()
+        screen = app.screen
+        i = next(n for n, r in enumerate(screen.rows()) if r.recipe_id == 'copper_sword')
+        screen.cursor = i
+        assert "Uses: P95" in screen.render_panel().plain          # the default is the best ore
+        await pilot.press("o")
+        await pilot.pause()
+        assert isinstance(app.screen, OrePickScreen)
+        picker = app.screen
+        assert len(picker.picked) == 2
+        picker.picked = []                                          # start over: pick the two worst
+        picker.cursor = 0
+        await pilot.press("space", "down", "space")
+        await pilot.pause()
+        assert "->" in picker.render_panel().plain                  # preview once 2 are picked
+        await pilot.press("enter")
+        await pilot.pause()
+        assert not isinstance(app.screen, OrePickScreen)
+        assert ores[2] in player.inventory and ores[0] not in player.inventory
+        assert any(i.get_stat('recipe_id') == 'copper_sword' for i in player.inventory)
+    run(scenario)
+
+
+def test_ore_picker_refuses_the_wrong_count():
+    from ui.textual.craft_screen import OrePickScreen
+
+    async def scenario(app, pilot, game):
+        player, _ = stand_at_forge(game, ore=3)
+        await pilot.press("f")
+        await pilot.pause()
+        screen = app.screen
+        screen.cursor = next(n for n, r in enumerate(screen.rows()) if r.recipe_id == 'copper_sword')
+        await pilot.press("o")
+        await pilot.pause()
+        picker = app.screen
+        picker.picked = picker.picked[:1]
+        await pilot.press("enter")
+        await pilot.pause()
+        assert isinstance(app.screen, OrePickScreen) and "Pick exactly 2" in picker.render_panel().plain
+        assert len(player.inventory) == 3
+    run(scenario)

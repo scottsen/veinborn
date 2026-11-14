@@ -180,3 +180,66 @@ def test_crafted_gear_is_not_ore(game):
     game.handle_player_action('craft', forge_id=forge.entity_id, recipe_id='copper_chestplate')
     made = next(i for i in player.inventory if i.get_stat('recipe_id'))
     assert ore_properties(made) is None
+
+
+# -- choosing the ore a craft spends (VB-112) ------------------------------------
+
+def _copper_with(**props):
+    ore = _copper(1)[0]
+    for k, v in props.items():
+        ore.set_stat(k, v)
+    return ore
+
+
+def test_default_craft_spends_the_best_ore_not_the_first(game):
+    player, forge = _at_forge(game)
+    poor = [_copper_with(purity=10, hardness=10) for _ in range(2)]
+    good = [_copper_with(purity=95, hardness=95) for _ in range(2)]
+    for o in poor + good:                                   # the poor ore comes first in the pack
+        player.add_to_inventory(o)
+    recipe = next(r for r in build_snapshot(game.state).player.recipes if r.recipe_id == 'copper_sword')
+    assert recipe.ore_ids == [o.entity_id for o in good] and len(recipe.ore_choices) == 4
+    game.handle_player_action('craft', forge_id=forge.entity_id, recipe_id='copper_sword')
+    assert all(o in player.inventory for o in poor) and not any(o in player.inventory for o in good)
+
+
+def test_a_chosen_set_of_ore_is_what_the_craft_spends(game):
+    from core.actions.craft_action import CraftAction
+    player, forge = _at_forge(game)
+    ores = [_copper_with(purity=p, hardness=p) for p in (10, 20, 95)]
+    for o in ores:
+        player.add_to_inventory(o)
+    pick = [ores[0].entity_id, ores[1].entity_id]
+    manager = CraftAction.get_recipe_manager()
+    expected = manager.preview_stats('copper_sword', player.inventory, pick)
+    game.handle_player_action('craft', forge_id=forge.entity_id, recipe_id='copper_sword', ore_ids=pick)
+    made = next(i for i in player.inventory if i.get_stat('recipe_id') == 'copper_sword')
+    assert ores[2] in player.inventory and ores[0] not in player.inventory
+    assert made.get_stat('attack_bonus') == expected['attack_bonus']
+
+
+@pytest.mark.parametrize('bad', ['wrong_count', 'repeat', 'not_carried'])
+def test_a_wrong_pick_crafts_nothing(game, bad):
+    player, forge = _at_forge(game)
+    ores = _copper(3)
+    for o in ores:
+        player.add_to_inventory(o)
+    pick = {'wrong_count': [ores[0].entity_id],
+            'repeat': [ores[0].entity_id, ores[0].entity_id],
+            'not_carried': [ores[0].entity_id, 'nope']}[bad]
+    game.handle_player_action('craft', forge_id=forge.entity_id, recipe_id='copper_sword', ore_ids=pick)
+    assert all(o in player.inventory for o in ores)
+    assert not any(i.get_stat('recipe_id') for i in player.inventory)
+
+
+def test_preview_from_properties_matches_preview_stats(game):
+    from core.actions.craft_action import CraftAction
+    from core.crafting import ore_properties
+    player, _ = _at_forge(game)
+    ores = _copper(2)
+    for o in ores:
+        player.add_to_inventory(o)
+    manager = CraftAction.get_recipe_manager()
+    ids = [o.entity_id for o in ores]
+    assert manager.preview_from_properties('copper_sword', [ore_properties(o) for o in ores]) == \
+        manager.preview_stats('copper_sword', player.inventory, ids)

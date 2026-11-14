@@ -17,7 +17,7 @@ Design:
 
 import logging
 from dataclasses import dataclass
-from typing import Optional
+from typing import List, Optional
 from ..base.action import Action, ActionOutcome
 from ..base.game_context import GameContext
 from ..base.entity import EntityType
@@ -33,6 +33,7 @@ class CraftAction(Action):
     actor_id: str
     forge_id: str
     recipe_id: str  # Which recipe to craft
+    ore_ids: Optional[List[str]] = None   # the ore to spend (VB-112); None: the best for the recipe
 
     # Class-level recipe manager (loaded once, shared by all actions)
     _recipe_manager: Optional[RecipeManager] = None
@@ -71,6 +72,9 @@ class CraftAction(Action):
         can_craft, reason = recipe_manager.can_craft(
             self.recipe_id, actor.inventory, current_floor
         )
+        if can_craft and self.ore_ids is not None and not recipe_manager.ore_for(
+                recipe, actor.inventory, self.ore_ids):
+            can_craft, reason = False, "the chosen ore is not right for this recipe"
         if not can_craft:
             # reason is the helper's own first parameter; passing it as a keyword
             # raised TypeError, so a craft without enough ore crashed the action.
@@ -187,7 +191,7 @@ class CraftAction(Action):
         """
         required_type = recipe.get_required_ore_type()
         # Same selection as RecipeManager.preview_stats, so a preview is what this makes
-        ore_items = self.get_recipe_manager().ore_for(recipe, actor.inventory)
+        ore_items = self.get_recipe_manager().ore_for(recipe, actor.inventory, self.ore_ids)
 
         # Remove ore from inventory
         for ore_item in ore_items:
@@ -210,6 +214,7 @@ class CraftAction(Action):
             'actor_id': self.actor_id,
             'forge_id': self.forge_id,
             'recipe_id': self.recipe_id,
+            'ore_ids': self.ore_ids,
         }
 
     @classmethod
@@ -218,4 +223,5 @@ class CraftAction(Action):
             actor_id=data['actor_id'],
             forge_id=data['forge_id'],
             recipe_id=data['recipe_id'],
+            ore_ids=data.get('ore_ids'),
         )
