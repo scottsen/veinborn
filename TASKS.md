@@ -1245,13 +1245,16 @@ _(no notes yet)_
 ## TASK-VB-55 · Multiplayer server does not install content event handlers or publish turn_ended/floor_changed/game_started: achievements/quests are single-player only
 
 ```yaml
-status: backlog
+status: done
 priority: low
 tags: [content, multiplayer]
 created: '2026-11-12T05:11:48Z'
-updated: '2026-11-13T22:10:08Z'
+updated: '2026-11-14T00:47:35Z'
 session: turquoise-mosaic-1111
-notes_next: 4
+links:
+  commits:
+  - 4c884e0147989d646c1cc99146e255017d0ebde5
+notes_next: 5
 ```
 
 <!-- notes: append-only log; each has a stable #id (see CLI §5) -->
@@ -1259,6 +1262,7 @@ notes_next: 4
 - [#1 2026-11-12T19:08:18Z session:vevine-1112] 2026-11-12: the server's AISystem now receives the session event bus (VB-60), so monster provocation and monster attack events (VB-66) work in multiplayer. Content handlers (achievements/quests) and turn_ended/floor_changed/game_started are still single-player only.
 - [#2 2026-11-13T21:10:10Z session:chartreuse-filter-1113] Plan: docs/architecture/MULTIPLAYER_ARCHITECTURE_PLAN.md places this task in a phase (see section 4); read it before starting.
 - [#3 2026-11-13T22:10:08Z session:letorera-1113] Slice 2d = VB-92.
+- [#4 2026-11-14T00:47:35Z session:letorera-1113] Closed by VB-90 (turn_ended, via TurnProcessor), VB-91 (floor_changed) and VB-92 (game_started + content handlers installed for MP). Achievement/quest state is party-wide and still unsaved (VB-54).
 
 
 ## TASK-VB-56 · Kill streaks announce but grant nothing: decide whether streaks (and quests) should give real rewards, e.g. an extra LootGenerator roll at the kill
@@ -2227,20 +2231,24 @@ notes_next: 3
 ## TASK-VB-92 · MP plan 2d: engine publishes player_died/run_ended/game_started; GameSession subscribes co-op scoring; content handlers installed for MP (closes VB-55)
 
 ```yaml
-status: backlog
+status: done
 priority: medium
 effort: 3h
 tags: [multiplayer, architecture]
 created: '2026-11-13T22:10:02Z'
-updated: '2026-11-13T22:19:36Z'
+updated: '2026-11-14T00:47:35Z'
 session: letorera-1113
 depends_on: [VB-89]
-notes_next: 2
+links:
+  commits:
+  - 4c884e0147989d646c1cc99146e255017d0ebde5
+notes_next: 3
 ```
 
 <!-- notes: append-only log; each has a stable #id (see CLI §5) -->
 ### Notes
 - [#1 2026-11-13T22:19:36Z session:letorera-1113] VB-89 left an on_run_end(game_state, victory) hook on TurnProcessor/FloorManager (core/run_end.py is the SP default). 2d replaces it with run_ended/player_died events; MP passes its own subscriber instead of today's _record_scores.
+- [#2 2026-11-14T00:47:35Z session:letorera-1113] events PLAYER_DIED/RUN_ENDED (core/events); TurnProcessor.announce_deaths/check_game_over + turn_ended; FloorManager run_ended on victory; on_run_end hook replaced by event_bus param; SinglePlayerRunRecorder (Game) and GameSession._on_player_died/_on_run_ended (co-op) subscribe; MP installs content handlers + game_started. update_player_alive_status no longer ends the game. Gate: suite 1483, SP A/B identical 40/40 on both sets.
 
 
 ## TASK-VB-93 · MP plan 2e: extract core Engine from Game; Game = SP shell, GameSession wraps it; MultiplayerGameState keeps seats only
