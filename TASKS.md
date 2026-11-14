@@ -2,7 +2,7 @@
 project: veinborn
 schema_version: '1.0'
 id_prefix: VB
-next_id: 114
+next_id: 121
 archival: inline
 areas: {}
 ---
@@ -1837,14 +1837,14 @@ owner: scott
 effort: '-'
 tags: [balance, crafting, design]
 created: '2026-11-12T21:53:20Z'
-updated: '2026-11-13T04:43:49Z'
+updated: '2026-11-14T18:33:43Z'
 session: serene-cyclone-1112
 links:
   relates_to:
   - VB-69
   commits:
   - bfe5d1fcae13e0a73f9fb95d5f14aedf021437bf
-notes_next: 7
+notes_next: 8
 ```
 
 <!-- notes: append-only log; each has a stable #id (see CLI §5) -->
@@ -1855,6 +1855,7 @@ notes_next: 7
 - [#4 2026-11-13T01:57:08Z session:quantum-energy-1112] Lever study 2026-11-12 (quantum-energy-1112), sim_duels at the bots' curve checkpoints (gear reproduces measured atk/def: F5 L5 iron@55 ~15/9, F8 L6 mithril@75 ~24/17, F12/30/50 L7/10/11 adamantite@90 ~35-40/33), 200 fights/cell, abilities off, worst-class win% / mean HP lost on a win. Results + harness: /var/tmp/vb75_duels_6e7ad70 (levers_summary.txt, rate_sweep_summary.txt, run_matrix.py, run_sweep.py). (1) Halving crafted gear bonuses or diminishing-returns defense (to-hit def/2, damage roll*10/(10+def)) barely matter: from F5 on every common monster costs <=8% HP; only ancient_horror rises to ~20-29%. Monsters are weak against level growth alone, so gear is not the whole problem. (2) Monster floor scaling (hp/atk/def x (1 + r*(floor-1))) is the only lever that adds danger past F12, because the player stops growing (gear plateau F12, level ~11 from F50) while the game runs to F100. r=2%: F12-50 trivial, F75 demon 13% HP, F100 lich 94%/20%, demon 60%/51%. r=3%: F50 demon 13%, F75 lich 74%/34%, demon 25%/64%, F100 lich 10%. r=4%: F50 demon 64%/46%, F75 mostly unwinnable. Scaled ancient_horror is unwinnable from F50 (3%) / F75 (2%), so a final boss needs its own fixed stats. 6% (first pass) is a cliff (F30 demon 85%, F50 lich 10%). (3) Linear scaling vs a flat player always ends in a wall; the designed late growth is the legendary recipes (flaming_sword, titans_hammer, phoenix_armor ...), but RecipeManager._load_recipes loads only weapons+armor, so all 6 legendaries are dormant, and special_requirement (boss items) is read by nothing. Proposal for Scott: floor scaling ~2-3%/floor as a data knob (small spawner change), boss excluded/fixed; VB-69 placements for variety; legendary recipes + boss-item drops (VB-70) as the late player growth; then bot long runs for deaths by floor.
 - [#5 2026-11-13T01:57:45Z session:mustard-sunset-1112] Design options to add (mustard-sunset-1112, from the NetHack review, umbrella VB-81): besides scaling gear down or monsters up, give crafting downsides as NetHack does for power (impure ore lowers durability or adds a curse chance, gear degrades, high tier needs rare ore). Related: the missing pressure past floor 3 is tracked as VB-83 (pacing clock). Measure any of these with paired bot runs.
 - [#6 2026-11-13T04:43:49Z session:quantum-energy-1112] Done. Monster floor scaling (96443a3, rate 2% in bfe5d1f), legendary recipes live and gated on boss materials (8b5cb77), all monsters placed with a floor-99 boss (867b6a4), bots fetch materials and keep one of each (a18c7ab, e25e163). Long runs on e25e163, 4 classes x 24 x 20000 turns: 0% 3/96 deaths (floors 1-3), 2% 59/96 (16 on 41-60, 39 on 61-98, median floor 65.5), 3% 95/96 (85 on 41-60, median 48). Crafted gear still dominates floors 4-40 (same as before; the early game is unchanged on purpose). Follow-ups in VB-87. A/B baseline at bfe5d1f: /var/tmp/vb75_base_bfe5d1f (3000 turns); long baseline: /var/tmp/vb75_long_r02_e25e163 (data identical to bfe5d1f).
+- [#7 2026-11-14T18:33:43Z session:peaceful-shower-1114] Crafting v2 (docs/design/CRAFTING_PARTS_DESIGN.md) resets crafted numbers; tuning redone in VB-117.
 
 
 ## TASK-VB-76 · Bot runs depend on the machine's ~/.veinbornrc: gameplay (MoveAction autopickup) reads per-user ConfigManager, so one seed plays differently per machine
@@ -2153,9 +2154,9 @@ priority: medium
 effort: 2-3h
 tags: [balance, monsters, crafting, bots]
 created: '2026-11-13T04:43:37Z'
-updated: '2026-11-13T19:56:27Z'
+updated: '2026-11-14T18:33:43Z'
 session: quantum-energy-1112
-notes_next: 4
+notes_next: 5
 ```
 
 <!-- notes: append-only log; each has a stable #id (see CLI §5) -->
@@ -2163,6 +2164,7 @@ notes_next: 4
 - [#1 2026-11-13T04:43:48Z session:quantum-energy-1112] From the VB-75 long runs at 2% (/var/tmp/vb75_long_r02_e25e163, 4 classes x 24 x 20000 turns, instrumented: logs/long_*.jsonl has material drops, pickups, crafts). (1) Phoenix kills 41 of 59 (demon 11, lich 4): base attack 14 (highest after the boss) and weight 30 of 115 in floors_61_plus; candidates: lower its weight or attack, or start it later. Mages die most (22/24), healers least (3/24). (2) No bot crafted Phoenix Armor in any run (needs 6 adamantite at once; bots craft adamantite_plate x4 first); Flaming Sword 15, Arcane Staff 25, Dragon Bow 94. Either the bot needs to save ore for it or 6 is too many. (3) No bot reaches floor 99 in 20000 turns (max 76), so the ancient_horror boss is unmeasured: use --start-floor 98 runs and sim_duels at the curve's level and legendary gear. (4) xp_reward does not scale with floor_scaling; level plateaus ~11 from the doubling curve anyway. (5) Titan's Hammer needs the floor-99 boss's core and the game is won on 100, so it is a trophy unless the core comes from elsewhere. (6) dragon_bone comes from the wyvern (no dragon exists).
 - [#2 2026-11-13T18:47:30Z session:unexplored-thruster-1113] Done in cb8ad90 + next commit: (1) phoenix weight 30->15, paired long run (seeds 3000+, 4 classes x 24 x 20000 turns, /var/tmp/vb87_w15/logs): deaths 59->52, phoenix kills 41->34, median floor 65.5->67; phoenix is still the top killer, so the weight is a weak lever. (3) Boss: sim_duels --floor now scales monsters; at level 11 with flaming_sword@90+adamantite_plate@90 ancient_horror (floor_scaling false) is 100% win/0% HP lost, phoenix/demon/lich at floors 61-95 are 88-100% wins. A geared player crushes the late game; bots die for lack of that gear. Open: (2) bots never craft Phoenix Armor (needs 6 adamantite at once), (4) xp unscaled, (5) Titan's Hammer trophy.
 - [#3 2026-11-13T19:56:27Z session:unexplored-thruster-1113] Baseline moved: the current 20000-turn baseline is /var/tmp/vb87_w15/logs (phoenix weight 15, before shields); /var/tmp/vb75_long_r02_e25e163 is the phoenix-30 one. Next: bots to save 6 adamantite for Phoenix Armor, then decide boss tuning (floor-99 horror is a pushover at level 11 with adamantite gear).
+- [#4 2026-11-14T18:33:43Z session:peaceful-shower-1114] Crafting v2 replaces Phoenix Armor's recipe as an assembly with a material (VB-115); bot crafting of it is checked in VB-117.
 
 
 ## TASK-VB-88 · MP plan Phase 1: ActionFactory takes explicit actor_id; server accepts 'intent' messages (actor from the session seat); client event-loop fix + MultiplayerClient.submit; two-client headless test
@@ -2712,11 +2714,145 @@ owner: scott
 effort: '-'
 tags: [crafting, balance, design]
 created: '2026-11-14T17:55:07Z'
-updated: '2026-11-14T17:55:12Z'
+updated: '2026-11-14T18:33:43Z'
 session: peaceful-shower-1114
-notes_next: 2
+notes_next: 3
 ```
 
 <!-- notes: append-only log; each has a stable #id (see CLI §5) -->
 ### Notes
 - [#1 2026-11-14T17:55:12Z session:peaceful-shower-1114] Design call for Scott: cut the dead stats from recipes.yaml (honest, cheap) or make 2-3 matter (weight vs speed/dodge, durability + forge repair, fire_damage as a damage type). Evidence: grep of src outside crafting.py finds 0 readers for each; 'weight'/'range'/'regeneration' hits are unrelated (loot table weights, ability range, regen status effect). Related: VB-75 note #5 (impure ore lowers durability / curse), VB-87 balance.
+- [#2 2026-11-14T18:33:43Z session:peaceful-shower-1114] Plan written: docs/design/CRAFTING_PARTS_DESIGN.md (SWG-style parts: head/grip/shell/lining + optional gem, each ore attribute with a job, tier from ore properties, named ore per run, tempering). This task is now the phase-0 decision gate: Scott decides D1 stat set (cut 7), D2 accuracy split, D3 two parts + gem, D4 tier from properties, D5 named spawns. Phases: VB-114..VB-120.
+
+
+## TASK-VB-114 · Crafting v2 phase 1: combat reads accuracy (to-hit term), max_hp_bonus (while worn), spell_power (force bolt) - see docs/design/CRAFTING_PARTS_DESIGN.md
+
+```yaml
+status: future
+priority: medium
+effort: 1d
+tags: [crafting, combat, crafting-v2]
+created: '2026-11-14T18:33:25Z'
+updated: '2026-11-14T18:33:42Z'
+session: peaceful-shower-1114
+depends_on: [VB-113]
+notes_next: 2
+```
+
+<!-- notes: append-only log; each has a stable #id (see CLI §5) -->
+### Notes
+- [#1 2026-11-14T18:33:42Z session:peaceful-shower-1114] Waits on VB-113 decisions (D1-D5 in docs/design/CRAFTING_PARTS_DESIGN.md).
+
+
+## TASK-VB-115 · Crafting v2 phase 2: parts + assemblies in RecipeManager, recipes.yaml v2 (parts take any metal, tier from ore properties), legendaries as assemblies with a material, cut dead stats - see docs/design/CRAFTING_PARTS_DESIGN.md
+
+```yaml
+status: future
+priority: medium
+effort: 2d
+tags: [crafting, crafting-v2]
+created: '2026-11-14T18:33:26Z'
+updated: '2026-11-14T18:33:42Z'
+session: peaceful-shower-1114
+depends_on: [VB-114]
+notes_next: 2
+```
+
+<!-- notes: append-only log; each has a stable #id (see CLI §5) -->
+### Notes
+- [#1 2026-11-14T18:33:42Z session:peaceful-shower-1114] Waits on VB-113 decisions (D1-D5 in docs/design/CRAFTING_PARTS_DESIGN.md).
+
+
+## TASK-VB-116 · Crafting v2 phase 3: forge UI for parts (craft a part, assemble from carried parts with a picker), snapshot views, protocol bump - see docs/design/CRAFTING_PARTS_DESIGN.md
+
+```yaml
+status: future
+priority: medium
+effort: 1d
+tags: [crafting, ui, keyboard, crafting-v2]
+created: '2026-11-14T18:33:28Z'
+updated: '2026-11-14T18:33:42Z'
+session: peaceful-shower-1114
+depends_on: [VB-115]
+notes_next: 2
+```
+
+<!-- notes: append-only log; each has a stable #id (see CLI §5) -->
+### Notes
+- [#1 2026-11-14T18:33:42Z session:peaceful-shower-1114] Waits on VB-113 decisions (D1-D5 in docs/design/CRAFTING_PARTS_DESIGN.md).
+
+
+## TASK-VB-117 · Crafting v2 phase 4: bots craft parts and assemble; tune part coefficients against VB-75/VB-87 curves with paired A/B vs pre-v2 baseline - see docs/design/CRAFTING_PARTS_DESIGN.md
+
+```yaml
+status: future
+priority: medium
+effort: 2d
+tags: [crafting, balance, bots, crafting-v2]
+created: '2026-11-14T18:33:29Z'
+updated: '2026-11-14T18:33:42Z'
+session: peaceful-shower-1114
+depends_on: [VB-115, VB-116]
+notes_next: 2
+```
+
+<!-- notes: append-only log; each has a stable #id (see CLI §5) -->
+### Notes
+- [#1 2026-11-14T18:33:42Z session:peaceful-shower-1114] Waits on VB-113 decisions (D1-D5 in docs/design/CRAFTING_PARTS_DESIGN.md).
+
+
+## TASK-VB-118 · Crafting v2 phase 5: named ore spawns per run (seeded skew profiles, floor windows), name on labels/parts, Legacy Vault keeps it - see docs/design/CRAFTING_PARTS_DESIGN.md
+
+```yaml
+status: future
+priority: low
+effort: 2d
+tags: [crafting, ore, crafting-v2]
+created: '2026-11-14T18:33:31Z'
+updated: '2026-11-14T18:33:42Z'
+session: peaceful-shower-1114
+depends_on: [VB-115]
+notes_next: 2
+```
+
+<!-- notes: append-only log; each has a stable #id (see CLI §5) -->
+### Notes
+- [#1 2026-11-14T18:33:42Z session:peaceful-shower-1114] Waits on VB-113 decisions (D1-D5 in docs/design/CRAFTING_PARTS_DESIGN.md).
+
+
+## TASK-VB-119 · Crafting v2 phase 6: fire damage from gem/material via @damage_modifier + burning status (flaming sword) - see docs/design/CRAFTING_PARTS_DESIGN.md
+
+```yaml
+status: future
+priority: low
+effort: 1d
+tags: [crafting, combat, status-effects, crafting-v2]
+created: '2026-11-14T18:33:32Z'
+updated: '2026-11-14T18:33:42Z'
+session: peaceful-shower-1114
+depends_on: [VB-115]
+notes_next: 2
+```
+
+<!-- notes: append-only log; each has a stable #id (see CLI §5) -->
+### Notes
+- [#1 2026-11-14T18:33:42Z session:peaceful-shower-1114] Waits on VB-113 decisions (D1-D5 in docs/design/CRAFTING_PARTS_DESIGN.md).
+
+
+## TASK-VB-120 · Crafting v2 phase 7: tempering at the forge (risky roll toward the ore's cap, crack = permanent stat loss, turn cost) - see docs/design/CRAFTING_PARTS_DESIGN.md
+
+```yaml
+status: future
+priority: low
+effort: 1d
+tags: [crafting, crafting-v2]
+created: '2026-11-14T18:33:34Z'
+updated: '2026-11-14T18:33:43Z'
+session: peaceful-shower-1114
+depends_on: [VB-116]
+notes_next: 2
+```
+
+<!-- notes: append-only log; each has a stable #id (see CLI §5) -->
+### Notes
+- [#1 2026-11-14T18:33:43Z session:peaceful-shower-1114] Waits on VB-113 decisions (D1-D5 in docs/design/CRAFTING_PARTS_DESIGN.md).
