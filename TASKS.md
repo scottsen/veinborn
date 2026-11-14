@@ -2,7 +2,7 @@
 project: veinborn
 schema_version: '1.0'
 id_prefix: VB
-next_id: 95
+next_id: 99
 archival: inline
 areas: {}
 ---
@@ -589,9 +589,9 @@ priority: medium
 effort: medium
 tags: [multiplayer, architecture, quality]
 created: '2026-09-23T05:26:36Z'
-updated: '2026-11-13T21:10:10Z'
+updated: '2026-11-14T01:09:40Z'
 session: earthly-god-0922
-notes_next: 3
+notes_next: 4
 ```
 
 state_delta.py:225 apply_delta has complexity 27 / nesting depth 6, the single worst production function in the codebase; compute_delta (16) is complexity 17. session.py:509-513 keeps one last_state per session shared by every client, and there's no sequence number or base-version in the delta protocol -- one dropped WS message leaves a client desynced until the next full-state broadcast. reset_state_tracking (session.py:533) is never called; reconnect instead broadcasts full state to everyone (websocket_server.py:383). Also apply_delta shallow-copies current_state (245) then mutates nested dicts in place (272-274, 304-306) -- a latent aliasing hazard for any future caller that retains a reference to a prior snapshot (replay/debug tooling). The client also depends directly on the server package for the protocol (ui/multiplayer_client.py:13-14), leaking a protocol dependency into the UI layer. Fix: move messages.py/state_delta.py into a shared protocol/ package; add seq/base_seq to deltas with a per-client baseline; have the client request a resync on a detected gap.
@@ -600,6 +600,7 @@ state_delta.py:225 apply_delta has complexity 27 / nesting depth 6, the single w
 ### Notes
 - [#1 2026-09-23T16:48:43Z session:sultry-drizzle-0923] Done (commit 7e871d2): apply_delta complexity 27->10, no longer mutates its input (aliasing hazard), 9 characterization tests. STILL OPEN from this ticket: seq/base_seq + per-client baseline, client resync on gap, moving messages.py/state_delta.py into a shared protocol/ package. Those are protocol-design changes; do them together.
 - [#2 2026-11-13T21:10:10Z session:chartreuse-filter-1113] Plan: docs/architecture/MULTIPLAYER_ARCHITECTURE_PLAN.md places this task in a phase (see section 4); read it before starting.
+- [#3 2026-11-14T01:09:40Z session:letorera-1113] Plan section 4b: closed by VB-98 (the delta path is deleted in favour of per-viewer full snapshots with seq), not fixed in place.
 
 
 ## TASK-VB-27 · cleanup_task busy-loops with no backoff if cleanup raises every iteration
@@ -1001,9 +1002,9 @@ status: backlog
 priority: high
 tags: [multiplayer, ui]
 created: '2026-09-23T17:41:24Z'
-updated: '2026-11-13T21:56:19Z'
+updated: '2026-11-14T01:09:40Z'
 session: crimson-jewel-0923
-depends_on: [VB-88]
+depends_on: [VB-88, VB-97]
 links:
   references:
   - src/ui/multiplayer_client.py
@@ -1899,7 +1900,7 @@ priority: medium
 effort: 1-2d
 tags: [architecture, refactor, ui, multiplayer]
 created: '2026-11-13T01:46:32Z'
-updated: '2026-11-13T21:19:28Z'
+updated: '2026-11-14T01:09:40Z'
 session: mustard-sunset-1112
 depends_on: [VB-77]
 links:
@@ -1912,7 +1913,7 @@ links:
   - VB-44
   - VB-26
   - VB-24
-notes_next: 5
+notes_next: 6
 ```
 
 Found 2026-11-12 (session mustard-sunset-1112). Every Textual widget reads live domain objects (map_widget._get_entity_at walks game_state.entities; _render_cell reads game_map.tiles and imports TileType/EntityType; sidebar calls player.get_total_attack(), xp_for_next_level(), equipped_weapon, cooldowns). There is no render contract between core and UI. Separately, src/server/multiplayer_game_state.get_state_dict is a hand-rolled 85-line serializer that is a second, different description of the same state: it sends base attack/defense only (not totals including gear), no equipped weapon/armor, no XP/level/cooldowns, so a multiplayer client rendering it could not show what the single-player sidebar shows. Two state models also exist (core GameState vs MultiplayerGameState; see VB-24, VB-25 for earlier pipeline/floor duplication).
@@ -1924,6 +1925,7 @@ Proposed: a core function (e.g. Game.snapshot() / a Snapshot dataclass with to_d
 - [#2 2026-11-13T20:57:03Z session:chartreuse-filter-1113] Stage 2 done (partial): get_state_dict players now built with build_snapshot(viewer=player): stats are gear-inclusive totals + level/xp/xp_next, new equipment + abilities keys, StateDelta diffs them. Existing keys kept so test_client/MultiplayerClient are unchanged. NOT done: monsters/map still Entity.to_dict()/Map.to_dict() (not snapshot), no client renders from it yet (VB-44). Decide whether to close VB-78 or keep it open until get_state_dict's monsters/map also come from the snapshot.
 - [#3 2026-11-13T21:10:10Z session:chartreuse-filter-1113] Plan: docs/architecture/MULTIPLAYER_ARCHITECTURE_PLAN.md places this task in a phase (see section 4); read it before starting.
 - [#4 2026-11-13T21:19:28Z session:chartreuse-filter-1113] Stages 1-2 done this session (snapshot + widgets; server player numbers). Remainder folds into plan Phase 3 (snapshots on the wire).
+- [#5 2026-11-14T01:09:40Z session:letorera-1113] Plan section 4b: the remaining stage (monsters/map from the snapshot on the wire) is VB-96/VB-97; close with VB-98.
 
 
 ## TASK-VB-79 · Emit semantic render IDs in the snapshot; make glyph/colour a per-frontend data mapping
@@ -2291,3 +2293,73 @@ notes_next: 2
 <!-- notes: append-only log; each has a stable #id (see CLI §5) -->
 ### Notes
 - [#1 2026-11-14T00:57:48Z session:letorera-1113] Plan D1: GameState gets its players up front; state.player stays only as compatibility. Touches MultiplayerGameState.add_player (temp Player, first player takes id 'player', floor-1 spawn) and the 'player' id assumption in tests. Gate as the other slices: suite + SP A/B identical + real-socket tests.
+
+
+## TASK-VB-95 · MP plan 3a: src/protocol/ package; messages.py moves from server/, Message gets v + optional seq; version check at auth; ui/ imports nothing from server
+
+```yaml
+status: backlog
+priority: high
+effort: 3h
+tags: [multiplayer, architecture, protocol]
+created: '2026-11-14T01:09:31Z'
+updated: '2026-11-14T01:09:31Z'
+session: letorera-1113
+```
+
+<!-- notes: append-only log; each has a stable #id (see CLI §5) -->
+### Notes
+_(no notes yet)_
+
+
+## TASK-VB-96 · MP plan 3b: Snapshot.from_dict + PartyMemberView/RoundView in Snapshot; Engine.snapshot(viewer_id); JSON round-trip tests incl. dead viewer
+
+```yaml
+status: backlog
+priority: high
+effort: 4h
+tags: [multiplayer, architecture, protocol]
+created: '2026-11-14T01:09:33Z'
+updated: '2026-11-14T01:09:33Z'
+session: letorera-1113
+```
+
+<!-- notes: append-only log; each has a stable #id (see CLI §5) -->
+### Notes
+_(no notes yet)_
+
+
+## TASK-VB-97 · MP plan 3c: per-viewer snapshot + lobby messages with seq; per-recipient broadcast; reconnect to that viewer only; get_snapshot resync; MultiplayerClient decodes Snapshot; test_client and real-socket _Client use the real decoder
+
+```yaml
+status: backlog
+priority: high
+effort: 1d
+tags: [multiplayer, architecture, protocol]
+created: '2026-11-14T01:09:34Z'
+updated: '2026-11-14T01:09:39Z'
+session: letorera-1113
+depends_on: [VB-95, VB-96]
+```
+
+<!-- notes: append-only log; each has a stable #id (see CLI §5) -->
+### Notes
+_(no notes yet)_
+
+
+## TASK-VB-98 · MP plan 3d: delete the delta path (state_delta.py + tests, get_state_dict, last_state, state/delta messages); closes VB-26 and VB-78
+
+```yaml
+status: backlog
+priority: medium
+effort: 3h
+tags: [multiplayer, architecture, protocol]
+created: '2026-11-14T01:09:36Z'
+updated: '2026-11-14T01:09:39Z'
+session: letorera-1113
+depends_on: [VB-97]
+```
+
+<!-- notes: append-only log; each has a stable #id (see CLI §5) -->
+### Notes
+_(no notes yet)_
