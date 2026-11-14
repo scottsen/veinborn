@@ -2,7 +2,7 @@
 project: veinborn
 schema_version: '1.0'
 id_prefix: VB
-next_id: 121
+next_id: 125
 archival: inline
 areas: {}
 ---
@@ -2800,15 +2800,16 @@ priority: medium
 effort: 2d
 tags: [crafting, balance, bots, crafting-v2]
 created: '2026-11-14T18:33:29Z'
-updated: '2026-11-14T18:33:42Z'
+updated: '2026-11-14T20:48:34Z'
 session: peaceful-shower-1114
 depends_on: [VB-115, VB-116]
-notes_next: 2
+notes_next: 3
 ```
 
 <!-- notes: append-only log; each has a stable #id (see CLI §5) -->
 ### Notes
 - [#1 2026-11-14T18:33:42Z session:peaceful-shower-1114] Waits on VB-113 decisions (D1-D5 in docs/design/CRAFTING_PARTS_DESIGN.md).
+- [#2 2026-11-14T20:48:34Z session:peaceful-shower-1114] Bot behavior changed after the pre-v2 baseline (VB-123 routing fdb9335): use /home/scottsen/src/tia/sessions/peaceful-shower-1114/routing_after/ (fdb9335) as the v2 'before', not prev2_baseline (3d1e8c6).
 
 
 ## TASK-VB-118 · Crafting v2 phase 5: named ore spawns per run (seeded skew profiles, floor windows), name on labels/parts, Legacy Vault keeps it - see docs/design/CRAFTING_PARTS_DESIGN.md
@@ -2866,3 +2867,79 @@ notes_next: 2
 <!-- notes: append-only log; each has a stable #id (see CLI §5) -->
 ### Notes
 - [#1 2026-11-14T18:33:43Z session:peaceful-shower-1114] Waits on VB-113 decisions (D1-D5 in docs/design/CRAFTING_PARTS_DESIGN.md).
+
+
+## TASK-VB-121 · Observability: bot game records list crafts (recipe, floor, turn, stats) and gear worn at the end; craft event carries stats + ore quality; compare_bot_runs reports crafts and final attack/defense
+
+```yaml
+status: done
+priority: high
+effort: 2h
+tags: [observability, bots, crafting]
+created: '2026-11-14T20:30:37Z'
+updated: '2026-11-14T20:33:23Z'
+session: peaceful-shower-1114
+links:
+  commits:
+  - ae05be54898ebc9bad3660a177d4b887cc31936e
+notes_next: 2
+```
+
+<!-- notes: append-only log; each has a stable #id (see CLI §5) -->
+### Notes
+- [#1 2026-11-14T20:33:23Z session:peaceful-shower-1114] Smoke (3 warrior games x 2000 turns): crafts and final gear recorded. Found+fixed: calculate_stats floored fixed-0 stats to 1 (every chestplate showed +1 attack; no play effect since only slot stats are read).
+
+
+## TASK-VB-122 · Observability: log files drop every logger extra= field (format has no %(extra)); add a formatter that appends extras as key=value for the TUI, server and bot logs
+
+```yaml
+status: done
+priority: high
+effort: 1h
+tags: [observability, logging]
+created: '2026-11-14T20:30:39Z'
+updated: '2026-11-14T20:35:53Z'
+session: peaceful-shower-1114
+links:
+  commits:
+  - c3d640868263ade47e54039a8f09dcf162438cf8
+notes_next: 2
+```
+
+<!-- notes: append-only log; each has a stable #id (see CLI §5) -->
+### Notes
+- [#1 2026-11-14T20:35:53Z session:peaceful-shower-1114] Verified in a real game log: 'Item used | actor_id=... item_name=Potion of Healing effect=heal'. 7 tests.
+
+
+## TASK-VB-123 · Observability: bot_tests.log grows unbounded (116 MB, 1.15M lines); rotate it, demote routine warnings (MoveAction blocked by immovable entity 77%, inventory-full ore drop) and find out whether bots waste turns bumping immovables
+
+```yaml
+status: in_progress
+priority: medium
+effort: 1h
+tags: [observability, logging, bots]
+created: '2026-11-14T20:30:40Z'
+updated: '2026-11-14T20:35:53Z'
+session: peaceful-shower-1114
+```
+
+<!-- notes: append-only log; each has a stable #id (see CLI §5) -->
+### Notes
+_(no notes yet)_
+
+
+## TASK-VB-124 · Observability: bot results JSON is rewritten after every game with no completion marker; add complete + games_planned to metadata
+
+```yaml
+status: backlog
+priority: low
+effort: 15m
+tags: [observability, bots]
+created: '2026-11-14T20:30:42Z'
+updated: '2026-11-14T20:30:42Z'
+session: peaceful-shower-1114
+```
+
+<!-- notes: append-only log; each has a stable #id (see CLI §5) -->
+### Notes
+_(no notes yet)_
