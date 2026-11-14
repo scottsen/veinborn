@@ -29,12 +29,12 @@ See `docs/PROJECT_REVIEW_2026-04-17.md` for the last full architecture audit, an
 The live queue is `tt list --actionable`; this is the short version.
 
 ### 1️⃣ **First human playtest** 🔴 (`VB-104`)
-- Two players, one server, the TUI: [MULTIPLAYER_PLAYTEST.md](MULTIPLAYER_PLAYTEST.md); include crafting (`f` next to a forge, `o` to choose ore), the pack screen (`i`) and `?`
+- Two players, one server, the TUI: [MULTIPLAYER_PLAYTEST.md](MULTIPLAYER_PLAYTEST.md); include crafting (`f` next to a forge: craft a Blade and a Hilt, then a Sword; `o` to choose ore or parts), the pack screen (`i`), examine (`x`), the mage bolt target list (`z`), the ground list (`g`) and `?`
 - **Why:** everything up to the two-client pilot test is automated; feel (strict rounds, shared log, "anyone descends") is not. Crafting was unreachable from the keyboard until 2026-11-14
 
-### 2️⃣ **Crafting v2** 🟡 (`VB-113`..`VB-120`, [design/CRAFTING_PARTS_DESIGN.md](design/CRAFTING_PARTS_DESIGN.md))
-- SWG-style parts (head/grip, plates/lining, optional gem), each ore attribute with a job; six core stats decided (D1/D2), phase 1 (combat reads accuracy, max HP bonus, spell power) built and A/B-neutral
-- **Next:** Scott decides D3 (two parts + gem) and D4 (tier from ore properties), then phases 2-4 as one block; balance (`VB-87`: Phoenix Armor never crafted, weak floor-99 boss) is redone in `VB-117`
+### 2️⃣ **Crafting v2, phase 4** 🟡 (`VB-117`, [design/CRAFTING_PARTS_DESIGN.md](design/CRAFTING_PARTS_DESIGN.md))
+- Built and pushed: parts and assemblies, legendaries as assemblies (`VB-115`), the forge UI with a part picker (`VB-116`); D1-D4 decided
+- **Next:** bots craft parts and assemble (they cannot craft legendaries now), tune the placeholder coefficients with a paired A/B against `routing_after` (`VB-117`), then delete the per-tier recipes; `VB-87` (Phoenix Armor, floor-99 boss) is redone there. `VB-108` (bot pack-awareness) first if the A/B reads noisy
 
 ### 3️⃣ **Pacing design call** 🟢 (`VB-83`, Scott)
 - No pressure on floors 4-40: hunger clock, softer spawn clock, or neither
@@ -68,7 +68,7 @@ The live queue is `tt list --actionable`; this is the short version.
 ## 🚧 What's In Progress
 
 ### Track A: Single-Player
-- [ ] Crafting v2 (`VB-113` gate, `VB-115`..`VB-120`); balance (`VB-87`, folded into `VB-117`), automated play-testing (`VB-68`), bot pack-awareness (`VB-108`)
+- [ ] Crafting v2 phase 4 and depth (`VB-117`..`VB-120`; `VB-113`/`VB-114`/`VB-115`/`VB-116` done); balance (`VB-87`, folded into `VB-117`), automated play-testing (`VB-68`), bot pack-awareness (`VB-108`)
 - [ ] Design calls for Scott: pacing (`VB-83`), loot tables (`VB-70`), gold (`VB-74`)
 
 ### Track B: Multiplayer (plan phase 5)

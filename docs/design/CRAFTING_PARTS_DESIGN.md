@@ -185,10 +185,10 @@ something because monsters keep moving. No durability system: a crack is permane
 
 | # | Phase | Depends on | Size | Done when |
 |---|---|---|---|---|
-| 0 | Scott decides D1-D5 (VB-113) | - | - | decisions written into this doc |
-| 1 (VB-114) | Combat readers: `accuracy` in to-hit, `max_hp_bonus` while worn, `spell_power` into force bolt | 0 | ~1d | each stat read by code + unit tests; old saves and monsters unchanged (accuracy 0); bot A/B shows no change with old recipes |
-| 2 (VB-115) | Parts + assemblies in RecipeManager and recipes.yaml v2 (replace per-tier recipes); cut dead stats | 1 | ~2d | parts/assemblies craft through `craft` intents; legendaries as assemblies with a material; preview == result; save round-trip |
-| 3 (VB-116) | Forge UI: craft a part, assemble from carried parts (picker like the ore picker); snapshot views | 2 | ~1d | keyboard-only part craft and assembly; remote client sees the same |
+| 0 | Scott decides D1-D5 (VB-113) | - | - | decisions written into this doc. **D1-D4 decided 2026-11-14; D5 deferred to phase 5** |
+| 1 (VB-114) **done** | Combat readers: `accuracy` in to-hit, `max_hp_bonus` while worn, `spell_power` into force bolt | 0 | ~1d | each stat read by code + unit tests; old saves and monsters unchanged (accuracy 0); bot A/B shows no change with old recipes |
+| 2 (VB-115) **mostly done** | Parts + assemblies in RecipeManager and recipes.yaml v2 (replace per-tier recipes); cut dead stats. Built: parts, assemblies, legendaries as assemblies. **Left:** delete the per-tier weapons/armor recipes, which waits for phase 4 so bots can still craft | 1 | ~2d | parts/assemblies craft through `craft` intents; legendaries as assemblies with a material; preview == result; save round-trip |
+| 3 (VB-116) **done** | Forge UI: craft a part, assemble from carried parts (picker like the ore picker); snapshot views | 2 | ~1d | keyboard-only part craft and assembly; remote client sees the same |
 | 4 (VB-117) | Bots craft parts and assemble; tune coefficients against VB-75/VB-87 curves | 2, 3 | ~1-2d | paired A/B vs the pre-v2 baseline: deaths and floor within agreed band; Phoenix Armor (or its successor) crafted by bots |
 | 5 (VB-118) | Named ore spawns per run (seeded), label + vault carry the name | 2 | ~1-2d | deterministic per seed; bot pairing intact; vault test |
 | 6 (VB-119) | Fire: gem/material `fire_damage` via `@damage_modifier` + burning status; fire-themed monsters may resist | 2 | ~1d | flaming sword deals fire; status effect test; A/B |

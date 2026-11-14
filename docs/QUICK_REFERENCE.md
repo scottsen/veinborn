@@ -20,8 +20,12 @@
 - Walk into monster: Attack (bump-to-attack)
 - Walk into ore vein: Mine (bump-to-mine, takes 3-5 turns)
 - `s`: Survey nearby ore (check properties)
-- `g`: Pick up items
-- `i`: View inventory
+- `g`: Pick up items (a list to choose from when several lie here; `a` takes all)
+- `x`: Examine — monsters (attack/defense/XP), ore (surveyed numbers stay readable), items, forges, nearest first
+- `z`: Class ability — mage force bolt asks for a target when 2+ are in range
+- `f`: Forge — craft parts from ore, assemble gear from parts (`o` chooses ore or parts)
+- `i`: Pack — ↑/↓ select, `Enter` use, `d` drop
+- `?`: Every key
 - `w`: Equipment screen — ↑/↓ select, `Enter` wield/wear or remove, `x` remove worn, `Esc` close
 - `:`: Look at ground
 - `.` or `space`: Wait / pass turn

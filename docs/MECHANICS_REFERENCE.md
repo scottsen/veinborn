@@ -289,9 +289,20 @@ The ore's properties are averaged, then each recipe formula runs on the average.
 a craft spends the best ore of the recipe's type for its main stat (attack for weapons,
 defense otherwise), ranked piece by piece, then by purity (`RecipeManager.ore_for`). The
 `craft` intent may name the pieces (`ore_ids`); the forge screen's ore picker (`o`) does.
-Only `attack_bonus` and `defense_bonus` are read by the game; the other computed stats
-(durability, weight, fire_damage, ...) are stored but unused (VB-113). The planned
-redesign (weapon/armor parts with an attribute job each, named ore per run) is in
+The six core stats the game reads are `attack_bonus`, `accuracy` (to-hit), `defense_bonus`,
+`max_hp_bonus` (while worn), `spell_power` (adds to direct-damage spells) and, later,
+`fire_damage`; the old recipes still compute unread extras (durability, weight, ...) until they
+are deleted (VB-115, VB-117).
+
+**Parts and assemblies (crafting v2, VB-115/VB-116).** `recipes.yaml` `parts:` turn ore into
+a part item: any metal (`accepts: metal`), stats from the ore's properties, so the ore sets the
+tier (a blade's attack is `hardness * hardness / 330 + purity * 0.03`; coefficients are
+placeholders for VB-117). `assemblies:` sum one carried part per required slot (a sword is
+head + grip, a chestplate shell + lining; a gem is optional) into wearable gear named from the
+head's ore ('Mithril-Iron Sword'). The six legendaries are assemblies whose `ore:` limits the
+parts to one ore and whose `material:` (a boss drop) is consumed; `bonus:` is added once.
+`craft` takes `ore_ids` (for a part) or `part_ids` (for an assembly); the forge screen (`f`)
+lists both, `o` opens the ore or part picker. Design and phases:
 [CRAFTING_PARTS_DESIGN.md](design/CRAFTING_PARTS_DESIGN.md).
 
 ### Stat Calculation
