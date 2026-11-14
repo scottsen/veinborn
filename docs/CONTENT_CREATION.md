@@ -553,8 +553,11 @@ monster_id:  # a monster id, or a shared table named by monsters.yaml `loot_tabl
 ```
 
 Several monsters can share a table: set `loot_table: <table>` on each in `monsters.yaml`.
-A table with only a `description` drops nothing on purpose. Unknown table names and item
-ids fail at load; see [DATA_FILES_GUIDE.md](DATA_FILES_GUIDE.md#-loot_tablesyaml).
+A table with only a `description` drops nothing on purpose. The family tables (`beast`,
+`undead`, `brute`, `arcane`) are shared this way and hold consumables only. An item entry may
+carry `min_floor: N` (default 1) and is then only rolled from floor N down, which is how
+healing quality scales with depth; a category whose entries are all closed at the monster's
+floor drops nothing. Unknown table names and item ids fail at load; see [DATA_FILES_GUIDE.md](DATA_FILES_GUIDE.md#-loot_tablesyaml).
 
 ### Loot Balance Guidelines
 

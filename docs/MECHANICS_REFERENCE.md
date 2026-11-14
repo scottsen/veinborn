@@ -534,6 +534,11 @@ weapons:
       weight: 40  # 40% of weapon drops
 ```
 
+**Depth gating:** an item entry may carry `min_floor: N`; below that floor it is left out of the
+weighted pick (healing potion from floor 1, regeneration from 5, extra healing from 10, full
+healing from 30). Shared family tables (`beast`: meat; `undead`: potions; `brute`: food and
+potions; `arcane`: the best potion supply) give every monster a table.
+
 **Selection Process:**
 ```python
 total_weight = 60 + 40 = 100
