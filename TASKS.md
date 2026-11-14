@@ -2,7 +2,7 @@
 project: veinborn
 schema_version: '1.0'
 id_prefix: VB
-next_id: 109
+next_id: 111
 archival: inline
 areas: {}
 ---
@@ -2527,16 +2527,17 @@ priority: high
 owner: scott
 tags: [multiplayer, playtest]
 created: '2026-11-14T02:32:40Z'
-updated: '2026-11-14T02:32:55Z'
+updated: '2026-11-14T17:51:52Z'
 session: warming-sunshine-1113
 links:
   relates_to:
   - VB-102
+notes_next: 2
 ```
 
 <!-- notes: append-only log; each has a stable #id (see CLI §5) -->
 ### Notes
-_(no notes yet)_
+- [#1 2026-11-14T17:51:52Z session:peaceful-shower-1114] Crafting is now reachable from the keyboard (f next to a forge, VB-109); include crafting, the pack screen (i) and ? help in the playtest.
 
 
 ## TASK-VB-105 · MP plan phase 5 / D4: fog of war per viewer (explored memory per viewer per floor, filtered in build_snapshot), on by default with a dev reveal switch
@@ -2588,9 +2589,9 @@ priority: medium
 effort: 3d
 tags: [balance, loot, content]
 created: '2026-11-14T06:09:09Z'
-updated: '2026-11-14T13:48:50Z'
+updated: '2026-11-14T17:51:52Z'
 session: acidic-lens-1113
-notes_next: 5
+notes_next: 6
 ```
 
 <!-- notes: append-only log; each has a stable #id (see CLI §5) -->
@@ -2599,6 +2600,7 @@ notes_next: 5
 - [#2 2026-11-14T06:41:15Z session:acidic-lens-1113] Measured (regen c6b4ae2 + bot rest d35e47d together vs dabc9a1; seeds 3000+, 24 games x 4 classes x 20000 turns, 96 pairs, scripts/compare_bot_runs.py): deaths 0.53 -> 0.36 (-0.17 [-0.28,-0.06]*), warrior 0.58 -> 0.25*, rogue 0.46 -> 0.25, mage 0.92 -> 0.75 (CIs include 0), phoenix kills 31 -> 20, potions used 4.1 -> 2.7*, damage taken +75* (they survive more fights), floor 61.4 -> 61.7 (n.s.; 20000-turn cap binds). Regen and rest not separated. Results: /home/scottsen/src/tia/sessions/acidic-lens-1113/bot_runs/ (esc_long_after = baseline, regen_after); rerun: tests/fuzz/<class>_bot.py --games 24 --max-turns 20000 --seed-base 3000.
 - [#3 2026-11-14T06:50:11Z session:acidic-lens-1113] Step 2 done (status-effect primitive): core/status_effects.py + @status_effect + content/status/regeneration.py + TurnProcessor._tick_status_effects + PlayerView.effects (protocol 5) + sidebar line. Food now heals over time (ration 1x10, bread 1x6, meat 2x6), new potion_regeneration (3x10, effect 'regenerate'; not in any drop table yet). best_healing_item: instant healers first, over-time only as fallback (instant_only flag). 1574 tests; 48 bot games 0 errors. Remaining: step 3 drop tables by monster family + depth scaling, floor supply, step 4 scrolls (mapping, teleport first).
 - [#4 2026-11-14T07:17:43Z session:acidic-lens-1113] Step 3 done (51ab8ef + 811cbfb): shared loot tables beast/undead/brute/arcane (consumables only, no gold), min_floor depth gating in LootGenerator (healing 1 / regeneration 5 / extra 10 / full 30), regeneration potions on orc/troll, potions or meat on wyvern/wraith/lich/phoenix; all 19 monsters now resolve to a table (VB-70 'no loot table' warnings gone). Measured vs regen run (same seeds 3000+, 96 pairs, 20000 turns): NO significant change: deaths 0.36 -> 0.38, potions used 2.70 -> 2.66, floor 61.7 -> 63.6 (n.s.), 0/96 identical (drops shift every seeded game). Bots rest first and only drink at <=40% HP with a monster in sight, so extra supply is barely consumed; burst/phoenix/demon deaths are not answered by potions at that threshold. Not measured: potions picked up or left on the floor. Next: log pickups per game to see supply vs use; earlier emergency drinking when a pack approaches; floor supply (kill-independent) and scrolls (mapping, teleport) are still open.
+- [#5 2026-11-14T17:51:52Z session:peaceful-shower-1114] Pack-aware drinking (DRINK_BELOW_PACK 0.6 at 3+ monsters within 8): paired 96-pair run, potions used 2.66 -> 4.11*, carried at end 4.14 -> 3.51*, deaths 0.38 -> 0.41 n.s. Supply is not the limit: bots pick up ~11.6 usable items, use ~2.7, drop ~4.8 (pack pressure), carry ~4.1; 25 of 36 baseline deaths still held an item. Next lever is VB-108 (disengage/escape), not more supply or scrolls. Results: /home/scottsen/src/tia/sessions/peaceful-shower-1114/pack_ab/.
 
 
 ## TASK-VB-108 · Bots: pack-aware threat (sum fight odds over monsters in ~8 tiles), disengage before adjacency, geared deep-start scenario (advance_to gives no gear), rest/escape follow-ups; evidence in VB-68 note #8
@@ -2611,6 +2613,45 @@ tags: [bots, balance, fuzz]
 created: '2026-11-14T13:49:00Z'
 updated: '2026-11-14T13:49:00Z'
 session: acidic-lens-1113
+```
+
+<!-- notes: append-only log; each has a stable #id (see CLI §5) -->
+### Notes
+_(no notes yet)_
+
+
+## TASK-VB-109 · Keyboard play gaps: no way to craft in the TUI, no item chooser, no keys help, unconfirmed quit/restart
+
+```yaml
+status: done
+priority: high
+effort: 3h
+tags: [ui, keyboard, crafting]
+created: '2026-11-14T17:51:41Z'
+updated: '2026-11-14T17:51:52Z'
+session: peaceful-shower-1114
+links:
+  commits:
+  - 30b9c665611a23e004827bfe5ff5f4c75e6e917c
+notes_next: 3
+```
+
+<!-- notes: append-only log; each has a stable #id (see CLI §5) -->
+### Notes
+- [#1 2026-11-14T17:51:52Z session:peaceful-shower-1114] Built: f = CraftScreen (forge in reach: PlayerView.forge_id/recipes, protocol 6), i = PackScreen (Enter use, d drop the chosen item; e/d stay quick keys), ? = HelpScreen read from BINDINGS, q/r confirm. Walk-onto-forge was never implemented (HOW_TO_PLAY was wrong): key is f next to a forge. NOT done: examine cursor (VB-110). Unverified: no human has run the TUI.
+- [#2 2026-11-14T17:51:52Z session:peaceful-shower-1114] screens + tests (1606 passed); human check still goes through VB-104
+
+
+## TASK-VB-110 · Examine/look cursor: move a cursor over the map (incl. remembered fog tiles) to inspect monsters, items, ore, forges
+
+```yaml
+status: backlog
+priority: low
+effort: 3h
+tags: [ui, keyboard, fog]
+created: '2026-11-14T17:51:45Z'
+updated: '2026-11-14T17:51:45Z'
+session: peaceful-shower-1114
 ```
 
 <!-- notes: append-only log; each has a stable #id (see CLI §5) -->
