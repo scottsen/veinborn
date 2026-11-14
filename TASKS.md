@@ -2,7 +2,7 @@
 project: veinborn
 schema_version: '1.0'
 id_prefix: VB
-next_id: 131
+next_id: 132
 archival: inline
 areas: {}
 ---
@@ -1813,12 +1813,12 @@ owner: scott
 effort: '-'
 tags: [design, items, loot, economy]
 created: '2026-11-12T21:53:19Z'
-updated: '2026-11-13T01:57:45Z'
+updated: '2026-11-14T23:19:25Z'
 session: serene-cyclone-1112
 links:
   relates_to:
   - VB-73
-notes_next: 5
+notes_next: 6
 ```
 
 <!-- notes: append-only log; each has a stable #id (see CLI §5) -->
@@ -1827,6 +1827,7 @@ notes_next: 5
 - [#2 2026-11-13T01:15:54Z session:quantum-energy-1112] Autopickup and gold (quantum-energy-1112): code default game.autopickup_types is ore,food,weapon, so gold reaches a pack only by manual 'g' (or a user rc adding gold). Bot runs before 1fcbdfd used Scott's ~/.veinbornrc (adds gold), so the 'gold fills slots' evidence in VB-73 came from that config; bots now run on defaults (VB-76). Part of this decision: should gold autopickup by default (game_constants or user default), and does it take a slot at all if it becomes a purse.
 - [#3 2026-11-13T01:31:47Z session:quantum-energy-1112] Decided by Scott 2026-11-12: gold autopicks by default. 0d1b700: DEFAULT_AUTOPICKUP_TYPES = ore,food,weapon,gold feeds both the code fallback and the generated config file (they disagreed before). So gold now fills pack slots for every player and bot, as on Scott's machine; the purse question (does gold take a slot) stays open here.
 - [#4 2026-11-13T01:57:45Z session:mustard-sunset-1112] Option (c) detail (mustard-sunset-1112): a gold sink via shrines/altars is filed as VB-84 (child of umbrella VB-81). Decide purse vs slot here first; VB-84 depends on that.
+- [#5 2026-11-14T23:19:25Z session:fuchsia-dye-1114] Gold is now a counter (VB-131, 3dba990): no slots, d cannot drop it. Still has no USE: that design call (shops/shrines/VB-84) is open.
 
 
 ## TASK-VB-75 · Crafted gear outscales every monster: bots reach attack ~37 / defense ~33 by floor 12 (monsters top out at defense 8, attack 18), so nothing threatens a crafting player past the early floors
@@ -3098,3 +3099,24 @@ notes_next: 3
 ### Notes
 - [#1 2026-11-14T22:43:48Z session:fuchsia-dye-1114] Built 928ab38: one ring slot. strength +1 attack, protection +1 defense, regeneration regen_rate 2 = extra HP on every natural regen tick (was 'HP per turn' in the data, 1/turn would be 10x natural regen). Rings come from trolls only (10%), so bot baselines move little; bots wear a ring only if it beats the worn one (gear_bonus ring = attack+defense+regen_rate). No bot A/B was run: re-baseline with VB-117's A/B. ring_stealth stays unbuilt (VB-107, in no loot table).
 - [#2 2026-11-14T22:43:48Z session:fuchsia-dye-1114] Ring slot built and tested; full suite 1723 passed
+
+
+## TASK-VB-131 · Separate ore bag (30) and gold counter: ore/materials stop competing with the 20-slot pack, gold is player.gold
+
+```yaml
+status: done
+priority: medium
+tags: [items, inventory, bots]
+created: '2026-11-14T23:19:21Z'
+updated: '2026-11-14T23:19:25Z'
+session: fuchsia-dye-1114
+links:
+  commits:
+  - 3dba990a5a472b25737c1cb29b5e76984c174219
+notes_next: 3
+```
+
+<!-- notes: append-only log; each has a stable #id (see CLI §5) -->
+### Notes
+- [#1 2026-11-14T23:19:25Z session:fuchsia-dye-1114] Built 3dba990. One list (player.inventory), two capacities: Player.uses_ore_bag (raw ore + boss materials) counts against MAX_ORE_BAG=30, everything else against MAX_INVENTORY=20; so crafting, saves, forge and legacy vault are untouched. Gold = player.gold (saved, snapshot, protocol 13); old saves convert gold piles. Bot planner mines against the bag, drops a second boss-material copy only when the bag is full. 3000-turn bot check (warrior seeds 3000/3001): floor 11, 51-52 ore, 0 errors. NOT done: no paired A/B (bots now never block mining on a full pack; re-baseline with VB-117). Sizes are class constants: game_constants inventory.max_size is not read. Bag cap 30 is a guess; tune from playtest (VB-104).
+- [#2 2026-11-14T23:19:25Z session:fuchsia-dye-1114] ore bag + gold counter built and tested; suite 1744 passed
