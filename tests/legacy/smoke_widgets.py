@@ -32,23 +32,24 @@ try:
 
     print("4. Importing Textual widgets...")
     from ui.textual.widgets import MapWidget, StatusBar, Sidebar
+    from core.snapshot import build_snapshot
     from ui.textual.widgets.message_log import MessageLog
     print("   ✓ Imported")
 
     print("5. Creating MapWidget...")
-    map_widget = MapWidget(game_state=game.state)
+    map_widget = MapWidget(snapshot=build_snapshot(game.state))
     print(f"   ✓ Created (viewport: {map_widget.viewport_width}x{map_widget.viewport_height})")
 
     print("6. Creating StatusBar...")
-    status_bar = StatusBar(game_state=game.state)
+    status_bar = StatusBar(snapshot=build_snapshot(game.state))
     print("   ✓ Created")
 
     print("7. Creating Sidebar...")
-    sidebar = Sidebar(game_state=game.state)
+    sidebar = Sidebar(snapshot=build_snapshot(game.state))
     print("   ✓ Created")
 
     print("8. Creating MessageLog...")
-    message_log = MessageLog(game_state=game.state)
+    message_log = MessageLog(snapshot=build_snapshot(game.state))
     print("   ✓ Created")
 
     print("9. Testing map rendering (non-TUI)...")

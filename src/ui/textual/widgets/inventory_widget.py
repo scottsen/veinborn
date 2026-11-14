@@ -3,8 +3,6 @@ import logging
 from textual.widgets import Static
 from rich.text import Text
 
-from core.snapshot import build_snapshot
-
 logger = logging.getLogger(__name__)
 
 
@@ -13,10 +11,14 @@ class InventoryWidget(Static):
 
     # DEFAULT_CSS removed - use external layout files instead
 
-    def __init__(self, game_state=None, **kwargs):
+    def __init__(self, snapshot=None, **kwargs):
         super().__init__(**kwargs)
-        self.game_state = game_state
-        logger.info(f"InventoryWidget.__init__() called (game_state={'present' if game_state else 'None'})")
+        self.snapshot = snapshot
+
+    def show(self, snapshot) -> None:
+        """Draw this snapshot."""
+        self.snapshot = snapshot
+        self.update_content()
 
     def compose(self):
         """Compose the inventory content."""
@@ -29,12 +31,11 @@ class InventoryWidget(Static):
         """Render the inventory content."""
         logger.debug("InventoryWidget.render_content() called")
 
-        if not self.game_state:
-            logger.warning("  No game_state in render_content!")
+        if self.snapshot is None:
             return Text("Loading...")
 
         text = Text()
-        player = build_snapshot(self.game_state).player
+        player = self.snapshot.player
         logger.debug(f"  Player inventory: {len(player.inventory)} items")
 
         # Inventory header

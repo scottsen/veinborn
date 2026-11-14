@@ -107,9 +107,10 @@ python -c "from src.ui.textual.app import VeinbornApp; app = VeinbornApp(); prin
 python -c "
 from src.ui.textual.widgets.inventory_widget import InventoryWidget
 from src.core.game import Game
+from src.core.snapshot import build_snapshot
 game = Game()
 game.start_new_game()
-widget = InventoryWidget(game_state=game.state)
+widget = InventoryWidget(snapshot=build_snapshot(game.state))  # widgets draw a Snapshot
 print(widget.render_content())
 "
 ```

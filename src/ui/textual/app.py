@@ -12,8 +12,8 @@ from core.config.user_config import ConfigManager
 from ui.textual.widgets import MapWidget, StatusBar, Sidebar, InventoryWidget, ChatInput
 from ui.textual.widgets.message_log import MessageLog
 from core.item_listing import ground_messages, inventory_messages, items_here
-from core.snapshot import build_snapshot
 from ui.textual.equipment_screen import EquipmentScreen
+from ui.driver import LocalDriver
 
 # Setup logging
 logger = logging.getLogger('veinborn.app')
@@ -170,7 +170,7 @@ class VeinbornApp(App):
 
     TITLE = "Veinborn: Walking in Big Brother's Footsteps"
 
-    def __init__(self, player_name=None, character_class=None, seed=None, withdrawn_ore=None, is_legacy_run=False, multiplayer_client=None, multiplayer_setup=None):
+    def __init__(self, player_name=None, character_class=None, seed=None, withdrawn_ore=None, is_legacy_run=False, multiplayer_client=None, multiplayer_setup=None, driver=None):
         """
         Initialize Veinborn app.
 
@@ -184,6 +184,8 @@ class VeinbornApp(App):
             multiplayer_setup: Optional async callable(client) -> bool that connects the
                 client. Run from on_mount so the websocket listener lives in Textual's
                 event loop (a separate asyncio.run() cancels it when that loop ends).
+            driver: The run to play (plan D6). Default: a new local single-player
+                run (`LocalDriver`), started with the options above when the app composes.
         """
         logger.info("VeinbornApp.__init__() starting")
 
@@ -199,11 +201,12 @@ class VeinbornApp(App):
             # CSS_PATH will remain unset, widgets will use DEFAULT_CSS
 
         super().__init__()
-        logger.info("  Creating Game instance...")
-        self.game = Game()
-        logger.info("  Game instance created")
 
-        # Store player configuration for game start
+        # The UI reads snapshots from the driver and submits intents to it; it never holds a Game
+        self.driver = driver if driver is not None else LocalDriver(Game())
+        self.driver.on_update(self.refresh_ui)
+
+        # Player configuration for starting a local run
         self.player_name = player_name or "Anonymous"
         self.character_class = character_class
         self.seed = seed
@@ -222,42 +225,34 @@ class VeinbornApp(App):
         self.message_log = None
         self.chat_input = None
 
-
         logger.info("VeinbornApp.__init__() complete")
 
     def compose(self) -> ComposeResult:
         """Compose the application layout."""
         logger.info("compose() starting")
 
-        # Initialize game with player configuration
-        logger.info(f"  Starting new game (Player: {self.player_name}, Class: {self.character_class}, Seed: {self.seed}, Legacy: {self.is_legacy_run})...")
-        self.game.start_new_game(
-            seed=self.seed,
-            player_name=self.player_name,
-            character_class=self.character_class,
-            withdrawn_ore=self.withdrawn_ore,
-            is_legacy_run=self.is_legacy_run
-        )
-        logger.info(f"  Game started: player at ({self.game.state.player.x}, {self.game.state.player.y})")
-        logger.info(f"  Map size: {self.game.state.dungeon_map.width}x{self.game.state.dungeon_map.height}")
-        logger.info(f"  Entities: {len(self.game.state.entities)}")
+        if isinstance(self.driver, LocalDriver) and self.driver.snapshot() is None:
+            logger.info(f"  Starting new game (Player: {self.player_name}, Class: {self.character_class}, Seed: {self.seed}, Legacy: {self.is_legacy_run})...")
+            self.driver.start(
+                seed=self.seed,
+                player_name=self.player_name,
+                character_class=self.character_class,
+                withdrawn_ore=self.withdrawn_ore,
+                is_legacy_run=self.is_legacy_run,
+            )
 
-        # Create widgets with game state
-        logger.info("  Creating StatusBar...")
-        self.status_bar = StatusBar(game_state=self.game.state)
-        logger.info("  Creating MapWidget...")
-        self.map_widget = MapWidget(game_state=self.game.state)
-        logger.info("  Creating Sidebar...")
-        self.sidebar = Sidebar(game_state=self.game.state, layout_name=self.layout_name)
-        logger.info("  Creating InventoryWidget...")
-        self.inventory_widget = InventoryWidget(game_state=self.game.state)
-        logger.info("  Creating MessageLog...")
-        self.message_log = MessageLog(game_state=self.game.state)
-        logger.info("  Creating ChatInput...")
+        snap = self.driver.snapshot()
+        if snap is not None:
+            logger.info(f"  Run ready: player at ({snap.player.x}, {snap.player.y}), "
+                        f"map {snap.map.width}x{snap.map.height}, {len(snap.entities)} entities")
+
+        self.status_bar = StatusBar(snapshot=snap)
+        self.map_widget = MapWidget(snapshot=snap)
+        self.sidebar = Sidebar(snapshot=snap, layout_name=self.layout_name)
+        self.inventory_widget = InventoryWidget(snapshot=snap)
+        self.message_log = MessageLog(snapshot=snap)
         self.chat_input = ChatInput()
 
-        # Yield widgets
-        logger.info("  Yielding widgets...")
         yield self.status_bar
         yield self.inventory_widget  # Bottom of right panel
         yield self.sidebar  # Top of right panel (stacks from bottom up)
@@ -266,16 +261,26 @@ class VeinbornApp(App):
         yield self.chat_input  # Chat input overlays on top (focus disabled until shown)
         logger.info("compose() complete")
 
-    async def action_move(self, dx: int, dy: int) -> None:
-        """Handle player movement (async Textual handler)."""
-        if self.game.state.game_over:
-            return
+    # -- acting --------------------------------------------------------------
+    def _playing(self) -> bool:
+        """There is a run and it is not over."""
+        snap = self.driver.snapshot()
+        return snap is not None and not snap.game_over
 
-        # Call synchronous game logic
-        self.game.handle_player_action('move', dx=dx, dy=dy)
+    async def _act(self, intent: str, **args) -> None:
+        """Submit an intent; the driver's update redraws the screen."""
+        if self._playing():
+            await self.driver.submit(intent, **args)
 
-        # Update all widgets (async)
+    def _note(self, lines) -> None:
+        """Lines for this player's own log (listings), then redraw."""
+        for line in lines:
+            self.driver.note(line)
         self.refresh_ui()
+
+    async def action_move(self, dx: int, dy: int) -> None:
+        """Move (or bump: attack, mine) one step."""
+        await self._act('move', dx=dx, dy=dy)
 
     # Individual movement actions (workaround for Textual negative number parsing bug)
     async def action_move_up(self) -> None:
@@ -311,80 +316,37 @@ class VeinbornApp(App):
         await self.action_move(1, 1)
 
     async def action_survey(self) -> None:
-        """Survey adjacent ore vein (async Textual handler)."""
-        if self.game.state.game_over:
-            return
-
-        # Call synchronous game logic
-        self.game.handle_player_action('survey')
-
-        # Update all widgets
-        self.refresh_ui()
+        """Survey an adjacent ore vein."""
+        await self._act('survey')
 
     async def action_ability(self) -> None:
-        """Use the class ability: mage force bolt, healer heal (async Textual handler)."""
-        if self.game.state.game_over:
-            return
-
-        self.game.handle_player_action('ability')
-        self.refresh_ui()
+        """Use the class ability: mage force bolt, healer heal."""
+        await self._act('ability')
 
     async def action_descend(self) -> None:
-        """Descend stairs to next floor (async Textual handler)."""
-        if self.game.state.game_over:
-            return
-
-        # Call synchronous game logic
-        self.game.handle_player_action('descend')
-
-        # Update all widgets
-        self.refresh_ui()
+        """Descend the stairs to the next floor."""
+        await self._act('descend')
 
     async def action_wait(self) -> None:
-        """Wait/pass turn (async Textual handler)."""
-        if self.game.state.game_over:
-            return
-
-        # Call synchronous game logic (wait action processes turn)
-        self.game.handle_player_action('wait')
-
-        # Update all widgets
-        self.refresh_ui()
+        """Wait / pass the turn."""
+        await self._act('wait')
 
     async def action_show_inventory(self) -> None:
-        """Display full inventory list in message log."""
-        if self.game.state.game_over:
-            return
-
-        for line in inventory_messages(build_snapshot(self.game.state).player):
-            self.game.state.add_message(line)
-
-        self.refresh_ui()
+        """List the full inventory in the message log."""
+        if self._playing():
+            self._note(inventory_messages(self.driver.snapshot().player))
 
     async def action_use_item(self) -> None:
         """Drink a healing potion or eat food: the one that best covers missing HP."""
-        if self.game.state.game_over:
-            return
-        self.game.quick_use()
-        self.refresh_ui()
+        await self._act('use')
 
     async def action_drop_item(self) -> None:
         """Drop the item least worth carrying (gold, scrolls, worse gear first)."""
-        if self.game.state.game_over:
-            return
-        self.game.quick_drop()
-        self.refresh_ui()
+        await self._act('drop')
 
     async def action_pickup(self) -> None:
-        """Pick up items from the ground (async Textual handler)."""
-        if self.game.state.game_over:
-            return
-
-        # Call synchronous game logic
-        self.game.handle_player_action('pickup')
-
-        # Update all widgets
-        self.refresh_ui()
+        """Pick up items from the ground."""
+        await self._act('pickup')
 
     def check_action(self, action: str, parameters) -> bool | None:
         """While the equipment screen is open the map keys must not move or hit anything."""
@@ -394,56 +356,43 @@ class VeinbornApp(App):
 
     async def action_equip_item(self) -> None:
         """Open the equipment screen: wear, remove and compare gear from one list."""
-        if self.game.state.game_over:
-            return
-        self.push_screen(EquipmentScreen(self.game, on_change=self.refresh_ui))
+        if self._playing():
+            self.push_screen(EquipmentScreen(self.driver, on_change=self.refresh_ui))
 
     async def action_look_at_ground(self) -> None:
-        """Look at items on the ground at player's position."""
-        if self.game.state.game_over:
-            return
-
-        for line in ground_messages(items_here(build_snapshot(self.game.state))):
-            self.game.state.add_message(line)
-
-        self.refresh_ui()
+        """List the items on the player's tile in the message log."""
+        if self._playing():
+            self._note(ground_messages(items_here(self.driver.snapshot())))
 
     async def action_save_game(self) -> None:
-        """Save the game (async Textual handler)."""
-        if self.game.state.game_over:
+        """Save the run (local runs only)."""
+        if not self.driver.can_save:
+            self._note(["Saving is only available in single-player."])
             return
-
-        success = self.game.save_game()
-        if success:
+        if not self._playing():
+            return
+        if self.driver.save():
             logger.info("Game saved successfully")
         else:
             logger.error("Failed to save game")
-
         self.refresh_ui()
 
     async def action_load_game(self) -> None:
-        """Load the game (async Textual handler)."""
-        success = self.game.load_game()
-        if success:
+        """Load the saved run (local runs only)."""
+        if not self.driver.can_save:
+            self._note(["Loading is only available in single-player."])
+            return
+        if self.driver.load():
             logger.info("Game loaded successfully")
-            # Update widgets to use new game state
-            if self.map_widget:
-                self.map_widget.game_state = self.game.state
-            if self.status_bar:
-                self.status_bar.game_state = self.game.state
-            if self.sidebar:
-                self.sidebar.game_state = self.game.state
-            if self.message_log:
-                self.message_log.game_state = self.game.state
         else:
             logger.error("Failed to load game")
 
-        self.refresh_ui()
-
     async def action_restart(self) -> None:
-        """Restart the game (async Textual handler)."""
-        self.game.restart_game()
-        self.refresh_ui()
+        """Start a new run (local runs only)."""
+        if not self.driver.can_save:
+            self._note(["Restarting is only available in single-player."])
+            return
+        self.driver.restart()
 
     async def action_chat(self) -> None:
         """Open chat input (async Textual handler)."""
@@ -527,9 +476,10 @@ class VeinbornApp(App):
             logger.info(f"Sidebar: visible={self.sidebar.display}, styles={self.sidebar.styles}")
         if self.inventory_widget:
             logger.info(f"InventoryWidget: visible={self.inventory_widget.display}, styles={self.inventory_widget.styles}")
-            logger.info(f"  InventoryWidget has game_state: {self.inventory_widget.game_state is not None}")
-            if self.inventory_widget.game_state:
-                logger.info(f"  Player inventory items: {len(self.inventory_widget.game_state.player.inventory)}")
+            snap = self.inventory_widget.snapshot
+            logger.info(f"  InventoryWidget has a snapshot: {snap is not None}")
+            if snap is not None:
+                logger.info(f"  Player inventory items: {len(snap.player.inventory)}")
         if self.map_widget:
             logger.info(f"MapWidget: visible={self.map_widget.display}, styles={self.map_widget.styles}")
         if self.message_log:
@@ -540,22 +490,17 @@ class VeinbornApp(App):
             content = self.inventory_widget.render_content()
             logger.info(f"Manual render_content() result:\n{str(content)[:200]}")
 
-        self.game.state.add_message("UI debug info dumped to logs/veinborn.log")
-        self.refresh_ui()
+        self._note(["UI debug info dumped to logs/veinborn.log"])
 
     def refresh_ui(self) -> None:
-        """Refresh all UI components."""
-        logger.debug("refresh_ui() called")
-        if self.map_widget:
-            self.map_widget.update_snapshot()
-        if self.status_bar:
-            self.status_bar.refresh()
-        if self.sidebar:
-            self.sidebar.update_content()
-        if self.inventory_widget:
-            self.inventory_widget.update_content()
-        if self.message_log:
-            self.message_log.update_messages()
+        """Draw the driver's current snapshot in every widget (one snapshot per refresh)."""
+        widgets = (self.map_widget, self.status_bar, self.sidebar, self.inventory_widget, self.message_log)
+        if not any(widgets):
+            return
+        snap = self.driver.snapshot()
+        for widget in widgets:
+            if widget is not None:
+                widget.show(snap)
 
 
 def run_game(player_name=None, character_class=None, seed=None, withdrawn_ore=None, is_legacy_run=False):

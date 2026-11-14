@@ -2,18 +2,21 @@
 from textual.widgets import Static
 from rich.text import Text
 
-from core.snapshot import build_snapshot
-
 
 class Sidebar(Static):
     """Right sidebar showing player stats and monster info."""
 
     # DEFAULT_CSS removed - use external layout files instead
 
-    def __init__(self, game_state=None, layout_name='default', **kwargs):
+    def __init__(self, snapshot=None, layout_name='default', **kwargs):
         super().__init__(**kwargs)
-        self.game_state = game_state
+        self.snapshot = snapshot
         self.layout_name = layout_name
+
+    def show(self, snapshot) -> None:
+        """Draw this snapshot."""
+        self.snapshot = snapshot
+        self.update_content()
 
     def compose(self):
         """Compose the sidebar content."""
@@ -21,11 +24,11 @@ class Sidebar(Static):
 
     def render_content(self) -> Text:
         """Render the sidebar content."""
-        if not self.game_state:
+        snap = self.snapshot
+        if snap is None:
             return Text("Loading...")
 
         text = Text()
-        snap = build_snapshot(self.game_state)
         player = snap.player
 
         # Player info

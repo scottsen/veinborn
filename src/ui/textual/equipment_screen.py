@@ -7,8 +7,9 @@
     > Mithril Sword (weapon, +7 attack, +3 vs worn)   <- Enter wields/wears it
       Chainmail (armor, +3 defense, +3 vs worn)
 
-The rows come from `core.equipment.equipment_listing`; changes go through the
-game's `equip` / `unequip` actions, so this screen holds no rules.
+The rows come from `core.equipment.equipment_listing` over the driver's snapshot;
+changes are `equip` / `unequip` intents, so this screen holds no rules and works
+the same on a local run and on a server's (plan D6).
 """
 
 from rich.text import Text
@@ -17,7 +18,6 @@ from textual.screen import ModalScreen
 from textual.widgets import Static
 
 from core.equipment import equipment_listing
-from core.snapshot import build_snapshot
 
 
 class EquipmentScreen(ModalScreen):
@@ -39,9 +39,9 @@ class EquipmentScreen(ModalScreen):
     }
     """
 
-    def __init__(self, game, on_change=None, **kwargs):
+    def __init__(self, driver, on_change=None, **kwargs):
         super().__init__(**kwargs)
-        self.game = game
+        self.driver = driver
         self.on_change = on_change      # called after every equip/remove (refresh the main UI)
         self.cursor = 0
         self.feedback = ""
@@ -52,7 +52,7 @@ class EquipmentScreen(ModalScreen):
     # -- rows ------------------------------------------------------------
     def _player(self):
         """The viewer's PlayerView (items carry their slot and bonus)."""
-        return build_snapshot(self.game.state).player
+        return self.driver.snapshot().player
 
     @staticmethod
     def _selectable(worn, carried):
@@ -107,26 +107,26 @@ class EquipmentScreen(ModalScreen):
             self.cursor = (self.cursor + step) % len(rows)
         self.refresh_panel()
 
-    def action_activate(self) -> None:
+    async def action_activate(self) -> None:
         rows = self.rows()
         if not rows:
             return
         line = rows[self.cursor]
         if line.worn:
-            self._run('unequip', slot=line.slot)
+            await self._run('unequip', slot=line.slot)
         else:
-            self._run('equip', item_id=line.item_id)
+            await self._run('equip', item_id=line.item_id)
 
-    def action_remove_selected(self) -> None:
+    async def action_remove_selected(self) -> None:
         """Remove the worn item: the selected one if it is worn, else the weapon, then the armor."""
         rows = self.rows()
         line = rows[self.cursor] if rows else None
         if line is not None and line.worn:
-            self._run('unequip', slot=line.slot)
+            await self._run('unequip', slot=line.slot)
             return
         worn = [r for r in rows if r.worn]
         if worn:
-            self._run('unequip', slot=worn[0].slot)
+            await self._run('unequip', slot=worn[0].slot)
         else:
             self.feedback = "You are wearing nothing."
             self.refresh_panel()
@@ -134,12 +134,8 @@ class EquipmentScreen(ModalScreen):
     def action_close(self) -> None:
         self.dismiss()
 
-    def _run(self, action_type: str, **kwargs) -> None:
-        state = self.game.state
-        before = state.message_count
-        self.game.handle_player_action(action_type, **kwargs)
-        new = min(state.message_count - before, len(state.messages))
-        self.feedback = "  ".join(state.messages[-new:]) if new else ""
+    async def _run(self, intent: str, **kwargs) -> None:
+        self.feedback = "  ".join(await self.driver.submit(intent, **kwargs))
         if self.on_change:
             self.on_change()
         self.refresh_panel()

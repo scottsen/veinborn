@@ -19,7 +19,7 @@ STEP_KEYS = {"h": (-1, 0), "l": (1, 0), "k": (0, -1), "j": (0, 1)}
 
 def game_of(app):
     """The local single-player game behind the app (the one place tests reach in)."""
-    return app.game
+    return app.driver.game
 
 
 def make(item_id):

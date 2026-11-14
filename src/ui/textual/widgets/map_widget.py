@@ -4,7 +4,6 @@ from textual.strip import Strip
 from rich.segment import Segment
 from rich.style import Style
 
-from core.snapshot import build_snapshot
 from core.world import TileType
 
 
@@ -43,16 +42,13 @@ class MapWidget(Widget):
     # Draw order when entities share a tile: first match wins (the player is drawn before all).
     ENTITY_PRIORITY = ('monster', 'ore_vein', 'forge', 'item', 'npc')
 
-    def __init__(self, game_state=None, **kwargs):
+    def __init__(self, snapshot=None, **kwargs):
         super().__init__(**kwargs)
-        self.game_state = game_state
-        self.snapshot = None
+        self.snapshot = snapshot
 
-    def update_snapshot(self) -> None:
-        """Re-read the game into a snapshot and redraw. Called once per UI refresh,
-        not per line, so a redraw walks the entities once."""
-        if self.game_state:
-            self.snapshot = build_snapshot(self.game_state)
+    def show(self, snapshot) -> None:
+        """Draw this snapshot (one per UI refresh, so a redraw walks the entities once)."""
+        self.snapshot = snapshot
         self.refresh()
 
     def render_line(self, y: int) -> Strip:
@@ -60,12 +56,9 @@ class MapWidget(Widget):
         # Use actual widget size for viewport (dynamic)
         viewport_width = self.size.width
 
-        if not self.game_state:
-            return Strip([Segment(" " * viewport_width)])
-        if self.snapshot is None:
-            self.snapshot = build_snapshot(self.game_state)
-
         snap = self.snapshot
+        if snap is None:
+            return Strip([Segment(" " * viewport_width)])
 
         # Calculate viewport offset
         start_x, start_y = self._get_viewport_offset(snap)

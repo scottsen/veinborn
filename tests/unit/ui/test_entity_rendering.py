@@ -25,7 +25,7 @@ def cell(player, *entities, x=5, y=5):
     state.entities[player.entity_id] = player
     for ent in entities:
         state.entities[ent.entity_id] = ent
-    widget = MapWidget(game_state=state)
+    widget = MapWidget()
     return widget._render_cell(x, y, build_snapshot(state))
 
 
@@ -171,7 +171,7 @@ def test_bare_cells_render_the_terrain_from_the_snapshot():
     state.entities.clear()
     state.entities[state.player.entity_id] = state.player
     m = state.dungeon_map
-    widget = MapWidget(game_state=state)
+    widget = MapWidget()
     snap = build_snapshot(state)
     seen = set()
     for y in range(m.height):

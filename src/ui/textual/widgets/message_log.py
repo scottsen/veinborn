@@ -8,9 +8,9 @@ class MessageLog(Static):
 
     # DEFAULT_CSS removed - use external layout files instead
 
-    def __init__(self, game_state=None, **kwargs):
+    def __init__(self, snapshot=None, **kwargs):
         super().__init__(**kwargs)
-        self.game_state = game_state
+        self.snapshot = snapshot
         self.chat_messages = []  # List of (player_name, message) tuples
         self.system_messages = []  # List of system messages
 
@@ -46,9 +46,9 @@ class MessageLog(Static):
         # Combine game messages, chat messages, and system messages
         all_messages = []
 
-        # Add game messages (if in single-player mode)
-        if self.game_state and self.game_state.messages:
-            for msg in self.game_state.messages[-8:]:
+        # The run's message log (the snapshot carries the recent lines)
+        if self.snapshot is not None:
+            for msg in self.snapshot.messages[-8:]:
                 all_messages.append(("game", msg))
 
         # Add recent system messages (multiplayer events)
@@ -86,6 +86,7 @@ class MessageLog(Static):
 
         return text
 
-    def update_messages(self):
-        """Update the message display."""
+    def show(self, snapshot) -> None:
+        """Draw this snapshot's messages."""
+        self.snapshot = snapshot
         self.refresh()

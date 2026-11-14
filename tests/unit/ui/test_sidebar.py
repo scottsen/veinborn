@@ -4,6 +4,7 @@ import pytest
 
 from core.character_class import CharacterClass
 from core.game import Game
+from core.snapshot import build_snapshot
 from ui.textual.widgets.sidebar import Sidebar
 
 pytestmark = pytest.mark.unit
@@ -12,7 +13,7 @@ pytestmark = pytest.mark.unit
 def render(cls):
     game = Game()
     game.start_new_game(seed=7, character_class=cls)
-    return game, Sidebar(game.state).render_content().plain
+    return game, Sidebar(build_snapshot(game.state)).render_content().plain
 
 
 def test_warrior_sees_attack_and_defense_including_starting_gear():
@@ -37,5 +38,5 @@ def test_ability_line_counts_down_the_cooldown():
     player = game.state.player
     player.hp = 5
     game.handle_player_action('ability')
-    text = Sidebar(game.state).render_content().plain
+    text = Sidebar(build_snapshot(game.state)).render_content().plain
     assert "Z: Heal (" in text and "(ready)" not in text

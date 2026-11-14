@@ -27,7 +27,7 @@ def test_equipment_screen_wear_remove_and_keys_do_not_leak():
     async def scenario():
         app = VeinbornApp(seed=5)
         async with app.run_test() as pilot:
-            player = app.game.state.player
+            player = app.driver.game.state.player
             player.inventory.clear()
             player.equipped_weapon = player.equipped_armor = None
             sword = give(player, 'long_sword')
