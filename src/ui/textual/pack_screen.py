@@ -11,6 +11,8 @@ Rows are the snapshot's inventory, so it works the same on a remote run.
 
 from textual.binding import Binding
 
+from core.crafting import ORE_LEGEND, ore_label
+
 from .list_screen import ListScreen
 
 
@@ -32,13 +34,17 @@ class PackScreen(ListScreen):
 
     def header(self) -> str:
         p = self._player()
-        return f"{len(p.inventory)}/{p.inventory_capacity} items"
+        header = f"{len(p.inventory)}/{p.inventory_capacity} items"
+        if any(i.ore for i in p.inventory):
+            header += f"\nOre: {ORE_LEGEND}  (★ jackpot)"
+        return header
 
     def row_text(self, item) -> str:
         kind = item.item_type
         if item.slot:
             kind = f"{item.slot}, +{item.bonus} {'attack' if item.slot == 'weapon' else 'defense'}"
-        return f"{item.name} ({kind}){'   usable' if item.usable else ''}"
+        quality = f" {ore_label(item.ore)}" if item.ore else ""
+        return f"{item.name} ({kind}){quality}{'   usable' if item.usable else ''}"
 
     async def activate(self, item) -> None:
         if not item.usable:

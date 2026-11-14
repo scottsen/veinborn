@@ -146,3 +146,37 @@ def test_recipes_survive_the_wire(game):
     snap = build_snapshot(game.state)
     back = Snapshot.from_dict(json.loads(json.dumps(snap.to_dict())))
     assert back.player.recipes == snap.player.recipes and back.player.forge_id == snap.player.forge_id
+
+
+# -- ore quality (VB-111) -------------------------------------------------------
+
+def test_ore_carries_its_quality_and_lists_as_ore(game):
+    from core.crafting import ore_label
+    p = game.state.player
+    p.inventory.clear()
+    ore = _copper(1)[0]
+    p.add_to_inventory(ore)
+    p.add_to_inventory(LootGenerator.get_instance().create_item('long_sword'))
+    ore_view, sword_view = build_snapshot(game.state).player.inventory
+    assert ore_view.item_type == 'ore' and ore_view.ore['purity'] == ore.get_stat('purity')
+    assert sword_view.ore is None
+    assert ore_label(ore_view.ore).startswith(f"P{ore.get_stat('purity')} H{ore.get_stat('hardness')}")
+    assert ore.get_stat('item_type', None) is None        # display only: autopickup rules unchanged
+
+
+def test_ore_label_stars_jackpot_ore():
+    from core.crafting import ore_label
+    best = dict(purity=90, hardness=85, malleability=80, conductivity=99, density=81)
+    assert ore_label(best).endswith("★")
+    assert "★" not in ore_label({**best, 'density': 79})
+    assert ore_label(None) == ""
+
+
+def test_crafted_gear_is_not_ore(game):
+    from core.crafting import ore_properties
+    player, forge = _at_forge(game)
+    for o in _copper(3):
+        player.add_to_inventory(o)
+    game.handle_player_action('craft', forge_id=forge.entity_id, recipe_id='copper_chestplate')
+    made = next(i for i in player.inventory if i.get_stat('recipe_id'))
+    assert ore_properties(made) is None

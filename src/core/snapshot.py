@@ -28,6 +28,7 @@ class ItemView:
     slot: Optional[str] = None  # 'weapon' | 'armor' | 'shield' if it can be worn (core.equipment.gear_slot)
     bonus: int = 0              # its bonus in that slot (attack for weapons, defense otherwise)
     usable: bool = False        # a built effect: the pack screen offers Use (potion, food, later scrolls)
+    ore: Optional[Dict[str, int]] = None   # raw ore only: the properties recipes read (VB-111)
 
 
 @dataclass
@@ -197,12 +198,22 @@ def _item(item) -> Optional[ItemView]:
     if item is None:
         return None
     from .actions.use_item_action import usable_effect
+    from .crafting import ore_properties
     slot = gear_slot(item)
+    ore = ore_properties(item)
     return ItemView(
-        item.entity_id, item.content_id, item.name, item.get_stat('item_type', 'unknown'),
+        item.entity_id, item.content_id, item.name, _item_type(item),
         slot=slot, bonus=gear_bonus(item, slot) if slot else 0,
         usable=usable_effect(item) is not None,
+        ore=ore,
     )
+
+
+def _item_type(item) -> str:
+    """Mined ore carries no item_type stat (autopickup reads it, so it stays unset); it
+    still lists as 'ore', not 'unknown'."""
+    from .crafting import is_ore_item
+    return item.get_stat('item_type', None) or ('ore' if is_ore_item(item) else 'unknown')
 
 
 def _etype(entity) -> str:
@@ -304,7 +315,7 @@ def build_snapshot(state, viewer=None, message_count: int = 20) -> Snapshot:
             entity_id=e.entity_id, entity_type=_etype(e), content_id=e.content_id,
             name=e.name, x=e.x, y=e.y, hp=e.hp, max_hp=e.max_hp,
             symbol=e.display_symbol, color=e.display_color, alive=e.is_alive,
-            item_type=e.get_stat('item_type', 'unknown') if e.entity_type == EntityType.ITEM else None,
+            item_type=_item_type(e) if e.entity_type == EntityType.ITEM else None,
         )
         for e in state.entities.values()
         if e.entity_id != viewer.entity_id and shown(e)

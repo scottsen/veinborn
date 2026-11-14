@@ -170,3 +170,18 @@ def test_quit_and_restart_ask_first():
 def test_stat_labels_are_readable():
     from ui.textual.craft_screen import stats_text
     assert stats_text({'attack_bonus': 4, 'defense_bonus': 0, 'fire_damage': 2}) == "+4 attack  +2 fire damage"
+
+
+def test_pack_screen_shows_ore_quality_and_the_legend():
+    async def scenario(app, pilot, game):
+        player = game.state.player
+        player.inventory.clear()
+        vein = EntityLoader().create_ore_vein('copper', 0, 0, floor=1)
+        ore = vein.get_ore_item()
+        player.add_to_inventory(ore)
+        await pilot.press("i")
+        await pilot.pause()
+        panel = app.screen.render_panel().plain
+        assert f"Copper Ore (ore) P{ore.get_stat('purity')} H{ore.get_stat('hardness')}" in panel
+        assert "P purity" in panel
+    run(scenario)

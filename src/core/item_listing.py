@@ -13,18 +13,21 @@ from typing import List
 
 @dataclass
 class ItemLine:
-    """One listed item: its entity id, display name and item_type."""
+    """One listed item: its entity id, display name, item_type and, for ore, its quality."""
     entity_id: object
     name: str
     item_type: str
+    detail: str = ""            # e.g. ore quality 'P85 H70 M55 C40 D50' (VB-111)
 
     @property
     def text(self) -> str:
-        return f"{self.name} ({self.item_type})"
+        return f"{self.name} ({self.item_type})" + (f" {self.detail}" if self.detail else "")
 
 
 def _line(view) -> ItemLine:
-    return ItemLine(view.entity_id, view.name, view.item_type or 'unknown')
+    from .crafting import ore_label
+    return ItemLine(view.entity_id, view.name, view.item_type or 'unknown',
+                    ore_label(getattr(view, 'ore', None)))
 
 
 def items_here(snapshot) -> List[ItemLine]:

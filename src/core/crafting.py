@@ -175,6 +175,29 @@ class StatFormulaEvaluator:
         return expr
 
 
+# The five ore properties recipes read, in the order a label shows them (most telling first)
+ORE_PROPERTIES = ('purity', 'hardness', 'malleability', 'conductivity', 'density')
+ORE_LEGEND = "P purity  H hardness  M malleability  C conductivity  D density"
+JACKPOT_MIN = 80   # a jackpot vein rolls every property in 80-100 (ores.yaml ore_generation)
+
+
+def ore_properties(item) -> Optional[Dict[str, int]]:
+    """The recipe-relevant properties of a raw ore item, or None for anything else (VB-111)."""
+    if not is_ore_item(item):
+        return None
+    return {name: int(item.get_stat(name, 50)) for name in ORE_PROPERTIES}
+
+
+def ore_label(props: Optional[Dict[str, int]]) -> str:
+    """'P85 H70 M55 C40 D50', with a star when every property is jackpot grade; '' for None."""
+    if not props:
+        return ""
+    label = " ".join(f"{name[0].upper()}{props[name]}" for name in ORE_PROPERTIES if name in props)
+    if all(props.get(name, 0) >= JACKPOT_MIN for name in ORE_PROPERTIES):
+        label += " ★"
+    return label
+
+
 def is_ore_item(item) -> bool:
     """True for raw ore, false for crafted equipment.
 
