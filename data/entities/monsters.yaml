@@ -164,7 +164,7 @@ monsters:
       - "swarm"
       - "flying"
 
-    loot_table: null
+    loot_table: beast
 
     notes: |
       Bats are weak but fast. They swarm in groups of 3-5.
@@ -199,7 +199,7 @@ monsters:
       - "medium"
       - "common"
 
-    loot_table: null
+    loot_table: undead
 
     notes: |
       Skeleton is a balanced mid-tier enemy.
@@ -233,7 +233,7 @@ monsters:
       - "brute"
       - "elite"
 
-    loot_table: null
+    loot_table: brute
 
     notes: |
       Ogre is a dangerous elite enemy.
@@ -269,7 +269,7 @@ monsters:
       - "fast"
       - "beast"
 
-    loot_table: null
+    loot_table: beast
 
     notes: |
       Wolves hunt in packs of 2-3. Alone they're manageable.
@@ -312,7 +312,7 @@ monsters:
       - "poison"
       - "ambush"
 
-    loot_table: null
+    loot_table: beast
 
     notes: |
       Spider adds poison mechanics (when implemented).
@@ -361,7 +361,7 @@ monsters:
       - "demon"
       - "ranged"
 
-    loot_table: null
+    loot_table: arcane
 
     notes: |
       Imp teaches ranged combat and teleportation.
@@ -447,7 +447,7 @@ monsters:
       - "elite"
       - "slow"
 
-    loot_table: null
+    loot_table: brute
 
     notes: |
       Golem is a defensive wall for floors 6-9.
@@ -541,7 +541,7 @@ monsters:
       - "shapeshifter"
       - "trap"
 
-    loot_table: null
+    loot_table: arcane
 
     notes: |
       Mimic is a trap enemy for floors 4-8.
@@ -592,7 +592,7 @@ monsters:
       - "life_steal"
       - "fast"
 
-    loot_table: null
+    loot_table: undead
 
     notes: |
       Vampire is a dangerous floor 9-12 mini-boss.
@@ -704,7 +704,7 @@ monsters:
       - "magical"
       - "legendary"
 
-    loot_table: null
+    loot_table: arcane
 
     notes: |
       Demon is a powerful floor 12+ boss.
@@ -754,7 +754,7 @@ monsters:
       - "petrify"
       - "poison"
 
-    loot_table: null
+    loot_table: beast
 
     notes: |
       Basilisk is a dangerous floor 11+ elite.

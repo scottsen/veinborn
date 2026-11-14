@@ -219,7 +219,7 @@ class LootGenerator:
                 continue  # This category didn't drop
 
             # Select which item from this category
-            item_id = self._select_item_from_category(category_data, rng)
+            item_id = self._select_item_from_category(category_data, rng, floor_number)
             if not item_id:
                 continue
 
@@ -250,19 +250,22 @@ class LootGenerator:
     def _select_item_from_category(
         self,
         category_data: Dict[str, Any],
-        rng: GameRNG
+        rng: GameRNG,
+        floor_number: int = 1,
     ) -> Optional[str]:
         """
         Select a specific item from a category based on weights.
 
         Args:
-            category_data: Category data with items and weights
+            category_data: Category data with items and weights; an item entry may
+                carry `min_floor: N` and then drops only from floor N down
             rng: Random number generator
+            floor_number: The floor the monster died on
 
         Returns:
             Item ID or None
         """
-        items = category_data.get('items', [])
+        items = [i for i in category_data.get('items', []) if i.get('min_floor', 1) <= floor_number]
         if not items:
             return None
 

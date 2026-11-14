@@ -24,6 +24,76 @@
 schema_version: 1.0
 
 # =============================================================================
+# FAMILY TABLES - shared by several monsters (monsters.yaml `loot_table:`)
+# =============================================================================
+# Consumable supply by family (VB-107). They drop no gold: gold has no use yet and only
+# fills pack slots (VB-74). A drop entry may carry `min_floor: N`: it is only rolled from
+# floor N down, so healing quality scales with depth (healing -> regeneration at 5 ->
+# extra healing at 10 -> full healing at 30).
+
+beast:
+  description: "Animals: meat, nothing else (bat, wolf, spider, basilisk)"
+  food:
+    drop_chance: 0.25
+    items:
+      - id: meat
+        weight: 70
+      - id: ration
+        weight: 30
+
+undead:
+  description: "Bones and shades: the odd potion (skeleton, vampire)"
+  potions:
+    drop_chance: 0.15
+    items:
+      - id: potion_healing
+        weight: 60
+      - id: potion_regeneration
+        weight: 25
+        min_floor: 5
+      - id: potion_extra_healing
+        weight: 15
+        min_floor: 10
+
+brute:
+  description: "Big and dim: food, and potions as they get deeper (ogre, golem)"
+  food:
+    drop_chance: 0.25
+    items:
+      - id: ration
+        weight: 60
+      - id: meat
+        weight: 40
+  potions:
+    drop_chance: 0.15
+    items:
+      - id: potion_healing
+        weight: 50
+      - id: potion_regeneration
+        weight: 30
+        min_floor: 5
+      - id: potion_extra_healing
+        weight: 20
+        min_floor: 10
+
+arcane:
+  description: "Hoarders of magic: the best potion supply (imp, mimic, demon)"
+  potions:
+    drop_chance: 0.25
+    items:
+      - id: potion_healing
+        weight: 40
+      - id: potion_regeneration
+        weight: 30
+        min_floor: 5
+      - id: potion_extra_healing
+        weight: 25
+        min_floor: 10
+      - id: potion_full_healing
+        weight: 10
+        min_floor: 30
+
+# =============================================================================
 # GOBLIN LOOT - Weak enemy, basic drops
 # =============================================================================
 goblin:
@@ -128,6 +198,9 @@ orc:
     items:
       - id: potion_healing
         weight: 60
+      - id: potion_regeneration
+        weight: 20
+        min_floor: 5
       - id: potion_extra_healing
         weight: 30
       - id: potion_strength
@@ -203,6 +276,9 @@ troll:
     items:
       - id: potion_healing
         weight: 30
+      - id: potion_regeneration
+        weight: 20
+        min_floor: 5
       - id: potion_extra_healing
         weight: 40
       - id: potion_full_healing
@@ -256,6 +332,14 @@ lich:
       - id: lich_phylactery
         weight: 100
 
+  potions:
+    drop_chance: 0.50
+    items:
+      - id: potion_extra_healing
+        weight: 50
+      - id: potion_full_healing
+        weight: 50
+
 phoenix:
   description: "Essence (Flaming Sword) and feather (Phoenix Armor)"
   essence:
@@ -269,6 +353,14 @@ phoenix:
       - id: phoenix_feather
         weight: 100
 
+  potions:
+    drop_chance: 0.50
+    items:
+      - id: potion_regeneration
+        weight: 50
+      - id: potion_full_healing
+        weight: 50
+
 wraith:
   description: "Essence for the Shadow Cloak; it takes more than one kill on average"
   material:
@@ -277,12 +369,29 @@ wraith:
       - id: wraith_essence
         weight: 100
 
+  potions:
+    drop_chance: 0.25
+    items:
+      - id: potion_regeneration
+        weight: 40
+      - id: potion_extra_healing
+        weight: 40
+      - id: potion_full_healing
+        weight: 20
+        min_floor: 30
+
 wyvern:
   description: "Dragon bone for the Dragon Bow (no true dragon exists; the wyvern is its kin)"
   material:
     drop_chance: 0.5
     items:
       - id: dragon_bone
+        weight: 100
+
+  food:
+    drop_chance: 0.30
+    items:
+      - id: meat
         weight: 100
 
 ancient_horror:
