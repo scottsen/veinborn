@@ -44,6 +44,9 @@ class MultiplayerClient:
     def __init__(self, host: str = "localhost", port: int = 8765):
         # Called when the auth token or game id changes (a restarted client resumes from them)
         self.on_session: Optional[Callable[[], None]] = None
+        # Set while a join from a saved session is in flight: if the server refuses it
+        # (game gone) the saved game id is dropped so the next start is not stuck on it
+        self.resume_game_id: Optional[str] = None
         """Initialize the multiplayer client.
 
         Args:
@@ -345,6 +348,11 @@ class MultiplayerClient:
 
         elif msg_type == "error":
             self._refused(message.data.get("message", ""))
+            if self.resume_game_id and self.state.game_id is None:
+                logger.info(f"Saved game {self.resume_game_id} is gone: forgetting it")
+                self.resume_game_id = None
+                if self.on_session:
+                    self.on_session()    # saves the current state, which has no game id
 
         elif msg_type == "intent_result":
             ok = bool(message.data.get("ok"))
@@ -412,6 +420,7 @@ class MultiplayerClient:
     def _set_game_id(self, game_id: str) -> None:
         changed = game_id != self.state.game_id
         self.state.game_id = game_id
+        self.resume_game_id = None
         if changed and self.on_session:
             self.on_session()
 

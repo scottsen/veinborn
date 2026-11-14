@@ -353,3 +353,38 @@ async def test_a_restarted_client_resumes_its_game_from_the_saved_session(tmp_pa
                 await c.disconnect()
         await alice.close()
         await server.stop()
+
+
+@pytest.mark.asyncio
+async def test_a_saved_game_that_is_gone_is_forgotten_but_the_token_is_kept(tmp_path, monkeypatch):
+    """A client resuming a game the server no longer has is refused, and the saved game id is
+    dropped (the token stays) so the next start is not stuck on it."""
+    import argparse
+    import sys
+    from pathlib import Path
+
+    from ui import session_store
+    sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
+    import run_multiplayer
+
+    monkeypatch.setattr(session_store, "default_path", lambda: tmp_path / "session.json")
+    server = VeinbornServer("127.0.0.1", 0)
+    await server.start()
+    port = server.server.sockets[0].getsockname()[1]
+    args = argparse.Namespace(
+        name="Bob", host="127.0.0.1", port=port, game_id=None, create_game=False,
+        game_name="x", char_class="mage", no_resume=False,
+    )
+    session_store.save("127.0.0.1", port, "Bob", None, "no-such-game")
+    bob = MultiplayerClient(host="127.0.0.1", port=port)
+    try:
+        assert await run_multiplayer.make_setup(args)(bob)
+        # until the server answers, the saved id is still on disk
+        assert session_store.load("127.0.0.1", port, "Bob").get("game_id") == "no-such-game"
+        await _until(lambda: bob.state.errors)
+        await _until(lambda: "game_id" not in session_store.load("127.0.0.1", port, "Bob"))
+        assert session_store.load("127.0.0.1", port, "Bob") == {"auth_token": bob.state.auth_token}
+    finally:
+        if bob.ws is not None:
+            await bob.disconnect()
+        await server.stop()

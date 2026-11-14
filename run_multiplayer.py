@@ -118,9 +118,13 @@ def make_setup(args):
 
         def remember() -> None:
             session_store.save(
-                args.host, args.port, args.name, client.state.auth_token, client.state.game_id
+                args.host, args.port, args.name, client.state.auth_token,
+                client.state.game_id or client.resume_game_id,
             )
 
+        # A saved game id stays saved until the server has seated us or refused it
+        if not (args.create_game or args.game_id):
+            client.resume_game_id = saved.get("game_id")
         client.on_session = remember
         remember()
 
