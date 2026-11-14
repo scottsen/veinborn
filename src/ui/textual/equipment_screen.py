@@ -86,7 +86,7 @@ class EquipmentScreen(ModalScreen):
             for line in carried:
                 self._append_line(text, line, selected)
         else:
-            text.append("   (no weapons or armor)\n", style="dim")
+            text.append("   (no wearable gear)\n", style="dim")
 
         if self.feedback:
             text.append(f"\n{self.feedback}\n", style="bright_cyan")

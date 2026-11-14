@@ -65,3 +65,36 @@ def test_equipment_screen_wear_remove_and_keys_do_not_leak():
             assert not isinstance(app.screen, EquipmentScreen)
 
     asyncio.run(scenario())
+
+
+def test_equipment_screen_wears_and_removes_a_ring():
+    """VB-130: a dropped ring shows in the pack list with what it grants, is worn with Enter, comes off with x."""
+    import asyncio
+
+    async def scenario():
+        app = VeinbornApp(seed=5)
+        async with app.run_test() as pilot:
+            player = app.driver.game.state.player
+            player.inventory.clear()
+            player.equipped_weapon = player.equipped_armor = player.equipped_shield = player.equipped_ring = None
+            ring = give(player, 'ring_strength')
+            attack = player.get_total_attack()
+
+            screen = await open_screen(pilot, app)
+            panel = screen.render_panel().plain
+            assert "Ring: (nothing)" in panel
+            assert "Ring of Strength" in panel or "ring_strength" in panel
+            assert "+1 attack" in panel
+
+            await pilot.press("enter")
+            await pilot.pause()
+            assert player.equipped_ring is ring and ring not in player.inventory
+            assert player.get_total_attack() == attack + 1
+            assert "Attack %d" % (attack + 1) in screen.render_panel().plain
+            assert "Ring: " in screen.render_panel().plain and "(nothing)" not in screen.render_panel().plain.split("Ring:")[1].split("\n")[0]
+
+            await pilot.press("x")
+            await pilot.pause()
+            assert player.equipped_ring is None and ring in player.inventory
+
+    asyncio.run(scenario())

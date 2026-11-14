@@ -29,8 +29,8 @@ NO_USE, WORSE_GEAR, ORE, OTHER, HEALING = range(5)
 def usefulness(actor, item) -> int:
     """How much an item is worth carrying, as a tier (lower drops first).
 
-    NO_USE      no built effect, not equippable, not ore (gold, shields, scrolls, rings)
-    WORSE_GEAR  a weapon or armor no better than what is equipped in its slot
+    NO_USE      no built effect, not equippable, not ore (gold, unbuilt scrolls)
+    WORSE_GEAR  a weapon, armor, shield or ring no better than what is equipped in its slot
     ORE         crafting material (raw ore, boss materials for legendary recipes)
     OTHER       also crafted parts (VB-115): they were NO_USE, so `d` dropped them first
     OTHER       better gear, other usable items

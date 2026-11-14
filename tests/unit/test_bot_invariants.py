@@ -122,4 +122,4 @@ def test_recorder_lists_crafts_and_the_gear_worn_at_the_end(game):
     game.handle_player_action('equip', item_id=sword.entity_id)
     gear = recorder.final_gear()
     assert gear['weapon']['name'] == 'Copper Sword' and gear['weapon']['stats'] == craft['stats']
-    assert set(gear) == {'weapon', 'armor', 'shield'}
+    assert set(gear) == {'weapon', 'armor', 'shield', 'ring'}

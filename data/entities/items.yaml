@@ -461,7 +461,7 @@ rings:
     color: "green"
     item_type: "ring"
     stats:
-      regen_rate: 1  # HP per turn
+      regen_rate: 2  # extra HP on every natural-regeneration tick (VB-130); natural regen is 1+ HP per 10 turns
     tags: ["ring", "rare", "wearable", "healing"]
     weight: 1
     value: 150

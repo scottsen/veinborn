@@ -221,7 +221,7 @@ def ore_label(props: Optional[Dict[str, int]]) -> str:
     return label
 
 
-_STAT_WORDS = {'attack_bonus': 'attack', 'defense_bonus': 'defense'}
+_STAT_WORDS = {'attack_bonus': 'attack', 'defense_bonus': 'defense', 'regen_rate': 'regen per tick'}
 
 
 def stats_label(stats: Optional[Dict[str, int]]) -> str:

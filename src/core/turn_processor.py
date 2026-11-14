@@ -15,6 +15,7 @@ import logging
 from typing import TYPE_CHECKING, Callable, Iterable, Optional
 
 from . import fog
+from .equipment import gear_total
 from .base.entity import EntityType
 from .events import EventBus, create_player_died_event, create_run_ended_event, create_turn_ended_event
 
@@ -36,7 +37,8 @@ def apply_hp_regeneration(players: Iterable, turn_count: int,
     A tick heals `amount` HP or `percent` of max HP (whole HP, rounded down),
     whichever is more, so deep characters recover in proportion to their pool
     while a small one still gets `amount`. A player for whom `is_resting`
-    returns True heals `rest_multiplier` times as much (VB-107).
+    returns True heals `rest_multiplier` times as much (VB-107). Worn gear with `regen_rate`
+    (a ring of regeneration) adds that many HP to every tick, resting or not.
     """
     if turn_count % interval != 0:
         return
@@ -46,6 +48,7 @@ def apply_hp_regeneration(players: Iterable, turn_count: int,
             tick = max(amount, int(player.max_hp * percent))
             if is_resting is not None and is_resting(player):
                 tick *= rest_multiplier
+            tick += gear_total(player, 'regen_rate')      # a ring of regeneration (VB-130): flat, not rest-scaled
             healed = player.heal(tick)
 
             if healed > 0:

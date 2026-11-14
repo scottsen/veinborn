@@ -173,7 +173,7 @@ weapons:  # sections loaded: weapons, armor, legendary (RecipeManager.RECIPE_SEC
     symbol: ")"
     color: "silver"
     item_type: "weapon"
-    equipment_slot: "weapon"  # recipes make weapon or armor (worn slots also include shield, VB-72: shields are loot only)
+    equipment_slot: "weapon"  # recipes make weapon or armor (worn slots also include shield (VB-72) and ring (VB-130): both are loot only)
 
     # Recipe requirements (crafting always happens next to a forge)
     requirements:

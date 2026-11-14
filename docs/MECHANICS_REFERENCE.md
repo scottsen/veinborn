@@ -67,24 +67,28 @@ number before it goes into the YAML. `--json` writes the table. `--gear long_swo
 real `RecipeManager` from ore of that quality) equips them through the real `EquipAction` first: gear moves the odds a lot (mage vs lich at
 level 8: 36% wins bare, 98% with a long sword and chainmail), so test a placement at the
 level and gear players actually have on those floors (`scripts/bot_progression.py`, from bot
-`floor_arrivals`). Shields cannot be equipped yet (VB-72).
+`floor_arrivals`).
 
 ### Equipment Bonuses
 
 **Player Stats Calculation:**
 ```python
 # Attack
-total_attack = base_attack + weapon.attack_bonus
+total_attack = base_attack + weapon.attack_bonus + ring.attack_bonus
 
 # Defense
-total_defense = base_defense + armor.defense_bonus + shield.defense_bonus
+total_defense = base_defense + armor.defense_bonus + shield.defense_bonus + ring.defense_bonus
 ```
 
 **Equipment Slots:**
 - **Weapon:** Adds `attack_bonus`
 - **Body Armor:** Adds `defense_bonus`
 - **Shield:** Adds `defense_bonus`
-- **Ring/Accessories:** Adds misc bonuses
+- **Ring (one):** the three that drop (trolls, 10%) are worn like any gear (VB-130): Strength adds
+  `attack_bonus` 1, Protection `defense_bonus` 1, Regeneration `regen_rate` 2, which adds that many HP
+  to every natural-regeneration tick (resting or not; ticks are every 10 turns). A spare ring is an
+  upgrade only if it grants more in total than the worn one. `ring_stealth` is defined but has no
+  effect (stealth is not built) and is in no loot table.
 
 **Example:**
 ```

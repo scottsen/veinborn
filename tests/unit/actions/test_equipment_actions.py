@@ -153,7 +153,8 @@ def test_listing_shows_worn_slots_and_only_wearable_pack_items(game):
 
     worn, carried = equipment_listing(build_snapshot(game.state).player)
 
-    assert [(l.slot, l.item_id) for l in worn] == [('weapon', dagger.entity_id), ('armor', None), ('shield', None)]
+    assert [(l.slot, l.item_id) for l in worn] == [('weapon', dagger.entity_id), ('armor', None), ('shield', None),
+                                                           ('ring', None)]
     assert [l.item_id for l in carried] == [sword.entity_id, shield.entity_id]   # the potion is not gear
     assert [l.bonus for l in carried] == [gear_bonus(sword, 'weapon'), gear_bonus(shield, 'shield')]
     assert carried[0].change == carried[0].bonus - worn[0].bonus > 0

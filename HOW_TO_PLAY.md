@@ -43,11 +43,11 @@ b   n
 - **z** = Use your class ability (mage force bolt, healer heal)
 - **g** = Pick up items on your tile: one item is taken at once; with several you get a list (Enter takes the selected one, **a** takes all). Potions and scrolls are not picked up automatically
 - **e** = Eat or drink: uses the cheapest potion or food that covers your missing HP
-- **d** = Drop the item least worth carrying: things with no use yet (gold, shields, scrolls,
-  rings), then weapons/armor worse than what you wear, then the lowest-purity ore. Press again
+- **d** = Drop the item least worth carrying: things with no use yet (gold, scrolls
+  whose effect is not built), then weapons/armor/shields/rings no better than what you wear, then the lowest-purity ore. Press again
   to drop the next. Walking over something you dropped does not pick it back up; **g** does.
 - **i** = View inventory
-- **w** = Equipment screen: what you wear (weapon, armor, shield) and the weapons/armor/shields in your pack, with each pack item's change vs what you wear. ↑/↓ select, **Enter** wields/wears a pack item or removes a worn one, **x** removes the worn item, **Esc** closes. Swapping and removing take no turn.
+- **w** = Equipment screen: what you wear (weapon, armor, shield, ring) and the weapons/armor/shields/rings in your pack, with each pack item's change vs what you wear. ↑/↓ select, **Enter** wields/wears a pack item or removes a worn one, **x** removes the worn item, **Esc** closes. Swapping and removing take no turn.
 - **:** = Look at what's on the ground
 - **.** or **space** = Wait / pass turn
 - **c** or **enter** = Chat (multiplayer)

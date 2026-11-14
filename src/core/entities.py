@@ -65,6 +65,7 @@ class Player(Entity):
         self.equipped_weapon: Optional[Entity] = None
         self.equipped_armor: Optional[Entity] = None
         self.equipped_shield: Optional[Entity] = None   # off-hand (VB-72)
+        self.equipped_ring: Optional[Entity] = None     # one ring (VB-130)
         self.set_stat('xp', 0)
         self.set_stat('level', 1)
 
@@ -154,6 +155,8 @@ class Player(Entity):
         if self.equipped_weapon:
             weapon_bonus = self.equipped_weapon.get_stat('attack_bonus', 0)
             total += weapon_bonus
+        if self.equipped_ring:
+            total += self.equipped_ring.get_stat('attack_bonus', 0)
         from .status_effects import effects_of
         total += sum(e['magnitude'] for e in effects_of(self) if e['name'] == 'strength')
         return total
@@ -168,7 +171,7 @@ class Player(Entity):
         Get total defense including armor bonus.
 
         Returns:
-            Base defense + armor and shield defense bonuses (if equipped)
+            Base defense + armor, shield and ring defense bonuses (if equipped)
         """
         total = self.defense
         if self.equipped_armor:
@@ -176,6 +179,8 @@ class Player(Entity):
             total += armor_bonus
         if self.equipped_shield:
             total += self.equipped_shield.get_stat('defense_bonus', 0)
+        if self.equipped_ring:
+            total += self.equipped_ring.get_stat('defense_bonus', 0)
         return total
 
 

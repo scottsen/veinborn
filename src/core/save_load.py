@@ -267,6 +267,9 @@ class SaveSystem:
             data["equipped_shield"] = (
                 self._serialize_entity(entity.equipped_shield) if entity.equipped_shield else None
             )
+            data["equipped_ring"] = (
+                self._serialize_entity(entity.equipped_ring) if entity.equipped_ring else None
+            )
         elif isinstance(entity, OreVein):
             data["ore_type"] = entity.ore_type
             data["hardness"] = entity.hardness
@@ -463,6 +466,10 @@ class SaveSystem:
             entity.equipped_shield = (       # absent in saves from before VB-72
                 self._deserialize_entity(data["equipped_shield"])
                 if data.get("equipped_shield") else None
+            )
+            entity.equipped_ring = (         # absent in saves from before VB-130
+                self._deserialize_entity(data["equipped_ring"])
+                if data.get("equipped_ring") else None
             )
 
         return entity

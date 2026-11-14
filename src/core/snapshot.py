@@ -25,7 +25,7 @@ class ItemView:
     content_id: Optional[str]
     name: str
     item_type: str
-    slot: Optional[str] = None  # 'weapon' | 'armor' | 'shield' if it can be worn (core.equipment.gear_slot)
+    slot: Optional[str] = None  # 'weapon' | 'armor' | 'shield' | 'ring' if it can be worn (core.equipment.gear_slot)
     bonus: int = 0              # its bonus in that slot (attack for weapons, defense otherwise)
     usable: bool = False        # a built effect: the pack screen offers Use (potion, food, later scrolls)
     ore: Optional[Dict[str, int]] = None   # raw ore only: the properties recipes read (VB-111)
@@ -111,6 +111,7 @@ class PlayerView:
     weapon: Optional[ItemView]
     armor: Optional[ItemView]
     shield: Optional[ItemView]
+    ring: Optional[ItemView]
     inventory: List[ItemView]
     inventory_capacity: int
     abilities: List[AbilityView]
@@ -203,7 +204,7 @@ def _item_from_dict(data) -> Optional[ItemView]:
 
 def _player_from_dict(data: Dict) -> PlayerView:
     fields = dict(data)
-    for slot in ('weapon', 'armor', 'shield'):
+    for slot in ('weapon', 'armor', 'shield', 'ring'):
         fields[slot] = _item_from_dict(fields.get(slot))
     fields['inventory'] = [_item_from_dict(i) for i in fields.get('inventory', [])]
     fields['abilities'] = [AbilityView(**a) for a in fields.get('abilities', [])]
@@ -374,6 +375,7 @@ def _player_view(player, turn: int, state=None) -> PlayerView:
         weapon=_item(getattr(player, 'equipped_weapon', None)),
         armor=_item(getattr(player, 'equipped_armor', None)),
         shield=_item(getattr(player, 'equipped_shield', None)),
+        ring=_item(getattr(player, 'equipped_ring', None)),
         inventory=[_item(i) for i in player.inventory],
         inventory_capacity=player.get_stat('inventory_capacity', 20),
         abilities=_abilities(player, turn, state),

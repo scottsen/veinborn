@@ -20,7 +20,8 @@ from dataclasses import dataclass
 from ..base.action import Action, ActionOutcome
 from ..base.game_context import GameContext
 from ..entities import Player
-from ..equipment import SLOT_ATTR, SLOT_STAT, gear_bonus, gear_slot, wear
+from ..crafting import stats_label
+from ..equipment import SLOT_ATTR, SLOT_STAT, core_stats, gear_bonus, gear_slot, wear
 
 logger = logging.getLogger(__name__)
 
@@ -135,8 +136,12 @@ class EquipAction(Action):
 
         wear(actor, equipment_slot, item)
         bonus = gear_bonus(item, equipment_slot)
-        messages.append(f"Equipped {item.name} (+{bonus} {stat})")
-        logger.info(f"Equipped {equipment_slot}: {item.name} with +{bonus} {stat}")
+        if equipment_slot == 'ring':      # a ring has no one stat: say what it grants
+            shown = stats_label(core_stats(item)) or 'no effect'
+        else:
+            shown = f"+{bonus} {stat}"
+        messages.append(f"Equipped {item.name} ({shown})")
+        logger.info(f"Equipped {equipment_slot}: {item.name} with {shown}")
         return messages
 
     def _add_equip_event(self, outcome: ActionOutcome, equipment_slot: str):

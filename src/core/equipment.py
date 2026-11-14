@@ -12,10 +12,10 @@ rules on live items that the snapshot and those actions share.
 from dataclasses import dataclass
 from typing import List, Optional, Tuple
 
-GEAR_SLOTS = ('weapon', 'armor', 'shield')
+GEAR_SLOTS = ('weapon', 'armor', 'shield', 'ring')
 # The stats worn gear can carry that the game reads (crafting v2 D1, VB-113/VB-114)
 CORE_GEAR_STATS = ('attack_bonus', 'defense_bonus', 'accuracy', 'max_hp_bonus', 'spell_power',
-                   'fire_damage')
+                   'fire_damage', 'regen_rate')
 
 
 def core_stats(item) -> dict:
@@ -24,19 +24,26 @@ def core_stats(item) -> dict:
 
 
 def gear_slot(item) -> Optional[str]:
-    """'weapon', 'armor' or 'shield' if the item can be equipped (EquipAction's rule), else None."""
+    """'weapon', 'armor', 'shield' or 'ring' if the item can be equipped (EquipAction's rule), else None."""
     slot = item.get_stat('equipment_slot') or item.get_stat('item_type')
     return slot if slot in GEAR_SLOTS else None
 
 
 def gear_bonus(item, slot) -> int:
-    """The bonus that makes gear better in its slot: attack for weapons, defense for armor."""
+    """The bonus that makes gear better in its slot: attack for weapons, defense for armor.
+
+    A ring has no single stat (strength, protection or regeneration), so its worth is the
+    sum of what it grants: a spare ring is an upgrade only if it grants more than the worn one.
+    """
+    if slot == 'ring':
+        return sum(item.get_stat(k, 0) for k in ('attack_bonus', 'defense_bonus', 'regen_rate'))
     return item.get_stat('attack_bonus' if slot == 'weapon' else 'defense_bonus', 0)
 
 
-SLOT_ATTR = {'weapon': 'equipped_weapon', 'armor': 'equipped_armor', 'shield': 'equipped_shield'}
-SLOT_STAT = {'weapon': 'attack', 'armor': 'defense', 'shield': 'defense'}
-SLOT_LABEL = {'weapon': 'Weapon', 'armor': 'Armor', 'shield': 'Shield'}
+SLOT_ATTR = {'weapon': 'equipped_weapon', 'armor': 'equipped_armor', 'shield': 'equipped_shield',
+             'ring': 'equipped_ring'}
+SLOT_STAT = {'weapon': 'attack', 'armor': 'defense', 'shield': 'defense', 'ring': 'bonus'}
+SLOT_LABEL = {'weapon': 'Weapon', 'armor': 'Armor', 'shield': 'Shield', 'ring': 'Ring'}
 
 
 def gear_total(entity, stat: str) -> int:
@@ -79,7 +86,7 @@ def view_stats(item) -> dict:
     if getattr(item, 'stats', None):
         return dict(item.stats)
     key = 'attack_bonus' if item.slot == 'weapon' else 'defense_bonus'
-    return {key: item.bonus} if item.bonus else {}
+    return {key: item.bonus} if item.bonus else {}   # (a ring view without stats is not expected)
 
 
 def stats_diff(new: dict, worn: dict) -> dict:
@@ -91,7 +98,7 @@ def stats_diff(new: dict, worn: dict) -> dict:
 @dataclass(frozen=True)
 class GearLine:
     """One row of the equipment list."""
-    slot: str                 # 'weapon' | 'armor' | 'shield'
+    slot: str                 # 'weapon' | 'armor' | 'shield' | 'ring'
     item: Optional[object]    # an ItemView; None only for an empty worn slot
     worn: bool                # True: worn now (remove it); False: carried (wear it)
     bonus: int                # the item's bonus in its slot's stat
