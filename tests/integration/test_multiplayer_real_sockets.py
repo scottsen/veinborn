@@ -295,3 +295,61 @@ async def test_a_seat_that_left_rejoins_by_name_from_a_fresh_session():
             if client is not None:
                 await client.close()
         await server.stop()
+
+
+@pytest.mark.asyncio
+async def test_a_restarted_client_resumes_its_game_from_the_saved_session(tmp_path, monkeypatch):
+    """VB-103: run_multiplayer's setup remembers the token and game id, and a new process
+    started with just the name is seated in the same game again."""
+    import argparse
+    import sys
+    from pathlib import Path
+
+    from ui import session_store
+    sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
+    import run_multiplayer
+
+    monkeypatch.setattr(session_store, "default_path", lambda: tmp_path / "session.json")
+    server = VeinbornServer("127.0.0.1", 0)
+    await server.start()
+    port = server.server.sockets[0].getsockname()[1]
+    alice = _Client("Alice")
+    bob_args = argparse.Namespace(
+        name="Bob", host="127.0.0.1", port=port, game_id=None, create_game=False,
+        game_name="x", char_class="mage", no_resume=False,
+    )
+    bob = bob2 = None
+    try:
+        await alice.connect(port)
+        await alice.send(Message.create_game("Resume", max_players=4))
+        await _until(lambda: alice.game_id)
+        bob_args.game_id = alice.game_id
+
+        bob = MultiplayerClient(host="127.0.0.1", port=port)
+        assert await run_multiplayer.make_setup(bob_args)(bob)
+        await _until(lambda: bob.lobby.get("game_id"))
+        saved = session_store.load("127.0.0.1", port, "Bob")
+        assert saved == {"auth_token": bob.state.auth_token, "game_id": alice.game_id}
+        bob_player = bob.state.player_id
+
+        await alice.send(Message(type="ready", data={"ready": True}))
+        await bob.send_ready()
+        await _until(lambda: alice.entity_id and bob.snapshot)
+        game = await server.game_manager.get_game(alice.game_id)
+        await bob.ws.close()                                   # the process dies
+        await _until(lambda: game.players[bob_player].is_disconnected())
+
+        bob_args.game_id = None                                # restarted with only --name
+        bob2 = MultiplayerClient(host="127.0.0.1", port=port)
+        assert await run_multiplayer.make_setup(bob_args)(bob2)
+        await _until(lambda: bob2.snapshot is not None)
+
+        assert bob2.state.player_id == bob_player
+        assert bob2.snapshot.player.entity_id == bob.snapshot.player.entity_id
+        assert not game.players[bob_player].is_disconnected()
+    finally:
+        for c in (bob, bob2):
+            if c is not None and c.ws is not None:
+                await c.disconnect()
+        await alice.close()
+        await server.stop()

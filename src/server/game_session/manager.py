@@ -65,6 +65,13 @@ class GameSessionManager:
             if not game:
                 return False, "Game not found"
 
+            # Joining the game you are already in, while disconnected: that is a reconnect
+            # (a client that restarted with its saved token and game id asks this way)
+            known = game.players.get(player_id)
+            if (known is not None and known.is_disconnected()
+                    and self._player_to_game.get(player_id) == game_id):
+                return await game.reconnect_player(player_id)
+
             if game.is_started and not game.is_finished:
                 return await self._rejoin_locked(game, player_id, player_name)
 

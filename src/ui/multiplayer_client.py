@@ -42,6 +42,8 @@ class MultiplayerClient:
     """Client for connecting to Veinborn multiplayer server."""
 
     def __init__(self, host: str = "localhost", port: int = 8765):
+        # Called when the auth token or game id changes (a restarted client resumes from them)
+        self.on_session: Optional[Callable[[], None]] = None
         """Initialize the multiplayer client.
 
         Args:
@@ -363,7 +365,7 @@ class MultiplayerClient:
             self.game_info = message.data.get("game", {})
             self.lobby = {}
             if self.game_info.get("game_id"):
-                self.state.game_id = self.game_info["game_id"]
+                self._set_game_id(self.game_info["game_id"])
 
             if self.on_snapshot:
                 self.on_snapshot(self.snapshot)
@@ -372,7 +374,7 @@ class MultiplayerClient:
             self.lobby = message.data
             self.game_info = {k: v for k, v in message.data.items() if k != "players"}
             if self.lobby.get("game_id"):
-                self.state.game_id = self.lobby["game_id"]
+                self._set_game_id(self.lobby["game_id"])
 
             if self.on_lobby:
                 self.on_lobby(self.lobby)
@@ -406,6 +408,12 @@ class MultiplayerClient:
 
         else:
             logger.debug(f"Received message type: {msg_type}")
+
+    def _set_game_id(self, game_id: str) -> None:
+        changed = game_id != self.state.game_id
+        self.state.game_id = game_id
+        if changed and self.on_session:
+            self.on_session()
 
     def _refused(self, text: str) -> None:
         """The server said no (an error, or a refused intent): keep it and tell the UI."""

@@ -15,6 +15,7 @@ sys.path.insert(0, str(src_path))
 
 from ui.textual.app import VeinbornApp
 from ui.multiplayer_client import MultiplayerClient
+from ui import session_store
 from ui.textual.game_init import setup_logging
 
 
@@ -90,6 +91,12 @@ Chat:
         help='Character class (default: warrior)'
     )
 
+    parser.add_argument(
+        '--no-resume',
+        action='store_true',
+        help="Ignore the saved session: don't resume the last game or auth token"
+    )
+
     return parser.parse_args()
 
 
@@ -102,9 +109,20 @@ def make_setup(args):
     """
 
     async def setup(client) -> bool:
-        success = await client.connect(args.name)
+        # A restarted client resumes its auth session (same identity) and, when no game
+        # is named, goes back to its last game: the server seats it again (plan D7)
+        saved = {} if args.no_resume else session_store.load(args.host, args.port, args.name)
+        success = await client.connect(args.name, auth_token=saved.get("auth_token"))
         if not success:
             return False
+
+        def remember() -> None:
+            session_store.save(
+                args.host, args.port, args.name, client.state.auth_token, client.state.game_id
+            )
+
+        client.on_session = remember
+        remember()
 
         if args.create_game:
             await client.create_game(
@@ -112,9 +130,9 @@ def make_setup(args):
                 player_class=args.char_class,
                 max_players=4
             )
-        elif args.game_id:
+        elif args.game_id or saved.get("game_id"):
             await client.join_game(
-                game_id=args.game_id,
+                game_id=args.game_id or saved["game_id"],
                 player_class=args.char_class
             )
         return True
