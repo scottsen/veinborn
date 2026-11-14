@@ -2592,9 +2592,9 @@ priority: medium
 effort: 3d
 tags: [balance, loot, content]
 created: '2026-11-14T06:09:09Z'
-updated: '2026-11-14T22:17:23Z'
+updated: '2026-11-14T22:20:03Z'
 session: acidic-lens-1113
-notes_next: 8
+notes_next: 9
 ```
 
 <!-- notes: append-only log; each has a stable #id (see CLI §5) -->
@@ -2606,6 +2606,7 @@ notes_next: 8
 - [#5 2026-11-14T17:51:52Z session:peaceful-shower-1114] Pack-aware drinking (DRINK_BELOW_PACK 0.6 at 3+ monsters within 8): paired 96-pair run, potions used 2.66 -> 4.11*, carried at end 4.14 -> 3.51*, deaths 0.38 -> 0.41 n.s. Supply is not the limit: bots pick up ~11.6 usable items, use ~2.7, drop ~4.8 (pack pressure), carry ~4.1; 25 of 36 baseline deaths still held an item. Next lever is VB-108 (disengage/escape), not more supply or scrolls. Results: /home/scottsen/src/tia/sessions/peaceful-shower-1114/pack_ab/.
 - [#6 2026-11-14T22:01:01Z session:xuhuve-1114] 2026-11-14 human-usability review (xuhuve-1114), runtime-checked over every items.yaml item: loot tables DROP 8 items a human can neither use nor wear: potion_strength (no buff_attack effect), scroll_enchant_weapon, scroll_enchant_armor, scroll_identify, scroll_teleport (no effects), ring_protection, ring_regeneration, ring_strength (gear_slot None: no ring slot). Only heal/heal_full/eat/regenerate are implemented (content/items/healing.py). They fill pack slots as dead weight (quick-drop treats them NO_USE). Defined but not dropped and also unimplemented: potion_speed, potion_invisibility, scroll_lightning, scroll_mapping, ring_stealth, torch/rope/lockpick. Either implement or remove from loot_tables.yaml; scrolls and the VB-82 identification design depend on this.
 - [#7 2026-11-14T22:17:23Z session:xuhuve-1114] 2026-11-14 follow-up (xuhuve-1114): scrolls enchant_weapon, enchant_armor, teleport, identify are now usable (content/items/scrolls.py, 10 tests; identify = survey every vein within 8). STILL dropped but unusable: potion_strength (needs a timed attack buff: a status effect that get_total_attack reads), ring_protection, ring_regeneration, ring_strength (no ring slot: equipment.GEAR_SLOTS, Player slot attr, save/load, equipment screen). Defined but not dropped and unimplemented: potion_speed, potion_invisibility, scroll_lightning, scroll_mapping, ring_stealth, tools. Bots do not read scrolls (no behaviour change).
+- [#8 2026-11-14T22:20:03Z session:xuhuve-1114] potion_strength now works (status effect 'strength', get_total_attack reads it, sidebar shows it, protocol 11, 2 tests). Still dropped but unusable: ring_protection, ring_regeneration, ring_strength (need a ring slot: GEAR_SLOTS, Player attr, save/load, equipment screen, a gear_slot rule).
 
 
 ## TASK-VB-108 · Bots: pack-aware threat (sum fight odds over monsters in ~8 tiles), disengage before adjacency, geared deep-start scenario (advance_to gives no gear), rest/escape follow-ups; evidence in VB-68 note #8
