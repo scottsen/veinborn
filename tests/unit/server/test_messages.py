@@ -24,7 +24,6 @@ def test_message_types_defined():
     # Client to server
     assert MessageType.AUTH.value == "auth"
     assert MessageType.RECONNECT.value == "reconnect"
-    assert MessageType.ACTION.value == "action"
     assert MessageType.CHAT.value == "chat"
     assert MessageType.JOIN_GAME.value == "join_game"
     assert MessageType.CREATE_GAME.value == "create_game"
@@ -279,26 +278,6 @@ def test_player_reconnected_message():
     assert msg.type == MessageType.PLAYER_RECONNECTED.value
     assert msg.data["player_id"] == "player1"
     assert msg.data["player_name"] == "Alice"
-
-
-# ============================================================================
-# Action Messages Tests
-# ============================================================================
-
-def test_action_message():
-    """Test action message."""
-    action_data = {
-        "action_type": "MoveAction",
-        "actor_id": "player1",
-        "dx": 1,
-        "dy": 0
-    }
-
-    msg = Message.action("MoveAction", action_data)
-
-    assert msg.type == MessageType.ACTION.value
-    assert msg.data["action_type"] == "MoveAction"
-    assert msg.data["action_data"] == action_data
 
 
 # ============================================================================

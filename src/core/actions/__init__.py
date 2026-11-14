@@ -39,12 +39,10 @@ __all__ = [
     'ACTION_TYPES',
 ]
 
-# VB-21: single source of truth for actions that can be (de)serialized over
-# the wire via plain to_dict()/from_dict(action_type=ClassName). The server's
-# ActionRegistry (server/action_handler.py) registers directly from this map
-# instead of hand-maintaining its own import list, which is how PickupAction
-# and WaitAction silently ended up unusable in multiplayer despite working
-# fine in single-player.
+# VB-21: single source of truth for every action, by class name, for plain
+# to_dict()/from_dict(action_type=ClassName). The wire carries intents, not
+# actions (plan D3), so nothing deserializes client actions any more; the map
+# stays the one list tests check every Action subclass against.
 ACTION_TYPES: Dict[str, Type[Action]] = {
     'MoveAction': MoveAction,
     'AttackAction': AttackAction,

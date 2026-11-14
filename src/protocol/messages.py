@@ -14,7 +14,6 @@ class MessageType(Enum):
     # Client -> Server
     AUTH = "auth"
     RECONNECT = "reconnect"
-    ACTION = "action"
     INTENT = "intent"
     CHAT = "chat"
     QUICK_COMMAND = "quick_command"
@@ -99,17 +98,6 @@ class Message:
         return cls(
             type=MessageType.AUTH_FAILURE.value,
             data={"reason": reason},
-        )
-
-    @classmethod
-    def action(cls, action_type: str, action_data: Dict[str, Any]) -> "Message":
-        """Create action message."""
-        return cls(
-            type=MessageType.ACTION.value,
-            data={
-                "action_type": action_type,
-                "action_data": action_data,
-            },
         )
 
     @classmethod

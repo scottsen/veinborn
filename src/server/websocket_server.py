@@ -18,7 +18,6 @@ from server.config import config
 from server.game_session import GameSessionManager
 from protocol import PROTOCOL_VERSION
 from protocol.messages import Message, MessageType
-from server.action_handler import action_registry
 
 
 logger = logging.getLogger(__name__)
@@ -261,8 +260,6 @@ class VeinbornServer:
             await self.handle_reconnect(session_id, session, message)
         elif msg_type == MessageType.READY.value:
             await self.handle_ready(session_id, session, message)
-        elif msg_type == MessageType.ACTION.value:
-            await self.handle_action(session_id, session, message)
         elif msg_type == MessageType.GET_SNAPSHOT.value:
             await self.send_game_state_to(session_id, session)
         elif msg_type == MessageType.INTENT.value:
@@ -468,46 +465,6 @@ class VeinbornServer:
             return
         await self.broadcast_game_state(session.game_id)
         await self.send_message_to_session(session_id, Message.intent_result(rid, True))
-
-    async def handle_action(self, session_id: str, session: Session, message: Message):
-        """Handle player action."""
-        if not session.game_id:
-            await self.send_error(session_id, "Not in a game")
-            return
-
-        game = await self.game_manager.get_game(session.game_id)
-        if not game or not game.is_started:
-            await self.send_error(session_id, "Game not active")
-            return
-
-        # Deserialize action
-        action_data = message.data.get("action_data")
-        if not action_data:
-            await self.send_error(session_id, "Missing action_data")
-            return
-
-        action = action_registry.deserialize(action_data)
-        if not action:
-            await self.send_error(session_id, "Invalid action data")
-            return
-
-        # Validate action belongs to this player
-        player_entity_id = None
-        if game.mp_game_state:
-            player_entity_id = game.mp_game_state.get_player_entity_id(session.player_id)
-
-        if player_entity_id and action.actor_id != player_entity_id:
-            await self.send_error(session_id, "Action actor does not match player")
-            return
-
-        # Execute action
-        success, error = await game.process_action(session.player_id, action)
-
-        if not success:
-            await self.send_error(session_id, error or "Action failed")
-        else:
-            # Broadcast updated state to all players
-            await self.broadcast_game_state(session.game_id)
 
     async def handle_chat(self, session_id: str, session: Session, message: Message):
         """Handle chat message."""

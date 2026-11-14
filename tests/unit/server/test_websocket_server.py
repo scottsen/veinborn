@@ -265,25 +265,6 @@ async def test_handle_message_routes_join_game():
 
 
 @pytest.mark.asyncio
-async def test_handle_message_routes_action():
-    """Test message routing for action."""
-    server = VeinbornServer()
-    token, session = server.auth_manager.create_session("TestPlayer")
-
-    called = []
-
-    async def mock_handle_action(session_id, session_obj, msg):
-        called.append("action")
-
-    server.handle_action = mock_handle_action
-
-    msg = Message(type=MessageType.ACTION.value, data={"action_data": {}})
-    await server.handle_message(session.session_id, msg)
-
-    assert "action" in called
-
-
-@pytest.mark.asyncio
 async def test_handle_message_unknown_type():
     """Test handling unknown message type."""
     server = VeinbornServer()
