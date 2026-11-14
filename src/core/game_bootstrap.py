@@ -10,14 +10,11 @@ still needs fresh subsystems).
 import logging
 from typing import Dict, List, Optional, Tuple
 
-from .actions.action_factory import ActionFactory
 from .base.game_context import GameContext
 from .entities import Player, OreVein
 from .entity_loader import EntityLoader
-from .floor_manager import FloorManager
 from .game_state import GameState
 from .spawning import EntitySpawner
-from .turn_processor import TurnProcessor
 from .world import Map
 
 logger = logging.getLogger(__name__)
@@ -130,27 +127,3 @@ class GameBootstrapper:
                 f"{withdrawn_ore.ore_type} ore from the Legacy Vault!"
             )
             state.add_message("This is a Legacy run. Good luck!")
-
-    def initialize_subsystems(
-        self, context: GameContext, event_bus=None
-    ) -> Tuple[EntitySpawner, TurnProcessor, FloorManager, ActionFactory]:
-        """
-        Build the per-game subsystems (spawner, turn processor, floor
-        manager, action factory) once state/context exist.
-
-        Used by both Game.start_new_game() (after creating new state) and
-        Game.load_game() (after loading saved state). `event_bus` receives the
-        turn processor's and floor manager's events (turn_ended, player_died, run_ended).
-        """
-        spawner = EntitySpawner(self.config, self.entity_loader)
-
-        hp_regen_config = self.config.game_constants['player']['health_regeneration']
-        hp_regen_interval = hp_regen_config['interval_turns']
-        hp_regen_amount = hp_regen_config['amount']
-
-        turn_processor = TurnProcessor(context, hp_regen_interval, hp_regen_amount, spawner=spawner,
-                                       event_bus=event_bus)
-        floor_manager = FloorManager(context, spawner, event_bus=event_bus)
-        action_factory = ActionFactory(context)
-
-        return spawner, turn_processor, floor_manager, action_factory

@@ -5,18 +5,11 @@ import time
 import logging
 from typing import Dict, List, Optional
 
-from core.action_pipeline import process_action_outcome
-from core.actions.action_factory import ActionFactory
 from core.base.action import Action
 from core.base.game_context import GameContext
-from core.events import (
-    EventBus, GameEventType, create_floor_changed_event, create_game_started_event,
-)
-from core.extensions import install_event_handlers
-from core.floor_manager import FloorManager
+from core.events import EventBus, GameEventType, create_game_started_event
+from core.engine import Engine
 from core.highscore import HighScoreEntry, HighScoreManager
-from core.systems.ai_system import AISystem
-from core.turn_processor import TurnProcessor
 from server.multiplayer_game_state import MultiplayerGameState
 from server.state_delta import StateDelta
 
@@ -51,13 +44,10 @@ class GameSession:
 
         # Game context and systems (initialized when game starts)
         self.game_context: Optional[GameContext] = None
-        self.ai_system: Optional[AISystem] = None
+        self.engine: Optional[Engine] = None
         self.event_bus = EventBus()
 
         # Turn management (rounds live in mp_game_state.scheduler)
-        self.turn_processor: Optional[TurnProcessor] = None
-        self.floor_manager: Optional[FloorManager] = None
-        self.event_handlers: list = []
         self.pending_actions: asyncio.Queue = asyncio.Queue()
 
         # State tracking for delta compression
@@ -71,6 +61,12 @@ class GameSession:
 
         # Locks
         self._lock = asyncio.Lock()
+
+    # The engine's parts, under the names callers and tests have used
+    ai_system = property(lambda self: self.engine.ai_system if self.engine else None)
+    turn_processor = property(lambda self: self.engine.turn_processor if self.engine else None)
+    floor_manager = property(lambda self: self.engine.floor_manager if self.engine else None)
+    event_handlers = property(lambda self: self.engine.event_handlers if self.engine else [])
 
     def can_join(self) -> bool:
         """Check if the game can accept more players."""
@@ -309,29 +305,21 @@ class GameSession:
             # Initialize game context and AI system
             if self.mp_game_state.game_state:
                 self.game_context = GameContext(self.mp_game_state.game_state)
-                self.ai_system = AISystem(self.game_context, event_bus=self.event_bus)
-                self.game_context.register_system('ai', self.ai_system)
-                regen = self.mp_game_state.config.game_constants['player']['health_regeneration']
-                self.turn_processor = TurnProcessor(
+                # The same engine single-player runs on: actions, world tick, floors, AI,
+                # content handlers (achievements, quests, kill streaks)
+                self.engine = Engine(
                     self.game_context,
-                    regen['interval_turns'],
-                    regen['amount'],
+                    self.mp_game_state.config,
+                    self.event_bus,
                     spawner=self.mp_game_state.spawner,
-                    event_bus=self.event_bus,
+                    log_failures=False,  # a refused action is reported to its sender only
                     defeat_message="All players have died. Game over!",
                 )
-                self.floor_manager = FloorManager(
-                    self.game_context,
-                    self.mp_game_state.spawner,
-                    event_bus=self.event_bus,
-                )
-                # Same content (achievements, quests, kill streaks) as single-player
-                self.event_handlers = install_event_handlers(self.game_context, self.event_bus)
                 # Co-op scores are recorded per player as they die, survivors when the run ends
                 self.event_bus.subscribe(GameEventType.PLAYER_DIED, self._on_player_died)
                 self.event_bus.subscribe(GameEventType.RUN_ENDED, self._on_run_ended)
                 self.mp_game_state.scheduler.start(self.mp_game_state.living_entity_ids())
-                logger.info("Initialized GameContext, AISystem and TurnProcessor for multiplayer game")
+                logger.info("Initialized the engine for multiplayer game")
             else:
                 logger.error("Failed to initialize game state for multiplayer game")
 
@@ -345,35 +333,6 @@ class GameSession:
             logger.info(f"Game {self.game_id} started with {len(self.players)} players")
 
             return True
-
-    def _apply_action_outcome(self, outcome, action_type: str) -> bool:
-        """Run a successful action's outcome through the pipeline shared with single-player.
-
-        VB-4: floor descent used to be dropped entirely. VB-24: messages and events
-        were dropped too, and free actions were counted against the round quota.
-
-        Returns:
-            True if the action consumed a turn (and so counts toward the round).
-        """
-        return process_action_outcome(
-            outcome,
-            action_type,
-            add_message=self.mp_game_state.add_message,
-            on_descend_floor=self._descend_floor,
-            event_bus=self.event_bus,
-        )
-
-    def _descend_floor(self) -> None:
-        """Move the whole party down (the same FloorManager single-player uses), then announce it."""
-        state = self.mp_game_state.game_state
-        from_floor = state.current_floor
-        self.floor_manager.descend_floor()
-        if state.current_floor != from_floor:
-            living = self.mp_game_state.living_entity_ids()
-            self.event_bus.publish_dict(create_floor_changed_event(
-                from_floor, state.current_floor,
-                living[0] if living else state.player.entity_id, state.turn_count,
-            ))
 
     def _finish_action(self, entity_id: str, took_turn: bool) -> None:
         """Book a successful action with the round scheduler and tick the world if due.
@@ -390,9 +349,8 @@ class GameSession:
             mp.scheduler.next_round(mp.living_entity_ids())
 
         # Deaths and the end of the run are announced by the engine; scoring subscribes
-        self.turn_processor.announce_deaths()
         mp.update_player_alive_status()
-        self.turn_processor.check_game_over()
+        self.engine.after_action()
 
         if mp.game_state.game_over:
             self.is_finished = True
@@ -412,7 +370,7 @@ class GameSession:
     def _world_tick(self) -> None:
         """Monsters act, time passes. Errors are logged so a bad tick cannot wedge the session."""
         try:
-            self.turn_processor.process_turn()
+            self.engine.tick()
         except Exception as e:
             logger.error(f"Error processing world turn: {e}", exc_info=True)
 
@@ -460,7 +418,7 @@ class GameSession:
         """
         args = dict(args or {})
         args.pop("actor_id", None)  # never accept an actor from the wire
-        if not self.mp_game_state or not self.mp_game_state.game_state:
+        if not self.engine or not self.mp_game_state or not self.mp_game_state.game_state:
             return False, "Game state not initialized"
         entity_id = self.mp_game_state.get_player_entity_id(player_id)
         if not entity_id:
@@ -469,7 +427,7 @@ class GameSession:
         # No await between building and handing over: factory reads state synchronously
         state = self.mp_game_state.game_state
         before = state.message_count
-        action = ActionFactory(GameContext(state)).create(intent, actor_id=entity_id, **args)
+        action = self.engine.make_action(intent, actor_id=entity_id, **args)
         if action is None:
             added = state.message_count - before
             return False, (state.messages[-1] if added > 0 else f"Cannot {intent}")
@@ -519,14 +477,13 @@ class GameSession:
                 ]
                 return False, "Waiting for the party" + (f": {', '.join(waiting)}" if waiting else "")
 
-            # Execute action against a GameContext (not raw GameState)
+            # Execute through the engine (same pipeline as single-player)
             try:
-                context = GameContext(self.mp_game_state.game_state)
-                outcome = action.execute(context)
-                if not outcome.is_success:
-                    return False, "; ".join(outcome.messages) or "Action failed"
+                result = self.engine.execute(action, action.get_action_type())
+                if not result.outcome.is_success:
+                    return False, "; ".join(result.outcome.messages) or "Action failed"
 
-                took_turn = self._apply_action_outcome(outcome, action.get_action_type())
+                took_turn = result.took_turn
                 self._finish_action(action.actor_id, took_turn)
 
                 return True, None

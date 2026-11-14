@@ -17,17 +17,11 @@ from .rng import GameRNG
 from .base.entity import EntityType
 from .entity_loader import EntityLoader
 from .world import Map
-from .systems.ai_system import AISystem
-from .actions.action_factory import ActionFactory
+from .engine import Engine
 from .config import ConfigLoader
-from .spawning import EntitySpawner
-from .action_pipeline import process_action_outcome
-from .turn_processor import TurnProcessor
 from .run_end import SinglePlayerRunRecorder
-from .floor_manager import FloorManager
 from .save_load import SaveSystem, SaveLoadError
-from .events import EventBus, create_game_started_event, create_floor_changed_event
-from .extensions import install_event_handlers, uninstall_event_handlers
+from .events import EventBus, create_game_started_event
 from .telemetry import StatsTracker, GameTelemetry, PerformanceTelemetry
 from .game_bootstrap import GameBootstrapper
 
@@ -56,12 +50,10 @@ class Game:
         # Load entity definitions (Phase 3: data-driven entities)
         self.entity_loader = EntityLoader()
 
-        # Subsystems (created by GameBootstrapper after state is set up)
-        self.spawner: Optional[EntitySpawner] = None
-        self.turn_processor: Optional[TurnProcessor] = None
+        # The rules loop (created once state/context exist); this class is the
+        # single-player host around it
+        self.engine: Optional[Engine] = None
         self.run_recorder: Optional[SinglePlayerRunRecorder] = None
-        self.floor_manager: Optional[FloorManager] = None
-        self.action_factory: Optional[ActionFactory] = None
 
         # Save/load system
         self.save_system = SaveSystem()
@@ -72,11 +64,16 @@ class Game:
         self.game_telemetry = GameTelemetry()
         self.perf_telemetry = PerformanceTelemetry()
 
-        self.event_handlers = []  # content event handlers, one instance each, per game
-        self.ai_system: Optional[AISystem] = None
-
         self.bootstrapper = GameBootstrapper(self.config, self.entity_loader)
         logger.debug("Game initialized with configuration, entity loader, and event system")
+
+    # The engine's parts, under the names the UI, bots and tests have always used
+    spawner = property(lambda self: self.engine.spawner if self.engine else None)
+    turn_processor = property(lambda self: self.engine.turn_processor if self.engine else None)
+    floor_manager = property(lambda self: self.engine.floor_manager if self.engine else None)
+    action_factory = property(lambda self: self.engine.action_factory if self.engine else None)
+    ai_system = property(lambda self: self.engine.ai_system if self.engine else None)
+    event_handlers = property(lambda self: self.engine.event_handlers if self.engine else [])
 
     def start_new_game(
         self,
@@ -125,11 +122,8 @@ class Game:
         if withdrawn_ore:
             self.bootstrapper.add_legacy_ore(player, withdrawn_ore)
 
-        # Initialize subsystems
+        # Initialize the engine (turn processor, floors, AI, content handlers)
         self._initialize_subsystems()
-
-        # Register AI system
-        self._register_ai_system()
 
         # Spawn entities
         entities = self.bootstrapper.spawn_entities(
@@ -184,12 +178,11 @@ class Game:
             self._process_turn()
             return True
 
-        # Create action via factory
-        action = self.action_factory.create(action_type, **kwargs)
+        # Build the action (the factory resolves targets and logs why it cannot)
+        action = self.engine.make_action(action_type, **kwargs)
         if not action:
-            return False  # Factory already logged warning
+            return False
 
-        # Execute action
         logger.debug(
             f"Executing action: {action_type}",
             extra={
@@ -197,19 +190,10 @@ class Game:
                 'turn': self.state.turn_count,
             }
         )
-        outcome = action.execute(self.context)
+        result = self.engine.execute(action, action_type)
 
-        # Process outcome (events, messages, floor transitions)
-        took_turn = process_action_outcome(
-            outcome,
-            action_type,
-            add_message=self.state.add_message,
-            on_descend_floor=self.descend_floor,
-            event_bus=self.event_bus,
-        )
-
-        # Process turn if action consumed time
-        if took_turn:
+        # A party of one: the world moves after every turn-consuming action
+        if result.took_turn:
             self._process_turn()
             return True
 
@@ -243,7 +227,7 @@ class Game:
 
     def _process_turn(self) -> None:
         """Process one game turn (delegated to TurnProcessor, which announces it)."""
-        self.turn_processor.process_turn()
+        self.engine.tick()
 
     def restart_game(self) -> None:
         """Restart the game."""
@@ -251,14 +235,8 @@ class Game:
         self.start_new_game()
 
     def descend_floor(self) -> None:
-        """Descend to next floor (delegated to FloorManager), then announce it."""
-        from_floor = self.state.current_floor
-        self.floor_manager.descend_floor()
-        if self.state.current_floor != from_floor:
-            self.event_bus.publish_dict(create_floor_changed_event(
-                from_floor, self.state.current_floor,
-                self.state.player.entity_id, self.state.turn_count,
-            ))
+        """Descend to the next floor (the engine moves the party and announces it)."""
+        self.engine.descend_floor()
 
     def save_game(self, slot_name: str = "quicksave") -> bool:
         """
@@ -305,9 +283,12 @@ class Game:
         if not self.state or not self.context:
             raise ValueError("Cannot initialize subsystems without state and context")
 
-        # Initialize core subsystems (spawner, turn processor, floor manager, action factory)
-        self.spawner, self.turn_processor, self.floor_manager, self.action_factory = (
-            self.bootstrapper.initialize_subsystems(self.context, self.event_bus)
+        # (Re)build the engine; a loaded save replaces the old one, so detach it first
+        if self.engine is not None:
+            self.engine.close()
+        self.engine = Engine(
+            self.context, self.config, self.event_bus,
+            entity_loader=self.entity_loader, ai_entity_loader=self.entity_loader,
         )
 
         # Single-player keeps its own high score and Legacy Vault on run_ended
@@ -319,30 +300,12 @@ class Game:
         self.stats_tracker.is_player = self._is_player_id
         self.stats_tracker.subscribe_to(self.event_bus)
 
-        # Content event handlers (core/content/events/): fresh instances per
-        # (re)initialisation, so a loaded game never double-subscribes old ones
-        uninstall_event_handlers(self.event_handlers, self.event_bus)
-        self.event_handlers = install_event_handlers(self.context, self.event_bus)
-
         logger.debug("Subsystems initialized successfully")
 
     def _is_player_id(self, entity_id) -> bool:
         """True if entity_id is a player in the current game (telemetry attribution)."""
         entity = self.context.get_entity(entity_id) if self.context and entity_id else None
         return entity is not None and entity.entity_type == EntityType.PLAYER
-
-    def _register_ai_system(self) -> None:
-        """(Re)create the AI system for the current context, listening to this game's events.
-
-        The previous one (an earlier game or a loaded save) is detached first, so
-        stale monsters never receive provocation events.
-        """
-        if self.ai_system is not None:
-            self.ai_system.detach()
-        self.ai_system = AISystem(
-            self.context, entity_loader=self.entity_loader, event_bus=self.event_bus
-        )
-        self.context.register_system('ai', self.ai_system)
 
     def load_game(self, slot_name: str = "quicksave") -> bool:
         """
@@ -364,11 +327,8 @@ class Game:
             # Add player to game context (needed for monster AI to target player)
             self.context.add_entity(self.state.player)
 
-            # Reinitialize subsystems with loaded state
+            # Reinitialize the engine with the loaded state
             self._initialize_subsystems()
-
-            # Re-register AI system
-            self._register_ai_system()
 
             self.running = True
             logger.info(f"Game loaded successfully: {slot_name}")

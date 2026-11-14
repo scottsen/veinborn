@@ -16,7 +16,6 @@ from core.world import Map
 from core.config import ConfigLoader
 from core.entity_loader import EntityLoader
 from core.spawning import EntitySpawner
-from core.turn_processor import apply_hp_regeneration
 from core.turn_scheduler import RoundScheduler
 
 logger = logging.getLogger(__name__)
@@ -243,17 +242,6 @@ class MultiplayerGameState:
         """Get number of active players."""
         return sum(1 for slot in self.player_slots.values() if slot.is_active)
 
-    def is_player_action(self, entity_id: str) -> bool:
-        """Check if an entity belongs to a player.
-
-        Args:
-            entity_id: Entity ID to check
-
-        Returns:
-            True if entity is a player
-        """
-        return entity_id in self.entity_to_player
-
     def get_state_dict(self) -> Dict:
         """Get game state as a dictionary for serialization.
 
@@ -409,28 +397,6 @@ class MultiplayerGameState:
                     newly_dead.append(slot)
 
         return newly_dead
-
-    def apply_hp_regeneration(self) -> None:
-        """Naturally heal every living player, using single-player's regen rule."""
-        if not self.game_state:
-            return
-
-        regen = self.config.game_constants['player']['health_regeneration']
-        apply_hp_regeneration(
-            [slot.player_entity for slot in self.player_slots.values()
-             if slot.is_alive and slot.player_entity],
-            self.game_state.turn_count,
-            regen['interval_turns'],
-            regen['amount'],
-        )
-
-    def get_active_player_count(self) -> int:
-        """Get count of active, alive players."""
-        return sum(
-            1
-            for slot in self.player_slots.values()
-            if slot.is_active and slot.is_alive
-        )
 
     def _spawn_floor_entities(self, floor: int) -> None:
         """Spawn monsters, ore veins, and forges for the given floor.

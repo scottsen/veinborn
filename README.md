@@ -161,8 +161,8 @@ Full test suite is now green. End-to-end real two-client playtest is the next va
 
 ### The Multiplayer Part (Phase 2)
 
-- **Simultaneous turns:** "4 actions per round, anyone can take them"
-- **Co-op strategy:** Let healer take all 4 turns in emergency
+- **Rounds:** one action per living player per round; the monsters move once everyone has acted (equip and unequip are free)
+- **Co-op strategy:** the party plans together: who scouts, who holds the corridor, who heals
 - **Personal loot:** Everyone gets their own roll (no fighting!)
 - **Class synergies:** Warrior/Mage/Healer/Rogue
 
