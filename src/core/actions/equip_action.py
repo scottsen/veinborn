@@ -20,7 +20,7 @@ from dataclasses import dataclass
 from ..base.action import Action, ActionOutcome
 from ..base.game_context import GameContext
 from ..entities import Player
-from ..equipment import SLOT_ATTR, SLOT_STAT, gear_bonus, gear_slot
+from ..equipment import SLOT_ATTR, SLOT_STAT, gear_bonus, gear_slot, wear
 
 logger = logging.getLogger(__name__)
 
@@ -133,7 +133,7 @@ class EquipAction(Action):
             messages.append(f"Unequipped {old.name}")
             logger.debug(f"Unequipped {equipment_slot}: {old.name}")
 
-        setattr(actor, attr, item)
+        wear(actor, equipment_slot, item)
         bonus = gear_bonus(item, equipment_slot)
         messages.append(f"Equipped {item.name} (+{bonus} {stat})")
         logger.info(f"Equipped {equipment_slot}: {item.name} with +{bonus} {stat}")

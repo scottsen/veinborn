@@ -156,6 +156,11 @@ class Player(Entity):
             total += weapon_bonus
         return total
 
+    def get_total_accuracy(self) -> int:
+        """To-hit bonus from worn gear (crafting v2 `accuracy`, VB-114); 0 with plain gear."""
+        from .equipment import gear_total
+        return gear_total(self, 'accuracy')
+
     def get_total_defense(self) -> int:
         """
         Get total defense including armor bonus.

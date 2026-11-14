@@ -79,7 +79,7 @@ class AttackAction(Action):
         actor_attack, target_defense = self._effective_stats(actor, target)
 
         # Roll to hit; a miss still takes the turn
-        if not self._roll_to_hit(actor_attack, target_defense, rng):
+        if not self._roll_to_hit(actor_attack, target_defense, rng, self._accuracy(actor)):
             self._record_run_stats(actor, target, 0)
             return self._build_miss_outcome(actor, target)
 
@@ -145,7 +145,12 @@ class AttackAction(Action):
         return actor_attack, target_defense
 
     @staticmethod
-    def _roll_to_hit(actor_attack: int, target_defense: int, rng) -> bool:
+    def _accuracy(actor) -> int:
+        """To-hit bonus beyond attack: worn gear's accuracy for players, 0 for monsters."""
+        return actor.get_total_accuracy() if isinstance(actor, Player) else 0
+
+    @staticmethod
+    def _roll_to_hit(actor_attack: int, target_defense: int, rng, accuracy: int = 0) -> bool:
         """NetHack-style to-hit roll (formulas.yaml combat.to_hit).
 
         Natural miss/hit faces override the formula, so nothing is ever
@@ -154,10 +159,12 @@ class AttackAction(Action):
         to_hit = ConfigLoader.get_config().get_to_hit_config()
         if not to_hit:
             return True
-        return AttackAction._hits_on(rng.randint(1, to_hit['die']), actor_attack, target_defense, to_hit)
+        return AttackAction._hits_on(rng.randint(1, to_hit['die']), actor_attack, target_defense,
+                                     to_hit, accuracy)
 
     @staticmethod
-    def _hits_on(roll: int, actor_attack: int, target_defense: int, to_hit: dict) -> bool:
+    def _hits_on(roll: int, actor_attack: int, target_defense: int, to_hit: dict,
+                 accuracy: int = 0) -> bool:
         """Whether die face `roll` hits (natural faces first, then the formula)."""
         if roll <= to_hit.get('natural_miss', 0):
             return False
@@ -169,6 +176,7 @@ class AttackAction(Action):
                 names={
                     'roll': roll,
                     'attacker_attack': actor_attack,
+                    'attacker_accuracy': accuracy,
                     'defender_defense': target_defense,
                 },
                 functions={'max': max, 'min': min},
@@ -178,13 +186,13 @@ class AttackAction(Action):
             return True
 
     @staticmethod
-    def hit_chance(actor_attack: int, target_defense: int) -> float:
+    def hit_chance(actor_attack: int, target_defense: int, accuracy: int = 0) -> float:
         """Probability that one swing hits, from the same to-hit rule as the roll."""
         to_hit = ConfigLoader.get_config().get_to_hit_config()
         if not to_hit:
             return 1.0
         die = to_hit['die']
-        return sum(AttackAction._hits_on(r, actor_attack, target_defense, to_hit)
+        return sum(AttackAction._hits_on(r, actor_attack, target_defense, to_hit, accuracy)
                    for r in range(1, die + 1)) / die
 
     @classmethod
@@ -196,9 +204,10 @@ class AttackAction(Action):
         the dice. Class damage modifiers (backstab) are not included.
         """
         actor_attack, target_defense = cls._effective_stats(actor, target)
+        accuracy = cls._accuracy(actor)
         config = ConfigLoader.get_config()
         spread = config.get_damage_spread()
-        key = (actor_attack, target_defense, spread, config.get_damage_formula(),
+        key = (actor_attack, target_defense, accuracy, spread, config.get_damage_formula(),
                config.get_min_damage(), repr(config.get_to_hit_config()))
         cached = _EXPECTED_DAMAGE.get(key)
         if cached is not None:
@@ -210,7 +219,7 @@ class AttackAction(Action):
             high = max(low, int(actor_attack * (1 + spread)))
             rolls = list(range(low, high + 1))
         mean = sum(cls._damage_from(r, actor_attack, target_defense) for r in rolls) / len(rolls)
-        value = cls.hit_chance(actor_attack, target_defense) * mean
+        value = cls.hit_chance(actor_attack, target_defense, accuracy) * mean
         _EXPECTED_DAMAGE[key] = value
         return value
 

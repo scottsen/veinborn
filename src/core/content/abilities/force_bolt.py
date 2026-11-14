@@ -15,6 +15,7 @@ import logging
 from ...actions.attack_action import AttackAction
 from ...base.action import ActionOutcome
 from ...events import create_attack_event
+from ...equipment import gear_total
 from ...extensions import ability
 from ...targeting import aim, valid_target
 
@@ -26,7 +27,10 @@ def roll_damage(context, actor, config) -> int:
         damage = config['damage']
     else:
         damage = context.get_rng().randint(config['damage_min'], config['damage_max'])
-    return damage + int(config.get('damage_per_level', 0) * (actor.get_stat('level', 1) - 1))
+    level_bonus = int(config.get('damage_per_level', 0) * (actor.get_stat('level', 1) - 1))
+    # Worn gear's spell power (crafting v2, VB-114) adds to every direct-damage spell; 0 for
+    # monsters (no gear) and for plain gear.
+    return damage + level_bonus + gear_total(actor, 'spell_power')
 
 
 def hit_for(context, actor, target, damage: int, label: str, outcome: ActionOutcome) -> int:

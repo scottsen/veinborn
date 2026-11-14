@@ -31,6 +31,34 @@ SLOT_STAT = {'weapon': 'attack', 'armor': 'defense', 'shield': 'defense'}
 SLOT_LABEL = {'weapon': 'Weapon', 'armor': 'Armor', 'shield': 'Shield'}
 
 
+def gear_total(entity, stat: str) -> int:
+    """Sum of `stat` over everything `entity` wears; 0 for anything without gear (monsters)."""
+    total = 0
+    for slot in GEAR_SLOTS:
+        item = getattr(entity, SLOT_ATTR[slot], None)
+        if item is not None:
+            total += int(item.get_stat(stat, 0) or 0)
+    return total
+
+
+def wear(actor, slot: str, item) -> None:
+    """Put `item` (or None: take off) in `slot`, applying what worn gear grants while worn.
+
+    The one place a worn slot changes during play (EquipAction, UnequipAction), so a bonus
+    is added and removed exactly once. `max_hp_bonus` (crafting v2, VB-114): max HP rises
+    and falls with the gear; current HP is not topped up, and falls only as far as the new
+    maximum (never below 1). Saves store max HP with the bonus in it, so loading does not
+    call this.
+    """
+    old = getattr(actor, SLOT_ATTR[slot], None)
+    delta = ((item.get_stat('max_hp_bonus', 0) if item is not None else 0)
+             - (old.get_stat('max_hp_bonus', 0) if old is not None else 0))
+    setattr(actor, SLOT_ATTR[slot], item)
+    if delta:
+        actor.max_hp = max(1, actor.max_hp + delta)
+        actor.hp = max(1, min(actor.hp, actor.max_hp))
+
+
 def worn_item(player, slot: str):
     """The item worn in `slot`, or None."""
     return getattr(player, SLOT_ATTR[slot], None)

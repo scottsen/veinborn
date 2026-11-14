@@ -12,7 +12,7 @@ from dataclasses import dataclass
 from ..base.action import Action, ActionOutcome
 from ..base.game_context import GameContext
 from ..entities import Player
-from ..equipment import GEAR_SLOTS, SLOT_ATTR
+from ..equipment import GEAR_SLOTS, SLOT_ATTR, wear
 
 logger = logging.getLogger(__name__)
 
@@ -51,7 +51,7 @@ class UnequipAction(Action):
         actor = self._get_actor(context)
         attr = SLOT_ATTR[self.slot]
         item = getattr(actor, attr)
-        setattr(actor, attr, None)
+        wear(actor, self.slot, None)
         actor.add_to_inventory(item)
         logger.info(f"Unequipped {self.slot}: {item.name}")
 

@@ -10,11 +10,13 @@
 # often and for less. There are no critical hits (NetHack has none either).
 combat:
   # To-hit roll: roll a d<die>; natural_miss always misses, natural_hit always hits.
-  # Otherwise the formula decides. Names: roll, attacker_attack, defender_defense.
+  # Otherwise the formula decides. Names: roll, attacker_attack, attacker_accuracy,
+  # defender_defense. attacker_accuracy is worn gear's to-hit bonus (crafting v2, VB-114;
+  # 0 for monsters and plain gear, so it changes nothing until crafted gear carries it).
   # Examples: attack 5 vs defense 1 -> hit on 6+ (75%); attack 3 vs defense 3 -> 10+ (55%).
   to_hit:
     die: 20
-    formula: "roll + attacker_attack >= 10 + defender_defense"
+    formula: "roll + attacker_attack + attacker_accuracy >= 10 + defender_defense"
     natural_miss: 1
     natural_hit: 20
 
