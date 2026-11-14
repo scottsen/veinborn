@@ -42,7 +42,7 @@ class PackScreen(ListScreen):
     def row_text(self, item) -> str:
         kind = item.item_type
         if item.slot:
-            kind = f"{item.slot}, +{item.bonus} {'attack' if item.slot == 'weapon' else 'defense'}"
+            kind = f"{item.slot}, " + (stats_label(item.stats) or f"+{item.bonus} {'attack' if item.slot == 'weapon' else 'defense'}")
         quality = f" {ore_label(item.ore)}" if item.ore else ""
         if item.part:
             quality = f" {stats_label(item.part['stats'])}"

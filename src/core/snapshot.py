@@ -16,7 +16,7 @@ from typing import Dict, List, Optional
 
 from .base.entity import EntityType
 from . import fog
-from .equipment import gear_bonus, gear_slot
+from .equipment import gear_bonus, gear_slot, gear_total
 
 
 @dataclass
@@ -30,6 +30,7 @@ class ItemView:
     usable: bool = False        # a built effect: the pack screen offers Use (potion, food, later scrolls)
     ore: Optional[Dict[str, int]] = None   # raw ore only: the properties recipes read (VB-111)
     part: Optional[Dict] = None            # a crafted part only: {'slot', 'ore', 'stats'} (VB-116)
+    stats: Dict[str, int] = field(default_factory=dict)   # wearable gear: every core stat it has (VB-126)
 
 
 @dataclass
@@ -115,6 +116,8 @@ class PlayerView:
     effects: List[EffectView] = field(default_factory=list)   # active status effects (VB-107)
     forge_id: Optional[object] = None    # a forge within reach (adjacent or underfoot), else None
     recipes: List[RecipeView] = field(default_factory=list)   # filled only while forge_id is set
+    accuracy: int = 0           # to-hit bonus from worn gear (VB-126)
+    spell_power: int = 0        # direct-damage spell bonus from worn gear
 
 
 @dataclass
@@ -210,6 +213,7 @@ def _item(item) -> Optional[ItemView]:
         return None
     from .actions.use_item_action import usable_effect
     from .crafting import ore_properties, part_info
+    from .equipment import core_stats
     slot = gear_slot(item)
     ore = ore_properties(item)
     return ItemView(
@@ -218,6 +222,7 @@ def _item(item) -> Optional[ItemView]:
         usable=usable_effect(item) is not None,
         ore=ore,
         part=part_info(item),
+        stats=core_stats(item) if slot else {},
     )
 
 
@@ -257,7 +262,7 @@ def _forge_in_reach(state, player):
                  if e.entity_type == EntityType.FORGE and player.is_adjacent(e)), None)
 
 
-def _recipe_requires(manager, recipe) -> str:
+def _recipe_requires(manager, recipe, inventory=()) -> str:
     """What a craft needs, in a line: '2x metal ore', '1x mithril/adamantite ore', or an
     assembly's parts ('Blade + Hilt (+ Focus Gem)'); a boss material adds ' + <id>'."""
     if recipe.kind == 'assembly':
@@ -272,7 +277,11 @@ def _recipe_requires(manager, recipe) -> str:
         kinds = 'metal' if types == list(manager.METALS) else "/".join(types)
         requires = f"{recipe.get_required_ore_count()}x {kinds} ore"
     special = recipe.get_special_requirement()
-    return f"{requires} + {special}" if special else requires
+    if not special:
+        return requires
+    from .crafting import material_name
+    have = any(getattr(i, 'content_id', None) == special for i in inventory)
+    return f"{requires} + {material_name(special)} ({'carried' if have else 'missing'})"
 
 
 def _recipes(player, floor: int) -> List[RecipeView]:
@@ -284,7 +293,7 @@ def _recipes(player, floor: int) -> List[RecipeView]:
         ok, reason = manager.can_craft(recipe.recipe_id, player.inventory, floor)
         view = RecipeView(
             recipe.recipe_id, recipe.display_name, recipe.equipment_slot,
-            _recipe_requires(manager, recipe), ok, reason,
+            _recipe_requires(manager, recipe, player.inventory), ok, reason,
             manager.preview_stats(recipe.recipe_id, player.inventory) or {} if ok else {},
             kind=recipe.kind,
         )
@@ -326,6 +335,8 @@ def _player_view(player, turn: int) -> PlayerView:
         color=player.display_color,
         alive=player.is_alive,
         effects=_effects(player),
+        accuracy=gear_total(player, 'accuracy'),
+        spell_power=gear_total(player, 'spell_power'),
     )
 
 

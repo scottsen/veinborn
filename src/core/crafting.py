@@ -238,6 +238,13 @@ def part_info(item) -> Optional[Dict[str, Any]]:
             'stats': dict(item.get_stat('part_stats') or {})}
 
 
+def material_name(item_id: str) -> str:
+    """Display name of a boss material (items.yaml), e.g. 'phoenix_essence' -> 'Phoenix Essence'."""
+    from .loot import LootGenerator
+    data = LootGenerator.get_instance().items.get(item_id) or {}
+    return data.get('display_name') or item_id.replace('_', ' ').title()
+
+
 def is_ore_item(item) -> bool:
     """True for raw ore, false for crafted equipment.
 
@@ -524,7 +531,7 @@ class RecipeManager:
 
         special = recipe.get_special_requirement()
         if special and self.special_item_for(recipe, player_inventory) is None:
-            return False, f"Requires {special}"
+            return False, f"Requires {material_name(special)}"
 
         return True, None
 

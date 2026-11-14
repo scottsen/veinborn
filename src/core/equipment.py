@@ -72,6 +72,22 @@ def worn_item(player, slot: str):
     return getattr(player, SLOT_ATTR[slot], None)
 
 
+def view_stats(item) -> dict:
+    """Core stats of an ItemView: its `stats`, else (a view built by hand) just its slot bonus."""
+    if item is None:
+        return {}
+    if getattr(item, 'stats', None):
+        return dict(item.stats)
+    key = 'attack_bonus' if item.slot == 'weapon' else 'defense_bonus'
+    return {key: item.bonus} if item.bonus else {}
+
+
+def stats_diff(new: dict, worn: dict) -> dict:
+    """Per-stat difference `new - worn`, nonzero only."""
+    return {k: new.get(k, 0) - worn.get(k, 0) for k in {**new, **worn}
+            if new.get(k, 0) != worn.get(k, 0)}
+
+
 @dataclass(frozen=True)
 class GearLine:
     """One row of the equipment list."""
@@ -80,6 +96,8 @@ class GearLine:
     worn: bool                # True: worn now (remove it); False: carried (wear it)
     bonus: int                # the item's bonus in its slot's stat
     change: int               # carried gear: bonus minus what is worn in the slot; worn: 0
+    stats: Optional[dict] = None    # every core stat the item has (accuracy, max HP, spell power too)
+    diff: Optional[dict] = None     # carried gear: per-stat change against what is worn in the slot
 
     @property
     def stat(self) -> str:
@@ -90,13 +108,16 @@ class GearLine:
         return self.item.entity_id if self.item is not None else None
 
     def text(self) -> str:
-        """e.g. 'Weapon: Iron Sword (+4 attack)' / '2. Mithril Sword (weapon, +7 attack, +3 better)'."""
+        """e.g. 'Weapon: Iron Sword (+4 attack)' / '2. Mithril Sword (weapon, +7 attack +2 accuracy,
+        +3 attack +2 accuracy vs worn)': every stat the game reads, not just the slot's main one."""
+        from .crafting import stats_label
         if self.item is None:
             return f"{SLOT_LABEL[self.slot]}: (nothing)"
+        shown = stats_label(self.stats) or f"+{self.bonus} {self.stat}"
         if self.worn:
-            return f"{SLOT_LABEL[self.slot]}: {self.item.name} (+{self.bonus} {self.stat})"
-        verdict = "same" if self.change == 0 else f"{self.change:+d} vs worn"
-        return f"{self.item.name} ({self.slot}, +{self.bonus} {self.stat}, {verdict})"
+            return f"{SLOT_LABEL[self.slot]}: {self.item.name} ({shown})"
+        verdict = f"{stats_label(self.diff)} vs worn" if self.diff else "same"
+        return f"{self.item.name} ({self.slot}, {shown}, {verdict})"
 
 
 def equipment_listing(player_view) -> Tuple[List[GearLine], List[GearLine]]:
@@ -104,7 +125,7 @@ def equipment_listing(player_view) -> Tuple[List[GearLine], List[GearLine]]:
     empty slots included; `carried` has every pack item that can be worn, in pack order."""
     worn_items = {slot: getattr(player_view, slot) for slot in GEAR_SLOTS}
     worn = [
-        GearLine(slot, item, True, item.bonus if item else 0, 0)
+        GearLine(slot, item, True, item.bonus if item else 0, 0, view_stats(item))
         for slot, item in worn_items.items()
     ]
     carried = []
@@ -113,5 +134,6 @@ def equipment_listing(player_view) -> Tuple[List[GearLine], List[GearLine]]:
             continue
         current = worn_items[item.slot]
         carried.append(GearLine(item.slot, item, False, item.bonus,
-                                item.bonus - (current.bonus if current else 0)))
+                                item.bonus - (current.bonus if current else 0),
+                                view_stats(item), stats_diff(view_stats(item), view_stats(current))))
     return worn, carried

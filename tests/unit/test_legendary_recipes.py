@@ -63,7 +63,7 @@ def test_parts_alone_are_not_enough():
     rm = RecipeManager()
     inventory = parts_for('arcane_staff', 'mithril')
     ok, reason = rm.can_craft('arcane_staff', inventory, 12)
-    assert not ok and 'lich_phylactery' in reason
+    assert not ok and 'Lich Phylactery' in reason
     assert 'arcane_staff' not in {r.recipe_id for r in rm.get_craftable_recipes(inventory, 12)}
 
 
@@ -138,3 +138,17 @@ def test_bosses_always_drop_their_material(boss, item_id):
 
 def test_materials_are_kept_like_ore(fresh_player):
     assert usefulness(fresh_player, material('wraith_essence')) == ORE
+
+
+def test_the_forge_names_a_material_and_says_whether_it_is_carried():
+    """VB-127: 'Phoenix Essence (missing)', not the raw id."""
+    from core.snapshot import _recipes
+    game = Game()
+    game.start_new_game(seed=3, player_name="Crafter")
+    player = game.state.player
+    player.inventory.clear()
+    line = next(r for r in _recipes(player, 20) if r.recipe_id == 'flaming_sword')
+    assert line.requires.endswith("Phoenix Essence (missing)") and 'phoenix_essence' not in line.requires
+    player.add_to_inventory(material('phoenix_essence'))
+    line = next(r for r in _recipes(player, 20) if r.recipe_id == 'flaming_sword')
+    assert line.requires.endswith("Phoenix Essence (carried)")

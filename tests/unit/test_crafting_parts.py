@@ -222,3 +222,37 @@ def test_quick_drop_never_drops_a_crafted_part_before_ore_or_junk(forge_game):
     assert least_useful_item(player) is gold                 # junk first
     player.remove_from_inventory(gold)
     assert least_useful_item(player).get_stat('ore_type')    # then raw ore, still before a part
+
+
+def test_a_human_sees_every_stat_of_crafted_gear(forge_game):
+    """VB-126: the equipment list, the pack and the sidebar totals show accuracy, max HP and
+    spell power, not just the slot's attack or defense."""
+    from core.equipment import equipment_listing
+    from core.snapshot import build_snapshot
+    game, player, forge = forge_game
+    manager = CraftAction.get_recipe_manager()
+    blade = manager.create_part('blade', ore('mithril', 2, floor=10))
+    hilt = manager.create_part('hilt', ore('mithril', 1, floor=10))
+    gem = manager.create_part('focus_gem', ore('mithril', 1, floor=10))
+    give(player, [blade, hilt, gem])
+    craft(game, player, forge, 'sword', part_ids=[blade.entity_id, hilt.entity_id, gem.entity_id])
+    view = build_snapshot(game.state).player
+    sword = next(i for i in view.inventory if i.slot == 'weapon' and i.stats.get('spell_power'))
+    assert {'attack_bonus', 'accuracy', 'spell_power'} <= set(sword.stats)
+    _, carried = equipment_listing(view)
+    line = next(l for l in carried if l.item.entity_id == sword.entity_id)
+    assert 'accuracy' in line.text() and 'spell power' in line.text()
+    assert 'vs worn' in line.text()
+    from core.equipment import wear
+    wear(player, 'weapon', next(i for i in player.inventory if i.entity_id == sword.entity_id))
+    totals = build_snapshot(game.state).player
+    assert totals.spell_power == sword.stats['spell_power'] and totals.accuracy == sword.stats['accuracy']
+    worn_line = equipment_listing(totals)[0][0]
+    assert 'spell power' in worn_line.text()
+
+
+def test_gear_stats_diff_names_each_changed_stat():
+    from core.equipment import stats_diff
+    assert stats_diff({'attack_bonus': 7, 'accuracy': 2}, {'attack_bonus': 4, 'max_hp_bonus': 3}) == \
+        {'attack_bonus': 3, 'accuracy': 2, 'max_hp_bonus': -3}
+    assert stats_diff({'attack_bonus': 4}, {'attack_bonus': 4}) == {}

@@ -404,32 +404,3 @@ crafting_rules:
     rare: [71, 85]     # Blue
     epic: [86, 95]     # Purple
     legendary: [96, 100]  # Orange
-
-# =============================================================================
-# FORGE REQUIREMENTS
-# =============================================================================
-forge_requirements:
-  # What forges can craft
-  basic_forge:
-    can_craft:
-      - "copper_dagger"
-      - "copper_sword"
-      - "copper_chestplate"
-    min_floor: 1
-    description: "A simple forge for working copper"
-
-  iron_forge:
-    can_craft:
-      - "copper_dagger"
-      - "copper_sword"
-      - "copper_chestplate"
-      - "iron_sword"
-      - "iron_battle_axe"
-      - "iron_chestplate"
-    min_floor: 4
-    description: "A proper forge for iron and copper"
-
-  master_forge:
-    can_craft: "all"  # Can craft everything
-    min_floor: 7
-    description: "A master forge capable of working any ore"

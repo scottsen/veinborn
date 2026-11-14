@@ -71,8 +71,12 @@ class EquipmentScreen(ModalScreen):
 
         text = Text()
         text.append("=== EQUIPMENT ===\n", style="bold bright_green")
-        text.append(f"Attack {player.attack}   Defense {player.defense}\n\n",
-                    style="bright_white")
+        totals = f"Attack {player.attack}   Defense {player.defense}"
+        if player.accuracy:
+            totals += f"   Accuracy {player.accuracy:+d}"
+        if player.spell_power:
+            totals += f"   Spell power +{player.spell_power}"
+        text.append(f"{totals}   HP {player.hp}/{player.max_hp}\n\n", style="bright_white")
 
         text.append("Worn\n", style="bold bright_yellow")
         for line in worn:

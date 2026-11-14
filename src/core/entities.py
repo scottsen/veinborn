@@ -435,9 +435,8 @@ class Forge(Entity):
     Core part of Veinborn's unique hook: mining → crafting → equipment.
 
     Forge Types:
-    - basic_forge: Can craft copper items (floors 1-3)
-    - iron_forge: Can craft copper + iron items (floors 4-6)
-    - master_forge: Can craft all items (floors 7+)
+    - basic_forge (floors 1-3), iron_forge (4-6), master_forge (7+): a name and colour only.
+      Every forge crafts every recipe; a recipe's own floor and ore are its limits.
     """
 
     # Override entity_type default

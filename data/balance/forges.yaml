@@ -14,26 +14,24 @@ forge_counts:
   formula: "1"  # Always 1 forge per floor (consistency > variance)
   description: "One forge per floor, guaranteed crafting access"
 
-# Forge type distribution by floor depth
+# Forge type by floor depth. The type is a name and a colour only: what a forge can craft is
+# limited by the recipe (its floor and its ore), never by the forge (VB-127).
 forge_types:
   basic_forge:
     floors: [1, 2, 3]
-    recipes: ["copper_dagger", "copper_sword", "copper_chestplate"]
-    description: "Can craft copper equipment"
+    description: "A simple forge (cosmetic: every forge crafts every recipe)"
     symbol: "&"
     color: "copper"
 
   iron_forge:
     floors: [4, 5, 6]
-    recipes: ["copper_dagger", "copper_sword", "copper_chestplate", "iron_sword", "iron_battle_axe", "iron_chestplate"]
-    description: "Can craft copper and iron equipment"
+    description: "A sturdier forge (cosmetic: every forge crafts every recipe)"
     symbol: "&"
     color: "gray"
 
   master_forge:
     floors: [7, 8, 9, 10, 11, 12, 13, 14, 15]
-    recipes: "all"
-    description: "Can craft all equipment"
+    description: "A master forge (cosmetic: every forge crafts every recipe)"
     symbol: "&"
     color: "yellow"
 

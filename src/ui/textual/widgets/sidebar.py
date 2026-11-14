@@ -39,6 +39,10 @@ class Sidebar(Static):
         # Totals include equipped gear (starting kit, crafted or found)
         text.append(f"Attack: {player.attack}\n")
         text.append(f"Defense: {player.defense}\n")
+        if player.accuracy:                       # only once gear gives them (crafting v2)
+            text.append(f"Accuracy: {player.accuracy:+d}\n")
+        if player.spell_power:
+            text.append(f"Spell power: +{player.spell_power}\n")
         xp_line = f"{player.xp}/{player.xp_next}" if player.xp_next else f"{player.xp}"
         text.append(f"XP: {xp_line}\n")
         text.append(f"Level: {player.level}\n")
