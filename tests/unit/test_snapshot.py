@@ -160,8 +160,19 @@ def test_ore_carries_its_quality_and_lists_as_ore(game):
     ore_view, sword_view = build_snapshot(game.state).player.inventory
     assert ore_view.item_type == 'ore' and ore_view.ore['purity'] == ore.get_stat('purity')
     assert sword_view.ore is None
-    assert ore_label(ore_view.ore).startswith(f"P{ore.get_stat('purity')} H{ore.get_stat('hardness')}")
+    assert f"P{ore.get_stat('purity')} H{ore.get_stat('hardness')}" in ore_label(ore_view.ore)
     assert ore.get_stat('item_type', None) is None        # display only: autopickup rules unchanged
+
+
+def test_ore_rating_is_the_average_of_the_five_properties():
+    from core.crafting import ore_label, ore_rating
+    props = dict(purity=80, hardness=60, malleability=40, conductivity=20, density=100)
+    assert ore_rating(props) == 60 and ore_label(props).startswith("Q60 P80 H60 M40 C20 D100")
+    assert ore_rating({**props, 'purity': 81}) == 60 and ore_rating({**props, 'purity': 85}) == 61   # rounds
+    assert ore_rating(None) == 0 and ore_rating({}) == 0
+    jackpot = dict(purity=90, hardness=85, malleability=80, conductivity=99, density=81)
+    assert ore_rating(jackpot) > ore_rating(dict(purity=99, hardness=99, malleability=99, conductivity=40, density=40))
+    assert all(ore_rating(dict.fromkeys(props, v)) == v for v in (0, 50, 100))
 
 
 def test_ore_label_stars_jackpot_ore():

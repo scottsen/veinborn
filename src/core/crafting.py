@@ -192,7 +192,7 @@ class StatFormulaEvaluator:
 
 # The five ore properties recipes read, in the order a label shows them (most telling first)
 ORE_PROPERTIES = ('purity', 'hardness', 'malleability', 'conductivity', 'density')
-ORE_LEGEND = "P purity  H hardness  M malleability  C conductivity  D density"
+ORE_LEGEND = "Q overall  P purity  H hardness  M malleability  C conductivity  D density"
 JACKPOT_MIN = 80   # a jackpot vein rolls every property in 80-100 (ores.yaml ore_generation)
 
 
@@ -211,11 +211,25 @@ def ore_properties(item) -> Optional[Dict[str, int]]:
     return {name: int(item.get_stat(name, 50)) for name in ORE_PROPERTIES}
 
 
+def ore_rating(props: Optional[Dict[str, int]]) -> int:
+    """One number for how good a piece of ore is: the average of its five properties (0-100).
+
+    A plain average, so jackpot ore (every property 80-100) always rates highest. Density is in it
+    although it is the weakest property (its only effect is `accuracy: -density * 0.01` on blades,
+    at most 1 point). A rating for comparing and sorting; recipes still read the properties.
+    """
+    if not props:
+        return 0
+    values = [props[n] for n in ORE_PROPERTIES if n in props]
+    return round(sum(values) / len(values)) if values else 0
+
+
 def ore_label(props: Optional[Dict[str, int]]) -> str:
-    """'P85 H70 M55 C40 D50', with a star when every property is jackpot grade; '' for None."""
+    """'Q62 P85 H70 M55 C40 D50': the overall rating then each property, with a star when every
+    property is jackpot grade; '' for None."""
     if not props:
         return ""
-    label = " ".join(f"{name[0].upper()}{props[name]}" for name in ORE_PROPERTIES if name in props)
+    label = f"Q{ore_rating(props)} " + " ".join(f"{name[0].upper()}{props[name]}" for name in ORE_PROPERTIES if name in props)
     if all(props.get(name, 0) >= JACKPOT_MIN for name in ORE_PROPERTIES):
         label += " ★"
     return label

@@ -56,7 +56,7 @@ class CraftScreen(ListScreen):
         if recipe.kind == 'assembly':
             used = ", ".join(items[i].name for i in recipe.part_ids if i in items)
             return f"Uses: {used}   (o: choose parts)"
-        used = ", ".join(ore_label(items[i].ore) for i in recipe.ore_ids if i in items)
+        used = ", ".join(f"{items[i].name} {ore_label(items[i].ore)}" for i in recipe.ore_ids if i in items)
         spare = len(recipe.ore_choices) - len(recipe.ore_ids)
         more = f"   ({spare} more to choose from: o)" if spare > 0 else ""
         return f"Uses: {used}{more}\n{ORE_LEGEND}"

@@ -183,7 +183,9 @@ def test_pack_screen_shows_ore_quality_and_the_legend():
         await pilot.press("i")
         await pilot.pause()
         panel = app.screen.render_panel().plain
-        assert f"Copper Ore (ore) P{ore.get_stat('purity')} H{ore.get_stat('hardness')}" in panel
+        from core.crafting import ore_rating, ORE_PROPERTIES
+        rating = ore_rating({n: ore.get_stat(n) for n in ORE_PROPERTIES})
+        assert f"Copper Ore (ore) Q{rating} P{ore.get_stat('purity')} H{ore.get_stat('hardness')}" in panel
         assert "P purity" in panel
     run(scenario)
 
@@ -206,7 +208,7 @@ def test_ore_picker_crafts_from_the_hand_picked_ore():
         screen = app.screen
         i = next(n for n, r in enumerate(screen.rows()) if r.recipe_id == 'copper_sword')
         screen.cursor = i
-        assert "Uses: P95" in screen.render_panel().plain          # the default is the best ore
+        assert "Uses: Copper Ore Q" in screen.render_panel().plain and " P95 " in screen.render_panel().plain   # the default is the best ore, named
         await pilot.press("o")
         await pilot.pause()
         assert isinstance(app.screen, OrePickScreen)
