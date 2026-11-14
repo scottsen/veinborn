@@ -39,8 +39,11 @@ class MapWidget(Widget):
     }
     """
 
-    # Draw order when entities share a tile: first match wins (the player is drawn before all).
-    ENTITY_PRIORITY = ('monster', 'ore_vein', 'forge', 'item', 'npc')
+    # Draw order when entities share a tile: first match wins (the viewer is drawn before all).
+    # 'player' here is another seat in a multiplayer party.
+    ENTITY_PRIORITY = ('player', 'monster', 'ore_vein', 'forge', 'item', 'npc')
+    # Allies share the viewer's glyph; a colour of their own tells them apart
+    ALLY_COLOR = 'bright_cyan'
 
     def __init__(self, snapshot=None, **kwargs):
         super().__init__(**kwargs)
@@ -97,7 +100,8 @@ class MapWidget(Widget):
         for entity_type in self.ENTITY_PRIORITY:
             entity = snap.entity_at(world_x, world_y, entity_type)
             if entity:
-                return Segment(entity.symbol, Style(color=entity.color, bold=True))
+                color = self.ALLY_COLOR if entity_type == 'player' else entity.color
+                return Segment(entity.symbol, Style(color=color, bold=True))
 
         # Render terrain
         if 0 <= world_x < snap.map.width and 0 <= world_y < snap.map.height:

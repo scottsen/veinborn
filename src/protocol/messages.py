@@ -33,6 +33,7 @@ class MessageType(Enum):
     CHAT_MESSAGE = "chat_message"
     SYSTEM = "system"
     ERROR = "error"
+    INTENT_RESULT = "intent_result"
     GAME_START = "game_start"
     GAME_END = "game_end"
     PLAYER_JOINED = "player_joined"
@@ -112,15 +113,28 @@ class Message:
         )
 
     @classmethod
-    def intent(cls, intent: str, **args: Any) -> "Message":
+    def intent(cls, intent: str, rid: Optional[int] = None, **args: Any) -> "Message":
         """Create intent message: what the player wants, never who acts.
 
         The server takes the actor from the session's seat, so the payload
-        carries no actor id (nothing to spoof).
+        carries no actor id (nothing to spoof). `rid` (optional) is echoed in
+        the `intent_result` reply so the sender can match it.
+        """
+        data: Dict[str, Any] = {"intent": intent, "args": args}
+        if rid is not None:
+            data["rid"] = rid
+        return cls(type=MessageType.INTENT.value, data=data)
+
+    @classmethod
+    def intent_result(cls, rid: Optional[int], ok: bool, messages: Optional[list] = None) -> "Message":
+        """The server's answer to one intent, to its sender only: accepted, or refused and why.
+
+        Sent after the state broadcast an accepted intent causes, so the sender's
+        snapshot is already current when the result arrives.
         """
         return cls(
-            type=MessageType.INTENT.value,
-            data={"intent": intent, "args": args},
+            type=MessageType.INTENT_RESULT.value,
+            data={"rid": rid, "ok": ok, "messages": list(messages or [])},
         )
 
     @classmethod

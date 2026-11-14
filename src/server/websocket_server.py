@@ -437,27 +437,37 @@ class VeinbornServer:
         await self.broadcast_game_state(session.game_id)
 
     async def handle_intent(self, session_id: str, session: Session, message: Message):
-        """Handle a player intent. The actor comes from the session's seat, not the payload."""
+        """Handle a player intent. The actor comes from the session's seat, not the payload.
+
+        Every intent gets one `intent_result` to its sender (echoing `rid`): refused
+        with the reason, or accepted after the new state has been broadcast.
+        """
+        rid = message.data.get("rid")
+
+        async def refuse(reason: str) -> None:
+            await self.send_message_to_session(session_id, Message.intent_result(rid, False, [reason]))
+
         if not session.game_id:
-            await self.send_error(session_id, "Not in a game")
+            await refuse("Not in a game")
             return
 
         game = await self.game_manager.get_game(session.game_id)
         if not game or not game.is_started:
-            await self.send_error(session_id, "Game not active")
+            await refuse("Game not active")
             return
 
         intent = message.data.get("intent")
         args = message.data.get("args") or {}
         if not isinstance(intent, str) or not intent or not isinstance(args, dict):
-            await self.send_error(session_id, "Invalid intent")
+            await refuse("Invalid intent")
             return
 
         success, error = await game.process_intent(session.player_id, intent, args)
         if not success:
-            await self.send_error(session_id, error or "Action failed")
-        else:
-            await self.broadcast_game_state(session.game_id)
+            await refuse(error or "Action failed")
+            return
+        await self.broadcast_game_state(session.game_id)
+        await self.send_message_to_session(session_id, Message.intent_result(rid, True))
 
     async def handle_action(self, session_id: str, session: Session, message: Message):
         """Handle player action."""

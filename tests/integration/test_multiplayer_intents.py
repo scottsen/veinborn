@@ -111,3 +111,35 @@ async def test_round_waits_for_the_whole_party_and_refuses_a_second_action():
             if c:
                 await c.close()
         await server.stop()
+
+
+
+@pytest.mark.asyncio
+async def test_act_waits_for_the_answer_to_its_own_intent():
+    """VB-101: an intent carries a rid; the sender gets one intent_result for it,
+    after the snapshot an accepted intent caused."""
+    server = VeinbornServer("127.0.0.1", 0)
+    await server.start()
+    port = server.server.sockets[0].getsockname()[1]
+    alice = bob = None
+    try:
+        alice, bob = await _start_two(server, port)
+        client = alice.client
+        turn_seq = client.last_seq
+
+        accepted, lines = await client.act("wait")
+        assert (accepted, lines) == (True, [])
+        assert client.last_seq > turn_seq                     # the snapshot came first
+        assert alice.entity_id in client.snapshot.round.acted
+
+        accepted, lines = await client.act("wait")            # Bob still owes his action
+        assert accepted is False and lines and "Waiting for the party" in lines[0]
+        assert lines[0] in alice.errors                        # shown like any refusal
+
+        accepted, lines = await client.act("dance")
+        assert (accepted, lines) == (False, ["Unknown action: dance"])
+    finally:
+        for c in (alice, bob):
+            if c:
+                await c.close()
+        await server.stop()

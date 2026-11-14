@@ -141,18 +141,23 @@ Or edit `src/server/config.py` for defaults.
 }
 ```
 
-#### Action (TODO)
+#### Intent
+What the player wants to do. The server takes the actor from the session's seat
+(never from the payload) and builds the action with the same `ActionFactory`
+single-player uses. `rid` is optional and echoed in the `intent_result`.
 ```json
 {
-  "type": "action",
-  "data": {
-    "action_type": "move",
-    "action_data": {
-      "direction": "north"
-    }
-  }
+  "type": "intent",
+  "data": {"intent": "move", "args": {"dx": 1, "dy": 0}, "rid": 7}
 }
 ```
+Intents: `move` (dx, dy; bumping attacks or mines), `survey`, `descend`, `pickup`,
+`use` / `drop` (item_id, or none to pick the best healing / least useful item),
+`equip` (item_id), `unequip` (slot), `ability`, `wait`. One turn-consuming intent
+per living player per round.
+
+#### Get Snapshot
+`{"type": "get_snapshot", "data": {}}`: resend this player's current snapshot (resync).
 
 ### Server → Client Messages
 
@@ -178,21 +183,28 @@ Or edit `src/server/config.py` for defaults.
 }
 ```
 
-#### Game State
+#### Lobby (before the game starts)
 ```json
 {
-  "type": "state",
-  "data": {
-    "state": {
-      "game_id": "uuid",
-      "game_name": "My Game",
-      "is_started": true,
-      "players": [...],
-      "turn_count": 42,
-      "round_number": 10
-    }
-  }
+  "type": "lobby",
+  "data": {"game_id": "uuid", "game_name": "My Game", "is_started": false, "max_players": 4,
+           "players": [{"player_id": "...", "player_name": "Alice", "player_class": "warrior", "is_ready": true}]}
 }
+```
+
+#### Snapshot (once it runs)
+Each player gets their own view (`core.snapshot.Snapshot.to_dict()`: player, entities,
+map, messages, message_count, party, round), one `seq` per broadcast; a client keeps the
+newest `seq` and drops older ones.
+```json
+{"type": "snapshot", "seq": 12, "data": {"game": {"game_id": "uuid", "is_started": true}, "snapshot": {...}}}
+```
+
+#### Intent Result
+The answer to one intent, to its sender only: refused with the reason, or accepted
+(sent after the snapshot the intent caused).
+```json
+{"type": "intent_result", "data": {"rid": 7, "ok": false, "messages": ["Waiting for the party: Bob"]}}
 ```
 
 #### Chat Message
@@ -220,36 +232,11 @@ Or edit `src/server/config.py` for defaults.
 
 ## Current Status
 
-### ✅ Implemented (Phase 1 - Foundation)
-
-- WebSocket server with connection handling
-- Authentication and session management
-- Game session creation and joining
-- Player ready/start system
-- Chat messaging
-- State broadcasting
-- Multiplayer GameState wrapper
-
-### 🚧 In Progress
-
-- Action routing and execution
-- State synchronization
-- Movement coordination
-
-### 📋 TODO (Phase 2+)
-
-- Full action serialization/deserialization
-- Combat system integration
-- Monster turn processing
-- Dungeon generation for multiplayer
-- Player spawning system
-- Loot system (personal loot)
-- Class system (Warrior, Mage, Rogue, Healer)
-- Persistence (PostgreSQL)
-- Message bus (Redis/NATS)
-- Reconnection handling
-- Spectator mode
-- Replay system
+Every message carries the protocol version (`v`, `protocol.PROTOCOL_VERSION`); a peer on
+another version is refused at auth. The architecture, the decisions behind it (one engine,
+intents, per-viewer snapshots, round scheduling, seats) and what is left are in
+`docs/architecture/MULTIPLAYER_ARCHITECTURE_PLAN.md`; the human client is the TUI on a
+`RemoteDriver` (`run_multiplayer.py`), and `test_client.py` is a dev client.
 
 ## Testing
 

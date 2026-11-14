@@ -180,3 +180,14 @@ def test_bare_cells_render_the_terrain_from_the_snapshot():
                 seen.add(widget._render_cell(x, y, snap).text)
     assert seen == {'█', '·'} | (seen & {'+', '<', '>'})
     assert widget._render_cell(m.width, 0, snap).text == ' '
+
+
+def test_another_party_member_is_drawn_in_the_ally_colour():
+    """Multiplayer: the other seats are 'player' entities in the viewer's snapshot."""
+    me = create_entity_by_type(EntityType.PLAYER, x=5, y=5)
+    ally = Player(name="Bob", x=6, y=5, hp=20, max_hp=20, attack=5, defense=2)
+    goblin = create_entity_by_type(EntityType.MONSTER, x=7, y=5)
+    assert cell(me, ally, goblin, x=6).text == ally.display_symbol
+    assert str(cell(me, ally, goblin, x=6).style.color.name) == MapWidget.ALLY_COLOR
+    me_cell = cell(me, ally, x=5)
+    assert me_cell.text == me.display_symbol and str(me_cell.style.color.name) != MapWidget.ALLY_COLOR

@@ -28,13 +28,17 @@ Examples:
   python run_multiplayer.py --name Alice                    # Connect as Alice
   python run_multiplayer.py --name Bob --host 192.168.1.10  # Connect to remote server
 
+Starting a game:
+  The creator's status bar shows the game id; others join with --game-id <id>.
+  Each player presses 'R' when ready; the game starts when everyone is.
+  Each round waits for one action from every living player.
+
 Controls:
-  Arrow keys / HJKL - Move
+  Arrow keys / HJKL / YUBN - Move (bump to attack or mine)
+  's' - Survey ore     'e' - Eat/drink     'g' - Pick up     'w' - Equipment
+  '>' - Descend stairs '.' - Wait          'i' - Inventory   ':' - Look
   'c' or Enter - Open chat
-  's' - Survey ore
-  'm' - Mine
-  '>' - Descend stairs
-  'Q' - Quit
+  'q' - Quit
 
 Chat:
   Press 'c' or Enter to open chat
@@ -142,7 +146,7 @@ def main():
         # The app connects from on_mount, in its own event loop, and disconnects on unmount
         app = VeinbornApp(
             player_name=args.name,
-            character_class=None,  # Will be set by server
+            character_class=None,  # the class is chosen with --class and sent when joining
             multiplayer_client=client,
             multiplayer_setup=make_setup(args),
         )

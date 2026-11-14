@@ -115,6 +115,7 @@ class Snapshot:
     entities: List[EntityView]
     map: MapView
     messages: List[str] = field(default_factory=list)
+    message_count: int = 0      # lines ever logged (monotonic): a client tells new lines from repeats
     party: List[PartyMemberView] = field(default_factory=list)
     round: Optional[RoundView] = None
 
@@ -133,6 +134,7 @@ class Snapshot:
             entities=[EntityView(**e) for e in data['entities']],
             map=MapView(**data['map']),
             messages=list(data.get('messages', [])),
+            message_count=data.get('message_count', 0),
             party=[PartyMemberView(**m) for m in data.get('party', [])],
             round=RoundView(**data['round']) if data.get('round') else None,
         )
@@ -228,4 +230,5 @@ def build_snapshot(state, viewer=None, message_count: int = 20) -> Snapshot:
         entities=entities,
         map=MapView(game_map.width, game_map.height, game_map.to_dict()['tiles']),
         messages=state.get_recent_messages(message_count),
+        message_count=state.message_count,
     )

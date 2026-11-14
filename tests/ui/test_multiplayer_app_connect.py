@@ -42,3 +42,8 @@ def test_setup_runs_in_the_app_loop_and_the_listener_survives():
 def test_submit_when_disconnected_returns_false():
     client = MultiplayerClient()
     assert asyncio.run(client.submit("move", dx=1, dy=0)) is False
+
+
+def test_act_when_disconnected_says_so():
+    client = MultiplayerClient()
+    assert asyncio.run(client.act("move", dx=1, dy=0)) == (False, ["Not connected to the server."])

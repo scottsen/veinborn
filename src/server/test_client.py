@@ -131,7 +131,7 @@ class TestClient:
         print(f"Sent chat: {message}")
 
     async def send_move(self, dx: int, dy: int):
-        """Send a movement action.
+        """Send a move intent (the server moves this session's own character).
 
         Args:
             dx: X offset (-1, 0, 1)
@@ -145,16 +145,7 @@ class TestClient:
             print("✗ Game not started or entity ID unknown")
             return
 
-        # Create MoveAction serialized format
-        action_data = {
-            "action_type": "MoveAction",
-            "actor_id": self.player_entity_id,
-            "dx": dx,
-            "dy": dy,
-        }
-
-        msg = Message(type="action", data={"action_data": action_data})
-        await self.ws.send(msg.to_json())
+        await self.ws.send(Message.intent("move", dx=dx, dy=dy).to_json())
         print(f"Sent move: dx={dx}, dy={dy}")
 
     async def listen(self):
@@ -188,6 +179,10 @@ class TestClient:
 
         elif msg_type == "error":
             print(f"\n✗ Error: {message.data.get('message')}")
+
+        elif msg_type == "intent_result":
+            if not message.data.get("ok"):
+                print(f"\n✗ Refused: {'; '.join(message.data.get('messages') or [])}")
 
         elif msg_type == "chat_message":
             player_name = message.data.get("player_name", "Unknown")

@@ -13,7 +13,7 @@ from ui.textual.widgets import MapWidget, StatusBar, Sidebar, InventoryWidget, C
 from ui.textual.widgets.message_log import MessageLog
 from core.item_listing import ground_messages, inventory_messages, items_here
 from ui.textual.equipment_screen import EquipmentScreen
-from ui.driver import LocalDriver
+from ui.driver import LocalDriver, RemoteDriver
 
 # Setup logging
 logger = logging.getLogger('veinborn.app')
@@ -162,6 +162,7 @@ class VeinbornApp(App):
         Binding("S", "save_game", "Save Game", show=True),
         Binding("L", "load_game", "Load Game", show=True),
         # Game controls
+        Binding("R", "ready", "Ready (multiplayer lobby)", show=True),
         Binding("r", "restart", "Restart", show=True),
         Binding("q", "quit", "Quit", show=True),
         # Debug
@@ -184,8 +185,9 @@ class VeinbornApp(App):
             multiplayer_setup: Optional async callable(client) -> bool that connects the
                 client. Run from on_mount so the websocket listener lives in Textual's
                 event loop (a separate asyncio.run() cancels it when that loop ends).
-            driver: The run to play (plan D6). Default: a new local single-player
-                run (`LocalDriver`), started with the options above when the app composes.
+            driver: The run to play (plan D6). Default: the seat behind
+                `multiplayer_client` (`RemoteDriver`) if one is given, else a new local
+                single-player run (`LocalDriver`) started with the options above.
         """
         logger.info("VeinbornApp.__init__() starting")
 
@@ -203,7 +205,9 @@ class VeinbornApp(App):
         super().__init__()
 
         # The UI reads snapshots from the driver and submits intents to it; it never holds a Game
-        self.driver = driver if driver is not None else LocalDriver(Game())
+        if driver is None:
+            driver = RemoteDriver(multiplayer_client) if multiplayer_client is not None else LocalDriver(Game())
+        self.driver = driver
         self.driver.on_update(self.refresh_ui)
 
         # Player configuration for starting a local run
@@ -394,6 +398,13 @@ class VeinbornApp(App):
             return
         self.driver.restart()
 
+    async def action_ready(self) -> None:
+        """Ready up in a multiplayer lobby (the game starts when every seat is ready)."""
+        ready = getattr(self.driver, 'ready', None)
+        if ready is None or self.driver.snapshot() is not None:
+            return
+        await ready()
+
     async def action_chat(self) -> None:
         """Open chat input (async Textual handler)."""
         if self.chat_input:
@@ -498,6 +509,8 @@ class VeinbornApp(App):
         if not any(widgets):
             return
         snap = self.driver.snapshot()
+        if snap is None and self.status_bar is not None and hasattr(self.driver, 'lobby'):
+            self.status_bar.waiting_text = StatusBar.lobby_text(self.driver.lobby())
         for widget in widgets:
             if widget is not None:
                 widget.show(snap)

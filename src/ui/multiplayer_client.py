@@ -2,7 +2,7 @@
 
 import asyncio
 import logging
-from typing import Optional, Callable, Dict
+from typing import Optional, Callable, Dict, List, Tuple
 from dataclasses import dataclass, field
 
 try:
@@ -72,6 +72,10 @@ class MultiplayerClient:
         # Background tasks
         self._listen_task: Optional[asyncio.Task] = None
         self._running = False
+
+        # Intents awaiting their intent_result, by request id
+        self._next_rid = 0
+        self._pending: Dict[int, asyncio.Future] = {}
 
     async def connect(self, player_name: str, auth_token: Optional[str] = None) -> bool:
         """Connect to the multiplayer server and authenticate.
@@ -233,6 +237,27 @@ class MultiplayerClient:
         await self.ws.send(Message.intent(intent, **args).to_json())
         return True
 
+    async def act(self, intent: str, timeout: float = 5.0, **args) -> Tuple[bool, List[str]]:
+        """Send an intent and wait for the server's answer to it.
+
+        Returns (accepted, lines): lines say why a refused intent was refused. An
+        accepted intent's state has already arrived as a snapshot when this returns.
+        """
+        if not self.ws or not self.state.is_connected:
+            return False, ["Not connected to the server."]
+        self._next_rid += 1
+        rid = self._next_rid
+        future = asyncio.get_running_loop().create_future()
+        self._pending[rid] = future
+        try:
+            await self.ws.send(Message.intent(intent, rid=rid, **args).to_json())
+            return await asyncio.wait_for(future, timeout)
+        except asyncio.TimeoutError:
+            logger.warning(f"No intent_result for {intent!r} (rid {rid}) within {timeout}s")
+            return False, ["No answer from the server."]
+        finally:
+            self._pending.pop(rid, None)
+
     async def request_snapshot(self) -> bool:
         """Ask the server for the current state (after a gap, or on joining late)."""
         if not self.ws or not self.state.is_connected:
@@ -317,13 +342,17 @@ class MultiplayerClient:
             logger.info(f"System message ({level}): {text}")
 
         elif msg_type == "error":
-            # Handle error message
-            text = message.data.get("message", "")
-            logger.warning(f"Server refused: {text}")
-            self.state.errors.append(text)
+            self._refused(message.data.get("message", ""))
 
-            if self.on_system_message:
-                self.on_system_message(f"Error: {text}")
+        elif msg_type == "intent_result":
+            ok = bool(message.data.get("ok"))
+            lines = list(message.data.get("messages") or [])
+            if not ok:
+                for text in lines or ["Action refused"]:
+                    self._refused(text)
+            future = self._pending.get(message.data.get("rid"))
+            if future is not None and not future.done():
+                future.set_result((ok, lines))
 
         elif msg_type == "snapshot":
             if message.seq is not None and message.seq <= self.last_seq:
@@ -377,6 +406,13 @@ class MultiplayerClient:
 
         else:
             logger.debug(f"Received message type: {msg_type}")
+
+    def _refused(self, text: str) -> None:
+        """The server said no (an error, or a refused intent): keep it and tell the UI."""
+        logger.warning(f"Server refused: {text}")
+        self.state.errors.append(text)
+        if self.on_system_message:
+            self.on_system_message(f"Error: {text}")
 
     def get_chat_messages(self, limit: int = 50) -> list:
         """Get recent chat messages.
