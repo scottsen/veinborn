@@ -143,3 +143,15 @@ def test_equipment_screen_submits_equip_and_shows_the_reply():
             await pilot.pause()
             assert not isinstance(app.screen, EquipmentScreen)
     asyncio.run(scenario())
+
+
+def test_restart_keeps_name_and_class_on_a_fresh_seed():
+    from core.character_class import CharacterClass
+    game = Game()
+    game.start_new_game(seed=1, player_name="Zed", character_class=CharacterClass.MAGE)
+    first_seed = game.state.seed if hasattr(game.state, "seed") else None
+    LocalDriver(game).restart()
+    assert game.state.player_name == "Zed"
+    assert game.state.player.stats["class_type"] == "mage"
+    if first_seed is not None:
+        assert game.state.seed != first_seed

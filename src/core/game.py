@@ -216,9 +216,16 @@ class Game:
         self.engine.tick()
 
     def restart_game(self) -> None:
-        """Restart the game."""
+        """Restart with the same name and class on a fresh seed."""
         logger.info("Restarting game")
-        self.start_new_game()
+        player_name = character_class = None
+        if self.state is not None:
+            player_name = self.state.player_name
+            from .character_class import CharacterClass
+            class_type = self.state.player.stats.get('class_type')
+            if class_type:
+                character_class = CharacterClass(class_type)
+        self.start_new_game(player_name=player_name, character_class=character_class)
 
     def descend_floor(self) -> None:
         """Descend to the next floor (the engine moves the party and announces it)."""
