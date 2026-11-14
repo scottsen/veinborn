@@ -822,18 +822,20 @@ VB-24 writes per-player co-op scores to data/highscores_multiplayer.json but not
 ## TASK-VB-36 · Single-player 'wait' bypasses the action pipeline (no actor_waited event, no message)
 
 ```yaml
-status: backlog
+status: done
 priority: low
 tags: [events, singleplayer]
 created: '2026-09-23T17:19:57Z'
-updated: '2026-11-14T02:32:53Z'
+updated: '2026-11-14T04:43:12Z'
 session: crimson-jewel-0923
 links:
   references:
   - VB-24
   - VB-33
   - src/core/game.py
-notes_next: 3
+  commits:
+  - 4210cd8772c32022d2367dd9826781a452df3920
+notes_next: 4
 ```
 
 Game.handle_player_action special-cases 'wait' (calls _process_turn directly), so SP wait emits no actor_waited event or 'X waits.' message unlike MP's WaitAction path. Routing it through WaitAction would add a message per rest keypress - decide whether that log spam is wanted.
@@ -842,6 +844,7 @@ Game.handle_player_action special-cases 'wait' (calls _process_turn directly), s
 ### Notes
 - [#1 2026-11-13T22:32:06Z session:letorera-1113] 'wait' is now a registered ActionFactory action (VB-90); Game.handle_player_action still special-cases it, so SP wait is unchanged.
 - [#2 2026-11-14T02:32:53Z session:warming-sunshine-1113] 2026-11-13 (VB-100): the TUI now calls LocalDriver.submit('wait') -> Game.handle_player_action, which still special-cases wait; multiplayer's wait intent runs the pipeline. This is the last place SP and MP execute an intent differently; removing the special case changes SP outcomes, so gate it with the seeded bot A/B.
+- [#3 2026-11-14T04:43:12Z session:acidic-lens-1113] SP wait now runs WaitAction through the shared pipeline (actor_waited published). Local host passes quiet=True so resting adds no 'X waits.' line; MP still announces it. Paired bot A/B (seeds 1000-1031, 3000 turns, 128 pairs): 128/128 identical (bots wait ~1x/game, confirmed through the pipeline). Unit tests: event published, no message, turn counted.
 
 
 ## TASK-VB-37 · Damage formula never evaluates: 'max' passed as a name, simpleeval needs functions=
