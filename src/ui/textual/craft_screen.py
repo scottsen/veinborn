@@ -10,7 +10,7 @@ rules and works the same on a local run and a server's. A craft is the `craft` i
 from textual.binding import Binding
 
 from core.actions.craft_action import CraftAction
-from core.crafting import ORE_LEGEND, ore_label, stats_label
+from core.crafting import ORE_LEGEND, ore_label, ore_rating, stats_label
 
 from .list_screen import ListScreen
 
@@ -58,7 +58,7 @@ class CraftScreen(ListScreen):
             return f"Uses: {used}   (o: choose parts)"
         used = ", ".join(f"{items[i].name} {ore_label(items[i].ore)}" for i in recipe.ore_ids if i in items)
         spare = len(recipe.ore_choices) - len(recipe.ore_ids)
-        more = f"   ({spare} more to choose from: o)" if spare > 0 else ""
+        more = f"   ({spare} more to choose from: o)" if spare > 0 else "   (o: choose which ore)"
         return f"Uses: {used}{more}\n{ORE_LEGEND}"
 
     def action_pick_ore(self) -> None:
@@ -126,7 +126,8 @@ class OrePickScreen(ListScreen):
         if recipe is None:
             return []
         items = items_by_id(self.driver.snapshot().player)
-        return [items[i] for i in recipe.ore_choices if i in items]
+        ores = [items[i] for i in recipe.ore_choices if i in items]
+        return sorted(ores, key=lambda o: ore_rating(o.ore), reverse=True)   # best first (stable: ties keep pack order)
 
     def header(self) -> str:
         recipe = self.recipe()

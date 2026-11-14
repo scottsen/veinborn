@@ -209,13 +209,17 @@ def test_ore_picker_crafts_from_the_hand_picked_ore():
         i = next(n for n, r in enumerate(screen.rows()) if r.recipe_id == 'copper_sword')
         screen.cursor = i
         assert "Uses: Copper Ore Q" in screen.render_panel().plain and " P95 " in screen.render_panel().plain   # the default is the best ore, named
+        assert "1 more to choose from: o" in screen.render_panel().plain
         await pilot.press("o")
         await pilot.pause()
         assert isinstance(app.screen, OrePickScreen)
         picker = app.screen
         assert len(picker.picked) == 2
-        picker.picked = []                                          # start over: pick the two worst
-        picker.cursor = 0
+        from core.crafting import ore_rating
+        ratings = [ore_rating(r.ore) for r in picker.rows()]
+        assert ratings == sorted(ratings, reverse=True) and len(ratings) == 3   # best ore first
+        picker.picked = []                                          # start over: pick the two worst (rows 1 and 2)
+        picker.cursor = 1
         await pilot.press("space", "down", "space")
         await pilot.pause()
         assert "->" in picker.render_panel().plain                  # preview once 2 are picked
@@ -224,6 +228,18 @@ def test_ore_picker_crafts_from_the_hand_picked_ore():
         assert not isinstance(app.screen, OrePickScreen)
         assert ores[2] in player.inventory and ores[0] not in player.inventory
         assert any(i.get_stat('recipe_id') == 'copper_sword' for i in player.inventory)
+    run(scenario)
+
+
+def test_forge_always_hints_at_choosing_ore_even_with_no_spare():
+    async def scenario(app, pilot, game):
+        stand_at_forge(game, ore=2)                  # exactly what a copper sword needs: nothing to choose between
+        await pilot.press("f")
+        await pilot.pause()
+        screen = app.screen
+        screen.cursor = next(n for n, r in enumerate(screen.rows()) if r.recipe_id == 'copper_sword')
+        panel = screen.render_panel().plain
+        assert "(o: choose which ore)" in panel and "more to choose from" not in panel
     run(scenario)
 
 
