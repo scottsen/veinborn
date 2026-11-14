@@ -63,11 +63,11 @@ def test_leaving_skips_ore_detours():
     assert action != 'mine' and ore.entity_id not in planner._ore_seek
 
 
-def test_no_mining_with_a_full_pack():
+def test_no_mining_with_a_full_ore_bag():
     game, planner, ore = with_one_ore(dx=1)
     player = game.state.player
-    while len(player.inventory) < planner_module.INVENTORY_MAX:
-        player.add_to_inventory(LootGenerator.get_instance().create_item('bread'))
+    while player.ore_count() < player.MAX_ORE_BAG:
+        player.add_to_inventory(ore.get_ore_item())
     action, _ = planner.get_smart_action(game)
     assert action != 'mine'
 

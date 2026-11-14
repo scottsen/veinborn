@@ -3,6 +3,7 @@ bump them, and it does not mine with a full pack (the ore would fall on the floo
 import pytest
 
 from core.base.entity import EntityType
+from core.loot import LootGenerator
 from core.world import Tile, TileType
 from tests.fuzz.services import action_planner as planner_module
 from tests.unit.test_planner_abilities import make
@@ -66,6 +67,20 @@ def test_random_fallback_does_not_mine_with_a_full_pack():
     clear_blockers(game)
     game.context.add_entity(EntityLoader().create_ore_vein('copper', p.x + 1, p.y, floor=1))
     vein = EntityLoader().create_ore_vein('copper', 0, 0, floor=1)
-    while len(p.inventory) < planner_module.INVENTORY_MAX:
+    while p.ore_count() < p.MAX_ORE_BAG:
         p.inventory.append(vein.get_ore_item())
     assert all(planner.get_random_action(game)[0] != 'mine' for _ in range(200))
+
+
+def test_random_fallback_still_mines_with_a_full_pack():
+    """VB-131: ore has its own bag, so a full pack does not block mining."""
+    from core.entity_loader import EntityLoader
+    game, planner = make("warrior")
+    p = game.state.player
+    open_room(game, p.x, p.y)
+    clear_blockers(game)
+    game.context.add_entity(EntityLoader().create_ore_vein('copper', p.x + 1, p.y, floor=1))
+    while p.has_room():
+        p.add_to_inventory(LootGenerator.get_instance().create_item('bread'))
+    assert p.ore_count() == 0 and not p.has_room()
+    assert any(planner.get_random_action(game)[0] == 'mine' for _ in range(400))

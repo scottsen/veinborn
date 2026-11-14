@@ -36,8 +36,8 @@ player:
 
 # Inventory
 inventory:
-  max_size: 20
-  description: "Maximum 20 items in inventory"
+  max_size: 20   # not read: the pack size is Player.MAX_INVENTORY (20), the ore bag Player.MAX_ORE_BAG (30)
+  description: "Pack of 20 items plus a separate 30-slot ore bag (src/core/entities.py); gold is a counter"
 
 # Game progression
 progression:

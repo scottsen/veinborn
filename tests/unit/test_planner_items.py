@@ -124,7 +124,7 @@ def test_ignores_items_it_cannot_use():
 def test_does_not_collect_with_a_full_pack():
     game, planner = warrior()
     player = game.state.player
-    while len(player.inventory) < planner_module.INVENTORY_MAX:
+    while player.has_room():
         player.add_to_inventory(potion('scroll_mapping'))
     drop_beside_player(game, potion())
     assert planner.collect_action(game) is None
@@ -155,9 +155,9 @@ def test_full_pack_drops_junk_before_anything_useful():
     game, planner = warrior()
     player = game.state.player
     player.inventory.clear()
-    shield = LootGenerator.get_instance().create_item('gold_pile_small')    # no use
+    shield = LootGenerator.get_instance().create_item('scroll_mapping')    # no built effect: no use
     player.add_to_inventory(shield)
-    while len(player.inventory) < planner_module.INVENTORY_MAX:
+    while player.has_room():
         player.add_to_inventory(potion())
     action = planner.get_smart_action(game)
     assert action == ('drop', {'item_id': shield.entity_id})
@@ -167,7 +167,7 @@ def test_full_pack_drops_healing_only_beyond_the_reserve():
     game, planner = warrior()
     player = game.state.player
     player.inventory.clear()
-    while len(player.inventory) < planner_module.INVENTORY_MAX:
+    while player.has_room():
         player.add_to_inventory(potion())
     action, kwargs = planner.get_smart_action(game)
     assert action == 'drop'                                           # 20 potions > reserve
@@ -220,7 +220,7 @@ def test_full_pack_drops_its_worst_ore_for_a_boss_material():
     worst = ore(10)
     player.add_to_inventory(potion("wraith_essence"))     # a material already carried stays
     player.add_to_inventory(worst)
-    while len(player.inventory) < planner_module.INVENTORY_MAX:
+    while player.ore_count() < player.MAX_ORE_BAG:
         player.add_to_inventory(ore(80))
     drop_beside_player(game, potion('dragon_bone'))
     assert planner.material_action(game) == ('drop', {'item_id': worst.entity_id})
@@ -230,7 +230,7 @@ def test_full_pack_of_materials_leaves_the_new_one():
     game, planner = warrior()
     player = game.state.player
     player.inventory.clear()
-    while len(player.inventory) < planner_module.INVENTORY_MAX:
+    while player.ore_count() < player.MAX_ORE_BAG:
         player.add_to_inventory(potion('wraith_essence'))
     drop_beside_player(game, potion('dragon_bone'))
     assert planner.material_action(game) is None
@@ -258,7 +258,7 @@ def test_full_pack_drops_a_second_copy_of_a_material():
     first, second = potion('wraith_essence'), potion('wraith_essence')
     player.add_to_inventory(first)
     player.add_to_inventory(second)
-    while len(player.inventory) < planner_module.INVENTORY_MAX:
+    while player.ore_count() < player.MAX_ORE_BAG:
         player.add_to_inventory(ore(80))
     assert planner.junk_to_drop(game) is second
 

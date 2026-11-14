@@ -51,7 +51,8 @@ class Sidebar(Static):
         text.append(f"Weapon: {player.weapon.name if player.weapon else '-'}\n")
         text.append(f"Armor: {player.armor.name if player.armor else '-'}\n")
         text.append(f"Shield: {player.shield.name if player.shield else '-'}\n")
-        text.append(f"Ring: {player.ring.name if player.ring else '-'}\n\n")
+        text.append(f"Ring: {player.ring.name if player.ring else '-'}\n")
+        text.append(f"Gold: {player.gold}   Ore bag: {len(player.bag)}/{player.ore_capacity}\n\n")
 
         # Show inventory only if InventoryWidget is hidden (for default layout)
         # Skip if using split-sidebars layout (InventoryWidget has its own panel on left)

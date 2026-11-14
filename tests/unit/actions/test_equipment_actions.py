@@ -159,7 +159,7 @@ def test_listing_shows_worn_slots_and_only_wearable_pack_items(game):
     assert [l.bonus for l in carried] == [gear_bonus(sword, 'weapon'), gear_bonus(shield, 'shield')]
     assert carried[0].change == carried[0].bonus - worn[0].bonus > 0
     assert worn[1].text() == "Armor: (nothing)"
-    assert "vs worn" in carried[0].text()
+    assert "; vs worn: +" in carried[0].text()
 
 
 def test_listing_empty_slot_change_is_the_whole_bonus(game):

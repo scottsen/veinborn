@@ -267,6 +267,7 @@ class SaveSystem:
             data["equipped_shield"] = (
                 self._serialize_entity(entity.equipped_shield) if entity.equipped_shield else None
             )
+            data["gold"] = entity.gold
             data["equipped_ring"] = (
                 self._serialize_entity(entity.equipped_ring) if entity.equipped_ring else None
             )
@@ -467,6 +468,10 @@ class SaveSystem:
                 self._deserialize_entity(data["equipped_shield"])
                 if data.get("equipped_shield") else None
             )
+            entity.gold = int(data.get("gold", 0))      # absent in saves from before VB-74
+            for pile in [i for i in entity.inventory if i.get_stat('item_type') == 'gold']:
+                entity.inventory.remove(pile)           # a save from when gold was a pack item
+                entity.gold += int(pile.get_stat('gold_amount', 0) or 0)
             entity.equipped_ring = (         # absent in saves from before VB-130
                 self._deserialize_entity(data["equipped_ring"])
                 if data.get("equipped_ring") else None

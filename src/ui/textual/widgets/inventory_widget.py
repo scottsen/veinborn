@@ -46,7 +46,8 @@ class InventoryWidget(Static):
 
         if inventory:
             capacity = player.inventory_capacity
-            text.append(f"({len(inventory)}/{capacity} items)\n\n", style="dim")
+            text.append(f"(pack {len(player.pack)}/{capacity}, ore {len(player.bag)}/{player.ore_capacity})\n", style="dim")
+            text.append(f"Gold: {player.gold}\n\n", style="bright_yellow")
 
             for idx, item in enumerate(inventory[:max_display], 1):
                 item_type = item.item_type
@@ -59,6 +60,7 @@ class InventoryWidget(Static):
                 text.append(f"\n  (+{len(inventory) - max_display} more)\n", style="dim italic")
                 text.append("  Press 'i' for full list\n", style="dim")
         else:
+            text.append(f"Gold: {player.gold}\n", style="bright_yellow")
             text.append("(empty)\n\n", style="dim")
             text.append("Pick up items by\nwalking over them\n", style="dim")
 

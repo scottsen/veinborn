@@ -317,14 +317,15 @@ def test_mining_completion_drops_ore_when_inventory_full(mining_context, copper_
     copper_ore.x = player.x + 1
     copper_ore.y = player.y
 
-    # Fill inventory to max capacity (20 items)
+    # Fill the ore bag to max capacity (30 pieces of ore)
     from core.base.entity import Entity
-    for i in range(20):
+    for i in range(player.MAX_ORE_BAG):
         dummy_ore = Entity(
             entity_type=EntityType.ITEM,
             name=f"Dummy Ore {i}",
+            stats={'ore_type': 'copper'},
         )
-        player.add_to_inventory(dummy_ore)
+        assert player.add_to_inventory(dummy_ore)
 
     action = MineAction(
         actor_id=player.entity_id,
@@ -334,8 +335,8 @@ def test_mining_completion_drops_ore_when_inventory_full(mining_context, copper_
 
     outcome = action.execute(mining_context)
 
-    # Inventory should still be full (20 items)
-    assert len(player.inventory) == 20
+    # The ore bag should still be full
+    assert len(player.inventory) == player.MAX_ORE_BAG == 30
 
     # Ore should be dropped on ground
     assert any("Inventory full" in msg for msg in outcome.messages)

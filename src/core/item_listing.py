@@ -62,8 +62,10 @@ def inventory_messages(player_view) -> List[str]:
     if not lines:
         return ["Your inventory is empty."]
     capacity = player_view.inventory_capacity
+    pack = len(player_view.pack)
     return (
-        [f"=== Full Inventory ({len(lines)}/{capacity} items) ==="]
+        [f"=== Full Inventory ({pack}/{capacity} items, ore bag {len(player_view.bag)}/{player_view.ore_capacity}, "
+         f"{player_view.gold} gold) ==="]
         + [f"  {i}. {line.text}" for i, line in enumerate(lines, 1)]
         + ["========================================"]
     )

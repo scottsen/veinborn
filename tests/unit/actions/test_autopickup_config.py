@@ -40,8 +40,10 @@ def test_use_defaults_ignores_the_config_file(tmp_path, monkeypatch):
 
 def test_default_autopickup_takes_gold():
     game, gold, (dx, dy) = gold_one_step_away()
+    before = game.state.player.gold
     game.handle_player_action('move', dx=dx, dy=dy)
-    assert gold in game.state.player.inventory
+    assert game.state.player.gold == before + gold.get_stat('gold_amount') > before   # counted, not carried
+    assert gold not in game.state.player.inventory
 
 
 def test_autopickup_types_preference_can_leave_gold(monkeypatch):

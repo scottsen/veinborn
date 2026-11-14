@@ -254,25 +254,23 @@ class TestPlayerInventory:
 
     @pytest.mark.unit
     def test_inventory_has_max_capacity(self, fresh_player):
-        """Inventory has maximum capacity of 20 items."""
-        # Fill inventory to max
-        for i in range(20):
+        """The ore bag holds MAX_ORE_BAG (30) pieces of ore; the 31st is refused."""
+        for i in range(fresh_player.MAX_ORE_BAG):
             ore = OreVein(ore_type="copper", x=i, y=0,
                          hardness=50, conductivity=50, malleability=50,
                          purity=50, density=50)
             success = fresh_player.add_to_inventory(ore)
             assert success
 
-        assert len(fresh_player.inventory) == 20
+        assert len(fresh_player.inventory) == fresh_player.MAX_ORE_BAG == 30
 
-        # Try to add 21st item
         extra_ore = OreVein(ore_type="iron", x=99, y=99,
                            hardness=75, conductivity=60, malleability=65,
                            purity=70, density=85)
         success = fresh_player.add_to_inventory(extra_ore)
 
         assert not success
-        assert len(fresh_player.inventory) == 20
+        assert len(fresh_player.inventory) == 30
         assert extra_ore not in fresh_player.inventory
 
 

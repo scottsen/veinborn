@@ -364,8 +364,10 @@ class VeinbornBot:
 
         # Check inventory invariants (if player has inventory)
         if hasattr(game.state.player, 'inventory'):
-            if len(game.state.player.inventory) > 20:
-                violations.append(f"Inventory exceeds max: {len(game.state.player.inventory)}")
+            if game.state.player.pack_count() > game.state.player.MAX_INVENTORY:
+                violations.append(f"Pack exceeds max: {game.state.player.pack_count()}")
+            if game.state.player.ore_count() > game.state.player.MAX_ORE_BAG:
+                violations.append(f"Ore bag exceeds max: {game.state.player.ore_count()}")
             for item in game.state.player.inventory:
                 if item.x is not None:
                     violations.append(f"Carried {item.name} also lies on the map at ({item.x},{item.y})")

@@ -4,8 +4,8 @@
       Weapon: Iron Sword (+4 attack)        <- Enter removes it
       Armor:  (nothing)
     In your pack
-    > Mithril Sword (weapon, +7 attack, +3 vs worn)   <- Enter wields/wears it
-      Chainmail (armor, +3 defense, +3 vs worn)
+    > Mithril Sword (weapon, +7 attack; vs worn: +3 attack)   <- Enter wields/wears it
+      Chainmail (armor, +3 defense; vs worn: +3 defense)
 
 The rows come from `core.equipment.equipment_listing` over the driver's snapshot;
 changes are `equip` / `unequip` intents, so this screen holds no rules and works

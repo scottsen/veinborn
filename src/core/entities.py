@@ -66,23 +66,54 @@ class Player(Entity):
         self.equipped_armor: Optional[Entity] = None
         self.equipped_shield: Optional[Entity] = None   # off-hand (VB-72)
         self.equipped_ring: Optional[Entity] = None     # one ring (VB-130)
+        self.gold: int = 0                              # a counter, not items (VB-74)
         self.set_stat('xp', 0)
         self.set_stat('level', 1)
 
-    MAX_INVENTORY = 20
+    MAX_INVENTORY = 20      # the pack: gear, potions, scrolls, food, crafted parts
+    MAX_ORE_BAG = 30        # the ore bag: mined ore and boss materials, counted apart from the pack
 
-    def has_room(self) -> bool:
-        """True if the pack can take one more item."""
-        return len(self.inventory) < self.MAX_INVENTORY
+    @staticmethod
+    def uses_ore_bag(item: Entity) -> bool:
+        """True for raw ore and boss materials (what crafting consumes); False for everything else.
+
+        Not crafted gear that carries an old `ore_type` tag (crafting.is_ore_item).
+        """
+        from .crafting import is_ore_item
+        return is_ore_item(item) or item.get_stat('item_type') == 'material'
+
+    def ore_count(self) -> int:
+        """Items in the ore bag."""
+        return sum(1 for i in self.inventory if self.uses_ore_bag(i))
+
+    def pack_count(self) -> int:
+        """Items in the pack (everything carried that is not in the ore bag)."""
+        return len(self.inventory) - self.ore_count()
+
+    def has_room(self, item: Optional[Entity] = None) -> bool:
+        """True if `item` fits: ore and materials go by the ore bag, anything else (or no item) by the pack."""
+        if item is not None and self.uses_ore_bag(item):
+            return self.ore_count() < self.MAX_ORE_BAG
+        return self.pack_count() < self.MAX_INVENTORY
 
     def add_to_inventory(self, item: Entity) -> bool:
         """
         Add item to inventory.
 
+        Gold is not kept as an item: its `gold_amount` is added to `gold` and the pile is
+        used up, so gold never takes a slot and can always be picked up (VB-74).
+
         Returns:
             True if added successfully
         """
-        if not self.has_room():
+        if item.get_stat('item_type') == 'gold':
+            self.gold += int(item.get_stat('gold_amount', 0) or 0)
+            item.x = None
+            item.y = None
+            item.is_alive = False            # cleaned out of the world with the dead
+            return True
+
+        if not self.has_room(item):
             return False
 
         self.inventory.append(item)

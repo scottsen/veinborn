@@ -30,6 +30,11 @@ class ItemView:
     usable: bool = False        # a built effect: the pack screen offers Use (potion, food, later scrolls)
     ore: Optional[Dict[str, int]] = None   # raw ore only: the properties recipes read (VB-111)
     part: Optional[Dict] = None            # a crafted part only: {'slot', 'ore', 'stats'} (VB-116)
+
+    @property
+    def in_ore_bag(self) -> bool:
+        """Raw ore and boss materials count against the ore bag, not the pack (Player.uses_ore_bag)."""
+        return self.ore is not None or self.item_type == 'material'
     stats: Dict[str, int] = field(default_factory=dict)   # wearable gear: every core stat it has (VB-126)
 
 
@@ -123,6 +128,18 @@ class PlayerView:
     recipes: List[RecipeView] = field(default_factory=list)   # filled only while forge_id is set
     accuracy: int = 0           # to-hit bonus from worn gear (VB-126)
     spell_power: int = 0        # direct-damage spell bonus from worn gear
+    gold: int = 0               # a counter (VB-74), no longer pack items
+    ore_capacity: int = 30      # the ore bag's size (VB-131): ore and materials do not use pack slots
+
+    @property
+    def bag(self) -> List[ItemView]:
+        """Ore and boss materials carried (the ore bag), in pickup order."""
+        return [i for i in self.inventory if i.in_ore_bag]
+
+    @property
+    def pack(self) -> List[ItemView]:
+        """Everything carried that is not in the ore bag."""
+        return [i for i in self.inventory if not i.in_ore_bag]
 
 
 @dataclass
@@ -377,7 +394,7 @@ def _player_view(player, turn: int, state=None) -> PlayerView:
         shield=_item(getattr(player, 'equipped_shield', None)),
         ring=_item(getattr(player, 'equipped_ring', None)),
         inventory=[_item(i) for i in player.inventory],
-        inventory_capacity=player.get_stat('inventory_capacity', 20),
+        inventory_capacity=player.get_stat('inventory_capacity', getattr(player, 'MAX_INVENTORY', 20)),
         abilities=_abilities(player, turn, state),
         symbol=player.display_symbol,
         color=player.display_color,
@@ -385,6 +402,8 @@ def _player_view(player, turn: int, state=None) -> PlayerView:
         effects=_effects(player),
         accuracy=gear_total(player, 'accuracy'),
         spell_power=gear_total(player, 'spell_power'),
+        gold=getattr(player, 'gold', 0),
+        ore_capacity=getattr(player, 'MAX_ORE_BAG', 30),
     )
 
 

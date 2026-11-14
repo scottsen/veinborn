@@ -34,7 +34,8 @@ class PackScreen(ListScreen):
 
     def header(self) -> str:
         p = self._player()
-        header = f"{len(p.inventory)}/{p.inventory_capacity} items"
+        header = (f"Pack {len(p.pack)}/{p.inventory_capacity}   Ore bag {len(p.bag)}/{p.ore_capacity}"
+                  f"   Gold {p.gold}")
         if any(i.ore for i in p.inventory):
             header += f"\nOre: {ORE_LEGEND}  (★ jackpot)"
         return header
@@ -83,7 +84,7 @@ class GroundScreen(ListScreen):
 
     def header(self) -> str:
         p = self.driver.snapshot().player
-        return f"Pack {len(p.inventory)}/{p.inventory_capacity}"
+        return f"Pack {len(p.pack)}/{p.inventory_capacity}"
 
     def row_text(self, line) -> str:
         return line.text

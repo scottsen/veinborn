@@ -351,10 +351,12 @@ def test_g_with_several_items_lets_you_choose_one():
         await pilot.pause()
         player = game.state.player
         assert potion in player.inventory and gold not in player.inventory and ration not in player.inventory
+        assert player.gold == 0
         assert len(screen.rows()) == len(names) - 1                  # the rest still lie here
         await pilot.press("a")
         await pilot.pause()
-        assert gold in player.inventory and ration in player.inventory
+        assert player.gold == gold.get_stat('gold_amount') > 0      # gold is counted, never carried
+        assert gold not in player.inventory and ration in player.inventory
         assert not isinstance(app.screen, GroundScreen)
     run(scenario)
 

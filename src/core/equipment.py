@@ -115,16 +115,16 @@ class GearLine:
         return self.item.entity_id if self.item is not None else None
 
     def text(self) -> str:
-        """e.g. 'Weapon: Iron Sword (+4 attack)' / '2. Mithril Sword (weapon, +7 attack +2 accuracy,
-        +3 attack +2 accuracy vs worn)': every stat the game reads, not just the slot's main one."""
+        """e.g. 'Weapon: Iron Sword (+4 attack)' / '2. Mithril Sword (weapon, +7 attack +2 accuracy;
+        vs worn: +3 attack +2 accuracy)': every stat the game reads, not just the slot's main one."""
         from .crafting import stats_label
         if self.item is None:
             return f"{SLOT_LABEL[self.slot]}: (nothing)"
         shown = stats_label(self.stats) or f"+{self.bonus} {self.stat}"
         if self.worn:
             return f"{SLOT_LABEL[self.slot]}: {self.item.name} ({shown})"
-        verdict = f"{stats_label(self.diff)} vs worn" if self.diff else "same"
-        return f"{self.item.name} ({self.slot}, {shown}, {verdict})"
+        verdict = f"vs worn: {stats_label(self.diff)}" if self.diff else "same as worn"
+        return f"{self.item.name} ({self.slot}, {shown}; {verdict})"
 
 
 def equipment_listing(player_view) -> Tuple[List[GearLine], List[GearLine]]:

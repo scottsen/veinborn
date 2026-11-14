@@ -69,6 +69,16 @@ level 8: 36% wins bare, 98% with a long sword and chainmail), so test a placemen
 level and gear players actually have on those floors (`scripts/bot_progression.py`, from bot
 `floor_arrivals`).
 
+### Carrying (VB-131, VB-74)
+
+- **Pack:** 20 slots (`Player.MAX_INVENTORY`) for gear, potions, scrolls, food and crafted parts.
+- **Ore bag:** 30 slots (`Player.MAX_ORE_BAG`) for mined ore and boss materials (`Player.uses_ore_bag`).
+  Every piece of ore keeps its own stats, so ore never stacks. Both live in `player.inventory`; only the
+  capacity check differs, so crafting, saves and the forge read ore as before. A full bag drops the mined
+  ore on the floor ("Inventory full!"); a full pack does not stop mining.
+- **Gold:** a number (`player.gold`), not items: picking up a pile adds its `gold_amount` and uses the pile
+  up. It has no use yet (VB-74). Saves from before this load their gold piles into the total.
+
 ### Equipment Bonuses
 
 **Player Stats Calculation:**

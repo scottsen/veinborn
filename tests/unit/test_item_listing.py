@@ -39,7 +39,7 @@ def test_inventory_messages_are_numbered_in_pack_order(game):
     p.add_to_inventory(make('dagger'))
     p.add_to_inventory(make('potion_healing'))
     msgs = inventory_messages(me(game))
-    assert msgs[0] == f"=== Full Inventory (2/{p.get_stat('inventory_capacity', 20)} items) ==="
+    assert msgs[0] == f"=== Full Inventory (2/{p.get_stat('inventory_capacity', 20)} items, ore bag 0/30, 0 gold) ==="
     assert msgs[1].startswith("  1. ") and msgs[2].startswith("  2. ")
     assert [l.name for l in inventory_listing(me(game))] == [m.split('. ', 1)[1].rsplit(' (', 1)[0] for m in msgs[1:3]]
 

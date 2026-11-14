@@ -83,8 +83,8 @@ def test_usefulness_tiers(game):
 
 def test_least_useful_drops_junk_before_gear_ore_and_healing(game):
     potion = give(game, 'potion_healing')
-    shield = give(game, 'scroll_identify')            # effect not built: no use
-    gold = give(game, 'gold_pile_small')
+    shield = give(game, 'scroll_mapping')             # effect not built: no use
+    gold = give(game, 'potion_speed')                 # effect not built: no use
     p = game.state.player
     first = least_useful_item(p)
     assert first in (shield, gold) and usefulness(p, first) == NO_USE

@@ -31,7 +31,6 @@ REST_UNTIL = 0.9          # ... and stop at this one
 ITEM_REACH = 6
 # ...and only when no monster is this close to the bot or the item
 ITEM_SAFE_RADIUS = 8
-INVENTORY_MAX = 20
 # Turns the bot may spend walking toward one ore vein before writing it off (its
 # adjacent tiles may be unreachable); without a limit two goals could trade turns
 # forever (VB-68: a bot spent 18,000 turns on one floor stepping between them)
@@ -133,25 +132,29 @@ class ActionPlanner:
         return [i for i in getattr(player, 'inventory', []) if usefulness(player, i) == HEALING]
 
     def junk_to_drop(self, game):
-        """With a full pack: junk or worse gear first, then extra copies of a boss material,
-        then healing beyond HEALING_RESERVE (cheapest first); never ore, the first copy of a
-        material or the reserve. None when the pack has room."""
+        """What to drop to make room, or None. A full pack: junk or worse gear first, then
+        healing beyond HEALING_RESERVE (cheapest first); a full ore bag: a second copy of a
+        boss material. Never ore, the first copy of a material or the reserve (VB-131: ore
+        and materials have their own bag, so a full pack no longer blocks mining)."""
         from core.actions.drop_action import WORSE_GEAR, least_useful_item
         player = game.state.player
-        if len(getattr(player, 'inventory', [])) < INVENTORY_MAX:
-            return None
-        junk = least_useful_item(player, max_tier=WORSE_GEAR)
-        if junk:
-            return junk
-        seen = set()
-        for item in player.inventory:                     # a second copy of a boss material
-            if item.get_stat('item_type') == 'material':
-                if item.content_id in seen:
-                    return item
-                seen.add(item.content_id)
-        healing = self.healing_items(game)
-        if len(healing) > HEALING_RESERVE:
-            return min(healing, key=lambda i: i.get_stat('value', 0))
+        pack_full = not player.has_room()
+        bag_full = player.ore_count() >= player.MAX_ORE_BAG
+        if pack_full:
+            junk = least_useful_item(player, max_tier=WORSE_GEAR)
+            if junk:
+                return junk
+        if bag_full:
+            seen = set()
+            for item in player.inventory:                     # a second copy of a boss material
+                if item.get_stat('item_type') == 'material':
+                    if item.content_id in seen:
+                        return item
+                    seen.add(item.content_id)
+        if pack_full:
+            healing = self.healing_items(game)
+            if len(healing) > HEALING_RESERVE:
+                return min(healing, key=lambda i: i.get_stat('value', 0))
         return None
 
     def seek_ore(self, game, ore, reach: int, label: str) -> Optional[Tuple[str, dict]]:
@@ -280,7 +283,7 @@ class ActionPlanner:
         # matter: optional detours (ore, surveys, pickups, pursuits) would otherwise keep
         # pulling the bot back from them (VB-68). Adjacent fights and healing still run.
         leaving = self.sweeper.done(game)
-        room_in_pack = len(getattr(game.state.player, 'inventory', [])) < INVENTORY_MAX
+        room_in_pack = game.state.player.MAX_ORE_BAG > game.state.player.ore_count()   # mining needs room in the ore bag
 
         # Priority 5: JACKPOT ORE
         jackpot = self.perception.find_jackpot_ore(game) if not leaving and room_in_pack else None
@@ -496,10 +499,10 @@ class ActionPlanner:
             for x, y in ((player.x, player.y), (nearest.x, nearest.y)):
                 if max(abs(m.x - x), abs(m.y - y)) <= ITEM_SAFE_RADIUS:
                     return None
-        if len(getattr(player, 'inventory', [])) >= INVENTORY_MAX:
+        if player.ore_count() >= player.MAX_ORE_BAG:       # materials go in the ore bag: make room there
             from core.actions.drop_action import ORE, least_useful_item
             room = least_useful_item(player, max_tier=ORE)
-            if room is None or room.get_stat('item_type') == 'material':
+            if room is None or room.get_stat('item_type') == 'material' or not player.uses_ore_bag(room):
                 return None
             self.log(f"🗑️  Dropping {room.name} to make room for {nearest.name}")
             return ('drop', {'item_id': room.entity_id})
@@ -512,7 +515,7 @@ class ActionPlanner:
     def collect_action(self, game) -> Optional[Tuple[str, dict]]:
         """Pick up a usable consumable underfoot, or walk to one within ITEM_REACH."""
         player = game.state.player
-        if len(getattr(player, 'inventory', [])) >= INVENTORY_MAX:
+        if not player.has_room():
             return None
         if len(self.healing_items(game)) >= HEALING_RESERVE:
             return None
@@ -563,7 +566,7 @@ class ActionPlanner:
         # drops the ore on the floor, VB-123)
         if adjacent_ore:
             action_weights['survey'] = 10
-            if len(getattr(player, 'inventory', [])) < INVENTORY_MAX:
+            if player.ore_count() < player.MAX_ORE_BAG:
                 action_weights['mine'] = 10
 
         action = random.choices(

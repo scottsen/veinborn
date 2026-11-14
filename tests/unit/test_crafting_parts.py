@@ -217,7 +217,7 @@ def test_quick_drop_never_drops_a_crafted_part_before_ore_or_junk(forge_game):
     game, player, forge = forge_game
     manager = CraftAction.get_recipe_manager()
     part = manager.create_part('blade', ore('iron', 2))
-    gold = LootGenerator.get_instance().create_item('gold_pile_small')
+    gold = LootGenerator.get_instance().create_item('scroll_mapping')     # no built effect: junk
     give(player, [part] + ore('iron', 1) + [gold])
     assert least_useful_item(player) is gold                 # junk first
     player.remove_from_inventory(gold)
