@@ -111,6 +111,7 @@ class GameResult:
     # and still carried when the game ended; picked - used - carried = lost or dropped
     items_picked_up: int = 0
     items_carried_at_end: int = 0
+    items_dropped: int = 0       # usable items the bot dropped (pack pressure, VB-73)
     # Deep start (--start-floor/--start-level, fuzz/scenario.py); floor_reached counts from here
     start_floor: int = 1
     start_level: int = 1
@@ -131,6 +132,8 @@ class CombatRecorder:
         self.last_attacker = None
         self.items_used = 0
         self.items_picked_up = 0
+        self.items_dropped = 0
+        game.event_bus.subscribe(GameEventType.ITEM_DROPPED, self._on_drop, 'bot.recorder.drops')
         game.event_bus.subscribe(GameEventType.ITEM_PICKED_UP, self._on_pickup, 'bot.recorder.pickups')
         game.event_bus.subscribe(GameEventType.ATTACK_RESOLVED, self._on_attack, 'bot.recorder')
         game.event_bus.subscribe(GameEventType.ITEM_USED, self._on_item, 'bot.recorder.items')
@@ -153,6 +156,13 @@ class CombatRecorder:
         item = self.game.context.get_entity(event.data.get('item_id'))
         if item is not None and item.get_stat('effect'):
             self.items_picked_up += 1
+
+    def _on_drop(self, event):
+        if event.data.get('actor_id') != self.game.state.player.entity_id:
+            return
+        item = self.game.context.get_entity(event.data.get('item_id'))
+        if item is not None and item.get_stat('effect'):
+            self.items_dropped += 1
 
     def carried_usable(self):
         return sum(1 for i in self.game.state.player.inventory if i.get_stat('effect'))
@@ -732,6 +742,7 @@ class VeinbornBot:
             game_stats['potions_used'] = recorder.items_used
             game_stats['items_picked_up'] = recorder.items_picked_up
             game_stats['items_carried_at_end'] = recorder.carried_usable()
+            game_stats['items_dropped'] = recorder.items_dropped
             if game.state.game_over:
                 game_stats['killed_by_type'] = recorder.last_attacker
                 earlier = hp_history[-(BURST_TURNS + 1)] if len(hp_history) > BURST_TURNS else hp_history[0]
@@ -843,6 +854,7 @@ class VeinbornBot:
                 potions_used=game_stats.get('potions_used', 0),
                 items_picked_up=game_stats.get('items_picked_up', 0),
                 items_carried_at_end=game_stats.get('items_carried_at_end', 0),
+                items_dropped=game_stats.get('items_dropped', 0),
                 start_floor=self.start_floor,
                 start_level=self.start_level,
                 floor_arrivals=game_stats.get('floor_arrivals') or {},

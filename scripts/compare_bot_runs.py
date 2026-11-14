@@ -38,10 +38,11 @@ METRICS = [
     ('potions', 'potions used', lambda g: g['potions_used']),
     ('picked', 'usable items picked up', lambda g: g['items_picked_up']),
     ('carried', 'usable items carried at end', lambda g: g['items_carried_at_end']),
+    ('dropped', 'usable items dropped', lambda g: g['items_dropped']),
 ]
 # Fields added after the first results files: a metric is skipped unless every game has it
 _NEEDS = {'burst': 'burst_death', 'potions': 'potions_used',
-          'picked': 'items_picked_up', 'carried': 'items_carried_at_end'}
+          'picked': 'items_picked_up', 'carried': 'items_carried_at_end', 'dropped': 'items_dropped'}
 
 # Two-sided 95% t critical values by degrees of freedom (normal beyond 30)
 _T95 = {1: 12.71, 2: 4.30, 3: 3.18, 4: 2.78, 5: 2.57, 6: 2.45, 7: 2.36, 8: 2.31, 9: 2.26,

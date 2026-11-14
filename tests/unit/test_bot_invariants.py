@@ -90,3 +90,14 @@ def test_recorder_counts_usable_pickups_and_carried_items(game):
                                  'item_id': potion.entity_id, 'item_name': potion.name})
     assert recorder.items_picked_up == 1      # the sword has no effect; the other actor is ignored
     assert recorder.carried_usable() == 1
+
+
+def test_recorder_counts_dropped_usable_items(game):
+    from core.loot import LootGenerator
+    recorder = CombatRecorder(game)
+    player = game.state.player
+    potion = LootGenerator.get_instance().create_item('potion_healing')
+    game.context.add_entity(potion)
+    game.event_bus.publish_dict({'type': 'item_dropped', 'actor_id': player.entity_id,
+                                 'item_id': potion.entity_id, 'item_name': potion.name})
+    assert recorder.items_dropped == 1
