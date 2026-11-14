@@ -76,6 +76,14 @@ over-time food. Run results: `~/src/tia/sessions/acidic-lens-1113/bot_runs/`. Bo
 snapshots, so fog of war does not change them. `--start-floor` runs give no gear: every bot dies
 in about 40 turns at floor 50, so they test arrival, not the late game.
 
+Routing (`ActionPlanner.move_towards`, VB-123): A* goes around forges always (a bump into one is
+refused and burns planner retries without game time; routes used to run through them, ~290
+refused moves per 20000-turn game) and around ore veins when it can, through a vein (a bump mines
+it away) only when nothing else reaches the goal, as in a one-tile corridor. Making veins
+impassable outright cut floors reached by a third on a 3-game check. The random fallback never
+bumps a forge and never mines with a full pack. Pack-aware drinking: with 3+ monsters within 8
+tiles the bot drinks at 60% HP instead of 40% (VB-107; more potions used, no change in deaths).
+
 The bot sees every monster on the floor and knows where the stairs are from turn 1. Humans now
 have fog of war (VB-105), so the bot is more informed than a player; that is deliberate for a
 balance instrument, but it means exploration is not a skill the bots measure.
@@ -101,9 +109,21 @@ Catches and logs:
 ### 4. Statistical Analysis
 Per game (results JSON): seed, floor, turns, level, kills, damage taken (total and by
 monster type), the monster type that killed it, whether the death was a burst (above
-half HP two turns before), potions used, errors. Also the turn and level on arrival at each floor
+half HP two turns before), potions used, errors; usable items picked up / carried at the end /
+dropped (VB-107); every craft (`crafts`: recipe, floor, turn, stats) and the gear worn at the end
+(`final_gear`, `final_attack`, `final_defense`, VB-121); moves the game refused
+(`refused_moves`, VB-123). Also the turn and level on arrival at each floor
 (`floor_arrivals`); `python3 scripts/bot_progression.py logs/*.json` turns those into the
 level-by-floor curve (median and 25th-75th percentile level per floor, per class).
+
+The results file is rewritten after every game (a stopped run keeps its games) and replaced
+atomically; `metadata.complete` is true only after the last game, with `games_planned` beside
+`games_played` (VB-124). `scripts/compare_bot_runs.py` warns when given an unfinished run and
+reports the fields above as paired metrics, plus crafts by recipe.
+
+Logging: `logs/bot_tests.log` (WARNING by default, `--verbose` INFO, `--debug` DEBUG) through
+`core.logging_setup`: `extra=` fields appear as `key=value`, and the file rolls over at 10 MB at
+startup (kept x3), not mid-run, since `--jobs` workers share it.
 
 Tracks:
 - Games played / completed

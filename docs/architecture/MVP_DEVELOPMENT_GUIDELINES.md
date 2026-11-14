@@ -291,19 +291,19 @@ class Game:
 
 ### Configure Logging
 
-```python
-# run_textual.py
-import logging
+Every entry point (TUI `ui/textual/game_init.py`, server, fuzz bots) calls one setup,
+`core.logging_setup.setup_logging`, never `logging.basicConfig` directly:
 
-logging.basicConfig(
-    level=logging.INFO,  # DEBUG for development, INFO for normal
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-    handlers=[
-        logging.FileHandler('veinborn.log'),
-        logging.StreamHandler()  # Also print to console
-    ]
-)
+```python
+from core.logging_setup import setup_logging
+setup_logging(Path('logs/veinborn.log'), logging.INFO)            # rotates at 10 MB, keeps 3
+setup_logging(path, level, console=True, rotate_while_running=False)  # multi-process (bots --jobs)
 ```
+
+Its `ExtrasFormatter` writes `extra=` fields as `key=value` after the message
+(`... - INFO - Item used | item_name=Potion of Healing effect=heal`), so log context in `extra`,
+not in an f-string, and it stays greppable. Routine game events (a bump into a forge, a full pack)
+are DEBUG/INFO, not WARNING: WARNING means something a developer should look at.
 
 **For Phase 2 (structured logging, metrics):** No in-repo doc yet (the original `/docs/future-multiplayer/LOGGING_OBSERVABILITY.md` is archived, not in this repo)
 
