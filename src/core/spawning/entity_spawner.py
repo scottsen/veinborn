@@ -325,6 +325,50 @@ class EntitySpawner:
         logger.warning(f"No free tile near {start} for {getattr(entity, 'name', entity)}; dropped")
         return False
 
+    @classmethod
+    def _claim_forge_tile(cls, forge, occupied: set, dungeon_map: Map, max_radius: int = 8) -> bool:
+        """Give the forge a free tile it cannot seal anything off from (VB-125).
+
+        A forge blocks movement and, unlike an ore vein, cannot be mined, so a forge in a
+        corridor or doorway cut off part of the floor for players and monsters (1 of 480
+        floors lost 162 tiles). Candidates come in `_claim_free_tile`'s order (the tile itself,
+        then rings outward), then every walkable tile by distance; the first that is free, not
+        stairs, and leaves every tile reachable from the arrival point reachable wins. Uses no
+        RNG and keeps the old order, so a seeded floor changes only where the old tile sealed
+        something off or sat on stairs.
+        """
+        from ..world import TileType
+        start = (forge.x, forge.y)
+        tiles_by_distance = sorted(
+            ((x, y) for x in range(dungeon_map.width) for y in range(dungeon_map.height)
+             if dungeon_map.is_walkable(x, y)),
+            key=lambda t: (max(abs(t[0] - start[0]), abs(t[1] - start[1])), t))
+        # Judge reachability from where a player arrives (the up stairs; else the first room)
+        arrival = dungeon_map.find_stairs_up() or (dungeon_map.rooms[0].center
+                                                  if dungeon_map.rooms else None)
+        if arrival is None or not dungeon_map.is_walkable(*arrival):
+            return cls._claim_free_tile(forge, occupied, dungeon_map, max_radius)
+        whole = _reachable(dungeon_map, arrival, blocked=set())
+        stairs = (TileType.STAIRS_UP, TileType.STAIRS_DOWN)
+
+        def usable(t):
+            # occupied holds veins and monsters: not this tile, but passable for the test
+            # (a vein is mined away, a monster killed); a forge's tile is never passable
+            return (t in whole and t not in occupied
+                    and dungeon_map.tiles[t[0]][t[1]].tile_type not in stairs
+                    and len(_reachable(dungeon_map, arrival, blocked={t})) == len(whole) - 1)
+
+        # The old search order first (a floor whose old tile was fine is unchanged), then any
+        # walkable tile by distance
+        for tile in [*_ring_order(start, dungeon_map, max_radius), *tiles_by_distance]:
+            if usable(tile):
+                forge.x, forge.y = tile
+                occupied.add(tile)
+                return True
+        logger.warning(f"No tile for {getattr(forge, 'name', forge)} that seals nothing; "
+                       f"placing it near {start} anyway")
+        return cls._claim_free_tile(forge, occupied, dungeon_map, max_radius)
+
     def spawn_all_for_floor(self, floor: int, dungeon_map: Map) -> Dict[str, List]:
         """Spawn everything a floor gets: regular entities plus special-room extras.
 
@@ -347,7 +391,7 @@ class EntitySpawner:
         # tile; later ones move to the nearest free walkable tile.
         occupied = {(e.x, e.y) for e in monsters + ore_veins}
         for entity in forges:
-            self._claim_free_tile(entity, occupied, dungeon_map)
+            self._claim_forge_tile(entity, occupied, dungeon_map)
         for den_monster in special_entities['monsters']:
             if self._claim_free_tile(den_monster, occupied, dungeon_map):
                 monsters.append(den_monster)
@@ -521,3 +565,44 @@ class EntitySpawner:
 
         return ores
 
+
+def _ring_order(start, dungeon_map: Map, max_radius: int):
+    """Walkable tiles in `_claim_free_tile`'s visiting order: `start`, then breadth-first rings
+    (8-directional, dx then dy from -1 to 1) out to `max_radius`."""
+    if dungeon_map.in_bounds(*start) and dungeon_map.is_walkable(*start):
+        yield start
+    seen = {start}
+    frontier = [start]
+    for _ in range(max_radius):
+        next_frontier = []
+        for x, y in frontier:
+            for dx in (-1, 0, 1):
+                for dy in (-1, 0, 1):
+                    tile = (x + dx, y + dy)
+                    if tile in seen:
+                        continue
+                    seen.add(tile)
+                    if not dungeon_map.in_bounds(*tile):
+                        continue
+                    if dungeon_map.is_walkable(*tile):
+                        yield tile
+                    next_frontier.append(tile)
+        frontier = next_frontier
+
+
+def _reachable(dungeon_map: Map, start, blocked: set) -> set:
+    """Walkable tiles reachable from `start` (8-directional), not entering `blocked`."""
+    from collections import deque
+    seen = {start}
+    queue = deque([start])
+    while queue:
+        x, y = queue.popleft()
+        for dx in (-1, 0, 1):
+            for dy in (-1, 0, 1):
+                n = (x + dx, y + dy)
+                if (n in seen or n in blocked or not dungeon_map.in_bounds(*n)
+                        or not dungeon_map.is_walkable(*n)):
+                    continue
+                seen.add(n)
+                queue.append(n)
+    return seen
