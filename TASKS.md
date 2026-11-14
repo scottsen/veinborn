@@ -2340,19 +2340,23 @@ notes_next: 2
 ## TASK-VB-97 · MP plan 3c: per-viewer snapshot + lobby messages with seq; per-recipient broadcast; reconnect to that viewer only; get_snapshot resync; MultiplayerClient decodes Snapshot; test_client and real-socket _Client use the real decoder
 
 ```yaml
-status: backlog
+status: done
 priority: high
 effort: 1d
 tags: [multiplayer, architecture, protocol]
 created: '2026-11-14T01:09:34Z'
-updated: '2026-11-14T01:09:39Z'
+updated: '2026-11-14T01:22:08Z'
 session: letorera-1113
 depends_on: [VB-95, VB-96]
+links:
+  commits:
+  - c674f4269c5f1ecb078e0e6242c541b16ae0be28
+notes_next: 2
 ```
 
 <!-- notes: append-only log; each has a stable #id (see CLI §5) -->
 ### Notes
-_(no notes yet)_
+- [#1 2026-11-14T01:22:08Z session:letorera-1113] protocol: snapshot/lobby/get_snapshot messages. GameSession.snapshot_for/lobby_dict/state_messages (one seq per broadcast, built synchronously); server.broadcast_game_state sends each seat its own view, send_game_state_to answers one session (reconnect, get_snapshot). MultiplayerClient: snapshot/lobby/game_info/last_seq, stale seq ignored, request_snapshot, errors list; client log of a refusal is WARNING. ui imports nothing from server. Real-socket _Client now wraps MultiplayerClient and asserts client.snapshot == game.snapshot_for(player). Dev test_client.py decodes snapshots (still sends legacy 'action' messages). Old state/delta path still exists on the server until VB-98. Gate: suite 1503 passed.
 
 
 ## TASK-VB-98 · MP plan 3d: delete the delta path (state_delta.py + tests, get_state_dict, last_state, state/delta messages); closes VB-26 and VB-78
