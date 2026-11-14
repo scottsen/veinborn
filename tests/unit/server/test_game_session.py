@@ -869,3 +869,136 @@ async def test_an_expired_reconnect_grace_drops_the_seat():
     assert ok, err
     assert mp.round_number == 1                         # Alice alone completes the round
     assert [m.connected for m in game.snapshot_for("p-alice").party] == [True, False]
+
+
+# --- plan D7, rejoin half (VB-103): a dropped seat comes back to the running game ---
+
+@pytest.mark.asyncio
+async def test_a_seat_that_left_rejoins_near_the_party_with_its_character_intact():
+    game = await _duo()
+    mp = game.mp_game_state
+    bob_entity = mp.player_slots["p-bob"].player_entity
+    bob_entity.hp -= 3
+    hp_before, items_before = bob_entity.hp, list(bob_entity.inventory)
+    await game.leave_player("p-bob")
+    alice = mp.player_slots["p-alice"].player_entity
+
+    ok, err = await game.rejoin_player("p-bob", "Bob")
+
+    assert ok, err
+    assert mp.game_state.entities[bob_entity.entity_id] is bob_entity
+    assert bob_entity.hp == hp_before and list(bob_entity.inventory) == items_before
+    assert (bob_entity.x, bob_entity.y) != (alice.x, alice.y)
+    assert abs(bob_entity.x - alice.x) + abs(bob_entity.y - alice.y) <= 6      # near the party
+    assert mp.game_state.dungeon_map.is_walkable(bob_entity.x, bob_entity.y)
+    assert game.players["p-bob"].is_connected()
+    assert [m.connected for m in game.snapshot_for("p-alice").party] == [True, True]
+
+
+@pytest.mark.asyncio
+async def test_a_rejoined_seat_is_owed_an_action_from_the_next_round_only():
+    game = await _duo()
+    mp = game.mp_game_state
+    await game.leave_player("p-bob")
+    await game.rejoin_player("p-bob", "Bob")
+    bob_eid = mp.get_player_entity_id("p-bob")
+    assert bob_eid not in mp.scheduler.owed              # this round does not wait for him
+
+    ok, err = await game.process_intent("p-alice", "wait")   # Alice alone completes round 0
+    assert ok, err
+    assert mp.round_number == 1 and bob_eid in mp.scheduler.owed
+    ok, err = await game.process_intent("p-bob", "wait")
+    assert ok, err
+    assert mp.round_number == 1 and mp.scheduler.waiting_on() == [mp.get_player_entity_id("p-alice")]
+
+
+@pytest.mark.asyncio
+async def test_a_seat_whose_grace_expired_is_dropped_but_still_rejoinable():
+    game = await _duo()
+    await game.disconnect_player("p-bob")
+    game.players["p-bob"].reconnect_timeout_seconds = -1
+    assert await game.cleanup_expired_disconnections() == ["p-bob"]
+    assert "p-bob" in game.players                       # the record stays in a started game
+
+    ok, err = await game.rejoin_player("p-bob", "Bob")
+
+    assert ok, err
+    assert mp_has_bob(game)
+
+
+def mp_has_bob(game):
+    mp = game.mp_game_state
+    return mp.get_player_entity_id("p-bob") in mp.game_state.entities
+
+
+@pytest.mark.asyncio
+async def test_rejoin_by_name_needs_exactly_one_dropped_seat_with_that_name():
+    game = await _duo()
+    await game.leave_player("p-bob")
+
+    ok, err = await game.rejoin_player("p-new-id", "Bob")     # a fresh token: new player id
+
+    assert ok, err
+    assert "p-bob" not in game.players and "p-new-id" in game.players
+    assert game.mp_game_state.get_player_entity_id("p-new-id") is not None
+    assert [m.player_id for m in game.snapshot_for("p-alice").party] == ["p-alice", "p-new-id"]
+
+    ok, err = await game.rejoin_player("p-another", "Bob")    # nobody dropped is called Bob now
+    assert not ok
+
+
+@pytest.mark.asyncio
+async def test_rejoin_by_name_refuses_an_ambiguous_name():
+    game = GameSession("game1", "Test Game", max_players=4)
+    for pid in ("p-a", "p-b", "p-c"):
+        await game.add_player(pid, "Sam" if pid != "p-a" else "Alice", "warrior")
+    await game.start_game(seed=42)
+    await game.leave_player("p-b")
+    await game.leave_player("p-c")
+
+    ok, err = await game.rejoin_player("p-new", "Sam")
+
+    assert not ok and "name" in err.lower()
+
+
+@pytest.mark.asyncio
+async def test_rejoin_refuses_a_connected_seat_an_unknown_name_and_a_game_not_started():
+    game = await _duo()
+    ok, err = await game.rejoin_player("p-bob", "Bob")        # still connected
+    assert not ok and err
+    ok, err = await game.rejoin_player("p-zed", "Zed")        # never sat here
+    assert not ok and err
+
+    lobby = GameSession("game2", "Lobby", max_players=4)
+    await lobby.add_player("p-alice", "Alice", "warrior")
+    ok, err = await lobby.rejoin_player("p-alice", "Alice")
+    assert not ok
+
+
+@pytest.mark.asyncio
+async def test_a_dead_character_rejoins_as_a_spectator():
+    game = await _duo()
+    mp = game.mp_game_state
+    bob = mp.player_slots["p-bob"].player_entity
+    bob.take_damage(10_000)
+    await game.process_intent("p-alice", "wait")
+    await game.leave_player("p-bob")
+
+    ok, err = await game.rejoin_player("p-bob", "Bob")
+
+    assert ok, err
+    assert mp.get_player_entity_id("p-bob") not in mp.game_state.entities    # still dead
+    ok, err = await game.process_intent("p-bob", "wait")
+    assert not ok and "dead" in err.lower()
+
+
+@pytest.mark.asyncio
+async def test_rejoin_is_refused_once_the_game_is_finished():
+    game = await _duo()
+    await game.leave_player("p-bob")
+    await game.leave_player("p-alice")
+    assert game.is_finished
+
+    ok, err = await game.rejoin_player("p-bob", "Bob")
+
+    assert not ok

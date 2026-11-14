@@ -5,6 +5,7 @@ starts (plan D1). The rules live in core.engine.Engine; this class only maps
 seats (player_id) to their entities and holds the round scheduler.
 """
 
+from collections import deque
 from typing import Dict, List, Optional, Sequence
 from dataclasses import dataclass
 import logging
@@ -141,6 +142,67 @@ class MultiplayerGameState:
         self.game_state.entities.pop(slot.entity_id, None)
         logger.info(f"Dropped seat {slot.player_name} (ID: {player_id}, entity: {slot.entity_id})")
         return self.scheduler.drop(slot.entity_id)
+
+    def dropped_seats(self) -> List[PlayerSlot]:
+        """Seats that left or timed out and can be taken back (plan D7 "dropped")."""
+        return [slot for slot in self.player_slots.values() if not slot.is_active]
+
+    def rekey_seat(self, old_id: str, new_id: str) -> None:
+        """A seat now belongs to another player id; seat order is kept."""
+        self.player_slots = {
+            (new_id if pid == old_id else pid): slot for pid, slot in self.player_slots.items()
+        }
+        slot = self.player_slots[new_id]
+        slot.player_id = new_id
+        self.entity_to_player[slot.entity_id] = new_id
+
+    def rejoin_seat(self, player_id: str) -> bool:
+        """A dropped seat comes back (plan D7 "rejoin").
+
+        The kept character returns to the current floor next to a living party member
+        and the round owes it an action from the next round on (the scheduler is not
+        touched: `next_round` takes the living seats). A dead character comes back
+        as a spectator, as a dead player who stayed would be.
+        Returns False if there is no dropped seat for `player_id`.
+        """
+        slot = self.player_slots.get(player_id)
+        if slot is None or slot.is_active:
+            return False
+        slot.is_active = True
+        entity = slot.player_entity
+        if entity.is_alive:
+            x, y = self._free_tile_near_party(exclude=slot.entity_id)
+            entity.move_to(x, y)
+            self.game_state.entities[slot.entity_id] = entity
+        logger.info(f"Rejoined seat {slot.player_name} (ID: {slot.player_id}, entity: {slot.entity_id})")
+        return True
+
+    def _free_tile_near_party(self, exclude: str) -> tuple:
+        """The closest walkable, unoccupied tile to a living party member (breadth-first).
+
+        Falls back to the floor's starting position if the party is nowhere to be found.
+        """
+        state = self.game_state
+        dungeon_map = state.dungeon_map
+        occupied = {(e.x, e.y) for eid, e in state.entities.items() if eid != exclude}
+        anchors = [
+            (slot.player_entity.x, slot.player_entity.y)
+            for slot in self.player_slots.values()
+            if slot.is_active and slot.entity_id != exclude
+            and slot.is_alive and slot.entity_id in state.entities
+        ]
+        seen = set(anchors)
+        queue = deque(anchors)
+        while queue:
+            x, y = queue.popleft()
+            if dungeon_map.is_walkable(x, y) and (x, y) not in occupied:
+                return x, y
+            for dx, dy in ((1, 0), (-1, 0), (0, 1), (0, -1)):
+                step = (x + dx, y + dy)
+                if step not in seen and dungeon_map.in_bounds(*step):
+                    seen.add(step)
+                    queue.append(step)
+        return dungeon_map.find_starting_position()
 
     def get_player_entity(self, player_id: str) -> Optional[Player]:
         """Get the entity for a specific player.

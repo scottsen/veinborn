@@ -216,15 +216,71 @@ class GameSession:
                 f"Player {player_info.player_name} left game {self.game_id}"
             )
 
-            # Check if all players have left
-            connected_count = sum(
-                1 for p in self.players.values()
-                if not p.has_left()
-            )
-            if connected_count == 0:
-                self.is_finished = True
+            self._finish_if_everyone_left()
 
             return True
+
+    def _finish_if_everyone_left(self) -> None:
+        """The run ends when every seat has left (plan D7)."""
+        if all(p.has_left() for p in self.players.values()):
+            self.is_finished = True
+
+    def _dropped_seat_for(self, player_id: str, player_name: str) -> tuple[Optional[str], Optional[str]]:
+        """Which dropped seat this player takes back: (seat's player_id, error).
+
+        Same identity (plan ruling 7): the seat of this player id, which an auth token
+        resumes; with no seat under that id, a name match, but only while exactly one
+        dropped seat has that name.
+        """
+        dropped = {slot.player_id for slot in self.mp_game_state.dropped_seats()}
+        if player_id in self.players:
+            if player_id in dropped:
+                return player_id, None
+            return None, "Your seat is already in the game"
+        named = [pid for pid in dropped if self.players[pid].player_name == player_name]
+        if len(named) == 1:
+            return named[0], None
+        if not named:
+            return None, f"No dropped seat for {player_name} in this game"
+        return None, f"Several dropped seats are named {player_name}: rejoin with your original session"
+
+    async def rejoin_player(self, player_id: str, player_name: str) -> tuple[bool, Optional[str]]:
+        """A player takes back a seat that left or timed out in the running game (plan D7).
+
+        The character returns with its state intact, near the party on the current
+        floor, owed an action from the next round. Under a new player id (a name
+        match) the seat is re-keyed to it.
+
+        Returns:
+            Tuple of (success, error_message)
+        """
+        async with self._lock:
+            mp = self.mp_game_state
+            if not self.is_started or mp is None:
+                return False, "Game has not started"
+            if self.is_finished:
+                return False, "Game is finished"
+            old_id, error = self._dropped_seat_for(player_id, player_name)
+            if old_id is None:
+                return False, error
+
+            if old_id != player_id:
+                self._rekey_player(old_id, player_id)
+            mp.rejoin_seat(player_id)
+            self.players[player_id].mark_reconnected()
+            logger.info(f"Player {player_name} rejoined game {self.game_id}")
+            return True, None
+
+    def _rekey_player(self, old_id: str, new_id: str) -> None:
+        """A dropped seat now belongs to a new player id (same name, fresh session)."""
+        info = self.players[old_id]
+        info.player_id = new_id
+        self.players = {(new_id if pid == old_id else pid): p for pid, p in self.players.items()}
+        self.player_order = [new_id if pid == old_id else pid for pid in self.player_order]
+        self.mp_game_state.rekey_seat(old_id, new_id)
+        if old_id in self._scored_player_ids:
+            self._scored_player_ids.discard(old_id)
+            self._scored_player_ids.add(new_id)
 
     async def cleanup_expired_disconnections(self) -> List[str]:
         """Remove players whose reconnection timeout has expired.
@@ -243,7 +299,13 @@ class GameSession:
                     f"Removing player {player_info.player_name} from game {self.game_id} "
                     f"due to reconnection timeout"
                 )
-                if self._remove_player_locked(player_id):
+                if self.is_started:
+                    # A running game keeps the record: the seat is dropped and can rejoin
+                    player_info.mark_left()
+                    self._drop_seat_locked(player_id)
+                    self._finish_if_everyone_left()
+                    removed_players.append(player_id)
+                elif self._remove_player_locked(player_id):
                     removed_players.append(player_id)
 
         return removed_players
@@ -427,6 +489,10 @@ class GameSession:
         entity_id = self.mp_game_state.get_player_entity_id(player_id)
         if not entity_id:
             return False, "Player not in game"
+        slot = self.mp_game_state.player_slots[player_id]
+        if not slot.is_alive:
+            # Say why before the factory refuses a dead actor with a bare "Cannot <intent>"
+            return False, "You are dead - spectating until the run ends"
 
         # No await between building and handing over: factory reads state synchronously
         state = self.mp_game_state.game_state
