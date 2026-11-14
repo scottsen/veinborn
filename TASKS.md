@@ -2,7 +2,7 @@
 project: veinborn
 schema_version: '1.0'
 id_prefix: VB
-next_id: 104
+next_id: 106
 archival: inline
 areas: {}
 ---
@@ -730,9 +730,9 @@ priority: low
 effort: small
 tags: [cleanup, quality]
 created: '2026-09-23T05:26:58Z'
-updated: '2026-11-12T20:14:10Z'
+updated: '2026-11-14T02:32:53Z'
 session: earthly-god-0922
-notes_next: 3
+notes_next: 4
 ```
 
 Static-analysis heuristic flagged 33 uncalled functions; most (action_factory.py 8 _create_* methods, ai_system.py 5 _behavior_* methods) are almost certainly dict/registry-dispatched and not actually dead -- confirm via reveal 'calls://src?target=_create_move_action&depth=2' before touching. Genuinely worth investigating: telemetry.py:311/349 (log_combat, log_player_death -- hooks that may just not be wired up yet) and perception.py:205-268 (four get_visible_*/get_nearby_ore/get_entities_at_distance helpers, all uncalled -- possibly superseded by update_visibility's internal logic, or dead API surface left from a refactor). run_server.py flagged as 'not imported anywhere' is a false positive (CLI entry point) -- ignore.
@@ -741,6 +741,7 @@ Static-analysis heuristic flagged 33 uncalled functions; most (action_factory.py
 ### Notes
 - [#1 2026-09-23T16:54:07Z session:sultry-drizzle-0923] Investigated 2026-09-23, nothing deleted -- each remaining item needs a product call. (1) src/core/perception.py: FogOfWar/TileVisibility/PerceptionSystem have NO production caller (only referenced inside the file); tests/unit/test_perception.py (786 lines) tests it, and docs/development/BOT_* describe it, but the fuzz bots use their own tests/fuzz/services/perception_service.py. So get_visible_monsters/get_nearby_ore/get_entities_at_distance are dead as part of a wholly unwired module: decide wire-in (fog of war / bot API) vs delete module+tests. (2) telemetry.py GameTelemetry.log_combat/log_player_death: never called; Game builds game_telemetry but nothing writes to it. StatsTracker IS wired via EventBus subscribers, but see VB-33 -- most action events fail to publish, so even that is mostly silent. Decide alongside VB-33. (3) Action-factory _create_* and ai_system _behavior_* are registry-dispatched, not dead; run_server.py is a CLI entry point. Not dead.
 - [#2 2026-11-12T20:14:10Z session:warming-squall-1112] Design question surfaced 2026-11-12 (VB-68): players have no fog of war (TUI draws every monster), while monsters since ADR-019 need LOS + memory. FogOfWar/PerceptionSystem here are the unused implementation; deciding whether players get FOV is Scott's call before deleting them.
+- [#3 2026-11-14T02:32:53Z session:warming-sunshine-1113] Item (1) is decided by plan ruling 3 (2026-11-13): fog of war is on by default with a dev reveal switch, so perception.py is the candidate implementation for VB-105, not dead code to delete. Item (2) telemetry stays open.
 
 
 ## TASK-VB-33 · Action events mostly fail to publish to EventBus: flat dicts lack 'data', some types not in GameEventType
@@ -799,13 +800,13 @@ status: backlog
 priority: medium
 tags: [multiplayer, highscore]
 created: '2026-09-23T17:19:57Z'
-updated: '2026-09-23T17:42:48Z'
+updated: '2026-11-14T02:32:54Z'
 session: crimson-jewel-0923
 links:
   references:
   - VB-24
   - src/core/highscore.py
-notes_next: 3
+notes_next: 4
 ```
 
 VB-24 writes per-player co-op scores to data/highscores_multiplayer.json but nothing displays them (no client message, CLI, or screen). Legacy Vault (rare-ore save on death) is still single-player only; get_vault() is a process-wide singleton, so wiring it into a server needs a per-player persistence decision first. Per-player stats (monsters_killed etc.) are also read from player.stats, which nothing appears to write in either mode - check before designing a co-op scoring UI.
@@ -814,6 +815,7 @@ VB-24 writes per-player co-op scores to data/highscores_multiplayer.json but not
 ### Notes
 - [#1 2026-09-23T17:29:04Z session:crimson-jewel-0923] Update 2026-09-23: the 'player.stats never written' concern is resolved by VB-38 (d16aa49) - co-op scores now include kills/damage/ore per player, so a leaderboard viewer is now worth building.
 - [#2 2026-09-23T17:42:48Z session:crimson-jewel-0923] 0851b8f: added the veinborn-scores CLI (--coop, --limit, --file) - the first way to see either leaderboard (neither mode had a viewer). Still open on this ticket: an in-game/TUI high score screen, and the Legacy Vault decision for MP.
+- [#3 2026-11-14T02:32:54Z session:warming-sunshine-1113] 2026-11-13: the TUI now plays MP (VB-101). An in-game leaderboard screen should read through the driver: local runs read data/highscores*.json; a remote client has no file, so the co-op board needs a server message (or stays CLI-only via veinborn-scores --coop).
 
 
 ## TASK-VB-36 · Single-player 'wait' bypasses the action pipeline (no actor_waited event, no message)
@@ -823,14 +825,14 @@ status: backlog
 priority: low
 tags: [events, singleplayer]
 created: '2026-09-23T17:19:57Z'
-updated: '2026-11-13T22:32:06Z'
+updated: '2026-11-14T02:32:53Z'
 session: crimson-jewel-0923
 links:
   references:
   - VB-24
   - VB-33
   - src/core/game.py
-notes_next: 2
+notes_next: 3
 ```
 
 Game.handle_player_action special-cases 'wait' (calls _process_turn directly), so SP wait emits no actor_waited event or 'X waits.' message unlike MP's WaitAction path. Routing it through WaitAction would add a message per rest keypress - decide whether that log spam is wanted.
@@ -838,6 +840,7 @@ Game.handle_player_action special-cases 'wait' (calls _process_turn directly), s
 <!-- notes: append-only log; each has a stable #id (see CLI §5) -->
 ### Notes
 - [#1 2026-11-13T22:32:06Z session:letorera-1113] 'wait' is now a registered ActionFactory action (VB-90); Game.handle_player_action still special-cases it, so SP wait is unchanged.
+- [#2 2026-11-14T02:32:53Z session:warming-sunshine-1113] 2026-11-13 (VB-100): the TUI now calls LocalDriver.submit('wait') -> Game.handle_player_action, which still special-cases wait; multiplayer's wait intent runs the pipeline. This is the last place SP and MP execute an intent differently; removing the special case changes SP outcomes, so gate it with the seeded bot A/B.
 
 
 ## TASK-VB-37 · Damage formula never evaluates: 'max' passed as a name, simpleeval needs functions=
@@ -1949,20 +1952,21 @@ priority: low
 effort: 4-6h
 tags: [architecture, ui, content]
 created: '2026-11-13T01:46:44Z'
-updated: '2026-11-13T01:46:44Z'
+updated: '2026-11-14T02:32:54Z'
 session: mustard-sunset-1112
 depends_on: [VB-78]
 links:
   references:
   - src/core/base/entity.py
   - data/ui/layouts/README.md
+notes_next: 2
 ```
 
 Found 2026-11-12 (session mustard-sunset-1112). Entities carry display_symbol/display_color, so core describes appearance as terminal glyph + colour and the TUI renders it verbatim; terrain glyphs live in MapWidget.MAP_CHARS. A graphical or web frontend needs sprite/tile IDs instead. Proposed: snapshot emits entity_type + content_id (and tile type); a data file (YAML, consistent with the content system) maps those to glyph/colour for the TUI; a future frontend ships its own mapping. Keep display_symbol/display_color as the TUI default mapping source so content files need no mass edit. Only worth doing when a second frontend is real, hence low priority and future-ish. Check data/ui/layouts for an existing data-driven rendering mechanism first (docs/development/DATA_DRIVEN_RENDERING_POC.md, ENTITY_RENDERING_IMPROVEMENTS.md) and extend it rather than inventing a parallel one.
 
 <!-- notes: append-only log; each has a stable #id (see CLI §5) -->
 ### Notes
-_(no notes yet)_
+- [#1 2026-11-14T02:32:54Z session:warming-sunshine-1113] 2026-11-13: the seam for any frontend is now ui/driver.py GameDriver (snapshot / submit intent / note / on_update); render IDs belong on Snapshot EntityView/ItemView (protocol bump).
 
 
 ## TASK-VB-80 · Spike: graphical frontend prototype on the snapshot (decide pygame/in-process vs browser over websocket)
@@ -1973,7 +1977,7 @@ priority: low
 effort: 1-2d
 tags: [architecture, ui, design]
 created: '2026-11-13T01:46:46Z'
-updated: '2026-11-13T01:46:46Z'
+updated: '2026-11-14T02:32:54Z'
 session: mustard-sunset-1112
 depends_on: [VB-78]
 links:
@@ -1982,13 +1986,14 @@ links:
   - src/ui/multiplayer_client.py
   relates_to:
   - VB-44
+notes_next: 2
 ```
 
 Found 2026-11-12 (session mustard-sunset-1112). Question from Scott: how possible is a fancy graphics UI. Finding: feasible; core has no UI imports, Game.handle_player_action(action_type, **kwargs) is the single input seam, EventBus has typed serializable events for animation, and a websocket server with JSON messages and StateDelta already exists. Blockers are VB-77 (logic in app.py), VB-78 (no render contract), VB-44 (client cannot send actions). Spike scope after those: pick between (a) in-process pygame/arcade/raylib calling Game directly and (b) a browser canvas/WebGL client over the existing websocket protocol (richest graphics, shareable, but needs the VB-44 action path and the server to host single-player). Output: a short decision note in docs/design/ with a thin vertical slice (map + player move + one monster) proving the snapshot is enough, plus whether the EventBus needs a client-facing animation feed. Do not start before VB-78 lands.
 
 <!-- notes: append-only log; each has a stable #id (see CLI §5) -->
 ### Notes
-_(no notes yet)_
+- [#1 2026-11-14T02:32:54Z session:warming-sunshine-1113] 2026-11-13: a frontend implements GameDriver (ui/driver.py) or reuses LocalDriver/RemoteDriver; the browser option is a protocol-v2 websocket client (intent + intent_result, per-viewer snapshot), already exercised by tests/ui/test_remote_app.py.
 
 
 ## TASK-VB-81 · Umbrella: NetHack-style interaction depth (identification, pressure clock, shrines, bones, counterplay monsters)
@@ -2500,3 +2505,44 @@ session: warming-sunshine-1113
 <!-- notes: append-only log; each has a stable #id (see CLI §5) -->
 ### Notes
 _(no notes yet)_
+
+
+## TASK-VB-104 · First human multiplayer playtest: two players, one server, the TUI (docs/MULTIPLAYER_PLAYTEST.md); file findings as tasks
+
+```yaml
+status: backlog
+priority: high
+owner: scott
+tags: [multiplayer, playtest]
+created: '2026-11-14T02:32:40Z'
+updated: '2026-11-14T02:32:55Z'
+session: warming-sunshine-1113
+links:
+  relates_to:
+  - VB-102
+```
+
+<!-- notes: append-only log; each has a stable #id (see CLI §5) -->
+### Notes
+_(no notes yet)_
+
+
+## TASK-VB-105 · MP plan phase 5 / D4: fog of war per viewer (explored memory per viewer per floor, filtered in build_snapshot), on by default with a dev reveal switch
+
+```yaml
+status: backlog
+priority: medium
+effort: 1d
+tags: [multiplayer, architecture, perception]
+created: '2026-11-14T02:32:42Z'
+updated: '2026-11-14T02:32:52Z'
+session: warming-sunshine-1113
+links:
+  relates_to:
+  - VB-32
+notes_next: 2
+```
+
+<!-- notes: append-only log; each has a stable #id (see CLI §5) -->
+### Notes
+- [#1 2026-11-14T02:32:52Z session:warming-sunshine-1113] Context: plan ruling 3 (fog on by default, dev reveal switch); Tile.explored is shared, so per-viewer memory is needed; core/perception.py FogOfWar/PerceptionSystem is the unwired candidate (VB-32 item 1). build_snapshot(state, viewer) is already per viewer (VB-97). Bots: VB-68 note #2 (bots see the whole floor like players do today).
