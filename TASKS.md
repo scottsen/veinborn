@@ -2,7 +2,7 @@
 project: veinborn
 schema_version: '1.0'
 id_prefix: VB
-next_id: 94
+next_id: 95
 archival: inline
 areas: {}
 ---
@@ -2254,17 +2254,40 @@ notes_next: 3
 ## TASK-VB-93 · MP plan 2e: extract core Engine from Game; Game = SP shell, GameSession wraps it; MultiplayerGameState keeps seats only
 
 ```yaml
-status: backlog
+status: done
 priority: medium
 effort: 1d
 tags: [multiplayer, architecture]
 created: '2026-11-13T22:10:04Z'
-updated: '2026-11-13T22:37:32Z'
+updated: '2026-11-14T00:57:43Z'
 session: letorera-1113
 depends_on: [VB-91, VB-92]
-notes_next: 2
+links:
+  commits:
+  - 3fc4f3c30ffed1bf4bbbb32035b12915dc56c1c3
+notes_next: 3
 ```
 
 <!-- notes: append-only log; each has a stable #id (see CLI §5) -->
 ### Notes
 - [#1 2026-11-13T22:37:32Z session:letorera-1113] Leftovers for the engine extraction: MultiplayerGameState._spawn_floor_entities (initial floor-1 spawn in add_player) and GameSession._descend_floor/_finish_action duplicate Game's wrappers.
+- [#2 2026-11-14T00:57:43Z session:letorera-1113] core/engine.py: make_action/execute/tick/after_action/descend_floor/close; owns TurnProcessor, FloorManager, ActionFactory, AISystem, content handlers. Game: engine + compat properties; GameSession: engine, _apply_action_outcome/_descend_floor removed; GameBootstrapper.initialize_subsystems removed; MultiplayerGameState lost apply_hp_regeneration/get_active_player_count/is_player_action. Left: MP state is still built incrementally in add_player (temp player + floor-1 spawn), see VB-94. Gate: suite 1489, SP A/B identical 40/40 on both sets.
+
+
+## TASK-VB-94 · MP: build the GameState once at start_game from the seated players (drop add_player's temp-player + first-player-is-state.player hack and MultiplayerGameState's floor-1 spawn)
+
+```yaml
+status: backlog
+priority: medium
+effort: 3h
+tags: [multiplayer, architecture]
+created: '2026-11-14T00:57:45Z'
+updated: '2026-11-14T00:57:48Z'
+session: letorera-1113
+depends_on: [VB-93]
+notes_next: 2
+```
+
+<!-- notes: append-only log; each has a stable #id (see CLI §5) -->
+### Notes
+- [#1 2026-11-14T00:57:48Z session:letorera-1113] Plan D1: GameState gets its players up front; state.player stays only as compatibility. Touches MultiplayerGameState.add_player (temp Player, first player takes id 'player', floor-1 spawn) and the 'player' id assumption in tests. Gate as the other slices: suite + SP A/B identical + real-socket tests.
