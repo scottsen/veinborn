@@ -2729,19 +2729,21 @@ notes_next: 4
 ## TASK-VB-114 · Crafting v2 phase 1: combat reads accuracy (to-hit term), max_hp_bonus (while worn), spell_power (force bolt) - see docs/design/CRAFTING_PARTS_DESIGN.md
 
 ```yaml
-status: in_progress
+status: done
 priority: medium
 effort: 1d
 tags: [crafting, combat, crafting-v2]
 created: '2026-11-14T18:33:25Z'
-updated: '2026-11-14T18:51:37Z'
+updated: '2026-11-14T20:25:46Z'
 session: peaceful-shower-1114
 links:
   references:
   - docs/design/CRAFTING_PARTS_DESIGN.md
   relates_to:
   - VB-113
-notes_next: 4
+  commits:
+  - 54d5c2a56a4f0e80bb7a4f8b8ba29c2d66e7a96f
+notes_next: 5
 ```
 
 <!-- notes: append-only log; each has a stable #id (see CLI §5) -->
@@ -2749,6 +2751,7 @@ notes_next: 4
 - [#1 2026-11-14T18:33:42Z session:peaceful-shower-1114] Waits on VB-113 decisions (D1-D5 in docs/design/CRAFTING_PARTS_DESIGN.md).
 - [#2 2026-11-14T18:40:06Z session:peaceful-shower-1114] D1/D2 decided (VB-113): unblocked.
 - [#3 2026-11-14T18:51:37Z session:peaceful-shower-1114] Built 54d5c2a: equipment.gear_total + wear() (max_hp_bonus applied/removed once in Equip/UnequipAction; HP not topped up, clamped on removal, never below 1; saves not re-bonused), Player.get_total_accuracy -> to-hit 'attacker_accuracy' (formulas.yaml; hit_chance/expected_damage include it), spell_power added in force_bolt.roll_damage (all direct-damage spells; monsters 0). Arcane staff spell_power was 21-36 'future' and would have tripled bolts once read: scaled to 6-9. 10 tests. Pending: paired A/B vs pre-v2 baseline (3d1e8c6) to confirm neutral; snapshot/sidebar display of accuracy/spell power left to VB-116.
+- [#4 2026-11-14T20:25:46Z session:peaceful-shower-1114] Paired A/B vs pre-v2 baseline (3d1e8c6 vs 54d5c2a, seeds 3000+, 4x24x20000): 95/96 games bit-identical; warrior/rogue/healer 24/24. One mage game (seed 3012) differs: +44 kills, +2080 damage dealt, -160 damage taken, level 16 vs 15, floor 72 vs 73. Consistent with spell power on force bolt (arcane staff), not verified: bot logs do not record crafts. Neutral otherwise. Pre-v2 baseline for VB-117: /home/scottsen/src/tia/sessions/peaceful-shower-1114/prev2_baseline/.
 
 
 ## TASK-VB-115 · Crafting v2 phase 2: parts + assemblies in RecipeManager, recipes.yaml v2 (parts take any metal, tier from ore properties), legendaries as assemblies with a material, cut dead stats - see docs/design/CRAFTING_PARTS_DESIGN.md
