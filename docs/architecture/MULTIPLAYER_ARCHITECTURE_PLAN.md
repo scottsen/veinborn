@@ -1,7 +1,7 @@
 ---
 title: "Multiplayer architecture plan: one engine, intents in, snapshots out"
 type: architecture
-status: proposed
+status: in-progress
 date: 2026-11-13
 beth_topics:
   - veinborn
@@ -15,9 +15,10 @@ beth_topics:
 
 # Multiplayer architecture plan
 
-**Status:** proposed (2026-11-13, session chartreuse-filter-1113); round, disconnect and fog rulings recorded in section 6. Nothing in here is built
-yet except what "Today" says. Decisions marked **(Scott)** need a ruling before the phase
-that depends on them.
+**Status:** phases 0-4 built (2026-11-13: VB-88..VB-102; two people can play in the TUI) plus the
+drop half of D7; phase 5 open (rejoin `VB-103`, fog of war `VB-105`), first human playtest `VB-104`.
+Proposed 2026-11-13 (session chartreuse-filter-1113); rulings in section 6. Section 1 ("Today")
+and the "what the measurement found" lists are the record of the code *before* each phase.
 
 **Goal:** single-player and multiplayer run the *same* rules code; the server is a thin
 async shell around it; clients send intents and render snapshots; every boundary is a small

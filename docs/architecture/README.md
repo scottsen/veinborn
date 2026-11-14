@@ -1,7 +1,7 @@
 # Veinborn Architecture Documentation
 
 **Last Updated:** 2026-04-17
-**Current Phase:** Single-player feature-complete; multiplayer experimental
+**Current Phase:** Single-player feature-complete; multiplayer playable in the TUI (one engine, intents in, snapshots out), awaiting its first human playtest
 
 > ⚠️ **Stale references ahead.** References below to `/docs/future-multiplayer/` are defunct — that directory was archived out of the repo (machine-local, not portable for contributors; see `docs/INDEX.md`). The current, in-repo multiplayer design lives at **`docs/design/MULTIPLAYER_DESIGN_2025.md`**. When following a `/docs/future-multiplayer/...` link, use that file instead. See `docs/PROJECT_REVIEW_2026-04-17.md` for the full audit.
 
@@ -75,7 +75,7 @@
 
 ### [MULTIPLAYER_ARCHITECTURE_PLAN.md](MULTIPLAYER_ARCHITECTURE_PLAN.md) (20 min)
    - One engine for single-player and multiplayer: intents in, per-viewer snapshots out, turn scheduler policy, seats, shared protocol package
-   - Status: proposed; phases map to `VB-44`, `VB-78`, `VB-26`, `VB-45`, `VB-55`
+   - Status: phases 0-4 built (`VB-88`..`VB-102`); phase 5 open (rejoin `VB-103`, fog of war `VB-105`)
    - **Read before touching `src/server/`, `src/ui/multiplayer_client.py` or the turn/floor loop**
 
 ---
@@ -163,14 +163,11 @@ shipped as a simpler in-process WebSocket server instead (`src/server/`). The
 
 **Time:** 2-3 hours reading
 
-### Path 3: "I want to know about multiplayer" (Future planning)
+### Path 3: "I want to know about multiplayer"
 
-1. **STOP!** → Don't implement Phase 2 yet!
-2. Read: `/docs/future-multiplayer/README.md` → Overview of Phase 2 *(archived, not in this repo — see `docs/design/MULTIPLAYER_DESIGN_2025.md`)*
-3. Understand: Phase 2 comes AFTER MVP complete (8-12 weeks)
-4. **Go back to implementing MVP** → Focus on current work
-
-**Time:** Don't spend too much time here, focus on MVP
+1. Read: [MULTIPLAYER_ARCHITECTURE_PLAN.md](MULTIPLAYER_ARCHITECTURE_PLAN.md) → how it is built (one engine, intents, per-viewer snapshots, rounds, seats) and what is left
+2. Play it: [../MULTIPLAYER_PLAYTEST.md](../MULTIPLAYER_PLAYTEST.md)
+3. Protocol details: `src/server/README.md`; the original vision: `docs/design/MULTIPLAYER_DESIGN_2025.md` (much of it, e.g. NATS/microservices, was never built)
 
 ---
 

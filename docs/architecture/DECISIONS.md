@@ -318,7 +318,7 @@
 
 ### ADR-020: One Engine, Intents In, Snapshots Out (multiplayer architecture)
 **Date**: 2026-11-13
-**Status**: 📋 Designed (phases tracked as VB-88, VB-44 and the plan's phase table)
+**Status**: 🔨 In progress: plan phases 0-4 built (VB-88..VB-102, two people can play in the TUI) and the drop half of D7; phase 5 open (rejoin VB-103, fog of war VB-105)
 **Decision**: Single-player and multiplayer share one engine that supports N players natively. Clients send intents (the server takes the actor from the session seat), the server sends per-viewer snapshots, and a shared protocol package is versioned and sequenced. Rounds: one action per living player per round (free actions never count). Disconnect: grace period, then the seat is dropped and the player can rejoin with the same identity (auth token, name as fallback). Fog of war on by default with a dev reveal switch. No AI control of absent players.
 **Rationale**:
 - The server re-implemented the SP turn/floor/start loop and each copy drifted (VB-26, VB-44, VB-55).
