@@ -29,6 +29,7 @@ class ItemView:
     bonus: int = 0              # its bonus in that slot (attack for weapons, defense otherwise)
     usable: bool = False        # a built effect: the pack screen offers Use (potion, food, later scrolls)
     ore: Optional[Dict[str, int]] = None   # raw ore only: the properties recipes read (VB-111)
+    part: Optional[Dict] = None            # a crafted part only: {'slot', 'ore', 'stats'} (VB-116)
 
 
 @dataclass
@@ -80,6 +81,13 @@ class RecipeView:
     ore_count: int = 0                                  # how many ore a craft spends
     ore_ids: List[object] = field(default_factory=list)      # the ore it spends by default (best)
     ore_choices: List[object] = field(default_factory=list)  # every carried ore it could use
+    # Crafting v2 (VB-116). kind 'part' spends ore like any recipe (ore_* above); 'assembly'
+    # spends carried parts instead: one per required slot, optionally a gem.
+    kind: str = 'item'                                       # 'item' | 'part' | 'assembly'
+    required_slots: List[str] = field(default_factory=list)  # assembly: slots a craft must fill
+    optional_slots: List[str] = field(default_factory=list)  # assembly: slots that may stay empty
+    part_ids: List[object] = field(default_factory=list)     # assembly: the parts it spends by default (best per required slot)
+    part_choices: Dict[str, List[object]] = field(default_factory=dict)   # assembly: carried parts by slot
 
 
 @dataclass
@@ -201,7 +209,7 @@ def _item(item) -> Optional[ItemView]:
     if item is None:
         return None
     from .actions.use_item_action import usable_effect
-    from .crafting import ore_properties
+    from .crafting import ore_properties, part_info
     slot = gear_slot(item)
     ore = ore_properties(item)
     return ItemView(
@@ -209,6 +217,7 @@ def _item(item) -> Optional[ItemView]:
         slot=slot, bonus=gear_bonus(item, slot) if slot else 0,
         usable=usable_effect(item) is not None,
         ore=ore,
+        part=part_info(item),
     )
 
 
@@ -248,6 +257,24 @@ def _forge_in_reach(state, player):
                  if e.entity_type == EntityType.FORGE and player.is_adjacent(e)), None)
 
 
+def _recipe_requires(manager, recipe) -> str:
+    """What a craft needs, in a line: '2x metal ore', '1x mithril/adamantite ore', or an
+    assembly's parts ('Blade + Hilt (+ Focus Gem)'); a boss material adds ' + <id>'."""
+    if recipe.kind == 'assembly':
+        names = [manager.get_recipe(pid).display_name for pid in recipe.assembly_parts.values()]
+        requires = " + ".join(names)
+        if recipe.optional_slots:
+            gems = [r.display_name for r in manager.get_all_recipes()
+                    if r.kind == 'part' and r.part_slot in recipe.optional_slots]
+            requires += f" (+ {' / '.join(gems)})"
+    else:
+        types = recipe.accepted_ore_types()
+        kinds = 'metal' if types == list(manager.METALS) else "/".join(types)
+        requires = f"{recipe.get_required_ore_count()}x {kinds} ore"
+    special = recipe.get_special_requirement()
+    return f"{requires} + {special}" if special else requires
+
+
 def _recipes(player, floor: int) -> List[RecipeView]:
     """Every recipe, craftable ones first (then by name), judged against the viewer's pack."""
     from .actions.craft_action import CraftAction
@@ -255,18 +282,25 @@ def _recipes(player, floor: int) -> List[RecipeView]:
     views = []
     for recipe in manager.get_all_recipes():
         ok, reason = manager.can_craft(recipe.recipe_id, player.inventory, floor)
-        special = recipe.get_special_requirement()
-        requires = f"{recipe.get_required_ore_count()}x {recipe.get_required_ore_type()} ore"
-        if special:
-            requires += f" + {special}"
-        best = manager.ore_for(recipe, player.inventory) if ok else []
-        views.append(RecipeView(
-            recipe.recipe_id, recipe.display_name, recipe.equipment_slot, requires, ok, reason,
+        view = RecipeView(
+            recipe.recipe_id, recipe.display_name, recipe.equipment_slot,
+            _recipe_requires(manager, recipe), ok, reason,
             manager.preview_stats(recipe.recipe_id, player.inventory) or {} if ok else {},
-            ore_count=recipe.get_required_ore_count(),
-            ore_ids=[i.entity_id for i in best],
-            ore_choices=[i.entity_id for i in manager.ore_choices(recipe, player.inventory)],
-        ))
+            kind=recipe.kind,
+        )
+        if recipe.kind == 'assembly':
+            view.required_slots = list(recipe.assembly_parts)
+            view.optional_slots = list(recipe.optional_slots)
+            view.part_choices = {slot: [i.entity_id for i in items] for slot, items
+                                 in manager.part_choices(recipe, player.inventory).items()}
+            if ok:
+                view.part_ids = [i.entity_id for i in manager.parts_for(recipe, player.inventory)]
+        else:
+            best = manager.ore_for(recipe, player.inventory) if ok else []
+            view.ore_count = recipe.get_required_ore_count()
+            view.ore_ids = [i.entity_id for i in best]
+            view.ore_choices = [i.entity_id for i in manager.ore_choices(recipe, player.inventory)]
+        views.append(view)
     return sorted(views, key=lambda r: (not r.craftable, r.name))
 
 

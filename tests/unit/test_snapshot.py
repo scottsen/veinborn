@@ -257,3 +257,38 @@ def test_craft_event_carries_stats_and_ore_quality(game):
     assert data['recipe_id'] == 'copper_sword' and data['item_name'] == 'Copper Sword'
     assert data['stats'].get('attack_bonus', 0) >= 1
     assert set(data['ore']) >= {'purity', 'hardness'}
+
+
+def test_parts_and_assemblies_are_listed_with_their_choices(game):
+    from core.actions.craft_action import CraftAction
+    player, forge = _at_forge(game)
+    player.inventory.clear()
+    manager = CraftAction.get_recipe_manager()
+    from core.entity_loader import EntityLoader
+    vein = EntityLoader().create_ore_vein('iron', 0, 0, floor=6)
+    blade = manager.create_part('blade', [vein.get_ore_item() for _ in range(2)])
+    hilt = manager.create_part('hilt', [vein.get_ore_item()])
+    for part in (blade, hilt):
+        player.add_to_inventory(part)
+    view = build_snapshot(game.state).player
+    sword = next(r for r in view.recipes if r.recipe_id == 'sword')
+    assert sword.kind == 'assembly' and sword.craftable and sword.stats
+    assert sword.required_slots == ['head', 'grip'] and sword.optional_slots == ['gem']
+    assert set(sword.part_ids) == {blade.entity_id, hilt.entity_id}
+    assert sword.part_choices['head'] == [blade.entity_id] and sword.part_choices['gem'] == []
+    assert next(r for r in view.recipes if r.recipe_id == 'blade').kind == 'part'
+    carried = {i.entity_id: i for i in view.inventory}
+    assert carried[blade.entity_id].part['slot'] == 'head' and carried[blade.entity_id].part['ore'] == 'iron'
+    # the client-side preview of a hand-picked set equals the server's craft
+    picks = [carried[i].part for i in sword.part_ids]
+    assert manager.preview_from_parts('sword', picks) == sword.stats
+    assert manager.preview_from_parts('sword', picks[:1]) is None          # a slot is empty
+
+
+def test_snapshot_round_trips_recipe_and_part_views(game):
+    from core.snapshot import Snapshot
+    player, _ = _at_forge(game)
+    player.inventory.clear()
+    snap = build_snapshot(game.state)
+    again = Snapshot.from_dict(snap.to_dict())
+    assert again.player.recipes == snap.player.recipes

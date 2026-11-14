@@ -242,3 +242,81 @@ def test_ore_picker_refuses_the_wrong_count():
         assert isinstance(app.screen, OrePickScreen) and "Pick exactly 2" in picker.render_panel().plain
         assert len(player.inventory) == 3
     run(scenario)
+
+
+def _forge_with_parts(game, parts):
+    """At the forge holding crafted parts `[(part_id, ore_type, ore_count)]`; returns the items."""
+    from core.actions.craft_action import CraftAction
+    player, _ = stand_at_forge(game, ore=0)
+    manager = CraftAction.get_recipe_manager()
+    made = []
+    for part_id, ore_type, count in parts:
+        vein = EntityLoader().create_ore_vein(ore_type, 0, 0, floor=12)
+        part = manager.create_part(part_id, [vein.get_ore_item() for _ in range(count)])
+        assert player.add_to_inventory(part)
+        made.append(part)
+    return player, made
+
+
+def test_part_picker_assembles_the_hand_picked_parts():
+    from ui.textual.craft_screen import PartPickScreen
+
+    async def scenario(app, pilot, game):
+        player, (weak, strong, hilt) = _forge_with_parts(
+            game, [('blade', 'copper', 2), ('blade', 'adamantite', 2), ('hilt', 'iron', 1)])
+        await pilot.press("f")
+        await pilot.pause()
+        screen = app.screen
+        screen.cursor = next(n for n, r in enumerate(screen.rows()) if r.recipe_id == 'sword')
+        assert "Adamantite Blade" in screen.render_panel().plain         # default: the best blade
+        await pilot.press("o")
+        await pilot.pause()
+        assert isinstance(app.screen, PartPickScreen)
+        picker = app.screen
+        assert set(picker.picked) == {strong.entity_id, hilt.entity_id}
+        rows = picker.rows()
+        picker.cursor = next(n for n, r in enumerate(rows) if r.entity_id == weak.entity_id)
+        await pilot.press("space")                                        # swaps the head slot
+        await pilot.pause()
+        assert set(picker.picked) == {weak.entity_id, hilt.entity_id}
+        assert "->" in picker.render_panel().plain
+        await pilot.press("enter")
+        await pilot.pause()
+        assert not isinstance(app.screen, PartPickScreen)
+        sword = next(i for i in player.inventory if i.get_stat('recipe_id') == 'sword')
+        assert sword.name == 'Copper-Iron Sword'
+        assert strong in player.inventory and weak not in player.inventory
+    run(scenario)
+
+
+def test_part_picker_refuses_an_unfilled_slot():
+    from ui.textual.craft_screen import PartPickScreen
+
+    async def scenario(app, pilot, game):
+        player, (blade, hilt) = _forge_with_parts(game, [('blade', 'iron', 2), ('hilt', 'iron', 1)])
+        await pilot.press("f")
+        await pilot.pause()
+        screen = app.screen
+        screen.cursor = next(n for n, r in enumerate(screen.rows()) if r.recipe_id == 'sword')
+        await pilot.press("o")
+        await pilot.pause()
+        picker = app.screen
+        picker.picked = [blade.entity_id]                                 # no grip
+        await pilot.press("enter")
+        await pilot.pause()
+        assert isinstance(app.screen, PartPickScreen) and "grip" in picker.render_panel().plain
+        assert hilt in player.inventory and blade in player.inventory
+    run(scenario)
+
+
+def test_enter_on_an_assembly_crafts_the_best_parts():
+    async def scenario(app, pilot, game):
+        player, _ = _forge_with_parts(game, [('plates', 'iron', 3), ('lining', 'iron', 1)])
+        await pilot.press("f")
+        await pilot.pause()
+        screen = app.screen
+        screen.cursor = next(n for n, r in enumerate(screen.rows()) if r.recipe_id == 'chestplate')
+        await pilot.press("enter")
+        await pilot.pause()
+        assert any(i.get_stat('recipe_id') == 'chestplate' for i in player.inventory)
+    run(scenario)

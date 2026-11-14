@@ -111,6 +111,13 @@ Higher numbers = better! Purity amplifies everything.
    (Space picks a piece, Enter crafts) when you want to save your best ore for later
 5. Press **w** to wield your new weapon
 
+**Parts (new):** the forge also lists parts (Blade, Hilt, Plates, Lining, Focus Gem) and the
+gear built from them (Sword, Battle Axe, Chestplate). A part takes any metal and its stats come
+from the ore, so adamantite makes a far better blade than copper. Craft the parts first (Enter
+on "Blade", on "Hilt"), then craft the "Sword": Enter assembles your best parts, **o** lets you
+pick each part (Space picks one per slot, Enter assembles). A Focus Gem (mithril or adamantite)
+is an optional extra for a sword. The sword is named from its blade's ore.
+
 Ore in your pack (**i**) shows its quality: `P85 H70 M55 C40 D50` is purity, hardness,
 malleability, conductivity, density; ★ marks a jackpot piece (every property 80+).
 

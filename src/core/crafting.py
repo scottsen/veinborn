@@ -221,6 +221,23 @@ def ore_label(props: Optional[Dict[str, int]]) -> str:
     return label
 
 
+_STAT_WORDS = {'attack_bonus': 'attack', 'defense_bonus': 'defense'}
+
+
+def stats_label(stats: Optional[Dict[str, int]]) -> str:
+    """'+6 attack -1 accuracy': the non-zero stats of a part or craft preview."""
+    return " ".join(f"{v:+d} {_STAT_WORDS.get(k, k.replace('_', ' '))}"
+                    for k, v in (stats or {}).items() if v)
+
+
+def part_info(item) -> Optional[Dict[str, Any]]:
+    """What a client needs of a part item (slot, ore, stats), or None for anything else."""
+    if item.get_stat('item_type') != 'part':
+        return None
+    return {'slot': item.get_stat('part_slot'), 'ore': item.get_stat('part_ore_type'),
+            'stats': dict(item.get_stat('part_stats') or {})}
+
+
 def is_ore_item(item) -> bool:
     """True for raw ore, false for crafted equipment.
 
@@ -574,17 +591,58 @@ class RecipeManager:
         return [slot for slot, part_id in recipe.assembly_parts.items()
                 if not self.parts_in(player_inventory, part_id, recipe.assembly_ore)]
 
+    def slot_of_part(self, recipe: 'CraftingRecipe') -> Dict[str, str]:
+        """part recipe id -> the slot it fills in this assembly (required slots, then any
+        optional slot such as a gem, whose part recipe is the one made for that slot)."""
+        slot_of = {pid: slot for slot, pid in recipe.assembly_parts.items()}
+        for slot in recipe.optional_slots:
+            for r in self.recipes.values():
+                if r.kind == 'part' and r.part_slot == slot:
+                    slot_of[r.recipe_id] = slot
+        return slot_of
+
+    def part_choices(self, recipe: 'CraftingRecipe',
+                     player_inventory: List[Any]) -> Dict[str, List[Any]]:
+        """Every carried part an assembly could use, by slot (empty list: none carried)."""
+        slot_of = self.slot_of_part(recipe)
+        choices: Dict[str, List[Any]] = {slot: [] for slot in slot_of.values()}
+        for item in player_inventory:
+            slot = slot_of.get(item.get_stat('part_id'))
+            if slot and (recipe.assembly_ore is None
+                         or item.get_stat('part_ore_type') in recipe.assembly_ore):
+                choices[slot].append(item)
+        return choices
+
+    def preview_from_parts(self, recipe_id: str,
+                           parts: List[Dict[str, Any]]) -> Optional[Dict[str, int]]:
+        """Stats from parts described only by `{'slot', 'stats'}` (a client's ItemView.part), so
+        a part picker previews a hand-picked set without the items; None if a required slot is
+        empty or a slot repeats."""
+        recipe = self.get_recipe(recipe_id)
+        if not recipe or recipe.kind != 'assembly':
+            return None
+        slots = [p['slot'] for p in parts]
+        if len(set(slots)) != len(slots) or not set(recipe.assembly_parts) <= set(slots):
+            return None
+        return self._sum_stats(recipe, [p['stats'] for p in parts])
+
+    @staticmethod
+    def _sum_stats(recipe: 'CraftingRecipe', stat_dicts: List[Dict[str, int]]) -> Dict[str, int]:
+        totals: Dict[str, int] = {}
+        for stats in stat_dicts:
+            for stat, value in (stats or {}).items():
+                totals[stat] = totals.get(stat, 0) + int(value)
+        for stat, value in (recipe.fixed_stats or {}).items():
+            totals[stat] = totals.get(stat, 0) + int(value)
+        return totals
+
     def parts_for(self, recipe: 'CraftingRecipe', player_inventory: List[Any],
                   part_ids: Optional[List[Any]] = None) -> List[Any]:
         """The parts an assembly consumes: one per required slot, plus any optional-slot part
         named in `part_ids`. With `part_ids`, exactly those (each must be carried, fit a slot
         of this assembly, and no slot twice; every required slot filled) or [] when wrong.
         Without, the best carried part per required slot (by its main stat), never a gem."""
-        slot_of = {pid: slot for slot, pid in recipe.assembly_parts.items()}
-        for slot in recipe.optional_slots:
-            for r in self.recipes.values():
-                if r.kind == 'part' and r.part_slot == slot:
-                    slot_of[r.recipe_id] = slot
+        slot_of = self.slot_of_part(recipe)
         if part_ids is not None:
             by_id = {i.entity_id: i for i in player_inventory if i.get_stat('part_id') in slot_of
                      and (recipe.assembly_ore is None
@@ -595,7 +653,8 @@ class RecipeManager:
             slots = [slot_of[i.get_stat('part_id')] for i in chosen]
             if len(set(slots)) != len(slots) or not set(recipe.assembly_parts) <= set(slots):
                 return []
-            return chosen
+            order = list(recipe.assembly_parts) + list(recipe.optional_slots)
+            return sorted(chosen, key=lambda i: order.index(slot_of[i.get_stat('part_id')]))
         chosen = []
         for slot, part_id in recipe.assembly_parts.items():
             part_recipe = self.recipes[part_id]
@@ -607,13 +666,7 @@ class RecipeManager:
 
     def assembly_stats(self, recipe: 'CraftingRecipe', parts: List[Any]) -> Dict[str, int]:
         """Sum of the parts' stats plus the assembly's fixed bonus (a material's)."""
-        totals: Dict[str, int] = {}
-        for part in parts:
-            for stat, value in (part.get_stat('part_stats') or {}).items():
-                totals[stat] = totals.get(stat, 0) + int(value)
-        for stat, value in (recipe.fixed_stats or {}).items():
-            totals[stat] = totals.get(stat, 0) + int(value)
-        return totals
+        return self._sum_stats(recipe, [p.get_stat('part_stats') for p in parts])
 
     def create_part(self, recipe_id: str, ore_items: List[Any]) -> Optional[Any]:
         """A part item from ore: stats from the averaged ore, remembers its ore for naming."""

@@ -198,3 +198,13 @@ def test_parts_and_assembled_gear_survive_a_save(forge_game, tmp_path):
     assert part.get_stat('part_stats')['attack_bonus'] > 0 and part.get_stat('part_id') == 'blade'
     manager = CraftAction.get_recipe_manager()
     assert manager.parts_in(loaded.inventory, 'blade')
+
+
+def test_picked_parts_are_named_from_the_head_whatever_the_pick_order(forge_game):
+    game, player, forge = forge_game
+    manager = CraftAction.get_recipe_manager()
+    blade = manager.create_part('blade', ore('copper', 2))
+    hilt = manager.create_part('hilt', ore('iron', 1))
+    give(player, [blade, hilt])
+    craft(game, player, forge, 'sword', part_ids=[hilt.entity_id, blade.entity_id])   # grip first
+    assert next(i for i in player.inventory if i.get_stat('recipe_id') == 'sword').name == 'Copper-Iron Sword'

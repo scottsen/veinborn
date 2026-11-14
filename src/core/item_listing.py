@@ -25,9 +25,10 @@ class ItemLine:
 
 
 def _line(view) -> ItemLine:
-    from .crafting import ore_label
-    return ItemLine(view.entity_id, view.name, view.item_type or 'unknown',
-                    ore_label(getattr(view, 'ore', None)))
+    from .crafting import ore_label, stats_label
+    part = getattr(view, 'part', None)
+    detail = stats_label(part['stats']) if part else ore_label(getattr(view, 'ore', None))
+    return ItemLine(view.entity_id, view.name, view.item_type or 'unknown', detail)
 
 
 def items_here(snapshot) -> List[ItemLine]:
