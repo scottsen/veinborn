@@ -2709,15 +2709,15 @@ notes_next: 2
 ## TASK-VB-113 · Crafting: 9 of 11 crafted stats are computed but read by nothing (durability, weight, fire_damage, stealth, evasion, spell_power, stun_chance, piercing, fire_resistance): cut them or make 2-3 matter
 
 ```yaml
-status: blocked
+status: done
 priority: medium
 owner: scott
 effort: '-'
 tags: [crafting, balance, design]
 created: '2026-11-14T17:55:07Z'
-updated: '2026-11-14T18:40:06Z'
+updated: '2026-11-14T21:25:40Z'
 session: peaceful-shower-1114
-notes_next: 4
+notes_next: 6
 ```
 
 <!-- notes: append-only log; each has a stable #id (see CLI §5) -->
@@ -2725,6 +2725,8 @@ notes_next: 4
 - [#1 2026-11-14T17:55:12Z session:peaceful-shower-1114] Design call for Scott: cut the dead stats from recipes.yaml (honest, cheap) or make 2-3 matter (weight vs speed/dodge, durability + forge repair, fire_damage as a damage type). Evidence: grep of src outside crafting.py finds 0 readers for each; 'weight'/'range'/'regeneration' hits are unrelated (loot table weights, ability range, regen status effect). Related: VB-75 note #5 (impure ore lowers durability / curse), VB-87 balance.
 - [#2 2026-11-14T18:33:43Z session:peaceful-shower-1114] Plan written: docs/design/CRAFTING_PARTS_DESIGN.md (SWG-style parts: head/grip/shell/lining + optional gem, each ore attribute with a job, tier from ore properties, named ore per run, tempering). This task is now the phase-0 decision gate: Scott decides D1 stat set (cut 7), D2 accuracy split, D3 two parts + gem, D4 tier from properties, D5 named spawns. Phases: VB-114..VB-120.
 - [#3 2026-11-14T18:40:06Z session:peaceful-shower-1114] DECIDED 2026-11-14 (Scott): D1 keep the six core stats (attack, accuracy, defense, max HP, spell power, fire damage later), cut the other seven; D2 follows (accuracy is one of the six). Open: D3 parts per item, D4 tier from properties, D5 named spawns. Phase 1 (VB-114) needs only D1/D2: unblocked.
+- [#4 2026-11-14T21:25:39Z session:xuhuve-1114] DECIDED 2026-11-14 (Scott): D3 two parts plus optional gem; D4 parts accept any metal, tier from ore properties (replaces per-tier recipes). D5 still open, not needed before phase 5 (VB-118). Gate cleared for VB-115.
+- [#5 2026-11-14T21:25:40Z session:xuhuve-1114] D1-D4 decided; D5 deferred to VB-118
 
 
 ## TASK-VB-114 · Crafting v2 phase 1: combat reads accuracy (to-hit term), max_hp_bonus (while worn), spell_power (force bolt) - see docs/design/CRAFTING_PARTS_DESIGN.md
@@ -2758,20 +2760,21 @@ notes_next: 5
 ## TASK-VB-115 · Crafting v2 phase 2: parts + assemblies in RecipeManager, recipes.yaml v2 (parts take any metal, tier from ore properties), legendaries as assemblies with a material, cut dead stats - see docs/design/CRAFTING_PARTS_DESIGN.md
 
 ```yaml
-status: future
+status: in_progress
 priority: medium
 effort: 2d
 tags: [crafting, crafting-v2]
 created: '2026-11-14T18:33:26Z'
-updated: '2026-11-14T18:33:42Z'
+updated: '2026-11-14T21:32:06Z'
 session: peaceful-shower-1114
 depends_on: [VB-114]
-notes_next: 2
+notes_next: 3
 ```
 
 <!-- notes: append-only log; each has a stable #id (see CLI §5) -->
 ### Notes
 - [#1 2026-11-14T18:33:42Z session:peaceful-shower-1114] Waits on VB-113 decisions (D1-D5 in docs/design/CRAFTING_PARTS_DESIGN.md).
+- [#2 2026-11-14T21:32:06Z session:xuhuve-1114] 2026-11-14 step 1 done f99011f (not pushed): engine for parts + assemblies, ADDITIVE. CraftingRecipe.kind item|part|assembly; parts: 'accepts: metal', stats from averaged ore props; assemblies: one carried part per required slot + optional gem + optional material bonus, named from head ore ('Mithril-Iron Sword'); CraftAction.part_ids (assembly parts; None = best per slot, never a gem); suggest_recipe only returns kind=item so bots are unchanged; yaml sections parts:/assemblies: added beside the per-tier recipes. 17 tests in tests/unit/test_crafting_parts.py (any-metal tier, consume, preview==result, wrong picks rejected, gem, wear, save round-trip); full suite 1666 passed. Found: formulas are squared in hardness (hardness*hardness/330) because today's tier curve is super-linear (copper sword ~4, adamantite ~30) - linear coefficients from the design doc cannot reproduce it; placeholders only, VB-117 tunes. REMAINING for VB-115: (a) migrate legendaries to assemblies with a material (flaming_sword, arcane_staff, dragon_bow, phoenix plate, shadow cloak, titan hammer) incl. phoenix armor 6-adamantite fix; (b) delete the per-tier recipes + the 7 dead stats and forge_requirements can_craft lists, which breaks bot crafting and the f-screen until VB-116/VB-117 (so nothing pushes until then); (c) snapshot RecipeView/craft screen need parts awareness (VB-116).
 
 
 ## TASK-VB-116 · Crafting v2 phase 3: forge UI for parts (craft a part, assemble from carried parts with a picker), snapshot views, protocol bump - see docs/design/CRAFTING_PARTS_DESIGN.md
@@ -2920,14 +2923,15 @@ priority: medium
 effort: 1h
 tags: [observability, logging, bots]
 created: '2026-11-14T20:30:40Z'
-updated: '2026-11-14T20:49:03Z'
+updated: '2026-11-14T21:16:43Z'
 session: peaceful-shower-1114
-notes_next: 2
+notes_next: 3
 ```
 
 <!-- notes: append-only log; each has a stable #id (see CLI §5) -->
 ### Notes
 - [#1 2026-11-14T20:49:03Z session:peaceful-shower-1114] fdb9335: routing avoids forges always, veins unless the only way (veins-impassable cut floors 72/72/68 -> 49/34/38 on 3 games; with vein fallback 69/74/65); refused_moves per game (0 on 3 games vs 878 blocked bumps before); random fallback never bumps a forge or mines full; blocked-move -> DEBUG, full-pack ore drop -> INFO; bot log rolls over at startup (116 MB moved to bot_tests.log.1). Pending: full A/B vs prev2_baseline in tmux vb-routing.
+- [#2 2026-11-14T21:16:43Z session:xuhuve-1114] 2026-11-14 (xuhuve-1114) partial routing A/B, fdb9335 vs 3d1e8c6 baseline, seeds 3000+, 20000 turns, warrior+rogue only (24 each, 48 pairs; mage killed mid-run, healer never ran; tmux vb-routing stopped by hand). Results: /home/scottsen/src/tia/sessions/peaceful-shower-1114/routing_after/{warrior,rogue}.json. Refused moves 0.0/game both classes (baseline never recorded it; 878 blocked-move warnings before is the only 'before'). 0/48 games identical (expected: paths differ). Floor 66.94->66.75 CI[-5.9,+5.6], turns 18991->18053 CI[-2438,+561], deaths 14->15 of 48, crashes/errors 0: within noise. Potions used 4.42->3.29 (CI -2.19..-0.06) but per floor reached it is flat for rogue (0.062->0.059) and 0.07->0.04 for warrior: mostly fewer potions per game, not a new behaviour. WATCH: rogue burst deaths 1->4 of 24 (all 48: 0.02->0.10, CI -0.02..+0.18, n.s.) and rogue deaths to ORC 0->3: seeds 3009 (floor 2, turn 299, lvl 1), 3011 (floor 2, turn 253, lvl 3, burst), 3020 (floor 7); in the baseline those seeds died deep to phoenix or survived. Early-floor deaths of a level-1..3 rogue to orcs are new and not explained; cause (route detours vs RNG divergence) not isolated. Not run: mage, healer. Suggested close-out: replay rogue seeds 3009/3011 at fdb9335 vs 3d1e8c6 and read the route into the orc fight; if it is detour-driven, fix, else call it noise. Then rerun mage+healer (or accept warrior+rogue) and tt done --commit fdb9335. Worktree /var/tmp/vb_routing (fdb9335) still present for the replay.
 
 
 ## TASK-VB-124 · Observability: bot results JSON is rewritten after every game with no completion marker; add complete + games_planned to metadata
