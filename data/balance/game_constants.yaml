@@ -29,8 +29,10 @@ player:
 
   health_regeneration:
     interval_turns: 10  # Regenerate every 10 turns
-    amount: 1  # HP restored per tick
-    description: "NetHack-style slow natural healing"
+    amount: 1  # HP restored per tick (the minimum)
+    percent_of_max: 0.05  # or 5% of max HP, whole HP rounded down, if more: 1 until 40 max HP, 2 at 48, 5 at 100
+    rest_multiplier: 3  # ticks heal 3x when the player waited last turn with no monster in sight
+    description: "NetHack-style slow natural healing, scaled to the HP pool, faster while resting"
 
 # Inventory
 inventory:

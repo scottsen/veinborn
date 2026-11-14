@@ -16,6 +16,13 @@ UNSEEN = ' '        # the tile char a snapshot sends for a tile the viewer has n
 Cell = Tuple[int, int]
 
 
+def can_see(game_map, x: int, y: int, tx: int, ty: int, radius: int = VISION_RADIUS) -> bool:
+    """Is (tx, ty) within `radius` of (x, y) with nothing opaque in between?"""
+    if (tx - x) ** 2 + (ty - y) ** 2 > radius * radius:
+        return False
+    return has_line_of_sight(x, y, tx, ty, game_map.is_transparent)
+
+
 def observe(game_map, viewer_id: str, x: int, y: int, radius: int = VISION_RADIUS) -> Set[Cell]:
     """Update `viewer_id`'s memory of `game_map` from (x, y); return the cells lit right now.
 

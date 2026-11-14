@@ -12,8 +12,9 @@ following Single Responsibility Principle.
 """
 
 import logging
-from typing import TYPE_CHECKING, Iterable, Optional
+from typing import TYPE_CHECKING, Callable, Iterable, Optional
 
+from . import fog
 from .base.entity import EntityType
 from .events import EventBus, create_player_died_event, create_run_ended_event, create_turn_ended_event
 
@@ -24,19 +25,28 @@ logger = logging.getLogger(__name__)
 
 
 def apply_hp_regeneration(players: Iterable, turn_count: int,
-                          interval: int, amount: int) -> None:
+                          interval: int, amount: int,
+                          percent: float = 0.0, rest_multiplier: int = 1,
+                          is_resting: Optional[Callable] = None) -> None:
     """
-    Heal each living player by `amount` HP on every `interval`-th turn.
+    Heal each living player on every `interval`-th turn.
 
     NetHack-style natural regeneration, shared by single-player (one player)
     and multiplayer (every party member) so the rule can't drift between them.
+    A tick heals `amount` HP or `percent` of max HP (whole HP, rounded down),
+    whichever is more, so deep characters recover in proportion to their pool
+    while a small one still gets `amount`. A player for whom `is_resting`
+    returns True heals `rest_multiplier` times as much (VB-107).
     """
     if turn_count % interval != 0:
         return
 
     for player in players:
         if player.is_alive and player.hp < player.max_hp:
-            healed = player.heal(amount)
+            tick = max(amount, int(player.max_hp * percent))
+            if is_resting is not None and is_resting(player):
+                tick *= rest_multiplier
+            healed = player.heal(tick)
 
             if healed > 0:
                 logger.debug(
@@ -56,6 +66,7 @@ class TurnProcessor:
     """
 
     def __init__(self, context: 'GameContext', hp_regen_interval: int = 10, hp_regen_amount: int = 1, spawner=None,
+                 hp_regen_percent: float = 0.0, hp_rest_multiplier: int = 1,
                  event_bus: Optional[EventBus] = None,
                  defeat_message: str = "You died! Press 'r' to restart."):
         """
@@ -65,6 +76,8 @@ class TurnProcessor:
             context: Game context for safe state access
             hp_regen_interval: Number of turns between HP regeneration (default: 10)
             hp_regen_amount: Amount of HP restored per regeneration tick (default: 1)
+            hp_regen_percent: Share of max HP restored per tick if that beats the amount (default: 0)
+            hp_rest_multiplier: Tick multiplier for a player who is resting (default: 1)
             spawner: EntitySpawner for ongoing spawns (VB-52); None disables them
             event_bus: Receives player_died, run_ended and turn_ended; None publishes nothing
             defeat_message: Logged to the message log when every player is dead
@@ -73,6 +86,8 @@ class TurnProcessor:
         self.game_state = context.game_state
         self.hp_regen_interval = hp_regen_interval
         self.hp_regen_amount = hp_regen_amount
+        self.hp_regen_percent = hp_regen_percent
+        self.hp_rest_multiplier = hp_rest_multiplier
         self.spawner = spawner
         self.event_bus = event_bus
         self._announced_dead: set = set()
@@ -155,6 +170,20 @@ class TurnProcessor:
             self.game_state.turn_count,
             self.hp_regen_interval,
             self.hp_regen_amount,
+            self.hp_regen_percent,
+            self.hp_rest_multiplier,
+            self._is_resting,
+        )
+
+    def _is_resting(self, player) -> bool:
+        """Waited last turn with no living monster in sight (a wait with a monster
+        watching is a stand-off, not a rest)."""
+        if player.get_stat('rested_turn') != self.game_state.turn_count - 1:
+            return False
+        game_map = self.game_state.dungeon_map
+        return not any(
+            m.is_alive and fog.can_see(game_map, player.x, player.y, m.x, m.y)
+            for m in self.context.get_entities_by_type(EntityType.MONSTER)
         )
 
     def _maybe_spawn_wanderer(self) -> None:

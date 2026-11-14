@@ -30,6 +30,8 @@ class WaitAction(Action):
         if not actor:
             return ActionOutcome.failure("Actor not found")
 
+        # Natural regeneration reads this (TurnProcessor): resting speeds it up (VB-107)
+        actor.set_stat('rested_turn', context.get_turn_count())
         outcome = ActionOutcome.success(took_turn=True)
         if not self.quiet:
             outcome.messages.append(f"{actor.name} waits.")

@@ -73,6 +73,8 @@ class Engine:
         tp_kwargs = {'defeat_message': defeat_message} if defeat_message else {}
         self.turn_processor = TurnProcessor(
             context, regen['interval_turns'], regen['amount'],
+            hp_regen_percent=regen.get('percent_of_max', 0.0),
+            hp_rest_multiplier=regen.get('rest_multiplier', 1),
             spawner=self.spawner, event_bus=event_bus, **tp_kwargs,
         )
         self.floor_manager = FloorManager(context, self.spawner, event_bus=event_bus)
