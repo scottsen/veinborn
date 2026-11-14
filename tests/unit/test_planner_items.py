@@ -261,3 +261,28 @@ def test_full_pack_drops_a_second_copy_of_a_material():
     while len(player.inventory) < planner_module.INVENTORY_MAX:
         player.add_to_inventory(ore(80))
     assert planner.junk_to_drop(game) is second
+
+
+def _hurt_with_potion(game, frac):
+    player = game.state.player
+    bottle = potion()
+    player.add_to_inventory(bottle)
+    player.hp = int(player.max_hp * frac)
+    return bottle
+
+
+def test_pack_nearby_makes_the_bot_drink_earlier():
+    game, planner = warrior()
+    bottle = _hurt_with_potion(game, (planner_module.DRINK_BELOW + planner_module.DRINK_BELOW_PACK) / 2)
+    for _ in range(planner_module.PACK_SIZE):
+        monster_in_sight(game)
+    assert planner.pack_near(game)
+    assert planner.get_smart_action(game) == ('use', {'item_id': bottle.entity_id})
+
+
+def test_lone_monster_keeps_the_normal_drink_threshold():
+    game, planner = warrior()
+    bottle = _hurt_with_potion(game, (planner_module.DRINK_BELOW + planner_module.DRINK_BELOW_PACK) / 2)
+    monster_in_sight(game)
+    assert not planner.pack_near(game)
+    assert planner.get_smart_action(game) != ('use', {'item_id': bottle.entity_id})

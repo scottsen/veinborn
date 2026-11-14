@@ -20,6 +20,11 @@ from .room_sweeper import RoomSweeper
 HEAL_BELOW = 0.6
 # Drink a potion / eat at or below this fraction (lower: the heal ability comes back, potions don't)
 DRINK_BELOW = 0.4
+# A pack (this many monsters within PACK_RADIUS) kills faster than one fight's odds suggest and
+# 25 of 36 baseline deaths still carried a usable item (VB-107), so drink earlier then
+DRINK_BELOW_PACK = 0.6
+PACK_SIZE = 3
+PACK_RADIUS = 8
 REST_BELOW = 0.7          # start resting under this share of max HP (nothing in sight)
 REST_UNTIL = 0.9          # ... and stop at this one
 # Detour at most this far (Chebyshev) to collect a potion or food
@@ -446,12 +451,22 @@ class ActionPlanner:
                     return ('ability', {'ability': 'force_bolt'})
         return None
 
+    def pack_near(self, game) -> bool:
+        """PACK_SIZE or more monsters within PACK_RADIUS of the player."""
+        player = game.state.player
+        near = sum(1 for m in self.perception.find_monsters(game)
+                   if max(abs(m.x - player.x), abs(m.y - player.y)) <= PACK_RADIUS)
+        return near >= PACK_SIZE
+
     def drink_action(self, game) -> Optional[Tuple[str, dict]]:
         """Use the best healing item (core's choice) at or below DRINK_BELOW of max HP."""
         from core.actions.use_item_action import best_healing_item
 
         player = game.state.player
-        if player.hp > player.max_hp * DRINK_BELOW:
+        threshold = DRINK_BELOW
+        if self.pack_near(game):
+            threshold = DRINK_BELOW_PACK
+        if player.hp > player.max_hp * threshold:
             return None
         item = best_healing_item(player)
         if item is None:
