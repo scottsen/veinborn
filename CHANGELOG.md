@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed — One engine, intents in, snapshots out (MP plan phases 1-3, VB-88..VB-98, 2026-11-14)
+- `core/engine.py` is the one rules loop: single-player (`Game`) and multiplayer (`GameSession`) are hosts around it, so rounds (one action per living player), world ticks, floor changes, death/run-end events and content handlers (achievements, quests) are shared instead of re-implemented on the server. The server takes `intent` messages (actor from the seat) and sends each player their own `snapshot` over a shared, versioned `src/protocol/`; the delta path is gone. Design and rulings: `docs/architecture/MULTIPLAYER_ARCHITECTURE_PLAN.md`. Next: the gameplay client (`VB-44`).
+
 ### Changed — Deep floors get harder; every monster spawns; legendary gear (VB-75, VB-69, 2026-11-12)
 - Monsters get 2% stronger per floor (`monster_spawns.yaml floor_scaling`), so the back half of the game is no longer harmless once crafted gear plateaus: bots die on floors 41-98 in 59 of 96 long runs (3/96 before, all on floors 1-3). All 19 monsters now spawn in floor bands, with ancient_horror as a single floor-99 boss (`boss_floors`).
 - The six legendary recipes are live, each needing a boss material (lich phylactery, phoenix essence, ...) that the craft consumes; boss monsters drop them. Bots fetch materials and craft legendaries. Follow-ups: `VB-87`.

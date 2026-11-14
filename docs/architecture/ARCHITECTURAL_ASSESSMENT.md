@@ -48,7 +48,7 @@ reveal check src/                             # rule findings (see false positiv
 ### Known weaknesses
 - **Process singletons remain**: `GameRNG`, `LootGenerator`, `HighScoreManager`, `ConfigManager`. Per-game randomness must come from `context.get_rng()` (VB-18); a call that omits its `rng` argument falls back to the global stream, which a loaded save or a multiplayer game does not use. Game-over scoring still calls `HighScoreManager` directly from `turn_processor` and `floor_manager` rather than through events.
 - **User preferences drive gameplay**: autopickup reads `ConfigManager` (`~/.veinbornrc`). Bots and tests pin built-in defaults with `ConfigManager.use_defaults()` (VB-76); the multiplayer server still applies its host's file to every player.
-- **Complexity concentrates in a few functions**: `server/state_delta.compute_delta` (VB-26), `ui/multiplayer_client._handle_message`, `ui/textual/widgets/sidebar.render_content`, `core/systems/ai_system.abilities_for` (scored high by `or {}` defaults; short and readable, left as is).
+- **Complexity concentrates in a few functions**: `server/state_delta.compute_delta` (VB-26; deleted 2026-11-14 with the delta path, VB-98), `ui/multiplayer_client._handle_message`, `ui/textual/widgets/sidebar.render_content`, `core/systems/ai_system.abilities_for` (scored high by `or {}` defaults; short and readable, left as is).
 
 ---
 
