@@ -77,19 +77,12 @@ class Sidebar(Static):
 
         # Controls
         text.append("=== CONTROLS ===\n", style="bold bright_cyan")
-        text.append("Arrow/HJKL: Move\n")
-        text.append("YUBN: Diagonal\n")
-        text.append("S: Survey Ore\n")
-        text.append("W: Wield/Wear\n")
+        text.append("Arrows/HJKL/YUBN: move; bump to attack or mine\n")
+        text.append("S survey  X examine  F forge  I pack  W gear\n")
         ability_line = self._ability_line(player)
         if ability_line:
             text.append(ability_line + "\n")
-        text.append("G: Pick up Items\n")
-        text.append("I: Full Inventory\n")
-        text.append(":: Look at Ground\n")
-        text.append(".: Wait/Rest\n")
-        text.append("Bump to attack/mine\n")
-        text.append("Q: Quit | R: Restart\n")
+        text.append("?: every key\n")
 
         return text
 

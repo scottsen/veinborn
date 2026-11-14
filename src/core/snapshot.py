@@ -48,6 +48,7 @@ class EntityView:
     color: str
     alive: bool = True
     item_type: Optional[str] = None   # items on the map only
+    info: Dict = field(default_factory=dict)   # examine facts (VB-129): survey numbers, a monster's attack/defense, an item's stats
 
 
 @dataclass
@@ -233,6 +234,25 @@ def _item_type(item) -> str:
     return item.get_stat('item_type', None) or ('ore' if is_ore_item(item) else 'unknown')
 
 
+def _entity_info(e) -> Dict:
+    """What examine can say about an entity beyond its name (see core.examine)."""
+    kind = e.entity_type
+    if kind == EntityType.ORE_VEIN:
+        if not e.get_stat('surveyed'):
+            return {'surveyed': False}
+        from .crafting import ORE_PROPERTIES
+        return {'surveyed': True, 'mining_turns': e.get_stat('mining_turns'),
+                'ore': {name: int(e.get_stat(name, 50)) for name in ORE_PROPERTIES}}
+    if kind == EntityType.MONSTER:
+        return {'attack': getattr(e, 'attack', 0), 'defense': getattr(e, 'defense', 0),
+                'xp': e.get_stat('xp_reward', 0), 'ai': e.get_stat('ai_type', '')}
+    if kind == EntityType.ITEM:
+        from .crafting import part_info
+        from .equipment import core_stats
+        return {'part': part_info(e), 'stats': core_stats(e)}
+    return {}
+
+
 def _etype(entity) -> str:
     t = entity.entity_type
     return t.value if hasattr(t, 'value') else str(t)
@@ -368,6 +388,7 @@ def build_snapshot(state, viewer=None, message_count: int = 20) -> Snapshot:
             name=e.name, x=e.x, y=e.y, hp=e.hp, max_hp=e.max_hp,
             symbol=e.display_symbol, color=e.display_color, alive=e.is_alive,
             item_type=_item_type(e) if e.entity_type == EntityType.ITEM else None,
+            info=_entity_info(e),
         )
         for e in state.entities.values()
         if e.entity_id != viewer.entity_id and shown(e)

@@ -39,7 +39,7 @@ b   n
 ### Actions
 - **Walk into a monster** = Attack it (bump-to-attack)
 - **Walk into an ore vein** = Mine it (bump-to-mine; takes 3-5 turns, you're vulnerable!)
-- **s** = Survey nearby ore (see its properties)
+- **s** = Survey nearby ore (see its properties); **x** = Examine: lists what is around you nearest first, with each surveyed vein's numbers (they stay there after the message scrolls away), a monster's attack, defense and XP, and an item's stats
 - **z** = Use your class ability (mage force bolt, healer heal)
 - **g** = Pick up items on your tile: one item is taken at once; with several you get a list (Enter takes the selected one, **a** takes all). Potions and scrolls are not picked up automatically
 - **e** = Eat or drink: uses the cheapest potion or food that covers your missing HP
@@ -87,7 +87,7 @@ b   n
 ### Step 3: Mine Your First Ore (2 minutes)
 1. Find an **ore vein (◆)** in a wall
 2. Stand next to it
-3. Press **s** to survey nearby veins (see their properties)
+3. Press **s** to survey nearby veins, then **x** to compare every vein you have surveyed (properties and mining time) before you choose which to mine
 4. **Walk into the vein** to start mining (bump-to-mine)
 5. Wait 3-5 turns for mining to complete
 6. **Warning:** You can't move while mining!

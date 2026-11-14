@@ -374,3 +374,49 @@ def test_pickup_intent_can_name_the_item():
     from core.actions.pickup_action import PickupAction
     assert PickupAction.from_dict(PickupAction('a', 'x').to_dict()) == PickupAction('a', 'x')
     assert PickupAction.from_dict({'actor_id': 'a'}) == PickupAction('a')       # old saved intents
+
+
+def test_x_examine_lists_nearest_first_and_remembers_survey_numbers():
+    from ui.textual.examine_screen import ExamineScreen
+
+    async def scenario(app, pilot, game):
+        player = game.state.player
+        veins = game.context.get_entities_by_type(EntityType.ORE_VEIN)
+        vein = min(veins, key=lambda v: abs(v.x - player.x) + abs(v.y - player.y))
+        player.x, player.y = vein.x - 1, vein.y
+        game.state.reveal_map = True
+        await pilot.press("x")
+        await pilot.pause()
+        assert isinstance(app.screen, ExamineScreen)
+        screen = app.screen
+        rows = screen.rows()
+        assert [r.distance for r in rows] == sorted(r.distance for r in rows)
+        row = next(r for r in rows if r.entity_id == vein.entity_id)
+        assert "not surveyed" in row.text and "press s" in row.detail
+        await pilot.press("escape")
+        await pilot.pause()
+        vein.set_stat('surveyed', True)                      # what pressing s does
+        await pilot.press("x")
+        await pilot.pause()
+        row = next(r for r in app.screen.rows() if r.entity_id == vein.entity_id)
+        assert "surveyed" in row.text and "not" not in row.text
+        assert f"P{vein.get_stat('purity')}" in row.detail and "mining takes" in row.detail
+    run(scenario)
+
+
+def test_examine_shows_a_monsters_attack_and_an_items_stats():
+    from core.examine import examine_listing
+    from core.snapshot import build_snapshot
+
+    async def scenario(app, pilot, game):
+        player = game.state.player
+        game.state.reveal_map = True
+        item = LootGenerator.get_instance().create_item('long_sword')
+        item.x, item.y = player.x, player.y
+        game.context.add_entity(item)
+        lines = examine_listing(build_snapshot(game.state))
+        sword = next(l for l in lines if l.entity_id == item.entity_id)
+        assert "+5 attack" in sword.detail and sword.distance == 0
+        monsters = [l for l in lines if l.kind == 'monster']
+        assert monsters and all("attack" in l.detail and "XP" in l.detail for l in monsters)
+    run(scenario)

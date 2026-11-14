@@ -17,6 +17,7 @@ from ui.textual.equipment_screen import EquipmentScreen
 from ui.textual.craft_screen import CraftScreen
 from ui.textual.pack_screen import PackScreen, GroundScreen
 from ui.textual.help_screen import HelpScreen
+from ui.textual.examine_screen import ExamineScreen
 from ui.textual.confirm_screen import ConfirmScreen
 from ui.driver import LocalDriver, RemoteDriver
 
@@ -157,6 +158,7 @@ class VeinbornApp(App):
         Binding("e", "use_item", "Quick eat/drink (best heal)", show=True),
         Binding("d", "drop_item", "Quick drop (least useful)", show=True),
         Binding(":", "look_at_ground", "Look at Ground", show=True),
+        Binding("x", "examine", "Examine: monsters, ore (survey numbers), items, forges", show=True),
         # Wait/Pass turn
         Binding(".", "wait", "Wait/Pass Turn", show=True),
         Binding("space", "wait", "Wait/Pass Turn", show=False),
@@ -411,6 +413,11 @@ class VeinbornApp(App):
         """Open the equipment screen: wear, remove and compare gear from one list."""
         if self._playing():
             self.push_screen(EquipmentScreen(self.driver, on_change=self.refresh_ui))
+
+    async def action_examine(self) -> None:
+        """Open the examine list: what is around, with survey numbers and monster stats."""
+        if self._playing():
+            self.push_screen(ExamineScreen(self.driver))
 
     async def action_look_at_ground(self) -> None:
         """List the items on the player's tile in the message log."""
