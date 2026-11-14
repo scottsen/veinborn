@@ -2,7 +2,7 @@
 project: veinborn
 schema_version: '1.0'
 id_prefix: VB
-next_id: 111
+next_id: 114
 archival: inline
 areas: {}
 ---
@@ -2657,3 +2657,66 @@ session: peaceful-shower-1114
 <!-- notes: append-only log; each has a stable #id (see CLI §5) -->
 ### Notes
 _(no notes yet)_
+
+
+## TASK-VB-111 · Crafting: show ore quality in the pack and the forge screen (every piece reads 'Copper Ore'; survey shows quality but it is lost once mined)
+
+```yaml
+status: done
+priority: high
+effort: 2h
+tags: [crafting, ui, keyboard]
+created: '2026-11-14T17:55:04Z'
+updated: '2026-11-14T17:56:56Z'
+session: peaceful-shower-1114
+links:
+  commits:
+  - d9207753d38ac1867f71d6d851331dcce85a486e
+notes_next: 3
+```
+
+<!-- notes: append-only log; each has a stable #id (see CLI §5) -->
+### Notes
+- [#1 2026-11-14T17:55:12Z session:peaceful-shower-1114] Measured spread: copper_sword attack +2 from ~20 ore vs +10 from ~95 ore; iron_sword 3/14, mithril 5/22, adamantite greatsword 6/28. Quality beats a tier step, so hiding it hides the hook.
+- [#2 2026-11-14T17:56:56Z session:peaceful-shower-1114] ItemView.ore + ore_label; pack screen legend; display-only item_type 'ore' (autopickup unchanged). Craft screen shows chosen ore in VB-112.
+
+
+## TASK-VB-112 · Crafting: choose which ore a craft consumes (now the first N in pack order); default to the best ore for the recipe, forge screen can pick
+
+```yaml
+status: done
+priority: high
+effort: 3h
+tags: [crafting, ui, keyboard]
+created: '2026-11-14T17:55:06Z'
+updated: '2026-11-14T18:02:10Z'
+session: peaceful-shower-1114
+depends_on: [VB-111]
+links:
+  commits:
+  - a17c401dcfd851ea1c97b59c1bfe0745ee0b4802
+notes_next: 2
+```
+
+<!-- notes: append-only log; each has a stable #id (see CLI §5) -->
+### Notes
+- [#1 2026-11-14T18:02:10Z session:peaceful-shower-1114] ore_for(best | ore_ids), CraftAction.ore_ids, RecipeView ore_count/ore_ids/ore_choices, OrePickScreen (Space pick, Enter craft, preview via preview_from_properties). Bots now craft from their best ore too: smoke 12 games x 3000 turns, 0 errors/crashes; not A/B-measured.
+
+
+## TASK-VB-113 · Crafting: 9 of 11 crafted stats are computed but read by nothing (durability, weight, fire_damage, stealth, evasion, spell_power, stun_chance, piercing, fire_resistance): cut them or make 2-3 matter
+
+```yaml
+status: blocked
+priority: medium
+owner: scott
+effort: '-'
+tags: [crafting, balance, design]
+created: '2026-11-14T17:55:07Z'
+updated: '2026-11-14T17:55:12Z'
+session: peaceful-shower-1114
+notes_next: 2
+```
+
+<!-- notes: append-only log; each has a stable #id (see CLI §5) -->
+### Notes
+- [#1 2026-11-14T17:55:12Z session:peaceful-shower-1114] Design call for Scott: cut the dead stats from recipes.yaml (honest, cheap) or make 2-3 matter (weight vs speed/dodge, durability + forge repair, fire_damage as a damage type). Evidence: grep of src outside crafting.py finds 0 readers for each; 'weight'/'range'/'regeneration' hits are unrelated (loot table weights, ability range, regen status effect). Related: VB-75 note #5 (impure ore lowers durability / curse), VB-87 balance.
