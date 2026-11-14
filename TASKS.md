@@ -2,7 +2,7 @@
 project: veinborn
 schema_version: '1.0'
 id_prefix: VB
-next_id: 125
+next_id: 126
 archival: inline
 areas: {}
 ---
@@ -2948,3 +2948,24 @@ notes_next: 2
 <!-- notes: append-only log; each has a stable #id (see CLI §5) -->
 ### Notes
 - [#1 2026-11-14T20:49:03Z session:peaceful-shower-1114] metadata.complete + games_planned, atomic replace (.tmp then rename), compare_bot_runs warns on unfinished runs; verified on a 3-game run (complete True 3/3, no .tmp left).
+
+
+## TASK-VB-125 · Forge placement can seal part of a floor: relocation takes the nearest free walkable tile, which can be a corridor/doorway; forges cannot be mined (1/480 floors cut off 162 tiles, seed 1006 floor 2; 4/480 forges outside rooms)
+
+```yaml
+status: done
+priority: medium
+effort: 1h
+tags: [dungeon, spawning, bug]
+created: '2026-11-14T20:56:19Z'
+updated: '2026-11-14T21:01:22Z'
+session: peaceful-shower-1114
+links:
+  commits:
+  - a3cde88446be3f8de4121c3841dc260595c1b007
+notes_next: 2
+```
+
+<!-- notes: append-only log; each has a stable #id (see CLI §5) -->
+### Notes
+- [#1 2026-11-14T21:01:22Z session:peaceful-shower-1114] 480-floor sweep (seeds 1000-1039 x floors 1-12) old vs new: cut floors 1 -> 0, stairs cut 0 -> 0, forge on stairs 0 -> 0; exactly 1 forge moved ((5,8) -> (5,9) on seed 1006 floor 2), the other 479 floors identical. Positive control: one blocked path tile cuts the stairs on 10/10 floors. 5 tests incl. a corridor map where the old rule plugs the corridor.
