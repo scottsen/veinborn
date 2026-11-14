@@ -28,8 +28,6 @@ class MessageType(Enum):
     # Server -> Client
     AUTH_SUCCESS = "auth_success"
     AUTH_FAILURE = "auth_failure"
-    STATE = "state"
-    DELTA = "delta"
     SNAPSHOT = "snapshot"
     LOBBY = "lobby"
     CHAT_MESSAGE = "chat_message"
@@ -147,22 +145,6 @@ class Message:
     def get_snapshot(cls) -> "Message":
         """Ask for the current state (join late, or resync)."""
         return cls(type=MessageType.GET_SNAPSHOT.value, data={})
-
-    @classmethod
-    def state(cls, game_state: Dict[str, Any]) -> "Message":
-        """Create full state update message."""
-        return cls(
-            type=MessageType.STATE.value,
-            data={"state": game_state},
-        )
-
-    @classmethod
-    def delta(cls, changes: Dict[str, Any]) -> "Message":
-        """Create delta (partial) state update message."""
-        return cls(
-            type=MessageType.DELTA.value,
-            data={"changes": changes},
-        )
 
     @classmethod
     def chat_message(

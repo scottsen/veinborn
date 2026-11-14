@@ -56,9 +56,9 @@ class GameState:
     # Message log
     messages: List[str] = field(default_factory=list)
     # VB-20: total messages ever added, monotonic and never trimmed (unlike
-    # `messages`, which is capped at 100). Lets multiplayer's state_delta
-    # detect new chat/log lines even after the message list itself stops
-    # growing in length (recent_messages is capped at 20 for broadcast).
+    # `messages`, which is capped at 100). Lets a host tell whether an action
+    # added log lines even after the message list itself stops growing in
+    # length (e.g. to report a refused action's message to its sender).
     message_count: int = 0
 
     # Game state

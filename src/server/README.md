@@ -59,7 +59,7 @@ Once connected, use these commands:
    - Manages multiple player entities
    - Tracks rounds and actions
 
-5. **Message Protocol** (`messages.py`)
+5. **Message Protocol** (`src/protocol/messages.py`)
    - Defines client-server message format
    - Type-safe message construction
 
@@ -302,7 +302,7 @@ Or edit `src/server/config.py` for defaults.
 
 ### Adding New Message Types
 
-1. Add enum to `MessageType` in `messages.py`
+1. Add enum to `MessageType` in `src/protocol/messages.py`
 2. Add constructor method to `Message` class
 3. Add handler method to `VeinbornServer` class
 4. Update `handle_message()` routing
@@ -311,7 +311,7 @@ Or edit `src/server/config.py` for defaults.
 
 1. Extend `MultiplayerGameState` if needed
 2. Update `GameSession.process_action()` for new mechanics
-3. Add state serialization in `get_state_dict()`
+3. Show it to players by extending the snapshot (`core/snapshot.py`) and `GameSession.snapshot_for()`
 4. Update broadcast logic in `websocket_server.py`
 
 ## Performance Notes
@@ -319,7 +319,7 @@ Or edit `src/server/config.py` for defaults.
 - Current design supports ~100 concurrent connections
 - Each game runs in its own async task
 - State broadcasting is O(n) per game (n = player count)
-- Delta compression is implemented (`state_delta.py`); lobby→started and game-finished transitions are sent as full states because a delta cannot express them
+- No delta compression: every state message is the receiving player's whole view (`snapshot`, ~8 KB for 4 players, `seq` per game; `lobby` before the game starts), built per recipient in `GameSession.state_messages()`. Add deltas only if a measurement shows a need.
 
 ## Security Notes
 

@@ -81,20 +81,19 @@ async def test_free_action_does_not_use_up_the_players_action():
 
 
 @pytest.mark.asyncio
-async def test_messages_added_through_context_reach_state_deltas():
+async def test_messages_added_through_context_reach_the_viewers_snapshot():
     """Monster-turn messages go through GameContext.add_message; it used to append to
-    .messages directly, skipping message_count, so multiplayer deltas never carried them."""
+    .messages directly, skipping message_count (and so what clients are sent)."""
     from core.base.game_context import GameContext
 
     game = await _started_session()
-    baseline = game.get_state_dict(use_delta=True)  # sets the delta baseline
     count_before = game.mp_game_state.game_state.message_count
 
     GameContext(game.mp_game_state.game_state).add_message("Goblin hits Alice for 1 damage!")
-    delta = game.get_state_dict(use_delta=True)
+    snap = game.snapshot_for("player1")
 
     assert game.mp_game_state.game_state.message_count == count_before + 1
-    assert delta["changes"]["new_messages"] == ["Goblin hits Alice for 1 damage!"]
+    assert snap.messages[-1] == "Goblin hits Alice for 1 damage!"
 
 
 def test_context_messages_respect_the_message_cap(simple_game_state):

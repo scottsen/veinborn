@@ -13,7 +13,6 @@ from protocol.messages import Message
 from core.engine import Engine
 from core.highscore import HighScoreEntry, HighScoreManager
 from server.multiplayer_game_state import MultiplayerGameState
-from server.state_delta import StateDelta
 
 from .player_info import PlayerInfo
 
@@ -54,10 +53,6 @@ class GameSession:
 
         # Sequence number of state messages sent for this game
         self._seq = 0
-
-        # State tracking for delta compression
-        self.last_state: Optional[Dict] = None
-        self.use_delta_compression = True  # Enable/disable delta compression
 
         # Co-op scores live on their own leaderboard, one entry per player
         # (resolved lazily so tests and the server can inject a manager).
@@ -578,63 +573,6 @@ class GameSession:
             for pid in self.players if pid in self.mp_game_state.player_slots
         }
 
-    def get_state_dict(self, use_delta: Optional[bool] = None) -> Dict:
-        """Get the current game state as a dictionary.
-
-        Args:
-            use_delta: Whether to use delta compression (defaults to self.use_delta_compression)
-
-        Returns:
-            Dictionary representation of game state or delta
-        """
-        base_state = {
-            "game_id": self.game_id,
-            "game_name": self.game_name,
-            "is_started": self.is_started,
-            "is_finished": self.is_finished,
-        }
-
-        if self.mp_game_state:
-            # Include detailed game state
-            game_state = self.mp_game_state.get_state_dict()
-            base_state.update(game_state)
-        else:
-            # Game not started yet
-            base_state["players"] = [
-                {
-                    "player_id": p.player_id,
-                    "player_name": p.player_name,
-                    "player_class": p.player_class,
-                    "is_ready": p.is_ready,
-                }
-                for p in self.players.values()
-            ]
-
-        # Apply delta compression if enabled
-        if use_delta is None:
-            use_delta = self.use_delta_compression
-
-        if use_delta and self.is_started:
-            delta = StateDelta.compute_delta(self.last_state, base_state)
-
-            # Update last state
-            self.last_state = base_state.copy()
-
-            # compute_delta falls back to {"type": "full", "state": ...} when a delta
-            # can't express the change; broadcast that as a plain full state
-            if delta.get("type") == "full":
-                return base_state
-
-            # Log compression ratio
-            if logger.isEnabledFor(logging.DEBUG):
-                StateDelta.estimate_compression_ratio(self.last_state, base_state, delta)
-
-            return delta
-        else:
-            # First state or delta disabled - send full state
-            self.last_state = base_state.copy()
-            return base_state
-
     def get_player_count(self) -> int:
         """Get the number of players in the game."""
         return len(self.players)
@@ -643,11 +581,3 @@ class GameSession:
         """Get list of player names."""
         return [p.player_name for p in self.players.values()]
 
-    def reset_state_tracking(self) -> None:
-        """Reset state tracking for delta compression.
-
-        This forces the next state broadcast to be a full state.
-        Useful when a player reconnects and needs the full state.
-        """
-        self.last_state = None
-        logger.debug(f"Reset state tracking for game {self.game_id}")

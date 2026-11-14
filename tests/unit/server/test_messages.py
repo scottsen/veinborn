@@ -34,8 +34,6 @@ def test_message_types_defined():
     # Server to client
     assert MessageType.AUTH_SUCCESS.value == "auth_success"
     assert MessageType.AUTH_FAILURE.value == "auth_failure"
-    assert MessageType.STATE.value == "state"
-    assert MessageType.DELTA.value == "delta"
     assert MessageType.CHAT_MESSAGE.value == "chat_message"
     assert MessageType.SYSTEM.value == "system"
     assert MessageType.ERROR.value == "error"
@@ -186,31 +184,20 @@ def test_game_start_message():
 # State Messages Tests
 # ============================================================================
 
-def test_state_message():
-    """Test full state message."""
-    game_state = {
-        "turn": 1,
-        "entities": [{"id": "e1", "type": "player"}]
-    }
+def test_snapshot_message_carries_seq_game_and_snapshot():
+    msg = Message.snapshot(4, {"game_id": "g"}, {"turn": 1})
 
-    msg = Message.state(game_state)
-
-    assert msg.type == MessageType.STATE.value
-    assert msg.data["state"] == game_state
+    assert msg.type == MessageType.SNAPSHOT.value
+    assert msg.seq == 4
+    assert msg.data == {"game": {"game_id": "g"}, "snapshot": {"turn": 1}}
 
 
-def test_delta_message():
-    """Test delta state message."""
-    changes = {
-        "type": "delta",
-        "updated": {"entity1": {"hp": 10}},
-        "removed": ["entity2"]
-    }
+def test_lobby_and_get_snapshot_messages():
+    lobby = Message.lobby({"game_id": "g", "players": []})
+    assert lobby.type == MessageType.LOBBY.value and lobby.data["game_id"] == "g"
 
-    msg = Message.delta(changes)
-
-    assert msg.type == MessageType.DELTA.value
-    assert msg.data["changes"] == changes
+    ask = Message.get_snapshot()
+    assert ask.type == MessageType.GET_SNAPSHOT.value and ask.data == {}
 
 
 # ============================================================================

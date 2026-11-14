@@ -100,20 +100,22 @@ def test_get_all_players_includes_host_and_guest_without_duplication():
     assert guest_entity in all_players
 
 
-def test_get_state_dict_includes_monsters_and_map():
+def test_a_viewers_snapshot_includes_monsters_map_and_the_other_players():
+    from core.snapshot import build_snapshot
     mp = _make_two_player_game()
-    state = mp.get_state_dict()
+    viewer = mp.player_slots["p1"].player_entity
+    snap = build_snapshot(mp.game_state, viewer=viewer)
 
-    assert "monsters" in state
-    assert len(state["monsters"]) > 0
-    assert "map" in state
-    assert state["map"]["width"] == mp.game_state.dungeon_map.width
-    assert state["map"]["height"] == mp.game_state.dungeon_map.height
-    assert len(state["map"]["tiles"]) == state["map"]["height"]
+    monsters = [e for e in snap.entities if e.entity_type == "monster"]
+    assert len(monsters) > 0
+    assert snap.map.width == mp.game_state.dungeon_map.width
+    assert snap.map.height == mp.game_state.dungeon_map.height
+    assert len(snap.map.tiles) == snap.map.height
 
-    # Player entities must not leak into the monsters list
-    monster_ids = {m["entity_id"] for m in state["monsters"]}
-    assert monster_ids.isdisjoint(set(mp.entity_to_player.keys()))
+    # The viewer is the snapshot's player; the other seat is an entity in their world
+    others = {e.entity_id for e in snap.entities if e.entity_type == "player"}
+    assert snap.player.entity_id == viewer.entity_id
+    assert others == {mp.player_slots["p2"].entity_id}
 
 
 def _descend(mp):
@@ -217,29 +219,32 @@ def test_concurrent_games_do_not_share_rng_stream():
     assert mp_a_replay.game_state.rng.randint(1, 1_000_000) == rng_a_next_before
 
 
-def test_state_dict_players_carry_the_sidebar_numbers():
+def test_snapshot_player_carries_the_sidebar_numbers():
     """VB-78: totals include gear; equipment, level, xp and ability cooldowns are sent."""
+    from core.snapshot import build_snapshot
     mp = _make_two_player_game()
-    by_id = {p["player_id"]: p for p in mp.get_state_dict()["players"]}
     for slot in mp.player_slots.values():
         entity = slot.player_entity
-        info = by_id[slot.player_id]
-        assert info["stats"]["attack"] == entity.get_total_attack()
-        assert info["stats"]["defense"] == entity.get_total_defense()
-        assert info["stats"]["level"] == entity.get_stat('level', 1)
-        assert info["stats"]["xp_next"] == entity.xp_for_next_level()
+        view = build_snapshot(mp.game_state, viewer=entity).player
+        assert view.attack == entity.get_total_attack()
+        assert view.defense == entity.get_total_defense()
+        assert view.level == entity.get_stat('level', 1)
+        assert view.xp_next == (entity.xp_for_next_level() or None)
         weapon = entity.equipped_weapon
-        assert (info["equipment"]["weapon"] or {}).get("name") == (weapon.name if weapon else None)
-    assert [a["name"] for a in by_id["p2"]["abilities"]]   # the mage has an ability
+        assert (view.weapon.name if view.weapon else None) == (weapon.name if weapon else None)
+    mage = mp.player_slots["p2"].player_entity
+    assert [a.name for a in build_snapshot(mp.game_state, viewer=mage).player.abilities]
 
 
-def test_equipment_change_travels_in_the_delta():
-    from server.state_delta import StateDelta
+def test_equipment_change_shows_in_the_next_snapshot():
+    from core.snapshot import build_snapshot
     mp = _make_two_player_game()
-    old = mp.get_state_dict()
-    mp.player_slots["p1"].player_entity.equipped_weapon = None
-    mp.player_slots["p1"].player_entity.equipped_armor = None
-    new = mp.get_state_dict()
-    delta = StateDelta.compute_delta(old, new)
-    assert delta is not None and "equipment" in str(delta)
-    assert StateDelta.apply_delta(old, delta)["players"] == new["players"]
+    entity = mp.player_slots["p1"].player_entity
+    before = build_snapshot(mp.game_state, viewer=entity).player
+    assert before.weapon is not None
+
+    entity.equipped_weapon = None
+    entity.equipped_armor = None
+
+    after = build_snapshot(mp.game_state, viewer=entity).player
+    assert after.weapon is None and after.armor is None

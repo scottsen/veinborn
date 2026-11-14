@@ -327,57 +327,46 @@ async def test_all_players_ready_empty_game():
 # State Management Tests
 # ============================================================================
 
-def test_get_state_dict_before_start():
-    """Test getting state dict before game starts."""
+def test_lobby_before_start():
+    """The lobby names the game and says nothing is started."""
     game = GameSession("game1", "Test Game", max_players=4)
 
-    state = game.get_state_dict()
+    lobby = game.lobby_dict()
 
-    assert state["game_id"] == "game1"
-    assert state["game_name"] == "Test Game"
-    assert not state["is_started"]
-    assert not state["is_finished"]
-    assert "players" in state
+    assert lobby["game_id"] == "game1"
+    assert lobby["game_name"] == "Test Game"
+    assert not lobby["is_started"]
+    assert not lobby["is_finished"]
+    assert lobby["players"] == []
 
 
 @pytest.mark.asyncio
-async def test_get_state_dict_with_players():
-    """Test state dict includes player information."""
+async def test_lobby_lists_the_seated_players():
     game = GameSession("game1", "Test Game", max_players=4)
 
     await game.add_player("player1", "Alice", "warrior")
     await game.add_player("player2", "Bob", "mage")
 
-    state = game.get_state_dict()
+    players = game.lobby_dict()["players"]
 
-    assert len(state["players"]) == 2
-    assert any(p["player_name"] == "Alice" for p in state["players"])
-    assert any(p["player_name"] == "Bob" for p in state["players"])
+    assert [p["player_name"] for p in players] == ["Alice", "Bob"]
+    assert [p["player_class"] for p in players] == ["warrior", "mage"]
 
 
 @pytest.mark.asyncio
-async def test_get_state_dict_after_start():
-    """Test state dict after game starts."""
+async def test_game_info_and_snapshot_after_start():
     game = GameSession("game1", "Test Game", max_players=4)
 
     await game.add_player("player1", "Alice", "warrior")
     await game.start_game()
 
-    state = game.get_state_dict(use_delta=False)
+    info = game.game_info()
+    snap = game.snapshot_for("player1")
 
-    assert state["is_started"]
-    assert state["game_id"] == "game1"
-
-
-def test_reset_state_tracking():
-    """Test resetting state tracking."""
-    game = GameSession("game1", "Test Game")
-
-    game.last_state = {"some": "data"}
-
-    game.reset_state_tracking()
-
-    assert game.last_state is None
+    assert info["is_started"] and info["game_id"] == "game1"
+    assert snap.player.name == "Alice"
+    assert [m.name for m in snap.party] == ["Alice"]
+    assert snap.round.number == 0
 
 
 # ============================================================================
@@ -765,19 +754,25 @@ async def test_get_player_names():
 
 
 @pytest.mark.asyncio
-async def test_first_state_after_start_is_a_plain_full_state():
-    """The lobby->started transition must reach clients as a full state (not a delta
-    and not a {"type": "full", "state": ...} wrapper) so they learn entity ids."""
+async def test_state_messages_are_the_lobby_before_start_and_snapshots_after():
+    """The lobby->started transition reaches every player as a snapshot of their own
+    (which carries their entity id); seq grows with each broadcast."""
     game = GameSession("g1", "Test", max_players=2)
     await game.add_player("p1", "Alice", "warrior")
-    game.get_state_dict()  # lobby broadcast establishes the delta baseline
+    await game.add_player("p2", "Bob", "mage")
+
+    before = game.state_messages()
+    assert {m.type for m in before.values()} == {"lobby"}
+
     await game.start_game(seed=42)
+    first = game.state_messages()
+    second = game.state_messages()
 
-    state = game.get_state_dict(use_delta=True)
-
-    assert state.get("type") not in ("delta", "full")
-    assert state["is_started"] is True
-    assert state["players"][0]["entity_id"]
+    assert {m.type for m in first.values()} == {"snapshot"}
+    mine = {pid: m.data["snapshot"]["player"]["entity_id"] for pid, m in first.items()}
+    assert mine["p1"] != mine["p2"]
+    assert first["p1"].seq == first["p2"].seq
+    assert second["p1"].seq == first["p1"].seq + 1
 
 
 @pytest.mark.asyncio

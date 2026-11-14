@@ -5,11 +5,10 @@ while maintaining compatibility with existing single-player code.
 """
 
 from typing import Dict, List, Optional
-from dataclasses import dataclass, asdict
+from dataclasses import dataclass
 import logging
 
 from core.game_state import GameState
-from core.snapshot import build_snapshot
 from core.entities import Player
 from core.rng import GameRNG
 from core.world import Map
@@ -241,111 +240,6 @@ class MultiplayerGameState:
     def get_player_count(self) -> int:
         """Get number of active players."""
         return sum(1 for slot in self.player_slots.values() if slot.is_active)
-
-    def get_state_dict(self) -> Dict:
-        """Get game state as a dictionary for serialization.
-
-        Returns:
-            Dictionary representation of game state
-        """
-        if not self.game_state:
-            return {
-                "initialized": False,
-                "player_count": 0,
-            }
-
-        # Build player info
-        players_info = []
-        for slot in self.player_slots.values():
-            player_entity = slot.player_entity
-            # Get class from entity stats if available
-            player_class = player_entity.stats.get('class', 'Warrior') if hasattr(player_entity, 'stats') else 'Warrior'
-            class_type = player_entity.stats.get('class_type', 'warrior') if hasattr(player_entity, 'stats') else 'warrior'
-
-            view = build_snapshot(self.game_state, viewer=player_entity).player
-
-            # Serialize inventory
-            inventory_data = []
-            if hasattr(player_entity, 'inventory'):
-                for item in player_entity.inventory:
-                    inventory_data.append({
-                        "entity_id": item.entity_id,
-                        "content_id": item.content_id,
-                        "name": item.name,
-                        "entity_type": item.entity_type.value if hasattr(item.entity_type, 'value') else str(item.entity_type),
-                        "stats": dict(item.stats) if hasattr(item, 'stats') else {}
-                    })
-
-            players_info.append(
-                {
-                    "player_id": slot.player_id,
-                    "player_name": slot.player_name,
-                    "player_class": class_type,
-                    "player_class_display": player_class,
-                    "entity_id": slot.entity_id,
-                    "is_active": slot.is_active,
-                    "is_alive": slot.is_alive,
-                    "position": {
-                        "x": player_entity.x,
-                        "y": player_entity.y,
-                    },
-                    "health": {
-                        "current": player_entity.hp,
-                        "max": player_entity.max_hp,
-                    },
-                    # Derived numbers come from the render snapshot, the same
-                    # ones the single-player sidebar shows (VB-78): totals
-                    # include equipped gear.
-                    "stats": {
-                        "attack": view.attack,
-                        "defense": view.defense,
-                        "level": view.level,
-                        "xp": view.xp,
-                        "xp_next": view.xp_next,
-                    },
-                    "equipment": {
-                        slot: asdict(item) if item else None
-                        for slot, item in (("weapon", view.weapon), ("armor", view.armor), ("shield", view.shield))
-                    },
-                    "abilities": [asdict(ab) for ab in view.abilities],
-                    "inventory": inventory_data
-                }
-            )
-
-        # Non-player entities (monsters/ore veins/forges) - player entities are
-        # already represented above in players_info
-        player_entity_ids = set(self.entity_to_player.keys())
-        monsters_info = [
-            entity.to_dict()
-            for entity_id, entity in self.game_state.entities.items()
-            if entity_id not in player_entity_ids
-        ]
-
-        return {
-            "initialized": True,
-            "is_multiplayer": self.is_multiplayer,
-            "player_count": self.get_player_count(),
-            "max_players": self.max_players,
-            "players": players_info,
-            "monsters": monsters_info,
-            "map": self.game_state.dungeon_map.to_dict(),
-            "turn_count": self.game_state.turn_count,
-            "current_floor": self.game_state.current_floor,
-            "round_number": self.round_number,
-            "actions_this_round": self.actions_this_round,
-            "actions_per_round": self.actions_this_round + len(self.scheduler.owed),
-            "waiting_on": self.waiting_on(),
-            "game_over": self.game_state.game_over,
-            "victory": self.game_state.victory,
-            "recent_messages": self.game_state.get_recent_messages(20),
-            # VB-20: monotonic total, so state_delta can detect new messages
-            # even once recent_messages stops growing in length.
-            "message_count": self.game_state.message_count,
-        }
-
-    def to_dict(self) -> Dict:
-        """Alias for get_state_dict for compatibility."""
-        return self.get_state_dict()
 
     def add_message(self, message: str) -> None:
         """Add a message to the game log.
