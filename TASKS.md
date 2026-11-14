@@ -2654,13 +2654,14 @@ priority: low
 effort: 3h
 tags: [ui, keyboard, fog]
 created: '2026-11-14T17:51:45Z'
-updated: '2026-11-14T17:51:45Z'
+updated: '2026-11-14T22:12:17Z'
 session: peaceful-shower-1114
+notes_next: 2
 ```
 
 <!-- notes: append-only log; each has a stable #id (see CLI §5) -->
 ### Notes
-_(no notes yet)_
+- [#1 2026-11-14T22:12:17Z session:xuhuve-1114] Covered in list form by x (examine list, nearest first, monsters/ore/items/forges with detail), no map cursor: remembered fog tiles are listed (veins/forges remembered; monsters/items only in sight, same as the map). A cursor over arbitrary tiles is still not built.
 
 
 ## TASK-VB-111 · Crafting: show ore quality in the pack and the forge screen (every piece reads 'Copper Ore'; survey shows quality but it is lost once mined)
@@ -3049,15 +3050,20 @@ notes_next: 3
 ## TASK-VB-129 · Survey results are a one-off message: a surveyed vein looks identical on the map (EntityView has no surveyed flag or properties; runtime-checked), so a human who surveys several veins must remember each one's P/H/M/C/D and mining time to choose which to mine; the sidebar CONTROLS block is a hand-written list that drifts from the real keys (no f, e, d, ?, i differs)
 
 ```yaml
-status: backlog
+status: done
 priority: medium
 effort: 3h
 tags: [ui, ore, keyboard]
 created: '2026-11-14T22:06:45Z'
-updated: '2026-11-14T22:06:45Z'
+updated: '2026-11-14T22:12:17Z'
 session: xuhuve-1114
+links:
+  commits:
+  - 60532819377f601c914a973401f4126a6c051278
+notes_next: 3
 ```
 
 <!-- notes: append-only log; each has a stable #id (see CLI §5) -->
 ### Notes
-_(no notes yet)_
+- [#1 2026-11-14T22:12:17Z session:xuhuve-1114] Done (this commit): core/examine.py + ExamineScreen on x, EntityView.info (protocol 9), sidebar controls shortened to a pointer at ?. Pilot-tested incl. survey flag flip; not human-played.
+- [#2 2026-11-14T22:12:17Z session:xuhuve-1114] examine screen
