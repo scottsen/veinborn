@@ -127,8 +127,11 @@ Unbuilt: fireball, teleport, dodge, protect, regeneration, power strike (VB-53).
 10 turns by the larger of 1 HP and 5% of max HP, rounded down: 1 HP up to 39 max HP, 2 at 48, 5 at
 100. After a **wait** with no living monster in sight (line of sight, 9 tiles) the tick is tripled, so
 resting is how you recover between fights; a wait with a monster watching is a stand-off and does not
-count. Potions and food heal at once (`e`); heal-over-time food and regeneration potions are planned
-(VB-107).
+count. Potions heal at once (`e`: healing 10, extra healing 25, full healing). Food and the regeneration potion
+heal over time through the `regeneration` status effect: ration 1 HP a turn for 10 turns, bread 1 for 6,
+meat 2 for 6, regeneration potion 3 for 10. Using one again refreshes the effect (the longer duration and
+larger rate win) and never stacks. The sidebar shows it (`Regeneration +3/turn (7t)`). Bots drink instant
+potions first and use over-time items only when they have no instant healer.
 
 **Monsters use abilities too** (VB-63): a monster's abilities come from its behaviour (the
 sniper's `ranged_attack`: a normal attack from 4-6 tiles; the summoner's `summon`: a goblin

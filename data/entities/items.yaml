@@ -221,6 +221,22 @@ potions:
     value: 150
     effect: "heal_full"
 
+  potion_regeneration:
+    name: "potion_regeneration"
+    display_name: "Potion of Regeneration"
+    description: "A green, faintly warm liquid. Closes wounds over the next few turns."
+    symbol: "!"
+    color: "green"
+    item_type: "potion"
+    stats:
+      heal_amount: 30      # total: regen_amount x regen_turns, healed over time
+      regen_amount: 3
+      regen_turns: 10
+    tags: ["potion", "consumable", "uncommon", "healing"]
+    weight: 1
+    value: 40
+    effect: "regenerate"
+
   potion_strength:
     name: "potion_strength"
     display_name: "Potion of Strength"
@@ -365,7 +381,9 @@ food:
     item_type: "food"
     stats:
       nutrition: 100
-      heal_amount: 5
+      heal_amount: 10    # total: regen_amount x regen_turns, healed over time
+      regen_amount: 1
+      regen_turns: 10
     tags: ["food", "consumable", "common"]
     weight: 2
     value: 15
@@ -380,7 +398,9 @@ food:
     item_type: "food"
     stats:
       nutrition: 50
-      heal_amount: 3
+      heal_amount: 6
+      regen_amount: 1
+      regen_turns: 6
     tags: ["food", "consumable", "common"]
     weight: 1
     value: 5
@@ -395,7 +415,9 @@ food:
     item_type: "food"
     stats:
       nutrition: 150
-      heal_amount: 8
+      heal_amount: 12
+      regen_amount: 2
+      regen_turns: 6
     tags: ["food", "consumable", "uncommon", "monster_drop"]
     weight: 2
     value: 10

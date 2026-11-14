@@ -42,11 +42,22 @@ def test_full_healing_restores_max_hp(game):
     assert player.hp == player.max_hp
 
 
-def test_food_heals_a_little(game):
+def test_food_heals_over_time_not_at_once(game):
+    from core.status_effects import has_effect
+    from core.base.entity import EntityType
+    for e in list(game.state.entities.values()):
+        if e.entity_type == EntityType.MONSTER:
+            game.context.remove_entity(e.entity_id)
+    game.engine.turn_processor.hp_regen_amount = 0      # only the effect heals here
+    game.engine.turn_processor.hp_regen_percent = 0
     player = game.state.player
     player.hp = 5
     use(game, give(game, 'bread'))
-    assert player.hp == 8
+    # the use turn itself already ticked once: bread is 1 HP a turn for 6 turns
+    assert has_effect(player, 'regeneration') and player.hp == 6
+    for _ in range(10):
+        game.engine.tick()
+    assert player.hp == 11 and not has_effect(player, 'regeneration')
 
 
 def test_at_full_health_nothing_is_used_and_no_turn_passes(game):
@@ -75,9 +86,9 @@ def test_use_publishes_item_used(game):
 
 def test_best_healing_item_wastes_least(game):
     player = game.state.player
-    small, big, full = give(game, 'bread'), give(game, 'potion_extra_healing'), give(game, 'potion_full_healing')
+    small, big, full = give(game, 'potion_healing'), give(game, 'potion_extra_healing'), give(game, 'potion_full_healing')
     player.hp = player.max_hp - 2
-    assert best_healing_item(player) is small          # bread (3) covers 2
+    assert best_healing_item(player) is small          # healing (10) covers 2
     player.hp = player.max_hp - 15
     assert best_healing_item(player) is big            # cheapest that covers 15 (not the rare full)
     player.hp = 1
@@ -106,3 +117,31 @@ def test_every_healing_item_in_yaml_has_a_built_effect():
 def test_use_item_round_trips_for_multiplayer():
     action = UseItemAction('p1', 'i1')
     assert ACTION_TYPES['UseItemAction'].from_dict(action.to_dict()) == action
+
+
+def test_instant_healers_come_before_over_time_ones(game):
+    player = game.state.player
+    bread, regen, potion = give(game, 'bread'), give(game, 'potion_regeneration'), give(game, 'potion_healing')
+    player.hp = 1
+    assert best_healing_item(player) is potion
+    assert best_healing_item(player, instant_only=True) is potion
+    player.remove_from_inventory(potion)
+    assert best_healing_item(player) is regen          # the one that heals most (30 over 10 turns)
+    assert best_healing_item(player, instant_only=True) is None
+
+
+def test_regeneration_potion_heals_three_a_turn_for_ten_turns(game):
+    from core.base.entity import EntityType
+    from core.status_effects import effects_of
+    for e in list(game.state.entities.values()):
+        if e.entity_type == EntityType.MONSTER:
+            game.context.remove_entity(e.entity_id)
+    game.engine.turn_processor.hp_regen_amount = 0
+    game.engine.turn_processor.hp_regen_percent = 0
+    player = game.state.player
+    player.max_hp, player.hp = 100, 10
+    use(game, give(game, 'potion_regeneration'))
+    assert player.hp == 13 and effects_of(player)[0]['turns_left'] == 9
+    for _ in range(20):
+        game.engine.tick()
+    assert player.hp == 40 and effects_of(player) == []     # 10 + 30

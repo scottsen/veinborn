@@ -42,6 +42,8 @@ class Sidebar(Static):
         xp_line = f"{player.xp}/{player.xp_next}" if player.xp_next else f"{player.xp}"
         text.append(f"XP: {xp_line}\n")
         text.append(f"Level: {player.level}\n")
+        for effect in player.effects:
+            text.append(f"{effect.label} +{effect.magnitude}/turn ({effect.turns_left}t)\n", style="bright_green")
         text.append(f"Weapon: {player.weapon.name if player.weapon else '-'}\n")
         text.append(f"Armor: {player.armor.name if player.armor else '-'}\n")
         text.append(f"Shield: {player.shield.name if player.shield else '-'}\n\n")

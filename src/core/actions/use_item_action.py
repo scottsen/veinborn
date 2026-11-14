@@ -26,28 +26,36 @@ def usable_effect(item) -> Optional[str]:
     return effect if effect and effect in item_effects else None
 
 
-def best_healing_item(actor):
-    """The healing item to use now, or None: the cheapest (items.yaml value) one
-    that covers the missing HP, else the one that heals most. Keeps rare potions
-    (full healing) for when nothing smaller will do."""
+def best_healing_item(actor, instant_only: bool = False):
+    """The healing item to use now, or None.
+
+    Instant healers (potions) come first: the cheapest (items.yaml value) one that covers
+    the missing HP, else the one that heals most; that keeps rare potions (full healing)
+    for when nothing smaller will do. Only without any instant healer does it fall back to
+    an over-time item (food, regeneration potion), which is no answer to an emergency:
+    pass `instant_only` to refuse those.
+    """
     missing = actor.max_hp - actor.hp
     if missing <= 0:
         return None
-    healing = []
+    instant, over_time = [], []
     for item in getattr(actor, 'inventory', []):
         effect = usable_effect(item)
         if effect == 'heal_full':
-            healing.append((actor.max_hp, item))
-        elif effect in ('heal', 'eat') and item.get_stat('heal_amount', 0) > 0:
-            healing.append((item.get_stat('heal_amount'), item))
-    if not healing:
-        return None
-    covering = [h for h in healing if h[0] >= missing]
-    if covering:
-        pick = min(covering, key=lambda h: (h[1].get_stat('value', 0), h[0]))
-    else:
-        pick = max(healing, key=lambda h: h[0])
-    return pick[1]
+            instant.append((actor.max_hp, item))
+        elif effect == 'heal' and item.get_stat('heal_amount', 0) > 0:
+            instant.append((item.get_stat('heal_amount'), item))
+        elif effect in ('eat', 'regenerate') and item.get_stat('heal_amount', 0) > 0:
+            (over_time if item.get_stat('regen_turns', 0) > 0 else instant).append(
+                (item.get_stat('heal_amount'), item))
+    for healing in ((instant,) if instant_only else (instant, over_time)):
+        if not healing:
+            continue
+        covering = [h for h in healing if h[0] >= missing]
+        if covering:
+            return min(covering, key=lambda h: (h[1].get_stat('value', 0), h[0]))[1]
+        return max(healing, key=lambda h: h[0])[1]
+    return None
 
 
 @dataclass

@@ -238,7 +238,13 @@ floor ([../DATA_FILES_GUIDE.md](../DATA_FILES_GUIDE.md#-monster_spawnsyaml)).
 Goblin, orc, bat, skeleton, ogre, wolf and golem declare none. Wolf "pack tactics" appears only in
 flavour text; it would be a tactic, and is not planned.
 
-## Later: status effects (VB-65)
+## Status effects (VB-65, VB-107)
+
+**Built (VB-107):** the per-entity effect list in `stats['effects']`, the `@status_effect` registry, the
+per-turn tick in `TurnProcessor`, saves, and the snapshot/sidebar view (`core/status_effects.py`,
+`content/status/`; see [EXTENDING.md](../EXTENDING.md)). First effect: regeneration (food, regeneration
+potion). **Still open:** poison, stun, root and petrify below, and action-gating effects.
+
 
 Poison, stun, root (mimic adhesive) and petrify need timed effects on a target, and no such
 primitive exists. Shape: a per-entity list of effects `(name, turns_left, magnitude)` kept in

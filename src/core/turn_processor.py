@@ -124,6 +124,9 @@ class TurnProcessor:
         # Apply HP regeneration
         self._apply_hp_regeneration()
 
+        # Timed status effects (regeneration potion, food, ...) act once a turn
+        self._tick_status_effects()
+
         # A new monster may wander in (VB-52)
         self._maybe_spawn_wanderer()
 
@@ -174,6 +177,17 @@ class TurnProcessor:
             self.hp_rest_multiplier,
             self._is_resting,
         )
+
+    def _tick_status_effects(self) -> None:
+        """One turn of every active effect on every living actor; a player's messages go
+        to the log (a monster's would only be noise)."""
+        from .status_effects import tick_effects
+        for entity in list(self.game_state.entities.values()):
+            if entity.is_alive and entity.stats.get('effects'):
+                messages = tick_effects(self.context, entity)
+                if entity.entity_type == EntityType.PLAYER:
+                    for message in messages:
+                        self.game_state.add_message(message)
 
     def _is_resting(self, player) -> bool:
         """Waited last turn with no living monster in sight (a wait with a monster

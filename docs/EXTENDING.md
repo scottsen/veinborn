@@ -30,6 +30,7 @@ game. See `docs/architecture/DECISIONS.md`, ADR-018.)
 | An ability (a player presses z for it; monsters use it too) | `@ability("name", should_use=...)` | `src/core/content/abilities/` |
 | A passive combat effect (like backstab) | `@damage_modifier("name")` | `src/core/content/abilities/` |
 | What an item does when used (key e; `effect:` in items.yaml) | `@item_effect("name")` | `src/core/content/items/` |
+| A timed effect on an entity (regeneration; later poison, stun) | `@status_effect("name")` | `src/core/content/status/` |
 | Something that reacts to game events (achievements, quests, ...) | `@event_handler` class with `@on(...)` methods | `src/core/content/events/` |
 
 Everything in `src/core/content/` is imported automatically on the first lookup
@@ -177,8 +178,23 @@ registers `fn(context, actor, item) -> ActionOutcome`. `UseItemAction` (action `
 key **e** via `best_healing_item`) finds the item in the inventory, calls the effect and
 removes the item only when the outcome succeeds; return `ActionOutcome.failure(msg)` to
 refuse and keep it. An item whose effect is not registered cannot be used and stays in
-the pack. `content/items/healing.py` (heal, heal_full, eat) is the example. Buffs
-(`buff_attack`, `buff_speed`, `invisibility`) wait on status effects (VB-65).
+the pack. `content/items/healing.py` (heal, heal_full, eat) is the example. Over-time
+healing is the `regenerate` effect (and `eat` when the food has `regen_turns`): it starts the
+`regeneration` status effect below. Buffs (`buff_attack`, `buff_speed`, `invisibility`) can now be
+written the same way.
+
+## Add a status effect
+
+A status effect is a timed condition on an entity: `{'name', 'turns_left', 'magnitude'}` in
+`entity.stats['effects']`, so saves carry it. `@status_effect("name", label="Shown name")`
+registers `fn(context, actor, effect) -> Optional[str]`, which the turn loop (`TurnProcessor`, single
+player and multiplayer alike) calls once a turn for every living actor that has the effect, then counts
+down; the string it returns goes to the message log when the actor is a player. Start one with
+`core.status_effects.add_effect(actor, name, turns, magnitude)` (an active one is refreshed to the longer
+duration and larger magnitude, never stacked); `has_effect`, `effects_of` and `remove_effect` read and
+end them. A function that raises is logged and skipped that turn. `content/status/regeneration.py` is the
+example. Not built yet: effects that gate actions (stun, root), which the action pipeline would check
+(VB-65).
 
 ## Add an event handler
 

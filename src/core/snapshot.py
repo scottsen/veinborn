@@ -57,6 +57,14 @@ class AbilityView:
 
 
 @dataclass
+class EffectView:
+    name: str
+    label: str
+    turns_left: int
+    magnitude: int
+
+
+@dataclass
 class PlayerView:
     entity_id: object
     name: str
@@ -78,6 +86,7 @@ class PlayerView:
     symbol: str
     color: str
     alive: bool = True          # False for a dead viewer who is spectating
+    effects: List[EffectView] = field(default_factory=list)   # active status effects (VB-107)
 
 
 @dataclass
@@ -163,6 +172,7 @@ def _player_from_dict(data: Dict) -> PlayerView:
         fields[slot] = _item_from_dict(fields.get(slot))
     fields['inventory'] = [_item_from_dict(i) for i in fields.get('inventory', [])]
     fields['abilities'] = [AbilityView(**a) for a in fields.get('abilities', [])]
+    fields['effects'] = [EffectView(**e) for e in fields.get('effects', [])]
     return PlayerView(**fields)
 
 
@@ -190,6 +200,15 @@ def _abilities(player, turn: int) -> List[AbilityView]:
     ]
 
 
+def _effects(player) -> List[EffectView]:
+    from .extensions import status_effects
+    return [
+        EffectView(e['name'], getattr(status_effects.get(e['name']), 'label', e['name']),
+                   e['turns_left'], e['magnitude'])
+        for e in (player.stats.get('effects') or [])
+    ]
+
+
 def _player_view(player, turn: int) -> PlayerView:
     next_xp = player.xp_for_next_level() if hasattr(player, 'xp_for_next_level') else None
     return PlayerView(
@@ -211,6 +230,7 @@ def _player_view(player, turn: int) -> PlayerView:
         symbol=player.display_symbol,
         color=player.display_color,
         alive=player.is_alive,
+        effects=_effects(player),
     )
 
 
