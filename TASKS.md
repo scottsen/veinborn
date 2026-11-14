@@ -2493,18 +2493,22 @@ notes_next: 2
 ## TASK-VB-103 · MP plan phase 5 / D7 rejoin: a dropped seat rejoins the running game (auth token resumes it; name match if exactly one dropped seat has the name), character placed near the party on the current floor; client persists its token across restarts; grace countdown in 'waiting for <name> (disconnected, 1:45)'; can_join for started games
 
 ```yaml
-status: backlog
+status: done
 priority: medium
 effort: 4h
 tags: [multiplayer, architecture]
 created: '2026-11-14T02:26:40Z'
-updated: '2026-11-14T02:26:40Z'
+updated: '2026-11-14T02:57:41Z'
 session: warming-sunshine-1113
+links:
+  commits:
+  - c3250088f8ddf52554773e791fa2f3e8411b5990
+notes_next: 2
 ```
 
 <!-- notes: append-only log; each has a stable #id (see CLI §5) -->
 ### Notes
-_(no notes yet)_
+- [#1 2026-11-14T02:57:41Z session:lodujida-1113] Rejoin by token or unique name (GameSession.rejoin_player, MultiplayerGameState.rejoin_seat/rekey_seat); expired grace keeps PlayerInfo; join_game for own disconnected seat reconnects; lobby list shows rejoinable; ui/session_store.py + run_multiplayer resume (--no-resume); grace_left countdown (protocol v3). Suite 1530 passed. Not covered: human playtest (VB-104), grace expiry while client is mid-restart on a server restart (auth is in-memory).
 
 
 ## TASK-VB-104 · First human multiplayer playtest: two players, one server, the TUI (docs/MULTIPLAYER_PLAYTEST.md); file findings as tasks
