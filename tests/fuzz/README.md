@@ -76,8 +76,9 @@ over-time food. Run results: `~/src/tia/sessions/acidic-lens-1113/bot_runs/`. Bo
 snapshots, so fog of war does not change them. `--start-floor` runs give no gear: every bot dies
 in about 40 turns at floor 50, so they test arrival, not the late game.
 
-The bot sees every monster on the floor, as a human does: the TUI draws the whole floor
-and players have no fog of war.
+The bot sees every monster on the floor and knows where the stairs are from turn 1. Humans now
+have fog of war (VB-105), so the bot is more informed than a player; that is deliberate for a
+balance instrument, but it means exploration is not a skill the bots measure.
 
 ### 2. Game State Validation
 After each turn, validates invariants:
