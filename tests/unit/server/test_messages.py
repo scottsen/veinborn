@@ -9,7 +9,7 @@ Tests the message serialization and protocol:
 """
 import pytest
 import json
-from server.messages import Message, MessageType
+from protocol.messages import Message, MessageType
 
 
 pytestmark = pytest.mark.unit
@@ -459,3 +459,16 @@ def test_serialize_message_with_none_values():
 
     assert restored.data["key"] is None
     assert restored.data["other"] == "value"
+
+
+def test_envelope_carries_version_and_optional_seq_through_json():
+    from protocol import PROTOCOL_VERSION
+
+    msg = Message(type="x", data={}, seq=7)
+    back = Message.from_json(msg.to_json())
+    assert (back.v, back.seq) == (PROTOCOL_VERSION, 7)
+    assert Message(type="x", data={}).seq is None
+
+
+def test_a_message_without_a_version_reads_as_version_zero():
+    assert Message.from_json('{"type": "x", "data": {}}').v == 0

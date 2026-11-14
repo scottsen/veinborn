@@ -4,7 +4,7 @@ import asyncio
 
 import pytest
 
-from server.messages import Message
+from protocol.messages import Message
 from server.websocket_server import VeinbornServer
 from tests.integration.test_multiplayer_real_sockets import _Client, _until
 

@@ -18,7 +18,7 @@ except ImportError:
     print("Install with: pip install websockets")
     sys.exit(1)
 
-from server.messages import Message
+from protocol.messages import Message
 from server.state_delta import StateDelta
 
 

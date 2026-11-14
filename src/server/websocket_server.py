@@ -16,7 +16,8 @@ except ImportError:
 from server.auth import AuthManager, Session
 from server.config import config
 from server.game_session import GameSessionManager
-from server.messages import Message, MessageType
+from protocol import PROTOCOL_VERSION
+from protocol.messages import Message, MessageType
 from server.action_handler import action_registry
 
 
@@ -156,6 +157,16 @@ class VeinbornServer:
                 await self.send_message(
                     websocket,
                     Message.auth_failure("Expected authentication message"),
+                )
+                return None
+
+            # Refuse a peer that speaks another protocol version
+            if message.v != PROTOCOL_VERSION:
+                await self.send_message(
+                    websocket,
+                    Message.auth_failure(
+                        f"Protocol version mismatch: client {message.v}, server {PROTOCOL_VERSION}"
+                    ),
                 )
                 return None
 

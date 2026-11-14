@@ -11,7 +11,7 @@ Tests the chat functionality added in Phase 3:
 import pytest
 import pytest_asyncio
 from unittest.mock import Mock, AsyncMock, patch
-from server.messages import Message, MessageType
+from protocol.messages import Message, MessageType
 from server.websocket_server import VeinbornServer
 from server.auth import AuthManager, Session
 

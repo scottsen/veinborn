@@ -12,7 +12,7 @@ import pytest
 import asyncio
 from unittest.mock import AsyncMock, Mock
 from server.websocket_server import VeinbornServer
-from server.messages import Message, MessageType
+from protocol.messages import Message, MessageType
 from server.game_session import GameSession
 
 

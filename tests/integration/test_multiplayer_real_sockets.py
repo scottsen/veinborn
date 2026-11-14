@@ -12,7 +12,7 @@ import re
 import pytest
 import websockets
 
-from server.messages import Message
+from protocol.messages import Message
 from server.state_delta import StateDelta
 from server.websocket_server import VeinbornServer
 

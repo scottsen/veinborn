@@ -10,7 +10,8 @@ try:
 except ImportError:
     websockets = None
 
-from server.messages import Message
+from protocol import PROTOCOL_VERSION
+from protocol.messages import Message
 from server.state_delta import StateDelta
 
 logger = logging.getLogger('veinborn.multiplayer_client')
@@ -96,6 +97,10 @@ class MultiplayerClient:
             # Wait for auth response
             response_str = await self.ws.recv()
             response = Message.from_json(response_str)
+
+            if response.v != PROTOCOL_VERSION:
+                logger.error(f"Protocol version mismatch: server {response.v}, client {PROTOCOL_VERSION}")
+                return False
 
             if response.type == "auth_success":
                 self.state.session_id = response.data["session_id"]

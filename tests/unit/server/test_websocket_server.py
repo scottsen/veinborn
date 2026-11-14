@@ -15,7 +15,7 @@ import asyncio
 import json
 from unittest.mock import AsyncMock, Mock, patch, MagicMock
 from server.websocket_server import VeinbornServer
-from server.messages import Message, MessageType
+from protocol.messages import Message, MessageType
 from server.auth import AuthManager, Session
 from server.game_session import GameSessionManager, GameSession
 
@@ -819,3 +819,27 @@ async def test_server_stop_closes_connections():
 
     assert not server.is_running
     mock_server.close.assert_called_once()
+
+
+@pytest.mark.asyncio
+async def test_authenticate_connection_refuses_another_protocol_version():
+    server = VeinbornServer()
+    ws = AsyncMock()
+    auth_msg = Message.auth("TestPlayer")
+    auth_msg.v = 0  # an older client
+    ws.recv = AsyncMock(return_value=auth_msg.to_json())
+
+    assert await server.authenticate_connection(ws) is None
+
+    reply = Message.from_json(ws.send.call_args[0][0])
+    assert reply.type == MessageType.AUTH_FAILURE.value
+    assert "version mismatch" in reply.data["reason"].lower()
+
+
+@pytest.mark.asyncio
+async def test_authenticate_connection_refuses_a_client_that_sends_no_version():
+    server = VeinbornServer()
+    ws = AsyncMock()
+    ws.recv = AsyncMock(return_value='{"type": "auth", "data": {"player_name": "Old"}}')
+
+    assert await server.authenticate_connection(ws) is None

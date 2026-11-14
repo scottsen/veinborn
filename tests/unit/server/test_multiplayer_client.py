@@ -12,7 +12,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent.parent.parent / "src"))
 import pytest
 
 from ui.multiplayer_client import MultiplayerClient
-from server.messages import Message
+from protocol.messages import Message
 from server.state_delta import StateDelta
 
 
@@ -66,3 +66,24 @@ async def test_delta_message_reaches_state_update_callback():
     await client._handle_message(Message.delta(delta))
 
     assert received[-1]["current_floor"] == 2
+
+
+@pytest.mark.asyncio
+async def test_connect_refuses_a_server_speaking_another_protocol_version(monkeypatch):
+    class _FakeWs:
+        async def send(self, raw):
+            pass
+
+        async def recv(self):
+            reply = Message.auth_success("s", "p", "tok")
+            reply.v = 0
+            return reply.to_json()
+
+    async def _connect(uri):
+        return _FakeWs()
+
+    monkeypatch.setattr("ui.multiplayer_client.websockets.connect", _connect)
+    client = MultiplayerClient()
+
+    assert await client.connect("Alice") is False
+    assert not client.state.is_connected

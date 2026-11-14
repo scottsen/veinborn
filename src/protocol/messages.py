@@ -5,6 +5,8 @@ from enum import Enum
 from typing import Any, Dict, Optional
 import json
 
+from . import PROTOCOL_VERSION
+
 
 class MessageType(Enum):
     """Message types for client-server protocol."""
@@ -45,6 +47,8 @@ class Message:
     type: str
     data: Dict[str, Any]
     timestamp: Optional[float] = None
+    v: int = PROTOCOL_VERSION          # protocol version of the sender
+    seq: Optional[int] = None          # per-game sequence number on state messages
 
     def to_json(self) -> str:
         """Serialize message to JSON."""
@@ -54,6 +58,8 @@ class Message:
     def from_json(cls, json_str: str) -> "Message":
         """Deserialize message from JSON."""
         data = json.loads(json_str)
+        # A sender that predates versioning is, by definition, not this version
+        data.setdefault("v", 0)
         return cls(**data)
 
     @classmethod

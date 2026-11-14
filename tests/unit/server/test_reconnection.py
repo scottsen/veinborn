@@ -15,7 +15,7 @@ from unittest.mock import AsyncMock, Mock, patch
 from server.game_session import GameSession, PlayerInfo, ConnectionStatus
 from server.websocket_server import VeinbornServer
 from server.auth import AuthManager
-from server.messages import Message, MessageType
+from protocol.messages import Message, MessageType
 
 
 pytestmark = pytest.mark.unit
