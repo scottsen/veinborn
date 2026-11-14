@@ -82,15 +82,17 @@ def test_status_bar_shows_hp_and_floor():
     run(scenario)
 
 
-def test_inventory_key_lists_the_pack_in_the_log():
+def test_inventory_key_opens_the_pack_screen_listing_the_pack():
     async def scenario(app, pilot):
         p = game_of(app).state.player
         p.inventory.clear()
         p.add_to_inventory(make('dagger'))
         await pilot.press("i")
         await pilot.pause()
-        text = log_text(app)
-        assert "=== Full Inventory (1/" in text and "1. Dagger (weapon)" in text
+        from ui.textual.pack_screen import PackScreen
+        assert isinstance(app.screen, PackScreen)
+        panel = app.screen.render_panel().plain
+        assert "1/" in panel and "Dagger (weapon" in panel
     run(scenario)
 
 

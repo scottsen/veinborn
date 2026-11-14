@@ -84,10 +84,12 @@ def test_lobby_ready_move_and_refusal_through_the_app():
                 await pilot.press("d")
                 await until(lambda: "You have nothing to drop." in app.message_log.render().plain, pilot)
 
-                # Listings are local notes, merged into the server's log
+                # The pack screen reads the server's snapshot
                 await pilot.press("i")
                 await pilot.pause()
-                assert "Your inventory is empty." in app.message_log.render().plain
+                assert "Your pack is empty." in app.screen.render_panel().plain
+                await pilot.press("escape")
+                await pilot.pause()
 
                 # Save/load/restart do not exist for a server's game
                 await pilot.press("S")

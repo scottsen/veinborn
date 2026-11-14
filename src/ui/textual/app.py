@@ -11,8 +11,13 @@ from core.game import Game
 from core.config.user_config import ConfigManager
 from ui.textual.widgets import MapWidget, StatusBar, Sidebar, InventoryWidget, ChatInput
 from ui.textual.widgets.message_log import MessageLog
-from core.item_listing import ground_messages, inventory_messages, items_here
+from core.item_listing import ground_messages, items_here
+from textual.screen import ModalScreen
 from ui.textual.equipment_screen import EquipmentScreen
+from ui.textual.craft_screen import CraftScreen
+from ui.textual.pack_screen import PackScreen
+from ui.textual.help_screen import HelpScreen
+from ui.textual.confirm_screen import ConfirmScreen
 from ui.driver import LocalDriver, RemoteDriver
 
 # Setup logging
@@ -144,11 +149,13 @@ class VeinbornApp(App):
         Binding("s", "survey", "Survey Ore", show=True),
         Binding("z", "ability", "Class Ability (cast/heal)", show=True),
         # Inventory and inspection
-        Binding("i", "show_inventory", "Show Inventory", show=True),
+        Binding("i", "show_inventory", "Pack (choose: use / drop)", show=True),
+        Binding("f", "craft", "Craft at a forge (stand next to it)", show=True),
+        Binding("question_mark", "help", "Keys help (?)", show=True),
         Binding("w", "equip_item", "Equipment (wield/wear/remove)", show=True),
         Binding("g", "pickup", "Pick up Items", show=True),
-        Binding("e", "use_item", "Eat/Drink (heal)", show=True),
-        Binding("d", "drop_item", "Drop least useful item", show=True),
+        Binding("e", "use_item", "Quick eat/drink (best heal)", show=True),
+        Binding("d", "drop_item", "Quick drop (least useful)", show=True),
         Binding(":", "look_at_ground", "Look at Ground", show=True),
         # Wait/Pass turn
         Binding(".", "wait", "Wait/Pass Turn", show=True),
@@ -163,8 +170,8 @@ class VeinbornApp(App):
         Binding("L", "load_game", "Load Game", show=True),
         # Game controls
         Binding("R", "ready", "Ready (multiplayer lobby)", show=True),
-        Binding("r", "restart", "Restart", show=True),
-        Binding("q", "quit", "Quit", show=True),
+        Binding("r", "confirm_restart", "Restart", show=True),
+        Binding("q", "confirm_quit", "Quit", show=True),
         # Debug
         Binding("D", "debug_ui", "Debug UI", show=False),
     ]
@@ -338,9 +345,43 @@ class VeinbornApp(App):
         await self._act('wait')
 
     async def action_show_inventory(self) -> None:
-        """List the full inventory in the message log."""
+        """Open the pack screen: pick an item to use or drop (the e / d keys stay the quick ones)."""
         if self._playing():
-            self._note(inventory_messages(self.driver.snapshot().player))
+            self.push_screen(PackScreen(self.driver, on_change=self.refresh_ui))
+
+    async def action_craft(self) -> None:
+        """Open the crafting screen when a forge is in reach."""
+        if not self._playing():
+            return
+        if self.driver.snapshot().player.forge_id is None:
+            self._note(["No forge in reach: stand next to a forge, then press f."])
+            return
+        self.push_screen(CraftScreen(self.driver, on_change=self.refresh_ui))
+
+    async def action_help(self) -> None:
+        """List every key."""
+        self.push_screen(HelpScreen(self.BINDINGS))
+
+    def _confirm(self, question: str, then) -> None:
+        """Ask before a keystroke that ends the run; `then` runs on yes."""
+        def answered(yes):
+            if yes:
+                then()
+        self.push_screen(ConfirmScreen(question), answered)
+
+    async def action_confirm_quit(self) -> None:
+        if self._playing():
+            self._confirm("Quit the game? The run in progress is lost unless you saved (S).",
+                          self.exit)
+        else:
+            self.exit()
+
+    async def action_confirm_restart(self) -> None:
+        if self._playing() and self.driver.can_save:      # a refused restart needs no prompt
+            self._confirm("Restart? The run in progress is lost unless you saved (S).",
+                          lambda: self.run_worker(self.action_restart()))
+        else:
+            await self.action_restart()
 
     async def action_use_item(self) -> None:
         """Drink a healing potion or eat food: the one that best covers missing HP."""
@@ -355,8 +396,9 @@ class VeinbornApp(App):
         await self._act('pickup')
 
     def check_action(self, action: str, parameters) -> bool | None:
-        """While the equipment screen is open the map keys must not move or hit anything."""
-        if isinstance(self.screen, EquipmentScreen):
+        """While a screen (equipment, pack, forge, keys, a prompt) is open the map keys must not
+        move or hit anything."""
+        if isinstance(self.screen, ModalScreen):
             return action in ('quit', 'debug_ui')
         return True
 

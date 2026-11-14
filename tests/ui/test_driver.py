@@ -105,8 +105,9 @@ def test_keys_become_intents_and_the_screen_draws_the_drivers_snapshot():
             ]
             await pilot.press("i")
             await pilot.pause()
-            assert any("Long Sword" in line for line in app.driver.notes)
-            assert "Long Sword (weapon)" in app.message_log.render().plain
+            assert "Long Sword (weapon" in app.screen.render_panel().plain   # the pack screen
+            await pilot.press("escape")
+            await pilot.pause()
     asyncio.run(scenario())
 
 

@@ -57,7 +57,7 @@ b   n
 
 ### Pro Tips
 - **Mining happens automatically** when you bump an ore vein — no key needed
-- **Crafting** happens contextually at forges (walk onto a forge tile)
+- **Crafting** happens at forges: stand next to one and press **f**
 - **Wait (.)** = Skip your turn (let monsters come to you). It is also how you **rest**: you heal
   3x faster after a wait when no monster can see you (see *Healing* in docs/MECHANICS_REFERENCE.md)
 - **Monsters see, they don't sense:** each notices you only within its own sight range and
@@ -105,7 +105,7 @@ Higher numbers = better! Purity amplifies everything.
 
 ### Step 4: Craft Your First Weapon (1 minute)
 1. Find a **forge** (yellow █ tile)
-2. Walk onto the forge to trigger the crafting menu
+2. Stand next to the forge and press **f** to open the crafting menu
 3. Select a recipe (try "Copper Sword")
 4. If you have the right ore, craft it!
 5. Press **w** to wield your new weapon
@@ -362,19 +362,19 @@ Both are valid! The vault helps you learn without being OP.
 
 ```
 MOVEMENT          COMBAT / MINING         ITEMS
-↑ k    y  u       Walk into enemy         i - Inventory
+↑ k    y  u       Walk into enemy         i - Pack (choose use / drop)
 ← h @ l →         = Attack                w - Equipment (wear/remove)
 ↓ j    b  n       Walk into ore vein
                   = Mine (bump-to-mine)   g - Pick up
-                  s - Survey ore          e - Eat/drink (heal)
-                  z - Class ability       d - Drop (least useful)
+                  s - Survey ore          e - Quick eat/drink (best heal)
+                  z - Class ability       d - Quick drop (least useful)
                                           : - Look at ground
 
 TURN / FLOW       PROGRESSION             GAME
 . or space        > - Descend stairs      S - Save   L - Load
-  = Wait / pass   (crafting happens       r - Restart
-c or enter        on forge tiles)         q - Quit
-  = Chat (MP)
+  = Wait / pass   f - Craft (next to a    r - Restart (asks first)
+c or enter        forge)                  q - Quit (asks first)
+  = Chat (MP)     ? - List every key
 ```
 
 ---

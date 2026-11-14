@@ -52,12 +52,13 @@ veinborn
 - `Arrows/HJKL`: Move
 - `YUBN`: Diagonal movement
 - `s`: Survey ore
-- `m`: Mine ore
-- `c`: Craft (at forge)
-- `e`: Equip items
+- Bump into an ore vein: Mine
+- `f`: Craft (stand next to a forge)
+- `w`: Equipment (wield / wear / remove)
+- `i`: Pack (choose an item to use or drop); `e` / `d`: quick eat-drink / drop
 - `>`: Descend stairs
-- `R`: Restart game
-- `Q`: Quit
+- `r`: Restart (asks first); `q`: Quit (asks first)
+- `?`: List every key
 
 **Gameplay Loop:** Explore → Mine ore → Craft equipment → Fight monsters → Go deeper → Die → Learn → Repeat!
 

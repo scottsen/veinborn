@@ -27,6 +27,7 @@ class ItemView:
     item_type: str
     slot: Optional[str] = None  # 'weapon' | 'armor' | 'shield' if it can be worn (core.equipment.gear_slot)
     bonus: int = 0              # its bonus in that slot (attack for weapons, defense otherwise)
+    usable: bool = False        # a built effect: the pack screen offers Use (potion, food, later scrolls)
 
 
 @dataclass
@@ -65,6 +66,19 @@ class EffectView:
 
 
 @dataclass
+class RecipeView:
+    """One craftable recipe as the viewer stands at a forge (VB-109): what it needs, whether the
+    pack covers it, and the stats a craft now would give."""
+    recipe_id: str
+    name: str
+    slot: str                   # 'weapon' | 'armor' | ...
+    requires: str               # e.g. '3x copper ore'
+    craftable: bool
+    reason: Optional[str] = None            # why not, when not craftable
+    stats: Dict[str, int] = field(default_factory=dict)   # preview, only when craftable
+
+
+@dataclass
 class PlayerView:
     entity_id: object
     name: str
@@ -87,6 +101,8 @@ class PlayerView:
     color: str
     alive: bool = True          # False for a dead viewer who is spectating
     effects: List[EffectView] = field(default_factory=list)   # active status effects (VB-107)
+    forge_id: Optional[object] = None    # a forge within reach (adjacent or underfoot), else None
+    recipes: List[RecipeView] = field(default_factory=list)   # filled only while forge_id is set
 
 
 @dataclass
@@ -173,16 +189,19 @@ def _player_from_dict(data: Dict) -> PlayerView:
     fields['inventory'] = [_item_from_dict(i) for i in fields.get('inventory', [])]
     fields['abilities'] = [AbilityView(**a) for a in fields.get('abilities', [])]
     fields['effects'] = [EffectView(**e) for e in fields.get('effects', [])]
+    fields['recipes'] = [RecipeView(**r) for r in fields.get('recipes', [])]
     return PlayerView(**fields)
 
 
 def _item(item) -> Optional[ItemView]:
     if item is None:
         return None
+    from .actions.use_item_action import usable_effect
     slot = gear_slot(item)
     return ItemView(
         item.entity_id, item.content_id, item.name, item.get_stat('item_type', 'unknown'),
         slot=slot, bonus=gear_bonus(item, slot) if slot else 0,
+        usable=usable_effect(item) is not None,
     )
 
 
@@ -207,6 +226,30 @@ def _effects(player) -> List[EffectView]:
                    e['turns_left'], e['magnitude'])
         for e in (player.stats.get('effects') or [])
     ]
+
+
+def _forge_in_reach(state, player):
+    """The forge a craft would use (CraftAction needs one adjacent), else None."""
+    return next((e for e in state.entities.values()
+                 if e.entity_type == EntityType.FORGE and player.is_adjacent(e)), None)
+
+
+def _recipes(player, floor: int) -> List[RecipeView]:
+    """Every recipe, craftable ones first (then by name), judged against the viewer's pack."""
+    from .actions.craft_action import CraftAction
+    manager = CraftAction.get_recipe_manager()
+    views = []
+    for recipe in manager.get_all_recipes():
+        ok, reason = manager.can_craft(recipe.recipe_id, player.inventory, floor)
+        special = recipe.get_special_requirement()
+        requires = f"{recipe.get_required_ore_count()}x {recipe.get_required_ore_type()} ore"
+        if special:
+            requires += f" + {special}"
+        views.append(RecipeView(
+            recipe.recipe_id, recipe.display_name, recipe.equipment_slot, requires, ok, reason,
+            manager.preview_stats(recipe.recipe_id, player.inventory) or {} if ok else {},
+        ))
+    return sorted(views, key=lambda r: (not r.craftable, r.name))
 
 
 def _player_view(player, turn: int) -> PlayerView:
@@ -266,6 +309,11 @@ def build_snapshot(state, viewer=None, message_count: int = 20) -> Snapshot:
         for e in state.entities.values()
         if e.entity_id != viewer.entity_id and shown(e)
     ]
+    player_view = _player_view(viewer, state.turn_count)
+    forge = _forge_in_reach(state, viewer)
+    if forge is not None:
+        player_view.forge_id = forge.entity_id
+        player_view.recipes = _recipes(viewer, state.current_floor)
     tiles = game_map.to_dict()['tiles']
     lit_rows = []
     if not reveal:
@@ -282,7 +330,7 @@ def build_snapshot(state, viewer=None, message_count: int = 20) -> Snapshot:
         floor=state.current_floor,
         game_over=state.game_over,
         victory=state.victory,
-        player=_player_view(viewer, state.turn_count),
+        player=player_view,
         entities=entities,
         map=MapView(game_map.width, game_map.height, tiles, lit_rows),
         messages=state.get_recent_messages(message_count),

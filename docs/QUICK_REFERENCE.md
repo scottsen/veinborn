@@ -34,7 +34,7 @@
 - Survey before mining (check if ore is worth it!)
 - Clear monsters before mining (you're vulnerable!)
 - Purity 80+ ore saves to Legacy Vault on death
-- Wield crafted items with `w` — crafting happens automatically on forge tiles
+- Wield crafted items with `w` — press `f` next to a forge to craft
 
 ---
 
@@ -147,10 +147,12 @@ tail -f logs/veinborn.log
 | **Arrow keys** | Move (cardinal) |
 | **Y/U/B/N** | Move (diagonal) |
 | **S** | Survey ore vein |
-| **M** | Mine ore vein |
-| **C** | Craft at forge |
-| **E** | Equip item |
-| **I** | Open inventory |
+| **Bump** | Mine an ore vein (no key) |
+| **F** | Craft (stand next to a forge) |
+| **W** | Equipment: wield, wear, remove |
+| **I** | Pack: choose an item to use (Enter) or drop (d) |
+| **E / D** | Quick eat-drink (best heal) / quick drop (least useful) |
+| **?** | List every key |
 | **>** | Descend stairs |
 | **<** | Ascend stairs |
 | **R** | Restart game |
