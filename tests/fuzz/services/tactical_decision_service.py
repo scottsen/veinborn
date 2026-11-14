@@ -22,7 +22,7 @@ logger = logging.getLogger(__name__)
 class CombatConfig:
     """Configuration for combat decisions."""
     health_threshold: float = 0.3      # When is health "low"?
-    safety_margin: float = 1.5         # Combat win calculation multiplier
+    safety_margin: float = 1.5         # Fight only if killing is this many times faster than dying (>1 cautious, <1 reckless)
     engagement_range: float = 5.0      # How far to pursue enemies
     flee_priority: int = 6             # Priority in decision tree
 
@@ -113,12 +113,13 @@ class TacticalDecisionService:
         turns_to_kill_monster = max(1, monster.hp / player_power)
         turns_to_die = max(1, player.hp / max(0.01, monster_power))
 
-        # Can win if we kill them before they kill us (with safety margin)
-        can_win = turns_to_kill_monster < (turns_to_die * self.combat_config.safety_margin)
+        # Can win if we kill them `safety_margin` times faster than they kill us
+        # (it once multiplied the other side, so a bigger margin made bots fight MORE)
+        can_win = turns_to_kill_monster * self.combat_config.safety_margin < turns_to_die
 
         if self.verbose:
             logger.debug(f"can_win_fight vs {monster.name}: {can_win} "
-                  f"(kill={turns_to_kill_monster:.1f} vs die={turns_to_die:.1f}*{self.combat_config.safety_margin})")
+                  f"(kill={turns_to_kill_monster:.1f}*{self.combat_config.safety_margin} vs die={turns_to_die:.1f})")
 
         return can_win
 

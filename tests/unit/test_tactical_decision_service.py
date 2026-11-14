@@ -108,18 +108,16 @@ class TestCombatDecisions:
 
         perception = PerceptionService()
 
-        # With safety_margin=1.5 (default), should be cautious
-        config_cautious = CombatConfig(safety_margin=1.5)
-        decisions_cautious = TacticalDecisionService(perception, combat_config=config_cautious)
-        result_cautious = decisions_cautious.can_win_fight(game, monster)
-
-        # With safety_margin=1.0, should be more aggressive
-        config_aggressive = CombatConfig(safety_margin=1.0)
-        decisions_aggressive = TacticalDecisionService(perception, combat_config=config_aggressive)
-        result_aggressive = decisions_aggressive.can_win_fight(game, monster)
-
-        # Aggressive should be more willing to fight
-        assert result_aggressive is True or result_cautious is False
+        # Even match: kill_time is about 0.8 x die_time, so the verdict flips with the margin
+        results = {}
+        for margin in (0.5, 1.0, 3.0):
+            decisions = TacticalDecisionService(perception, combat_config=CombatConfig(safety_margin=margin))
+            results[margin] = decisions.can_win_fight(game, monster)
+        # A bigger margin never makes the bot fight more, and the extremes differ
+        assert results[0.5] is True
+        assert results[3.0] is False
+        assert (results[0.5], results[1.0], results[3.0]) in {
+            (True, True, False), (True, False, False)}
 
     def test_should_fight_when_adjacent(self):
         """Should always fight when monster is adjacent (forced combat)."""
