@@ -78,6 +78,10 @@ level and gear players actually have on those floors (`scripts/bot_progression.p
   ore on the floor ("Inventory full!"); a full pack does not stop mining.
 - **Gold:** a number (`player.gold`), not items: picking up a pile adds its `gold_amount` and uses the pile
   up. It has no use yet (VB-74). Saves from before this load their gold piles into the total.
+- **Ore summary:** the pack screen (`i`) and the sidebar inventory show `Ore Q avg N, best M` over the ore you
+  carry (`crafting.ore_summary`; each piece's `Q` is `crafting.ore_rating`). Boss materials are not counted.
+- **Pack screen scrolling:** every list screen (pack, forge, ore/part pickers, ground items) shows only the
+  rows that fit the terminal, with `↑ N more` / `↓ N more` markers (`ListScreen._window`).
 
 ### Equipment Bonuses
 

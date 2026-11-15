@@ -52,7 +52,7 @@ b   n
 - **.** or **space** = Wait / pass turn
 - **c** or **enter** = Chat (multiplayer)
 - **>** = Descend stairs (when standing on them)
-- **S** / **L** = Save / Load game
+- **S** / **L** = Save / Load game (**L** asks first: everything since your last save is lost)
 - **r** = Restart (after death) — **q** = Quit
 
 ### Pro Tips

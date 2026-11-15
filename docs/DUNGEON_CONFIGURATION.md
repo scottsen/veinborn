@@ -51,6 +51,9 @@ The dungeon generation works as follows:
 **`rooms.padding`** (default: 1)
 - Space between room edges and BSP region boundaries
 - Creates natural spacing between adjacent rooms
+- A small BSP cell (3-5 tiles) still gets a `min_size` room, so padding is not guaranteed there; rooms are
+  clamped to the map interior, so the outermost row and column are always wall (`Map.create_rooms`,
+  `tests/unit/test_map_border.py`).
 
 ## Corridor Parameters
 
