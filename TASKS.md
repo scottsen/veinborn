@@ -2,7 +2,7 @@
 project: veinborn
 schema_version: '1.0'
 id_prefix: VB
-next_id: 133
+next_id: 135
 archival: inline
 areas: {}
 ---
@@ -2531,18 +2531,19 @@ priority: high
 owner: scott
 tags: [multiplayer, playtest]
 created: '2026-11-14T02:32:40Z'
-updated: '2026-11-14T23:33:19Z'
+updated: '2026-11-15T01:20:15Z'
 session: warming-sunshine-1113
 links:
   relates_to:
   - VB-102
-notes_next: 3
+notes_next: 4
 ```
 
 <!-- notes: append-only log; each has a stable #id (see CLI §5) -->
 ### Notes
 - [#1 2026-11-14T17:51:52Z session:peaceful-shower-1114] Crafting is now reachable from the keyboard (f next to a forge, VB-109); include crafting, the pack screen (i) and ? help in the playtest.
 - [#2 2026-11-14T23:33:19Z session:fuchsia-dye-1114] Add to the playtest checklist (built 2026-11-14 fuchsia-dye-1114, never played by a human): wear/remove a ring (w; trolls drop them, 10%); ore bag vs pack counts and Gold in the i screen/sidebar; walk over gold (counter, no slot); ore label Q rating; forge Uses: line names the ore, o picker lists best Q first; equipment diff reads 'vs worn: -6 attack'.
+- [#3 2026-11-15T01:20:15Z session:crimson-crash-1114] Added since the checklist: ore summary line (pack screen + sidebar), pack list scrolling (↑/↓ N more), Shift+L now asks before loading. Check each in the TUI.
 
 
 ## TASK-VB-105 · MP plan phase 5 / D4: fog of war per viewer (explored memory per viewer per floor, filtered in build_snapshot), on by default with a dev reveal switch
@@ -2818,16 +2819,17 @@ priority: medium
 effort: 2d
 tags: [crafting, balance, bots, crafting-v2]
 created: '2026-11-14T18:33:29Z'
-updated: '2026-11-14T20:48:34Z'
+updated: '2026-11-15T01:20:15Z'
 session: peaceful-shower-1114
 depends_on: [VB-115, VB-116]
-notes_next: 3
+notes_next: 4
 ```
 
 <!-- notes: append-only log; each has a stable #id (see CLI §5) -->
 ### Notes
 - [#1 2026-11-14T18:33:42Z session:peaceful-shower-1114] Waits on VB-113 decisions (D1-D5 in docs/design/CRAFTING_PARTS_DESIGN.md).
 - [#2 2026-11-14T20:48:34Z session:peaceful-shower-1114] Bot behavior changed after the pre-v2 baseline (VB-123 routing fdb9335): use /home/scottsen/src/tia/sessions/peaceful-shower-1114/routing_after/ (fdb9335) as the v2 'before', not prev2_baseline (3d1e8c6).
+- [#3 2026-11-15T01:20:15Z session:crimson-crash-1114] Re-baseline also needs the map-generation change (ead2d78): rooms are now clamped inside the map interior, so seeded layouts differ for ~21% of seeds (those with a room on the map edge). VB-123's seed 3009/3011 replay must run in the old-code worktree, not on main.
 
 
 ## TASK-VB-118 · Crafting v2 phase 5: named ore spawns per run (seeded skew profiles, floor windows), name on labels/parts, Legacy Vault keeps it - see docs/design/CRAFTING_PARTS_DESIGN.md
@@ -3134,6 +3136,40 @@ tags: [tests, multiplayer, flaky]
 created: '2026-11-14T23:33:19Z'
 updated: '2026-11-14T23:33:19Z'
 session: fuchsia-dye-1114
+```
+
+<!-- notes: append-only log; each has a stable #id (see CLI §5) -->
+### Notes
+_(no notes yet)_
+
+
+## TASK-VB-133 · Blocked moves say only 'Cannot move there': say why (map edge, wall, immovable entity), and show where the map ends (panel has blank space below the last row)
+
+```yaml
+status: backlog
+priority: low
+effort: 1h
+tags: [ui]
+created: '2026-11-15T01:20:10Z'
+updated: '2026-11-15T01:20:10Z'
+session: crimson-crash-1114
+```
+
+<!-- notes: append-only log; each has a stable #id (see CLI §5) -->
+### Notes
+_(no notes yet)_
+
+
+## TASK-VB-134 · Sidebar inventory widget: show Q per ore row and scroll past the first 10 items (pack screen already scrolls)
+
+```yaml
+status: backlog
+priority: low
+effort: 1h
+tags: [ui]
+created: '2026-11-15T01:20:12Z'
+updated: '2026-11-15T01:20:12Z'
+session: crimson-crash-1114
 ```
 
 <!-- notes: append-only log; each has a stable #id (see CLI §5) -->
