@@ -219,6 +219,14 @@ class Map:
             room_x = node.x + padding + (rng.randint(0, max_x_offset) if max_x_offset > 0 else 0)
             room_y = node.y + padding + (rng.randint(0, max_y_offset) if max_y_offset > 0 else 0)
 
+            # A small BSP cell (3-5 tiles) gets a min-size room that fills it edge to edge, which on
+            # the map edge left floor on the last row/column: no wall, yet you cannot walk past it.
+            # Keep every room inside the map's interior so the outer ring is always wall.
+            room_width = min(room_width, self.width - 2)
+            room_height = min(room_height, self.height - 2)
+            room_x = max(1, min(room_x, self.width - 1 - room_width))
+            room_y = max(1, min(room_y, self.height - 1 - room_height))
+
             node.room = Room(room_x, room_y, room_width, room_height)
             self.rooms.append(node.room)
         else:
