@@ -169,7 +169,7 @@ class VeinbornApp(App):
         Binding("enter", "chat", "Chat", show=False),
         # Save/Load
         Binding("S", "save_game", "Save Game", show=True),
-        Binding("L", "load_game", "Load Game", show=True),
+        Binding("L", "confirm_load", "Load Game", show=True),
         # Game controls
         Binding("R", "ready", "Ready (multiplayer lobby)", show=True),
         Binding("r", "confirm_restart", "Restart", show=True),
@@ -444,6 +444,14 @@ class VeinbornApp(App):
         else:
             logger.error("Failed to save game")
         self.refresh_ui()
+
+    async def action_confirm_load(self) -> None:
+        """L replaces the run with the last save, so ask first: everything since that save is lost."""
+        if self._playing() and self.driver.can_save:
+            self._confirm("Load the last save? Everything since you last saved (S) is lost.",
+                          lambda: self.run_worker(self.action_load_game()))
+        else:
+            await self.action_load_game()
 
     async def action_load_game(self) -> None:
         """Load the saved run (local runs only)."""

@@ -499,3 +499,44 @@ def test_z_with_one_target_casts_at_once():
             await pilot.pause()
             assert not isinstance(app.screen, TargetScreen)
     asyncio.run(main())
+
+
+def test_a_long_pack_list_scrolls_to_the_last_row_instead_of_clipping():
+    async def scenario(app, pilot, game):
+        player = game.state.player
+        player.inventory.clear()
+        vein = EntityLoader().create_ore_vein('copper', 0, 0, floor=1)
+        for _ in range(25):
+            player.add_to_inventory(vein.get_ore_item())
+        await pilot.press("i")
+        await pilot.pause()
+        screen = app.screen
+        assert isinstance(screen, PackScreen)
+        shown = screen.render_panel().plain
+        assert shown.count("Copper Ore") < 25 and "↓ " in shown.split("\n\n")[-2] and " more" in shown         # clipped list says so
+        for _ in range(24):
+            await pilot.press("down")
+        await pilot.pause()
+        assert screen.cursor == 24
+        shown = screen.render_panel().plain
+        assert "▶ Copper Ore" in shown and "↑ " in shown and " more" in shown and "↓ " not in shown.replace("↑/↓", "") # cursor row is on screen
+    run(scenario)
+
+
+def test_shift_l_asks_before_replacing_the_run_with_the_last_save():
+    async def scenario(app, pilot, game):
+        player = game.state.player
+        await pilot.press("S")                      # save at full health
+        await pilot.pause()
+        player.hp = 1
+        await pilot.press("L")
+        await pilot.pause()
+        assert isinstance(app.screen, ConfirmScreen)
+        await pilot.press("n")
+        await pilot.pause()
+        assert not isinstance(app.screen, ConfirmScreen) and app.driver.game.state.player.hp == 1   # nothing lost
+
+        await pilot.press("L", "y")
+        await pilot.pause()
+        assert app.driver.game.state.player.hp > 1                                                  # loaded the save
+    run(scenario)

@@ -36,6 +36,7 @@ class ListScreen(ModalScreen):
         self.driver = driver
         self.on_change = on_change      # called after every intent (refresh the main UI)
         self.cursor = 0
+        self.top = 0                    # first visible row (the list scrolls once it outgrows the panel)
         self.feedback = ""
 
     # -- subclass hooks --------------------------------------------------
@@ -70,10 +71,16 @@ class ListScreen(ModalScreen):
         text.append("\n")
         if not rows:
             text.append(f"   {self.empty}\n", style="dim")
-        for i, row in enumerate(rows):
+        first, last = self._window(len(rows), header, rows)
+        if first > 0:
+            text.append(f"  ↑ {first} more\n", style="dim italic")
+        for i in range(first, last):
+            row = rows[i]
             selected = i == self.cursor
             text.append(f"{'▶ ' if selected else '  '}{self.row_text(row)}\n",
                         style="bold reverse" if selected else "bright_white")
+        if last < len(rows):
+            text.append(f"  ↓ {len(rows) - last} more\n", style="dim italic")
         if rows:
             detail = self.detail(rows[self.cursor])
             if detail:
@@ -82,6 +89,26 @@ class ListScreen(ModalScreen):
             text.append(f"\n{self.feedback}\n", style="bright_cyan")
         text.append(f"\n{self.footer}", style="dim")
         return text
+
+    def _window(self, count: int, header: str, rows) -> tuple:
+        """The (first, last) row indexes that fit the panel, keeping the cursor inside (self.top)."""
+        height = (self.size.height or self.app.size.height) if self.is_attached else 24
+        fixed = 1 + (header.count("\n") + 1 if header else 0) + 1      # heading, header, blank line
+        fixed += 2 + 4 + 2                                              # footer, border + padding, more-markers
+        if rows and self.detail(rows[self.cursor]):
+            fixed += 2
+        if self.feedback:
+            fixed += 2 + self.feedback.count("\n")
+        visible = max(5, int(height * 0.9) - fixed)
+        if count <= visible:
+            self.top = 0
+            return 0, count
+        self.top = max(0, min(self.top, count - visible))
+        if self.cursor < self.top:
+            self.top = self.cursor
+        elif self.cursor >= self.top + visible:
+            self.top = self.cursor - visible + 1
+        return self.top, self.top + visible
 
     def refresh_panel(self) -> None:
         self.query_one("#list-panel", Static).update(self.render_panel())
