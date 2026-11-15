@@ -224,6 +224,14 @@ def ore_rating(props: Optional[Dict[str, int]]) -> int:
     return round(sum(values) / len(values)) if values else 0
 
 
+def ore_summary(ores) -> str:
+    """'Ore Q avg 58, best 71' over the ore properties dicts you carry; '' when there is none."""
+    ratings = [ore_rating(o) for o in ores if o]
+    if not ratings:
+        return ""
+    return f"Ore Q avg {round(sum(ratings) / len(ratings))}, best {max(ratings)}"
+
+
 def ore_label(props: Optional[Dict[str, int]]) -> str:
     """'Q62 P85 H70 M55 C40 D50': the overall rating then each property, with a star when every
     property is jackpot grade; '' for None."""

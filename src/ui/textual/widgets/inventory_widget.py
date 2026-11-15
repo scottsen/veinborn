@@ -3,6 +3,8 @@ import logging
 from textual.widgets import Static
 from rich.text import Text
 
+from core.crafting import ore_summary
+
 logger = logging.getLogger(__name__)
 
 
@@ -47,7 +49,9 @@ class InventoryWidget(Static):
         if inventory:
             capacity = player.inventory_capacity
             text.append(f"(pack {len(player.pack)}/{capacity}, ore {len(player.bag)}/{player.ore_capacity})\n", style="dim")
-            text.append(f"Gold: {player.gold}\n\n", style="bright_yellow")
+            text.append(f"Gold: {player.gold}\n", style="bright_yellow")
+            summary = ore_summary(i.ore for i in inventory)
+            text.append(f"{summary}\n\n" if summary else "\n", style="dim")
 
             for idx, item in enumerate(inventory[:max_display], 1):
                 item_type = item.item_type

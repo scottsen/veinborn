@@ -11,7 +11,7 @@ Rows are the snapshot's inventory, so it works the same on a remote run.
 
 from textual.binding import Binding
 
-from core.crafting import ORE_LEGEND, ore_label, stats_label
+from core.crafting import ORE_LEGEND, ore_label, ore_summary, stats_label
 
 from .list_screen import ListScreen
 
@@ -37,7 +37,7 @@ class PackScreen(ListScreen):
         header = (f"Pack {len(p.pack)}/{p.inventory_capacity}   Ore bag {len(p.bag)}/{p.ore_capacity}"
                   f"   Gold {p.gold}")
         if any(i.ore for i in p.inventory):
-            header += f"\nOre: {ORE_LEGEND}  (★ jackpot)"
+            header += f"\n{ore_summary(i.ore for i in p.inventory)}   {ORE_LEGEND}  (★ jackpot)"
         return header
 
     def row_text(self, item) -> str:

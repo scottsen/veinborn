@@ -296,3 +296,11 @@ def test_pack_screen_and_sidebar_show_gold_and_both_counts():
             assert "Pack 1/20" in header and "Ore bag 3/30" in header and "Gold 50" in header
 
     asyncio.run(scenario())
+
+
+def test_ore_summary_gives_average_and_best_quality():
+    from core.crafting import ore_summary
+    lo = {'purity': 40, 'hardness': 40, 'malleability': 40, 'conductivity': 40, 'density': 40}
+    hi = {k: 80 for k in lo}
+    assert ore_summary([lo, hi, None]) == "Ore Q avg 60, best 80"
+    assert ore_summary([]) == ""
